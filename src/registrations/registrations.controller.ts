@@ -6,7 +6,7 @@ export class RegistrationsController {
   constructor(private readonly registrationsService: RegistrationsService) {}
 
   @Post()
-  register(@Body() payload: RegistrationRequest): RegistrationResponse {
+  async register(@Body() payload: RegistrationRequest): Promise<RegistrationResponse> {
     return this.registrationsService.register(payload);
   }
 }
