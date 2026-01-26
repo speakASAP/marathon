@@ -1,7 +1,8 @@
 FROM node:22-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache openssl openssl1.1-compat
+RUN apk add --no-cache openssl
 ENV npm_config_update_notifier=false
+ENV PRISMA_CLI_BINARY_TARGETS=linux-musl-openssl-3.0.x
 
 FROM base AS deps
 COPY package*.json ./
