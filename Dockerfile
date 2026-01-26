@@ -24,6 +24,7 @@ ENV npm_config_update_notifier=false
 ENV PRISMA_CLI_BINARY_TARGETS=linux-musl-openssl-3.0.x
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+COPY package*.json ./
 COPY prisma ./prisma
 EXPOSE ${PORT}
 CMD ["node", "dist/main.js"]
