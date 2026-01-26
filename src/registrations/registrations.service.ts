@@ -58,7 +58,9 @@ export class RegistrationsService {
       },
     });
 
-    const redirectUrl = process.env.FRONTEND_URL || undefined;
+    // Build redirect URL matching legacy: marathon.get_absolute_url() -> /marathon/{languageCode}
+    const base = (process.env.PUBLIC_BASE_URL || process.env.FRONTEND_URL || '').replace(/\/$/, '');
+    const redirectUrl = base ? `${base}/marathon/${marathon.languageCode}` : undefined;
 
     if (payload.email) {
       await this.notificationsService.send({

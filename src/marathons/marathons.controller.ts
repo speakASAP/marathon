@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
-import { MarathonsService, MarathonSummary } from './marathons.service';
+import { MarathonsService, MarathonSummary, MarathonLanguage } from './marathons.service';
 
 @Controller('marathons')
 export class MarathonsController {
@@ -15,7 +15,7 @@ export class MarathonsController {
   }
 
   @Get('languages')
-  listLanguages(): Promise<string[]> {
+  listLanguages(): Promise<MarathonLanguage[]> {
     return this.marathonsService.listLanguages();
   }
 
