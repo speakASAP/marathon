@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Marathon {
+  id              String              @id @default(uuid())
+  languageCode    String
+  title           String
+  slug            String              @unique
+  rulesTemplate   String?
+  active          Boolean             @default(false)
+  landingVideoUrl String?
+  vipGateDate     DateTime?
+  discountEndsAt  DateTime?
+  coverImageUrl   String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  steps           MarathonStep[]
+  participants    MarathonParticipant[]
+  gifts           MarathonGift[]
+  product         MarathonProduct?
+}
+
+model MarathonStep {
+  id          String   @id @default(uuid())
+  marathonId  String
+  title       String
+  sequence    Int
+  isPenalized Boolean  @default(true)
+  formKey     String?
+  socialLink  String?
+  isTrialStep Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  marathon    Marathon @relation(fields: [marathonId], references: [id])
+  submissions StepSubmission[]
+
+  @@unique([marathonId, sequence])
+}
+
+model MarathonParticipant {
+  id               String   @id @default(uuid())
+  userId           String?
+  marathonId       String
+  email            String?
+  phone            String?
+  name             String?
+  isFree           Boolean  @default(true)
+  vipRequired      Boolean  @default(false)
+  paymentReported  Boolean  @default(false)
+  bonusDaysLeft    Int      @default(7)
+  canUsePenalty    Boolean  @default(true)
+  active           Boolean  @default(true)
+  reportHour       DateTime
+  hasWarning       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  finishedAt       DateTime?
+  marathon         Marathon @relation(fields: [marathonId], references: [id])
+  submissions      StepSubmission[]
+  penaltyReports   PenaltyReport[]
+}
+
+model StepSubmission {
+  id           String             @id @default(uuid())
+  participantId String
+  stepId       String
+  startAt      DateTime
+  endAt        DateTime
+  isCompleted  Boolean            @default(false)
+  isChecked    Boolean            @default(false)
+  rating       Int                @default(0)
+  payloadJson  Json?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  participant  MarathonParticipant @relation(fields: [participantId], references: [id])
+  step         MarathonStep       @relation(fields: [stepId], references: [id])
+}
+
+model PenaltyReport {
+  id            String             @id @default(uuid())
+  participantId String
+  completed     Boolean            @default(false)
+  completeTime  DateTime?
+  value         Json?
+  createdAt     DateTime           @default(now())
+  participant   MarathonParticipant @relation(fields: [participantId], references: [id])
+}
+
+model MarathonWinner {
+  id         String   @id @default(uuid())
+  userId     String
+  goldCount  Int      @default(0)
+  silverCount Int     @default(0)
+  bronzeCount Int     @default(0)
+  createdAt  DateTime @default(now())
+}
+
+model MarathonGift {
+  id               String   @id @default(uuid())
+  marathonId       String
+  code             String   @unique
+  createdAt        DateTime @default(now())
+  usedAt           DateTime?
+  redeemedByUserId String?
+  marathon         Marathon @relation(fields: [marathonId], references: [id])
+}
+
+model MarathonProduct {
+  id          String   @id @default(uuid())
+  marathonId  String   @unique
+  title       String
+  price       Decimal
+  currency    String
+  totalHours  Int      @default(50)
+  marathon    Marathon @relation(fields: [marathonId], references: [id])
+}
