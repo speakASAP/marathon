@@ -66,8 +66,10 @@ export class WinnersService {
     const pageNum = Math.max(1, page);
     const skip = (pageNum - 1) * pageSize;
 
-    this.logger.debug(`Winners list requested (page=${pageNum}, limit=${pageSize})`);
+    this.logger.log(`Winners list service called: page=${pageNum}, limit=${pageSize}, skip=${skip}`);
+    this.logger.debug(`Winners list filters: ${JSON.stringify(medalFilter)}`);
 
+    const dbStartTime = Date.now();
     const [total, winners] = await Promise.all([
       this.prisma.marathonWinner.count({ where: medalFilter }),
       this.prisma.marathonWinner.findMany({
@@ -77,9 +79,17 @@ export class WinnersService {
         take: pageSize,
       }),
     ]);
+    const dbLatency = Date.now() - dbStartTime;
 
+    this.logger.log(
+      `Winners database query completed: total=${total}, found=${winners.length}, latency=${dbLatency}ms`,
+    );
+
+    this.logger.debug(`Fetching user info for ${winners.length} winners`);
+    const userInfoStartTime = Date.now();
     const items = await Promise.all(
       (winners as WinnerRecord[]).map(async (winner) => {
+        this.logger.debug(`Fetching user info for winner: id=${winner.id}, userId=${winner.userId}`);
         const userInfo = await this.getUserInfo(winner.userId);
         return {
           id: winner.id,
@@ -91,9 +101,15 @@ export class WinnersService {
         };
       }),
     );
+    const userInfoLatency = Date.now() - userInfoStartTime;
+    this.logger.log(`User info fetched: count=${items.length}, latency=${userInfoLatency}ms`);
 
     const nextPage = skip + winners.length < total ? pageNum + 1 : null;
     const prevPage = pageNum > 1 ? pageNum - 1 : null;
+
+    this.logger.debug(
+      `Winners list pagination: nextPage=${nextPage}, prevPage=${prevPage}, hasMore=${skip + winners.length < total}`,
+    );
 
     return {
       items,
@@ -106,23 +122,41 @@ export class WinnersService {
   }
 
   async getById(winnerId: string): Promise<WinnerDetail | null> {
-    this.logger.debug(`Winner requested (id=${winnerId})`);
+    this.logger.log(`Winner detail service called: winnerId=${winnerId}`);
 
+    const dbStartTime = Date.now();
     const winner = (await this.prisma.marathonWinner.findUnique({
       where: { id: winnerId },
     })) as WinnerRecord | null;
+    const dbLatency = Date.now() - dbStartTime;
 
     if (!winner) {
+      this.logger.warn(`Winner not found in database: winnerId=${winnerId}, latency=${dbLatency}ms`);
       return null;
     }
+
+    this.logger.debug(
+      `Winner found: id=${winner.id}, userId=${winner.userId}, medals=[gold=${winner.goldCount}, silver=${winner.silverCount}, bronze=${winner.bronzeCount}], latency=${dbLatency}ms`,
+    );
+
     const hasMedal =
       winner.goldCount > 0 || winner.silverCount > 0 || winner.bronzeCount > 0;
     if (!hasMedal) {
+      this.logger.warn(`Winner has no medals: winnerId=${winnerId}`);
       return null;
     }
 
-    const userInfo = await this.getUserInfo(winner.userId);
-    const reviews = await this.getWinnerReviews(winner.userId);
+    this.logger.debug(`Fetching user info and reviews for winner: winnerId=${winnerId}`);
+    const fetchStartTime = Date.now();
+    const [userInfo, reviews] = await Promise.all([
+      this.getUserInfo(winner.userId),
+      this.getWinnerReviews(winner.userId),
+    ]);
+    const fetchLatency = Date.now() - fetchStartTime;
+
+    this.logger.log(
+      `Winner detail completed: winnerId=${winnerId}, reviews=${reviews.length}, latency=${fetchLatency}ms`,
+    );
 
     return {
       id: winner.id,
@@ -137,21 +171,40 @@ export class WinnersService {
 
   private async getUserInfo(userId: string): Promise<{ name: string; avatar: string }> {
     if (this.authServiceUrl) {
+      const url = `${this.authServiceUrl}/api/users/${userId}`;
+      this.logger.debug(`Fetching user info from auth service: userId=${userId}, url=${url}`);
+      
+      const startTime = Date.now();
       try {
-        const response = await fetch(`${this.authServiceUrl}/api/users/${userId}`, {
+        const response = await fetch(url, {
           headers: { 'Content-Type': 'application/json' },
         });
+        const latency = Date.now() - startTime;
+        
         if (response.ok) {
           const user = await response.json();
           const firstName = user.firstName || '';
           const lastName = user.lastName || '';
           const name = `${firstName} ${lastName}`.trim() || `Участник #${userId}`;
           const avatar = user.avatar || user.image || '';
+          
+          this.logger.debug(
+            `User info fetched successfully: userId=${userId}, name=${name}, hasAvatar=${!!avatar}, latency=${latency}ms`,
+          );
           return { name, avatar };
+        } else {
+          this.logger.warn(
+            `Auth service returned error: userId=${userId}, status=${response.status}, latency=${latency}ms`,
+          );
         }
       } catch (error) {
-        this.logger.warn(`Failed to fetch user info for ${userId}: ${error}`);
+        const latency = Date.now() - startTime;
+        this.logger.warn(
+          `Failed to fetch user info: userId=${userId}, error=${error instanceof Error ? error.message : String(error)}, latency=${latency}ms`,
+        );
       }
+    } else {
+      this.logger.debug(`Auth service URL not configured, using default name for userId=${userId}`);
     }
 
     return {

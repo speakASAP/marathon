@@ -16,7 +16,7 @@ export class AnswersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getRandom(stepId: string, excludeMarathonerId?: string): Promise<RandomAnswer | null> {
-    this.logger.debug(`Random answer requested (stepId=${stepId}, excludeMarathonerId=${excludeMarathonerId || 'none'})`);
+    this.logger.log(`Random answer service called: stepId=${stepId}, excludeMarathonerId=${excludeMarathonerId || 'none'}`);
 
     const where: any = {
       stepId,
@@ -25,8 +25,11 @@ export class AnswersService {
 
     if (excludeMarathonerId) {
       where.participantId = { not: excludeMarathonerId };
+      this.logger.debug(`Excluding marathoner from results: excludeMarathonerId=${excludeMarathonerId}`);
     }
 
+    this.logger.debug(`Database query filters: ${JSON.stringify(where)}`);
+    const dbStartTime = Date.now();
     const submissions = await this.prisma.stepSubmission.findMany({
       where,
       include: {
@@ -42,22 +45,40 @@ export class AnswersService {
         },
       },
     });
+    const dbLatency = Date.now() - dbStartTime;
+
+    this.logger.log(
+      `Random answer database query completed: found=${submissions.length}, latency=${dbLatency}ms`,
+    );
 
     if (submissions.length === 0) {
+      this.logger.warn(`No completed submissions found: stepId=${stepId}, excludeMarathonerId=${excludeMarathonerId || 'none'}`);
       return null;
     }
 
     const randomIndex = Math.floor(Math.random() * submissions.length);
     const submission = submissions[randomIndex];
+    this.logger.debug(`Selected random submission: index=${randomIndex} of ${submissions.length}, submissionId=${submission.id}`);
 
     const participant = submission.participant;
     const marathon = participant.marathon;
     const step = submission.step;
 
+    this.logger.debug(
+      `Processing submission: participantId=${participant.id}, marathonId=${marathon.id}, stepId=${step.id}`,
+    );
+
     const name = participant.name || `${participant.email || participant.phone || 'Anonymous'}`;
+    this.logger.debug(`Marathoner name resolved: name=${name}`);
 
     const payload = submission.payloadJson as Record<string, any> | null;
+    const reportStartTime = Date.now();
     const report = this.generateReport(marathon.title, step.title, payload);
+    const reportLatency = Date.now() - reportStartTime;
+
+    this.logger.log(
+      `Random answer generated: stepId=${stepId}, marathonerName=${name}, reportLength=${report.length}, latency=${reportLatency}ms`,
+    );
 
     return {
       marathoner: {
