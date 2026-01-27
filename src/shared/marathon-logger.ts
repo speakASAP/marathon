@@ -32,27 +32,36 @@ export class MarathonLogger implements LoggerService {
     if (!this.loggingUrl || !this.loggingPath || !this.serviceName) {
       return;
     }
-    const requestContext = RequestContext.get();
-    const payload = {
-      service: this.serviceName,
-      level,
-      message: String(message),
-      context,
-      meta: {
-        ...meta,
-        requestId: requestContext?.requestId,
-        method: requestContext?.method,
-        path: requestContext?.path,
-        ip: requestContext?.ip,
-        userId: requestContext?.userId,
-      },
-      timestamp: new Date().toISOString(),
-    };
+    try {
+      const requestContext = RequestContext.get();
+      const payload = {
+        service: this.serviceName,
+        level,
+        message: String(message),
+        context,
+        meta: {
+          ...meta,
+          requestId: requestContext?.requestId,
+          method: requestContext?.method,
+          path: requestContext?.path,
+          ip: requestContext?.ip,
+          userId: requestContext?.userId,
+        },
+        timestamp: new Date().toISOString(),
+      };
 
-    fetch(`${this.loggingUrl}${this.loggingPath}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    }).catch(() => undefined);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000);
+      fetch(`${this.loggingUrl}${this.loggingPath}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      })
+        .catch(() => undefined)
+        .finally(() => clearTimeout(timeout));
+    } catch (error) {
+      // Silently fail if logging fails to prevent logging errors from breaking the app
+    }
   }
 }
