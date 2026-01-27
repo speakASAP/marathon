@@ -23,9 +23,8 @@ async function bootstrap(): Promise<void> {
     validateEnv();
     console.log('Environment validated');
     console.log('Creating NestJS app...');
-    // Temporarily use default logger to debug initialization issues
     const app = await NestFactory.create(AppModule, {
-      logger: ['error', 'warn', 'log'],
+      logger: new MarathonLogger(),
     });
     console.log('App created');
     app.enableShutdownHooks();
