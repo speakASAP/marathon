@@ -1,11 +1,32 @@
 import { Logger } from '@nestjs/common';
+import * as jwt from 'jsonwebtoken';
 
 const logger = new Logger('AuthClient');
 
 const baseUrl = process.env.AUTH_SERVICE_URL;
 const timeoutMs = Math.max(Number(process.env.AUTH_SERVICE_TIMEOUT) || 5000, 1000);
+const portalJwtSecret = process.env.MARATHON_PORTAL_JWT_SECRET;
 
 export type AuthUser = { id: string };
+
+/**
+ * Validates portal-issued JWT (Phase B: session user from speakasap-portal).
+ * Payload must have sub (portal user id string). Same secret as portal MARATHON_PORTAL_JWT_SECRET.
+ */
+export function validatePortalToken(token: string): AuthUser | null {
+  if (!portalJwtSecret || !token) {
+    return null;
+  }
+  try {
+    const payload = jwt.verify(token, portalJwtSecret, { algorithms: ['HS256'] }) as { sub?: string };
+    if (!payload?.sub) {
+      return null;
+    }
+    return { id: String(payload.sub) };
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Validates JWT via auth-microservice POST /auth/validate.

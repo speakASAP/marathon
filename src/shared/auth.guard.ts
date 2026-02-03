@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { validateToken } from './auth-client';
+import { validateToken, validatePortalToken } from './auth-client';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -16,7 +16,10 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Authentication required');
     }
     const token = auth.slice(7);
-    const user = await validateToken(token);
+    let user = await validateToken(token);
+    if (!user) {
+      user = validatePortalToken(token);
+    }
     if (!user) {
       throw new UnauthorizedException('Invalid or expired token');
     }
