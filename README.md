@@ -24,4 +24,4 @@ Standalone marathon product (NestJS + TypeScript).
 
 - Production-only workflow
 - Centralized logging via `LOGGING_SERVICE_URL`
-- Nginx API routes in `nginx-api-routes.conf`
+- Nginx API routes in `nginx/nginx-api-routes.conf`
