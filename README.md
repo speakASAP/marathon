@@ -10,8 +10,8 @@ Standalone marathon product (NestJS + TypeScript).
 
 ## Deployment (blue/green)
 
-- Use deployment script:
-  - `cd /home/statex/marathon`
+- On **dev** server (`ssh dev`):
+  - `cd ~/Documents/Github/marathon` (or repo root)
   - `./scripts/deploy.sh`
 
 ## Database

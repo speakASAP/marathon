@@ -53,8 +53,8 @@ SERVICE_NAME="marathon"
 NGINX_MICROSERVICE_PATH="${NGINX_MICROSERVICE_PATH:-}"
 
 if [ -z "$NGINX_MICROSERVICE_PATH" ]; then
-    if [ -d "/home/statex/nginx-microservice" ]; then
-        NGINX_MICROSERVICE_PATH="/home/statex/nginx-microservice"
+    if [ -d "$HOME/Documents/Github/nginx-microservice" ]; then
+        NGINX_MICROSERVICE_PATH="$HOME/Documents/Github/nginx-microservice"
     elif [ -d "/home/alfares/nginx-microservice" ]; then
         NGINX_MICROSERVICE_PATH="/home/alfares/nginx-microservice"
     elif [ -d "$HOME/nginx-microservice" ]; then
@@ -69,7 +69,7 @@ fi
 if [ -z "$NGINX_MICROSERVICE_PATH" ] || [ ! -d "$NGINX_MICROSERVICE_PATH" ]; then
     echo -e "${RED}Error: nginx-microservice not found${NC}"
     echo "Set NGINX_MICROSERVICE_PATH or install nginx-microservice in:"
-    echo "  - /home/statex/nginx-microservice"
+    echo "  - $HOME/Documents/Github/nginx-microservice"
     echo "  - /home/alfares/nginx-microservice"
     echo "  - $HOME/nginx-microservice"
     echo "  - $(dirname "$PROJECT_ROOT")/nginx-microservice"
