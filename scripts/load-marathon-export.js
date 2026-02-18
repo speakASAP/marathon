@@ -1,5 +1,6 @@
 /**
  * Load marathon export JSON into marathon service DB (Prisma).
+ * Uses streaming to handle large files (~1GB+) without loading into memory.
  *
  * Run on dev server after export from speakasap-portal:
  *   node scripts/load-marathon-export.js [path/to/marathon_export.json]
@@ -14,6 +15,10 @@ const fs = require('fs');
 const path = require('path');
 const { randomUUID } = require('crypto');
 const { PrismaClient } = require('@prisma/client');
+const { chain } = require('stream-chain');
+const { parser } = require('stream-json/Parser');
+const { pick } = require('stream-json/filters/Pick');
+const { streamArray } = require('stream-json/streamers/StreamArray');
 
 const prisma = new PrismaClient();
 
@@ -32,9 +37,43 @@ function parseTimeOnDate(timeStr, baseDate) {
   return d;
 }
 
-function loadExport(filePath) {
-  const raw = fs.readFileSync(filePath, 'utf8');
-  return JSON.parse(raw);
+/** Remove null bytes (\u0000) from strings/JSON - PostgreSQL rejects them in text/json. */
+function sanitizeForPostgres(val) {
+  if (val == null) return val;
+  if (typeof val === 'string') return val.replace(/\u0000/g, '');
+  if (Array.isArray(val)) return val.map(sanitizeForPostgres);
+  if (typeof val === 'object') {
+    const out = {};
+    for (const k of Object.keys(val)) out[k] = sanitizeForPostgres(val[k]);
+    return out;
+  }
+  return val;
+}
+
+function streamArrayFromFile(filePath, arrayKey) {
+  return chain([
+    fs.createReadStream(filePath, { encoding: 'utf8' }),
+    parser(),
+    pick({ filter: arrayKey }),
+    streamArray(),
+  ]);
+}
+
+function runStream(stream, onData) {
+  return new Promise((resolve, reject) => {
+    stream.on('data', async (chunk) => {
+      stream.pause();
+      try {
+        await onData(chunk);
+      } catch (e) {
+        stream.destroy(e);
+        return;
+      }
+      stream.resume();
+    });
+    stream.on('end', resolve);
+    stream.on('error', reject);
+  });
 }
 
 async function run() {
@@ -45,15 +84,15 @@ async function run() {
     process.exit(1);
   }
 
-  const data = loadExport(exportPath);
   const marathonIdToUuid = {};
   const stepIdToUuid = {};
   const marathonerIdToUuid = {};
-  const winnerIdToUuid = {};
   const idMapping = { marathon: [], step: [], marathoner: [], winner: [] };
 
   // 1. Marathons
-  for (const m of data.marathons || []) {
+  let count = 0;
+  const stream1 = streamArrayFromFile(exportPath, 'marathons');
+  await runStream(stream1, async ({ value: m }) => {
     const id = randomUUID();
     marathonIdToUuid[m.id] = id;
     idMapping.marathon.push({ legacy_id: m.id, new_uuid: id });
@@ -71,13 +110,16 @@ async function run() {
         coverImageUrl: m.image || null,
       },
     });
-  }
-  console.log('Marathons:', (data.marathons || []).length);
+    count++;
+  });
+  console.log('Marathons:', count);
 
   // 2. Steps
-  for (const s of data.steps || []) {
+  count = 0;
+  const stream2 = streamArrayFromFile(exportPath, 'steps');
+  await runStream(stream2, async ({ value: s }) => {
     const marathonUuid = marathonIdToUuid[s.marathon_id];
-    if (!marathonUuid) continue;
+    if (!marathonUuid) return;
     const id = randomUUID();
     stepIdToUuid[s.id] = id;
     idMapping.step.push({ legacy_id: s.id, new_uuid: id });
@@ -93,13 +135,16 @@ async function run() {
         isTrialStep: !!s.trial,
       },
     });
-  }
-  console.log('Steps:', (data.steps || []).length);
+    count++;
+  });
+  console.log('Steps:', count);
 
   // 3. Participants (marathoners)
-  for (const r of data.marathoners || []) {
+  count = 0;
+  const stream3 = streamArrayFromFile(exportPath, 'marathoners');
+  await runStream(stream3, async ({ value: r }) => {
     const marathonUuid = marathonIdToUuid[r.marathon_id];
-    if (!marathonUuid) continue;
+    if (!marathonUuid) return;
     const id = randomUUID();
     marathonerIdToUuid[r.id] = id;
     idMapping.marathoner.push({ legacy_id: r.id, new_uuid: id });
@@ -124,15 +169,17 @@ async function run() {
         finishedAt: parseDate(r.finish_date),
       },
     });
-  }
-  console.log('Participants:', (data.marathoners || []).length);
+    count++;
+  });
+  console.log('Participants:', count);
 
   // 4. Step submissions (answers)
-  let submissions = 0;
-  for (const a of data.answers || []) {
+  count = 0;
+  const stream4 = streamArrayFromFile(exportPath, 'answers');
+  await runStream(stream4, async ({ value: a }) => {
     const participantUuid = marathonerIdToUuid[a.marathoner_id];
     const stepUuid = stepIdToUuid[a.step_id];
-    if (!participantUuid || !stepUuid) continue;
+    if (!participantUuid || !stepUuid) return;
     const id = randomUUID();
     await prisma.stepSubmission.create({
       data: {
@@ -144,17 +191,18 @@ async function run() {
         isCompleted: !!a.completed,
         isChecked: !!a.checked,
         rating: a.rating ?? 0,
-        payloadJson: a.value ?? undefined,
+        payloadJson: a.value != null ? sanitizeForPostgres(a.value) : undefined,
       },
     });
-    submissions++;
-  }
-  console.log('Submissions:', submissions);
+    count++;
+  });
+  console.log('Submissions:', count);
 
   // 5. Winners
-  for (const w of data.winners || []) {
+  count = 0;
+  const stream5 = streamArrayFromFile(exportPath, 'winners');
+  await runStream(stream5, async ({ value: w }) => {
     const id = randomUUID();
-    winnerIdToUuid[w.id] = id;
     idMapping.winner.push({ legacy_id: w.id, new_uuid: id });
     await prisma.marathonWinner.create({
       data: {
@@ -165,8 +213,9 @@ async function run() {
         bronzeCount: w.bronze ?? 0,
       },
     });
-  }
-  console.log('Winners:', (data.winners || []).length);
+    count++;
+  });
+  console.log('Winners:', count);
 
   const mappingPath = path.join(path.dirname(exportPath), 'marathon_id_mapping.json');
   fs.writeFileSync(mappingPath, JSON.stringify(idMapping, null, 2), 'utf8');
