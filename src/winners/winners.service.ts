@@ -61,13 +61,17 @@ export class WinnersService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * List winners with fast response: DB-only, no auth service calls.
+   * Returns placeholder name (Участник #userId) and empty avatar so the page renders immediately.
+   * Winner detail (getById) still fetches full name/avatar from auth for the modal.
+   */
   async list(page: number = 1, limit: number = DEFAULT_PAGE_SIZE): Promise<WinnersPaginated> {
     const pageSize = Math.min(Math.max(1, limit), MAX_PAGE_SIZE);
     const pageNum = Math.max(1, page);
     const skip = (pageNum - 1) * pageSize;
 
     this.logger.log(`Winners list service called: page=${pageNum}, limit=${pageSize}, skip=${skip}`);
-    this.logger.debug(`Winners list filters: ${JSON.stringify(medalFilter)}`);
 
     const dbStartTime = Date.now();
     const [total, winners] = await Promise.all([
@@ -77,39 +81,32 @@ export class WinnersService {
         orderBy: medalOrder,
         skip,
         take: pageSize,
+        select: {
+          id: true,
+          userId: true,
+          goldCount: true,
+          silverCount: true,
+          bronzeCount: true,
+        },
       }),
     ]);
     const dbLatency = Date.now() - dbStartTime;
 
     this.logger.log(
-      `Winners database query completed: total=${total}, found=${winners.length}, latency=${dbLatency}ms`,
+      `Winners list (fast): total=${total}, found=${winners.length}, latency=${dbLatency}ms`,
     );
 
-    this.logger.debug(`Fetching user info for ${winners.length} winners`);
-    const userInfoStartTime = Date.now();
-    const items = await Promise.all(
-      (winners as WinnerRecord[]).map(async (winner) => {
-        this.logger.debug(`Fetching user info for winner: id=${winner.id}, userId=${winner.userId}`);
-        const userInfo = await this.getUserInfo(winner.userId);
-        return {
-          id: winner.id,
-          name: userInfo.name,
-          gold: winner.goldCount,
-          silver: winner.silverCount,
-          bronze: winner.bronzeCount,
-          avatar: userInfo.avatar,
-        };
-      }),
-    );
-    const userInfoLatency = Date.now() - userInfoStartTime;
-    this.logger.log(`User info fetched: count=${items.length}, latency=${userInfoLatency}ms`);
+    const items: WinnerSummary[] = (winners as WinnerRecord[]).map((w) => ({
+      id: w.id,
+      name: `Участник #${w.userId}`,
+      gold: w.goldCount,
+      silver: w.silverCount,
+      bronze: w.bronzeCount,
+      avatar: '',
+    }));
 
     const nextPage = skip + winners.length < total ? pageNum + 1 : null;
     const prevPage = pageNum > 1 ? pageNum - 1 : null;
-
-    this.logger.debug(
-      `Winners list pagination: nextPage=${nextPage}, prevPage=${prevPage}, hasMore=${skip + winners.length < total}`,
-    );
 
     return {
       items,

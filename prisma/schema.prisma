@@ -93,12 +93,14 @@ model PenaltyReport {
 }
 
 model MarathonWinner {
-  id         String   @id @default(uuid())
-  userId     String
-  goldCount  Int      @default(0)
-  silverCount Int     @default(0)
-  bronzeCount Int     @default(0)
-  createdAt  DateTime @default(now())
+  id          String   @id @default(uuid())
+  userId      String
+  goldCount   Int      @default(0)
+  silverCount Int      @default(0)
+  bronzeCount Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([goldCount(sort: Desc), silverCount(sort: Desc), bronzeCount(sort: Desc)])
 }
 
 model MarathonGift {
