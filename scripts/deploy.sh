@@ -122,7 +122,7 @@ cd "$NGINX_MICROSERVICE_PATH"
 if "$DEPLOY_SCRIPT" "$SERVICE_NAME"; then
     echo ""
     echo -e "${GREEN}╔══════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║  ✅ ${DISPLAY_NAME} deployment completed successfully!               ║${NC}"
+    echo -e "${GREEN}║           ✅ Marathon deployment completed successfully!             ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo "Check status with:"
@@ -132,7 +132,7 @@ if "$DEPLOY_SCRIPT" "$SERVICE_NAME"; then
 else
     echo ""
     echo -e "${RED}╔══════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${RED}║  ❌ ${DISPLAY_NAME} deployment failed!                                ║${NC}"
+    echo -e "${RED}║                     ❌ Marathon deployment failed!                   ║${NC}"
     echo -e "${RED}╚══════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo "Check logs and service health:"
