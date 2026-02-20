@@ -1,0 +1,3 @@
+# For load_marathon_export.py (OS-level load with direct DB connection)
+psycopg2-binary>=2.9
+ijson>=3.2

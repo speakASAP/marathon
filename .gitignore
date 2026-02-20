@@ -24,6 +24,10 @@ Thumbs.db
 *.tmp
 *.bak
 
+# Migration data (large; (re)export from speakasap when needed)
+marathon_export.json
+marathon_id_mapping.json
+
 node_modules/
 dist/
 .env

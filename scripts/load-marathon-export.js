@@ -5,8 +5,8 @@
  * Run on dev server after export from speakasap-portal:
  *   node scripts/load-marathon-export.js [path/to/marathon_export.json]
  *
- * Requires DATABASE_URL in .env. Creates UUIDs for all entities; writes
- * marathon_id_mapping.json for portal MarathonIdMapping population.
+ * Requires DATABASE_URL in .env. Creates UUIDs for all entities; optionally
+ * writes id_mapping.json for portal MarathonIdMapping population.
  *
  * See docs/refactoring/MARATHON_CURRENT_STATUS_AND_NEXT_STEPS.md (Data export).
  */
@@ -35,19 +35,6 @@ function parseTimeOnDate(timeStr, baseDate) {
   const d = new Date(baseDate);
   d.setUTCHours(h || 0, m || 0, s || 0, 0);
   return d;
-}
-
-/** Remove null bytes (\u0000) from strings/JSON - PostgreSQL rejects them in text/json. */
-function sanitizeForPostgres(val) {
-  if (val == null) return val;
-  if (typeof val === 'string') return val.replace(/\u0000/g, '');
-  if (Array.isArray(val)) return val.map(sanitizeForPostgres);
-  if (typeof val === 'object') {
-    const out = {};
-    for (const k of Object.keys(val)) out[k] = sanitizeForPostgres(val[k]);
-    return out;
-  }
-  return val;
 }
 
 function streamArrayFromFile(filePath, arrayKey) {
@@ -191,7 +178,7 @@ async function run() {
         isCompleted: !!a.completed,
         isChecked: !!a.checked,
         rating: a.rating ?? 0,
-        payloadJson: a.value != null ? sanitizeForPostgres(a.value) : undefined,
+        payloadJson: a.value ?? undefined,
       },
     });
     count++;
