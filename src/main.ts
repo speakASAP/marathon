@@ -28,7 +28,7 @@ async function bootstrap(): Promise<void> {
     });
     console.log('App created');
     app.enableShutdownHooks();
-    app.setGlobalPrefix('api/v1', { exclude: ['health', ''] });
+    app.setGlobalPrefix('api/v1', { exclude: ['health', 'info'] });
     const port = Number(process.env.PORT);
     console.log(`Starting server on port ${port}...`);
     await app.listen(port);

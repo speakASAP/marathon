@@ -1,0 +1,288 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #f5f5f5;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: #1976d2;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.page-nav {
+  margin-bottom: 1rem;
+}
+
+.page-nav a + span,
+.page-nav span + a {
+  margin-left: 0.25rem;
+}
+
+/* Winner detail */
+.page-winner-detail .winner-header {
+  margin-bottom: 2rem;
+}
+
+.winner-avatar {
+  border-radius: 50%;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.winner-medals {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.winner-medals .medal {
+  font-weight: 600;
+}
+
+.winner-reviews h2 {
+  font-size: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.winner-reviews ul {
+  list-style: none;
+  padding: 0;
+}
+
+.review-item {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #eee;
+  border-radius: 8px;
+}
+
+.review-item p {
+  margin: 0.5rem 0 0;
+}
+
+.review-item .thanks {
+  font-style: italic;
+  color: #555;
+}
+
+/* Reviews page */
+.page-reviews .reviews-list-page {
+  list-style: none;
+  padding: 0;
+}
+
+.page-reviews .review-card {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.page-reviews .review-photo {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+/* Static pages */
+.page-static .static-content {
+  line-height: 1.6;
+}
+
+.page-static .static-content h2 {
+  font-size: 1.15rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.page-static .static-content p,
+.page-static .static-content li {
+  margin-bottom: 0.5rem;
+}
+
+.faq-content section {
+  margin-bottom: 1.5rem;
+}
+
+/* Profile */
+.btn-profile-login {
+  padding: 0.75rem 1.25rem;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-profile-login:hover {
+  background: #1565c0;
+}
+
+.profile-marathon-list {
+  list-style: none;
+  padding: 0;
+}
+
+.profile-marathon-list li {
+  margin-bottom: 0.5rem;
+}
+
+.profile-current {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #e3f2fd;
+  border-radius: 8px;
+}
+
+.btn-profile-open {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #22c55e;
+  color: #fff;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.btn-profile-open:hover {
+  background: #16a34a;
+}
+
+.profile-steps h2 {
+  font-size: 1.15rem;
+  margin-top: 1.5rem;
+}
+
+.profile-answers {
+  list-style: none;
+  padding: 0;
+}
+
+.profile-answers li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.answer-state-inactive {
+  color: #999;
+}
+
+.answer-state-active,
+.answer-state-checked {
+  font-weight: 500;
+}
+
+.answer-state-completed {
+  color: #2e7d32;
+}
+
+/* Step page */
+.page-step .step-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.page-step .step-tabs button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.page-step .step-tabs button.active {
+  background: #1976d2;
+  color: #fff;
+  border-color: #1976d2;
+}
+
+.step-report-note {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.random-report {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.random-report-meta {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.random-report-body {
+  line-height: 1.6;
+}
+
+.random-report-body p {
+  margin: 0.5rem 0;
+}
+
+.btn-show-more {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-show-more:hover {
+  background: #1565c0;
+}
+
+/* Support */
+.support-marathon-list {
+  list-style: none;
+  padding: 0;
+}
+
+.support-marathon-list > li {
+  margin-bottom: 1rem;
+}
+
+.support-steps-list {
+  list-style: none;
+  padding-left: 1rem;
+  margin-top: 0.25rem;
+}
+
+.support-steps-list li {
+  margin-bottom: 0.25rem;
+}
+
+.register-lang-list {
+  list-style: none;
+  padding: 0;
+}
+
+.register-lang-list li {
+  margin-bottom: 0.5rem;
+}

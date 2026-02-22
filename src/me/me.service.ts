@@ -3,6 +3,7 @@ import { PrismaService } from '../shared/prisma.service';
 
 export type Answer = {
   id: string | number;
+  stepId: string;
   title: string;
   start: string;
   stop: string;
@@ -143,6 +144,7 @@ export class MeService {
   private mapToAnswer(submission: any, step: any): Answer {
     return {
       id: submission.id,
+      stepId: step.id,
       title: step.title,
       start: submission.startAt.toISOString(),
       stop: submission.endAt.toISOString(),
@@ -167,6 +169,7 @@ export class MeService {
 
         schedule.push({
           id: 0,
+          stepId: step.id,
           title: step.title,
           start: prevStop.toISOString(),
           stop: nextStop.toISOString(),

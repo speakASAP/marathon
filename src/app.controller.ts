@@ -5,8 +5,9 @@ import { AppService } from './app.service';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Get()
-  getRoot(): { service: string; version: string; status: string; endpoints: { health: string; api: string } } {
+  /** Service info for API clients; browser GET / serves frontend (static). */
+  @Get('info')
+  getInfo(): { service: string; version: string; status: string; endpoints: { health: string; api: string } } {
     return this.appService.root();
   }
 
