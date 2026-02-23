@@ -43,7 +43,7 @@ export default function Support() {
   }, []);
 
   return (
-    <div className="container page-static">
+    <div className="container page-static page-support">
       <nav className="page-nav">
         <Link to="/">Главная</Link>
       </nav>

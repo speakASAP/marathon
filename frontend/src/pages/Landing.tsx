@@ -4,6 +4,14 @@ import RegistrationForm from '../components/RegistrationForm';
 import FAQ from '../components/FAQ';
 import '../landing.css';
 
+const PROGRAM_STEPS = [
+  { id: 1, title: 'Определение знаний и целей', text: 'Прежде чем кидаться в сотый раз в иностранный язык, нужно понять, для чего это нужно и какие знания уже имеются.' },
+  { id: 2, title: 'Базовая грамматика и лексика', text: 'Самые нужные грамматические конструкции и словарный запас. Какая грамматика и лексика нужны, чтобы начать говорить?' },
+  { id: 3, title: 'Упражнения', text: 'В марафоне разработаны такие упражнения, которые вам захочется делать ежедневно.' },
+  { id: 4, title: 'Аудирование', text: 'Видео- и аудиоматериалы отобраны в марафоне. Разберёмся с проблемой аудирования и как её решать.' },
+  { id: 5, title: 'Общение с носителем', text: 'Носители языка в нашем марафоне помогут разговорить вас и заставят поверить в себя.' },
+];
+
 interface MarathonSummary {
   id: string;
   languageCode: string;
@@ -42,6 +50,7 @@ export default function Landing() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [formError, setFormError] = useState('');
+  const [programTab, setProgramTab] = useState(0);
   const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -113,7 +122,7 @@ export default function Landing() {
   return (
     <div className="landing-page">
       {/* Block 1: Promo / Hero + Nav */}
-      <header className="landing-promo">
+      <header className={`landing-promo promo-lang-${marathon.languageCode}`}>
         <nav className="landing-nav">
           <Link to="/" className="landing-brand">Speak<span>ASAP®</span></Link>
           <div className="landing-nav-links">
@@ -172,17 +181,26 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Block 3: Program */}
+      {/* Block 3: Program (tabs) */}
       <section className="landing-section" id="program">
         <div className="container">
           <h2>Программа марафона</h2>
-          <ul className="landing-steps-list">
-            <li>Определение знаний и целей</li>
-            <li>Базовая грамматика и лексика</li>
-            <li>Упражнения</li>
-            <li>Аудирование</li>
-            <li>Общение с носителем</li>
-          </ul>
+          <div className="landing-program-tabs">
+            {PROGRAM_STEPS.map((step, i) => (
+              <button
+                key={step.id}
+                type="button"
+                className={programTab === i ? 'active' : ''}
+                onClick={() => setProgramTab(i)}
+              >
+                {step.title}
+              </button>
+            ))}
+          </div>
+          <div className="landing-program-pane">
+            <h3>{PROGRAM_STEPS[programTab].title}</h3>
+            <p>{PROGRAM_STEPS[programTab].text}</p>
+          </div>
         </div>
       </section>
 
@@ -270,13 +288,31 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Block 11: Footer */}
+      {/* Block 11: Footer (legacy block11_footer) */}
       <footer className="landing-footer">
         <div className="container">
-          <Link to="/">Главная</Link>
-          <span className="landing-footer-sep"> · </span>
-          <Link to="/winners">Победители</Link>
-          <p className="landing-footer-copy">© SpeakASAP®</p>
+          <div className="landing-footer-inner">
+            <div className="footer-col">
+              <p className="footer-company">Компания SpeakASAP®</p>
+              <p>Skopalikova 1144/11, 615 00 Brno, Czech Republic</p>
+              <p><a href="mailto:marathon@speakasap.com">marathon@speakasap.com</a></p>
+            </div>
+            <div className="footer-col footer-social">
+              <a href="https://www.youtube.com/@Speak_ASAP?sub_confirmation=1" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i className="fa fa-youtube" /></a>
+              <a href="https://vk.com/topic-34179942_28421383" target="_blank" rel="noopener noreferrer" aria-label="VK"><i className="fa fa-vk" /></a>
+              <a href="https://facebook.com/speakASAP" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i className="fa fa-facebook" /></a>
+              <a href="https://t.me/speak_ASAP" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i className="fa fa-telegram" /></a>
+              <a href="https://instagram.com/shipilova_speakasap" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i className="fa fa-instagram" /></a>
+            </div>
+            <div className="footer-col">
+              <Link to="/">Главная</Link>
+              <span className="landing-footer-sep"> · </span>
+              <Link to="/winners">Победители</Link>
+              <br />
+              <a href="https://speakasap.com/privacy/" target="_blank" rel="noopener noreferrer">Политика конфиденциальности</a>
+            </div>
+          </div>
+          <p className="landing-footer-copy">Copyright © SpeakASAP® 2010–{new Date().getFullYear()}</p>
         </div>
       </footer>
     </div>

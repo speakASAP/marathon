@@ -1,0 +1,30 @@
+/**
+ * Legacy-aligned design tokens (speakasap-portal marathon).
+ * Single source for colors, typography, spacing.
+ */
+
+:root {
+  /* Legacy colors */
+  --marathon-bg: #ecf0f1;
+  --marathon-green-from: #29a55e;
+  --marathon-green-to: #6fc400;
+  --marathon-green-hover-from: #29a55e;
+  --marathon-green-hover-to: #4eb52d;
+  --marathon-stripe: #14b5ea;
+  --marathon-nav-accent: #50d0de;
+  --marathon-text-on-dark: #fff;
+  --marathon-muted: #757575;
+  --marathon-card-bg: #fff;
+  --marathon-border: #e0e0e0;
+
+  /* Typography (legacy: ProximaNova; fallback system sans) */
+  --marathon-font: "Proxima Nova", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --marathon-font-size: 16px;
+  --marathon-line-height: 1.5;
+
+  /* Section spacing */
+  --marathon-section-padding: 3rem 0;
+  --marathon-promo-min-height: 523px;
+  --marathon-container-max: 960px;
+  --marathon-container-padding: 0 15px;
+}

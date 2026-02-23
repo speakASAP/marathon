@@ -57,12 +57,7 @@ export default function WinnerDetail() {
 
   return (
     <div className="container page-winner-detail">
-      <nav className="page-nav">
-        <Link to="/">Главная</Link>
-        <span> · </span>
-        <Link to="/winners">Финалисты</Link>
-      </nav>
-      <article>
+      <article className="card-winner-detail">
         <header className="winner-header">
           {winner.avatar && (
             <img src={winner.avatar} alt="" className="winner-avatar" width={80} height={80} />
@@ -91,6 +86,9 @@ export default function WinnerDetail() {
           </section>
         )}
       </article>
+      <p style={{ marginTop: '1.5rem' }}>
+        <Link to="/winners">← К списку финалистов</Link>
+      </p>
     </div>
   );
 }

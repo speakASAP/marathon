@@ -89,6 +89,7 @@ export default function Step() {
       </nav>
       <h1>{step?.title ?? `Этап ${stepId}`}</h1>
 
+      <div className="step-content-card">
       <div className="step-tabs">
         <button
           type="button"
@@ -138,6 +139,7 @@ export default function Step() {
           )}
         </section>
       )}
+      </div>
     </div>
   );
 }
