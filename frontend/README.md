@@ -18,10 +18,16 @@ See `docs/refactoring/MARATHON_FRONTEND_REFACTORING.md` for full plan.
 
 ## Legacy UI parity (assets)
 
-To match the legacy marathon look (speakasap-portal `templates/new/marathons/index.html`), copy assets into `marathon/public/`:
+To match the legacy marathon look (speakasap-portal; see `speakasap/docs/refactoring/MARATHON_LEGACY_UI_REFACTOR_PLAN.md` in the docs repo), run from **marathon repo root** (with speakasap-portal at `../speakasap-portal`):
 
-- `public/img/bg/` — hero backgrounds per language: `de.jpg`, `en.jpg`, `fr.jpg`, `es.jpg`, `it.jpg`, `tr.jpg`, `cz.jpg`, `pt.jpg`, `nl.jpg`, `pl.jpg`, `no.jpg` (from speakasap-portal `static/img/bg/` or equivalent).
-- `public/img/landing/` — advantage icons `adv_1.png` … `adv_6.png`, optional `support.png` (from portal `marathon/static/img/` or `src/marathons/img/`).
-- `public/img/certificates/` — `gold_en.png`, `silver_en.png`, `bronze_en.png` (from portal media or static).
+```bash
+./scripts/copy-legacy-assets.sh
+```
 
-Without these, the app still works: hero uses gradient fallback, advantage blocks show tinted placeholders, certificate img src may 404.
+This copies into `frontend/public/img/` (and thus into `public/` on build):
+
+- `img/bg/` — hero backgrounds per language (`de.jpg`, `en.jpg`, etc.).
+- `img/landing/` — circle icons (grammar, materials, talk, result), step images, adv icons.
+- `img/certificates/` — gold/silver/bronze if present in portal static.
+
+Then run `npm run build:frontend`. Without assets, hero uses gradient fallback and some images may 404.

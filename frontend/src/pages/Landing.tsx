@@ -153,6 +153,62 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Legacy block2: stripe "Что вы получите" — blue stripe + 4 circles (grammar, materials, talk, result) */}
+      <div className="stripe stripe-what-you-get" id="ga-circles">
+        <div className="container">
+          <div className="stripe-sub-header">
+            <h2>Что вы получите</h2>
+          </div>
+          <div className="nav-main nav-main-circles">
+            <div className="nav-main-col">
+              <div className="circle-wrapper">
+                <div className="circle grammar">
+                  <div className="circle-inner">
+                    <div className="title">Основы грамматики</div>
+                    <p>Вы выучите самые нужные грамматические конструкции и поймете, как осваивать грамматику и набирать словарный запас самостоятельно.</p>
+                  </div>
+                </div>
+                <div className="title">Основы грамматики</div>
+              </div>
+            </div>
+            <div className="nav-main-col">
+              <div className="circle-wrapper">
+                <div className="circle materials">
+                  <div className="circle-inner">
+                    <div className="title">Эксклюзивные материалы</div>
+                    <p>Серия материалов, которые помогут выучить язык с интересом, научат находить время на учебу и заставят поверить в себя.</p>
+                  </div>
+                </div>
+                <div className="title">Эксклюзивные материалы</div>
+              </div>
+            </div>
+            <div className="nav-main-col">
+              <div className="circle-wrapper">
+                <div className="circle talk">
+                  <div className="circle-inner">
+                    <div className="title">Разговорная практика</div>
+                    <p>Самое сложное — начать пользоваться языком. Мы организуем общение с носителем и бросим вам вызов на практике.</p>
+                  </div>
+                </div>
+                <div className="title">Разговорная практика</div>
+              </div>
+            </div>
+            <div className="nav-main-col">
+              <div className="circle-wrapper">
+                <div className="circle result">
+                  <div className="circle-inner">
+                    <div className="title">Результат</div>
+                    <p>Через 30 дней гарантируем владение языком на уровне A1. Сотни студентов уже сделали это.</p>
+                  </div>
+                </div>
+                <div className="title">Результат</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <a href="#program" className="stripe-to-steps" aria-hidden="true"><i className="fa fa-chevron-down" /></a>
+      </div>
+
       {/* Legacy: language selector top */}
       <div className="section-marathon section-marathon-dark lang-selector-top">
         <div className="container">
@@ -165,10 +221,10 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* Legacy: "Что вы получите" — advantages + video */}
+      {/* Legacy: advantages + video */}
       <div className="section-marathon section-marathon-advantages" id="results">
         <div className="container">
-          <h2>Что вы получите</h2>
+          <h2>Результат и условия</h2>
           <div className="advantages">
             <div className="col-sm-4 adv-block">
               <div className="adv-img-2" />

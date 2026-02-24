@@ -187,6 +187,170 @@
   color: #fff;
 }
 
+/* Legacy block2: stripe "Что вы получите" + 4 circles (marathon.css parity) */
+.stripe {
+  background: var(--marathon-stripe);
+  position: relative;
+  padding: 2rem 0 3rem;
+}
+
+.stripe-sub-header {
+  color: #fff;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.stripe-sub-header h2 {
+  color: #fff;
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.stripe-to-steps {
+  display: block;
+  width: 44px;
+  height: 44px;
+  background: #3498db;
+  border-radius: 50%;
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  margin-left: -22px;
+  color: #fff;
+  text-decoration: none;
+  text-align: center;
+  line-height: 44px;
+}
+
+.stripe-to-steps:hover {
+  background: #20507d;
+  color: #fff;
+}
+
+.nav-main.nav-main-circles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.nav-main-col {
+  flex: 1 1 25%;
+  min-width: 0;
+  max-width: 25%;
+}
+
+.nav-main .circle-wrapper {
+  margin: 24px 0;
+  text-align: center;
+  font-weight: 600;
+  color: #fff;
+}
+
+.nav-main .circle-wrapper .circle {
+  width: 95px;
+  height: 95px;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: no-repeat center center;
+  background-color: #fff;
+  position: relative;
+  transition: border-radius 0.4s, width 0.4s, height 0.4s, background-color 0.4s;
+}
+
+.nav-main .circle-wrapper .circle.grammar { background-image: url(/img/landing/grammar.png); }
+.nav-main .circle-wrapper .circle.materials { background-image: url(/img/landing/materials.png); }
+.nav-main .circle-wrapper .circle.talk { background-image: url(/img/landing/talk.png); }
+.nav-main .circle-wrapper .circle.result { background-image: url(/img/landing/result.png); }
+
+.nav-main .circle-wrapper .circle .circle-inner {
+  overflow: hidden;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  left: -9999px;
+}
+
+.nav-main .circle-wrapper .circle .title,
+.nav-main .circle-wrapper > .title {
+  font-size: 16px;
+  margin-top: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .nav-main-col {
+    flex: 1 1 50%;
+    max-width: 50%;
+  }
+
+  .nav-main .circle-wrapper .circle {
+    width: 100%;
+    min-height: 140px;
+    border-radius: 12px;
+    background-size: 48px 48px;
+    background-position: center 24px;
+  }
+
+  .nav-main .circle-wrapper .circle.grammar { background-image: url(/img/landing/grammar-xs-active.png); }
+  .nav-main .circle-wrapper .circle.materials { background-image: url(/img/landing/materials-xs-active.png); }
+  .nav-main .circle-wrapper .circle.talk { background-image: url(/img/landing/talk-xs-active.png); }
+  .nav-main .circle-wrapper .circle.result { background-image: url(/img/landing/result-xs-active.png); }
+
+  .nav-main .circle-wrapper > .title {
+    display: block;
+    padding-top: 90px;
+    font-size: 14px;
+    color: #484848;
+  }
+
+  .stripe-to-steps {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) {
+  .nav-main-col:hover .circle-wrapper .circle {
+    border-radius: 12px;
+    width: 100%;
+    min-height: 134px;
+    background-position: 24px center;
+  }
+
+  .nav-main-col:hover .circle-wrapper .circle.grammar { background-image: url(/img/landing/grammar-active.png); }
+  .nav-main-col:hover .circle-wrapper .circle.materials { background-image: url(/img/landing/materials-active.png); }
+  .nav-main-col:hover .circle-wrapper .circle.talk { background-image: url(/img/landing/talk-active.png); }
+  .nav-main-col:hover .circle-wrapper .circle.result { background-image: url(/img/landing/result-active.png); }
+
+  .nav-main-col:hover .circle-wrapper .circle .circle-inner {
+    opacity: 1;
+    position: static;
+    padding: 1rem 1rem 1rem 100px;
+    text-align: left;
+  }
+
+  .nav-main-col:hover .circle-wrapper .circle .circle-inner .title,
+  .nav-main-col:hover .circle-wrapper .circle .circle-inner p {
+    color: #484848;
+    margin: 0.25rem 0 0;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .nav-main-col:hover .circle-wrapper > .title {
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+  }
+}
+
 .landing-stripe h2 {
   color: #fff;
   margin-bottom: 2rem;
