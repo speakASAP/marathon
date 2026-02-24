@@ -12,12 +12,22 @@ const PROGRAM_STEPS = [
   { id: 5, title: 'Общение с носителем', text: 'Носители языка в нашем марафоне помогут разговорить вас и заставят поверить в себя.' },
 ];
 
+/** Default price (EUR) when API does not return it (legacy parity). */
+const DEFAULT_PRICE_EUR = 29;
+
 interface MarathonSummary {
   id: string;
   languageCode: string;
   title: string;
   slug?: string;
   landingVideoUrl?: string;
+  price?: number;
+}
+
+interface LangItem {
+  code: string;
+  name: string;
+  url?: string;
 }
 
 interface Review {
@@ -28,25 +38,14 @@ interface Review {
 
 const FREE_DAYS = 3;
 
-/** Language display name for Russian copy (e.g. "немецком", "английском"). */
-function langDisplay(langCode: string): string {
-  const map: Record<string, string> = {
-    en: 'английском',
-    de: 'немецком',
-    fr: 'французском',
-    es: 'испанском',
-    it: 'итальянском',
-  };
-  return map[langCode] || langCode;
-}
-
 /**
- * Language landing: /:langSlug/. Full landing with promo, results, program,
- * reviews, video, certificates, FAQ, guarantee, motivation, registration.
+ * Language landing: /:langSlug/. Legacy structure (speakasap-portal templates/new/marathons/index.html):
+ * promo, language selector, advantages, Full/Free cards, certificates, reviews, trust, contacts, footer.
  */
 export default function Landing() {
   const { langSlug } = useParams<{ langSlug: string }>();
   const [marathon, setMarathon] = useState<MarathonSummary | null>(null);
+  const [languages, setLanguages] = useState<LangItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [formError, setFormError] = useState('');
@@ -59,9 +58,11 @@ export default function Landing() {
       fetch(`/api/v1/marathons/by-language/${encodeURIComponent(langSlug)}`).then((r) =>
         r.ok ? r.json() : null,
       ),
+      fetch('/api/v1/marathons/languages').then((r) => r.ok ? r.json() : []).then((d: LangItem[]) => (Array.isArray(d) ? d : [])),
       fetch('/api/v1/reviews').then((r) => (r.ok ? r.json() : [])),
-    ]).then(([marathonData, reviewsData]) => {
+    ]).then(([marathonData, langs, reviewsData]) => {
       setMarathon(marathonData);
+      setLanguages(langs);
       setReviews(Array.isArray(reviewsData) ? reviewsData : []);
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -117,12 +118,14 @@ export default function Landing() {
     );
   }
 
-  const lang = langDisplay(marathon.languageCode);
+  const priceEur = marathon.price ?? DEFAULT_PRICE_EUR;
+  const defaultVideoUrl = 'https://www.youtube.com/embed/oUTnzwEVTww';
 
   return (
     <div className="landing-page">
-      {/* Block 1: Promo / Hero + Nav */}
-      <header className={`landing-promo promo-lang-${marathon.languageCode}`}>
+      {/* Legacy: section-marathon-promo — hero with language bg */}
+      <section className={`section-marathon section-marathon-promo promo-lang-${marathon.languageCode}`}>
+        <div id="marathon-bg" className="landing-promo-bg" aria-hidden="true" />
         <nav className="landing-nav">
           <Link to="/" className="landing-brand">Speak<span>ASAP®</span></Link>
           <div className="landing-nav-links">
@@ -135,18 +138,12 @@ export default function Landing() {
             </button>
           </div>
         </nav>
-        <div className="landing-hero">
-          <h1 className="landing-hero-title">
+        <div className="container">
+          <h1>
             {marathon.languageCode === 'en'
-              ? '30-дневный курс английского на уровень pre-Intermediate'
-              : `Языковой марафон дает уровень А1 в ${lang} языке за 30 дней!`}
+              ? 'Уровень pre-Intermediate за 30 дней!'
+              : 'Уровень А1 за 30 дней!'}
           </h1>
-          <p className="landing-hero-sub">
-            Самая эффективная методика, после которой вы заговорите на языке как на родном!
-          </p>
-          <p className="landing-hero-sub">
-            {FREE_DAYS} дня обучения бесплатно!
-          </p>
           <button type="button" className="btn-landing-cta" onClick={scrollToForm}>
             Начать бесплатно*
           </button>
@@ -154,34 +151,211 @@ export default function Landing() {
             *Через {FREE_DAYS} дня стоимость марафона — по условиям на сайте.
           </p>
         </div>
-      </header>
+      </section>
 
-      {/* Block 2: Results / What you get */}
-      <section className="landing-section landing-stripe" id="results">
+      {/* Legacy: language selector top */}
+      <div className="section-marathon section-marathon-dark lang-selector-top">
+        <div className="container">
+          <h2 className="text-center">Выберите язык</h2>
+          <div className="lang-selector-grid">
+            {languages.map((l) => (
+              <Link key={l.code} to={`/${l.code}/`}>{l.name}</Link>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Legacy: "Что вы получите" — advantages + video */}
+      <div className="section-marathon section-marathon-advantages" id="results">
         <div className="container">
           <h2>Что вы получите</h2>
-          <div className="landing-circles">
-            <div className="landing-circle">
-              <div className="landing-circle-title">Основы грамматики</div>
-              <p>Самые нужные грамматические конструкции и словарный запас для самостоятельного изучения.</p>
+          <div className="advantages">
+            <div className="col-sm-4 adv-block">
+              <div className="adv-img-2" />
+              <h3>Результат</h3>
+              <p>Уровень А1</p>
             </div>
-            <div className="landing-circle">
-              <div className="landing-circle-title">Эксклюзивные материалы</div>
-              <p>Материалы, которые помогут выучить язык с интересом и научат находить время на учебу.</p>
+            <div className="col-sm-4 adv-block">
+              <div className="adv-img-1" />
+              <h3>Время</h3>
+              <p>30 дней</p>
             </div>
-            <div className="landing-circle">
-              <div className="landing-circle-title">Разговорная практика</div>
-              <p>Организуем общение с носителем — проверите силы на практике.</p>
+            <div className="col-sm-4 adv-block">
+              <div className="adv-img-3" />
+              <h3>Низкая цена за А1</h3>
+              <p>{priceEur}&euro;</p>
             </div>
-            <div className="landing-circle">
-              <div className="landing-circle-title">Результат за 30 дней</div>
-              <p>Системный подход и поддержка кураторов для достижения цели.</p>
+          </div>
+          <div className="row-video">
+            <div className="embed-responsive-16by9" style={{ maxWidth: 560 }}>
+              <iframe
+                title="Марафон"
+                src={marathon.landingVideoUrl || defaultVideoUrl}
+                allowFullScreen
+              />
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Block 3: Program (tabs) */}
+      {/* Legacy: "Получи А1 через 30 дней!" — Full course / Free course cards */}
+      <div className="section-marathon section-marathon-dark">
+        <div className="container">
+          <h2>Получи А1 через 30 дней!</h2>
+          <div className="row-cards">
+            <div className="col-sm-6 pb-4">
+              <div className="marathon-card-basic">
+                <h3>Полный курс</h3>
+                <div className="card-list">
+                  {['Определение знаний и целей', 'Базовая грамматика и лексика', 'Упражнения', 'Количество дней = 30', 'Аудирование', 'Гарантия уровень A1', 'Общение с носителем', 'Скидки на дальнейшее обучение', 'Полезные призы', 'Получение сертификата', 'Чеклист по темам грамматики с нуля до В2'].map((text) => (
+                    <div key={text} className="card-list-item">
+                      <i className="check fa fa-fw fa-check" /> <span>{text}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-center">
+                  <Link to="/register" className="btn btn-landing btn-green">
+                    Записаться на полный курс
+                  </Link>
+                </div>
+              </div>
+            </div>
+            <div className="col-sm-6 pb-4">
+              <div className="marathon-card-free">
+                <h3>Бесплатный курс</h3>
+                <div className="card-list">
+                  {[
+                    { text: 'Определение знаний и целей', lock: false },
+                    { text: 'Базовая грамматика и лексика', lock: false },
+                    { text: 'Упражнения', lock: false },
+                    { text: 'Количество дней = 8', lock: false },
+                    { text: 'Аудирование', lock: false },
+                    { text: 'Гарантия уровень A1', lock: true },
+                    { text: 'Общение с носителем', lock: true },
+                    { text: 'Скидки на дальнейшее обучение', lock: true },
+                    { text: 'Полезные призы', lock: true },
+                    { text: 'Получение сертификата', lock: true },
+                  ].map(({ text, lock }) => (
+                    <div key={text} className="card-list-item">
+                      {lock ? <i className="lock fa fa-fw fa-lock" /> : <i className="check fa fa-fw fa-check" />}
+                      <span>{text}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-center">
+                  <button type="button" className="btn btn-landing btn-green" onClick={scrollToForm}>
+                    Начать бесплатно
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Legacy: certificates block */}
+      <div className="section-marathon section-marathon-white">
+        <div className="container">
+          <h2>Выполни все задания и получи Золотой Сертификат!</h2>
+        </div>
+        <div className="certs-view">
+          <img className="gold" src="/img/certificates/gold_en.png" alt="Золотой сертификат" loading="lazy" />
+          <img className="silver" src="/img/certificates/silver_en.png" alt="Серебряный сертификат" loading="lazy" />
+          <img className="bronze" src="/img/certificates/bronze_en.png" alt="Бронзовый сертификат" loading="lazy" />
+        </div>
+      </div>
+
+      {/* Legacy: reviews */}
+      <div className="section-marathon section-marathon-reviews" id="reviews">
+        <div className="container">
+          <h2>Отзывы наших студентов</h2>
+          {reviews.length > 0 ? (
+            <div className="reviews-list">
+              {reviews.slice(0, 5).map((r, i) => (
+                <div key={i} className="review-card">
+                  {r.photo && (
+                    <img src={r.photo} alt="" className="review-photo" width={80} height={80} loading="lazy" />
+                  )}
+                  <div className="review-body">
+                    <strong>{r.name}</strong>
+                    <p>{r.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="landing-placeholder">Отзывы загружаются.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Legacy: "Почему нам доверяют" */}
+      <div className="section-marathon section-marathon-advantages">
+        <div className="container">
+          <h2>Почему нам доверяют</h2>
+          <div className="advantages">
+            <div className="col-sm-4 adv-block">
+              <div className="adv-img-4" />
+              <h3>Работаем с 2010 года</h3>
+            </div>
+            <div className="col-sm-4 adv-block">
+              <div className="adv-img-5" />
+              <h3>18 иностранных языков</h3>
+            </div>
+            <div className="col-sm-4 adv-block">
+              <div className="adv-img-6" />
+              <h3>Более 60.000 марафонцев</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Legacy: contacts */}
+      <div className="section-marathon section-marathon-contacts">
+        <div className="container">
+          <h2>Свяжитесь с нами</h2>
+          <div className="row-cards" style={{ alignItems: 'flex-start' }}>
+            <div className="support-bg" style={{ flex: '0 0 33%', minHeight: 120 }} />
+            <div style={{ flex: '1 1 200px' }}>
+              <h3>Общие вопросы</h3>
+              <ul className="support-links">
+                <li><i className="fa fa-fw fa-envelope-o" /> <a href="mailto:contact@speakasap.com">contact@speakasap.com</a></li>
+                <li><i className="fa fa-fw fa-phone" /> <a href="tel:+420773979939">+420 773 979 939</a></li>
+                <li><i className="fa fa-fw fa-whatsapp" /> <a href="https://wa.me/420773979939">WhatsApp</a></li>
+                <li><i className="fa fa-fw fa-telegram" /> <a href="https://t.me/speak_ASAP">Telegram</a></li>
+              </ul>
+            </div>
+            <div style={{ flex: '1 1 200px' }}>
+              <h3>Техническая поддержка</h3>
+              <ul className="support-links">
+                <li><i className="fa fa-fw fa-envelope-o" /> <a href="mailto:support@speakasap.com">support@speakasap.com</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Legacy: language selector bottom */}
+      <div className="section-marathon section-marathon-dark">
+        <div className="container">
+          <div className="lang-selector-grid">
+            {languages.map((l) => (
+              <Link key={l.code} to={`/${l.code}/`}>{l.name}</Link>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Legacy: CTA bottom */}
+      <div className="section-marathon section-marathon-white">
+        <div className="container text-center">
+          <button type="button" className="btn-landing-cta" onClick={scrollToForm}>
+            Начать бесплатно
+          </button>
+        </div>
+      </div>
+
+      {/* Program (tabs) — legacy block3 style */}
       <section className="landing-section" id="program">
         <div className="container">
           <h2>Программа марафона</h2>
@@ -204,59 +378,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Block 4: Reviews */}
-      <section className="landing-section landing-reviews" id="reviews">
-        <div className="container">
-          <h2>Отзывы наших студентов</h2>
-          {reviews.length > 0 ? (
-            <div className="reviews-list">
-              {reviews.slice(0, 5).map((r, i) => (
-                <div key={i} className="review-card">
-                  {r.photo && (
-                    <img src={r.photo} alt="" className="review-photo" width={80} height={80} loading="lazy" />
-                  )}
-                  <div className="review-body">
-                    <strong>{r.name}</strong>
-                    <p>{r.text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="landing-placeholder">Отзывы загружаются.</p>
-          )}
-        </div>
-      </section>
-
-      {/* Block 5: Video */}
-      {marathon.landingVideoUrl && (
-        <section className="landing-section" id="tour">
-          <div className="container">
-            <h2>Видео о марафоне</h2>
-            <div className="landing-video-wrap">
-              <iframe
-                title="Марафон"
-                src={marathon.landingVideoUrl}
-                allowFullScreen
-                className="landing-video"
-              />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Block 6: Certificates (short) */}
-      <section className="landing-section landing-stripe">
-        <div className="container">
-          <h2>Сертификаты</h2>
-          <p>По завершении марафона вы получите сертификат SpeakASAP®.</p>
-        </div>
-      </section>
-
-      {/* Block 7: FAQ */}
+      {/* FAQ */}
       <FAQ />
 
-      {/* Block 9: Guarantee */}
+      {/* Guarantee */}
       <section className="landing-section landing-guarantee">
         <div className="container">
           <h2>Гарантия результата</h2>
@@ -264,18 +389,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Block 8: Motivation */}
-      <section className="landing-section landing-stripe">
-        <div className="container">
-          <h2>Начните уже сегодня</h2>
-          <p>Присоединяйтесь к тысячам участников, которые уже достигли своих целей.</p>
-          <button type="button" className="btn-landing-cta" onClick={scrollToForm}>
-            Записаться на марафон
-          </button>
-        </div>
-      </section>
-
-      {/* Block 10: Registration form */}
+      {/* Registration form */}
       <section className="landing-section landing-form-section" ref={formRef} id="register">
         <div className="container">
           {formError && <p className="landing-form-error">{formError}</p>}
@@ -288,7 +402,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Block 11: Footer (legacy block11_footer) */}
+      {/* Footer (legacy block11) */}
       <footer className="landing-footer">
         <div className="container">
           <div className="landing-footer-inner">

@@ -680,7 +680,7 @@ a:hover {
   cursor: pointer;
 }
 
-/* Home page */
+/* Home page (legacy hub) */
 .page-home {
   padding-bottom: 2rem;
 }
@@ -690,6 +690,40 @@ a:hover {
   color: var(--marathon-text-on-dark);
   padding: 3rem 0;
   text-align: center;
+}
+
+/* Home hero when using section-marathon-promo: use stripe blue, no bg image */
+.page-home-hero.section-marathon-promo {
+  background: var(--marathon-stripe);
+  background-image: none;
+  min-height: auto;
+  padding: 4rem 0;
+}
+
+.page-home-hero.section-marathon-promo::before {
+  display: none;
+}
+
+.page-home-hero .home-hero-title {
+  color: #fff;
+  margin: 0 0 0.5rem;
+}
+
+.page-home-hero .home-hero-sub {
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0 0 1.5rem;
+}
+
+.section-marathon-dark .home-section-title {
+  color: #fff;
+}
+
+.section-marathon-dark .home-teaser-link {
+  color: #fff;
+}
+
+.section-marathon-dark .home-teaser-link:hover {
+  color: var(--marathon-nav-accent);
 }
 
 .home-hero-title {

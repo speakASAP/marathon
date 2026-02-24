@@ -30,7 +30,8 @@
   position: relative;
 }
 
-.landing-promo::before {
+.landing-promo::before,
+.section-marathon-promo::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -38,12 +39,14 @@
 }
 
 .landing-promo .landing-nav,
-.landing-promo .landing-hero {
+.landing-promo .landing-hero,
+.section-marathon-promo .landing-nav,
+.section-marathon-promo .container {
   position: relative;
   z-index: 1;
 }
 
-/* Language-specific hero backgrounds (fallback to gradient if image missing) */
+/* Language-specific hero backgrounds (legacy parity; fallback to gradient if image missing) */
 .landing-promo.promo-lang-de { background-image: url(/img/bg/de.jpg); }
 .landing-promo.promo-lang-en { background-image: url(/img/bg/en.jpg); }
 .landing-promo.promo-lang-fr { background-image: url(/img/bg/fr.jpg); }
@@ -55,6 +58,19 @@
 .landing-promo.promo-lang-pl { background-image: url(/img/bg/pl.jpg); }
 .landing-promo.promo-lang-nl { background-image: url(/img/bg/nl.jpg); }
 .landing-promo.promo-lang-no { background-image: url(/img/bg/no.jpg); }
+
+/* Same for legacy section-marathon-promo (Landing uses these classes) */
+.section-marathon-promo.promo-lang-de { background-image: url(/img/bg/de.jpg); }
+.section-marathon-promo.promo-lang-en { background-image: url(/img/bg/en.jpg); }
+.section-marathon-promo.promo-lang-fr { background-image: url(/img/bg/fr.jpg); }
+.section-marathon-promo.promo-lang-es { background-image: url(/img/bg/es.jpg); }
+.section-marathon-promo.promo-lang-it { background-image: url(/img/bg/it.jpg); }
+.section-marathon-promo.promo-lang-pt { background-image: url(/img/bg/pt.jpg); }
+.section-marathon-promo.promo-lang-cz { background-image: url(/img/bg/cz.jpg); }
+.section-marathon-promo.promo-lang-tr { background-image: url(/img/bg/tr.jpg); }
+.section-marathon-promo.promo-lang-pl { background-image: url(/img/bg/pl.jpg); }
+.section-marathon-promo.promo-lang-nl { background-image: url(/img/bg/nl.jpg); }
+.section-marathon-promo.promo-lang-no { background-image: url(/img/bg/no.jpg); }
 
 .landing-nav {
   display: flex;

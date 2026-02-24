@@ -49,7 +49,8 @@ export default function Home() {
 
   return (
     <div className="page-home">
-      <section className="home-hero">
+      {/* Legacy-aligned hero (stripe blue like legacy hub) */}
+      <section className="section-marathon section-marathon-promo page-home-hero">
         <div className="container">
           <h1 className="home-hero-title">Языковые марафоны SpeakASAP®</h1>
           <p className="home-hero-sub">Изучи любой язык быстро на уровень А1 за 30 дней. Елена Шипилова®.</p>
@@ -59,10 +60,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="home-section">
+      {/* Language list — legacy "Выберите язык" style */}
+      <section className="section-marathon section-marathon-advantages">
         <div className="container">
-          <h2 className="home-section-title">Языковые марафоны</h2>
-          {loading && <p>Загрузка…</p>}
+          <h2 className="home-section-title">Выберите язык</h2>
+          {loading && <p className="text-center">Загрузка…</p>}
           <ul className="home-lang-list">
             {languages.map((lang) => (
               <li key={lang.code}>
@@ -75,7 +77,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="home-section home-section--stripe">
+      {/* Winners and reviews teaser — legacy dark stripe */}
+      <section className="section-marathon section-marathon-dark">
         <div className="container">
           <h2 className="home-section-title">Финалисты и отзывы</h2>
           <div className="home-teaser-grid">
