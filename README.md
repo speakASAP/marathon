@@ -10,7 +10,7 @@ Standalone marathon product (NestJS + TypeScript).
 
 ## Deployment (blue/green)
 
-- On **dev** server (`ssh dev`):
+- On **alfares** server (`ssh alfares`):
   - `cd ~/Documents/Github/marathon` (or repo root)
   - `./scripts/deploy.sh`
 

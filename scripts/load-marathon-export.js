@@ -2,7 +2,7 @@
  * Load marathon export JSON into marathon service DB (Prisma).
  * Uses streaming to handle large files (~1GB+) without loading into memory.
  *
- * Run on dev server after export from speakasap-portal:
+ * Run on alfares server after export from speakasap-portal:
  *   node scripts/load-marathon-export.js [path/to/marathon_export.json]
  *
  * Requires DATABASE_URL in .env. Creates UUIDs for all entities; optionally

@@ -10,7 +10,7 @@ Requires: psycopg2-binary, ijson
 Uses DATABASE_URL from env, or DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME.
 
 Run where the marathon DB is reachable (e.g. host with port-forward to postgres,
-or same network as db-server). If on dev host, use localhost if postgres is published:
+or same network as db-server). If on alfares host, use localhost if postgres is published:
   export DATABASE_URL="postgresql://USER:PASS@localhost:5432/DBNAME"
 
 Usage:
