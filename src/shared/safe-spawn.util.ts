@@ -10,7 +10,9 @@ export function safeSpawn(
   args?: ReadonlyArray<string>,
   options?: SpawnOptions,
 ): ChildProcess {
-  const child = spawn(command, args ?? [], options);
+  const argv = args ?? [];
+  const opts: SpawnOptions = options ?? {};
+  const child = spawn(command, argv, opts) as ChildProcess;
 
   const reap = (): void => {
     // Handlers ensure the kernel can reap the process; without them
