@@ -33,3 +33,4 @@ dist/
 .env
 .venv
 .venv*
+k8s/secret.yaml
