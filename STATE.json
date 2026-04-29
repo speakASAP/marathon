@@ -1,1 +1,19 @@
-{"v":1,"project":"marathon","stage":"active","health":"ok","cycle":0,"last_cycle_at":"2026-04-05T00:00:00Z","tasks_active":0,"tasks_failed_last_cycle":0,"open_task_ids":[],"last_milestone":"documentation-standard-applied","next_focus":"review and update by owner","blockers":[],"budget_units_used":0,"metrics":{"custom":{}}}
+{
+  "v": 1,
+  "project": "marathon",
+  "stage": "active",
+  "health": "ok",
+  "cycle": 0,
+  "last_cycle_at": "2026-04-29T00:00:00Z",
+  "tasks_active": 0,
+  "tasks_failed_last_cycle": 0,
+  "open_task_ids": ["T1", "T2", "T3", "T4"],
+  "last_milestone": "full-documentation-suite-created",
+  "next_focus": "Phase 1 — VIP payment integration & gift code redemption",
+  "blockers": [
+    "P0: VIP upgrade payment flow not wired to payments-microservice",
+    "P1: Gift code redemption endpoint not implemented"
+  ],
+  "budget_units_used": 0,
+  "metrics": { "custom": {} }
+}
