@@ -1,8 +1,6 @@
 # CLAUDE.md (marathon)
 
-Ecosystem defaults: sibling [`../CLAUDE.md`](../CLAUDE.md) and [`../shared/docs/PROJECT_AGENT_DOCS_STANDARD.md`](../shared/docs/PROJECT_AGENT_DOCS_STANDARD.md).
-
-Read this repo's `BUSINESS.md` → `SPEC.md` → `PLAN.md` → `SYSTEM.md` → `AGENTS.md` → `TASKS.md` → `STATE.json` first.
+→ Ecosystem: [../shared/CLAUDE.md](../shared/CLAUDE.md) | Reading order: `BUSINESS.md` → `SYSTEM.md` → `SPEC.md` → `PLAN.md` → `AGENTS.md` → `TASKS.md` → `STATE.json`
 
 ---
 
@@ -23,8 +21,4 @@ Read this repo's `BUSINESS.md` → `SPEC.md` → `PLAN.md` → `SYSTEM.md` → `
 | payments-microservice:3468 | Course payments |
 | notifications-microservice:3368 | Participant emails |
 
-### Quick ops
-```bash
-docker compose logs -f
-./scripts/deploy.sh
-```
+**Ops**: `docker compose logs -f` · `./scripts/deploy.sh`
