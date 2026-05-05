@@ -2,7 +2,7 @@
 
 ## Architecture
 
-NestJS + Prisma + PostgreSQL + Redis. Deployed on Kubernetes (`statex-apps` namespace). Blue/green deployment via `./scripts/deploy.sh`.
+NestJS + Prisma + PostgreSQL + Redis. Deployed on Kubernetes (`statex-apps` namespace).
 
 - **Modules:** marathons, registrations, steps, answers, me (authenticated), winners, reviews
 - **Port:** 3000

@@ -21,4 +21,4 @@
 | payments-microservice:3468 | Course payments |
 | notifications-microservice:3368 | Participant emails |
 
-**Ops**: `docker compose logs -f` · `./scripts/deploy.sh`
+**Ops**: `kubectl logs -n statex-apps -l app=marathon -f` · `kubectl rollout restart deployment/marathon -n statex-apps` · `./scripts/deploy.sh`
