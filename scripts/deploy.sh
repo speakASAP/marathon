@@ -87,7 +87,7 @@ done
 echo -e "${GREEN}OK manifests applied${NC}"
 
 echo -e "${YELLOW}[4/5] Setting deployment image to ${IMAGE}...${NC}"
-kubectl set image "deployment/${SERVICE_NAME}" app="$IMAGE" -n "$NAMESPACE"
+kubectl set image "deployment/${SERVICE_NAME}" app="$IMAGE_LATEST" -n "$NAMESPACE"
 
 echo -e "${YELLOW}[5/5] Waiting for rollout...${NC}"
 if ! kubectl rollout status "deployment/${SERVICE_NAME}" -n "$NAMESPACE" --timeout=120s; then
