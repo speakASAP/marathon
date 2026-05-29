@@ -21,6 +21,12 @@ IMAGE_TAG="${1:-$DEFAULT_TAG}"
 IMAGE="${REGISTRY}/${SERVICE_NAME}:${IMAGE_TAG}"
 IMAGE_LATEST="${REGISTRY}/${SERVICE_NAME}:latest"
 
+# shellcheck disable=SC1091
+source "$(dirname "$PROJECT_ROOT")/shared/scripts/load-deploy-phase-timing.sh" "$PROJECT_ROOT" 2>/dev/null \
+  || source "$HOME/Documents/Github/shared/scripts/load-deploy-phase-timing.sh" "$PROJECT_ROOT" \
+  || { echo "Error: deploy timing library not found" >&2; exit 1; }
+deploy_timing_init "$SERVICE_NAME"
+
 preflight_cluster() {
   echo -e "${YELLOW}Preflight: cluster access...${NC}"
 
@@ -34,7 +40,6 @@ preflight_cluster() {
     exit 1
   fi
 
-  # Image pull issues are fixed by build/push below — do not block deploy on them.
   BAD_PODS=$(kubectl get pods -n "$NAMESPACE" -l app="$SERVICE_NAME" --no-headers 2>/dev/null | awk '$3 ~ /CrashLoopBackOff|Error|CreateContainerConfigError|CreateContainerError/ {print $1}')
   if [ -n "$BAD_PODS" ]; then
     echo -e "${RED}Service has unhealthy pods (not ImagePull — fix these first):${NC}"
@@ -58,59 +63,61 @@ if [ ! -d "$K8S_DIR" ]; then
   exit 1
 fi
 
-preflight_cluster
+deploy_timing_run_phase "Preflight" preflight_cluster
 
 if [ "${NODE_ENV:-}" = "production" ]; then
+  deploy_timing_phase_start "Git sync"
   echo -e "${YELLOW}Syncing git (NODE_ENV=production)...${NC}"
   cd "$PROJECT_ROOT"
   git fetch origin
   git stash || true
   git pull origin main
   git stash pop || true
+  deploy_timing_phase_end "Git sync"
 fi
 
-echo -e "${YELLOW}[1/5] Building image ${IMAGE}...${NC}"
+deploy_timing_phase_start "Build image"
+echo -e "${YELLOW}Building image ${IMAGE}...${NC}"
 docker build -t "$IMAGE" -t "$IMAGE_LATEST" "$PROJECT_ROOT"
 echo -e "${GREEN}OK image built${NC}"
+deploy_timing_phase_end "Build image"
 
-echo -e "${YELLOW}[2/5] Pushing to ${REGISTRY}...${NC}"
+deploy_timing_phase_start "Push image"
+echo -e "${YELLOW}Pushing to ${REGISTRY}...${NC}"
 docker push "$IMAGE"
 docker push "$IMAGE_LATEST"
 echo -e "${GREEN}OK images pushed${NC}"
+deploy_timing_phase_end "Push image"
 
-echo -e "${YELLOW}[3/5] Applying Kubernetes manifests...${NC}"
+deploy_timing_phase_start "Apply Kubernetes manifests"
+echo -e "${YELLOW}Applying Kubernetes manifests...${NC}"
 for manifest in configmap.yaml external-secret.yaml deployment.yaml service.yaml ingress.yaml; do
   if [ -f "$K8S_DIR/$manifest" ]; then
     kubectl apply -f "$K8S_DIR/$manifest" -n "$NAMESPACE"
   fi
 done
 echo -e "${GREEN}OK manifests applied${NC}"
+deploy_timing_phase_end "Apply Kubernetes manifests"
 
-echo -e "${YELLOW}[4/5] Setting deployment image to ${IMAGE}...${NC}"
+deploy_timing_phase_start "Set deployment image"
+echo -e "${YELLOW}Setting deployment image to ${IMAGE}...${NC}"
 kubectl set image "deployment/${SERVICE_NAME}" app="$IMAGE_LATEST" -n "$NAMESPACE"
+deploy_timing_phase_end "Set deployment image"
 
-echo -e "${YELLOW}[5/5] Waiting for rollout...${NC}"
-if ! kubectl rollout status "deployment/${SERVICE_NAME}" -n "$NAMESPACE" --timeout=120s; then
-  echo -e "${YELLOW}Rollout slow; diagnosing...${NC}"
-  kubectl get pods -n "$NAMESPACE" -l app="$SERVICE_NAME" -o wide || true
-  TERMINATING_PODS=$(kubectl get pods -n "$NAMESPACE" -l app="$SERVICE_NAME" --no-headers 2>/dev/null | awk '$3=="Terminating"{print $1}')
-  if [ -n "$TERMINATING_PODS" ]; then
-    for pod in $TERMINATING_PODS; do
-      kubectl delete pod -n "$NAMESPACE" "$pod" --grace-period=0 --force || true
-    done
-  fi
-  kubectl rollout status "deployment/${SERVICE_NAME}" -n "$NAMESPACE" --timeout=120s
-fi
+deploy_timing_phase_start "Wait for rollout"
+echo -e "${YELLOW}Waiting for rollout...${NC}"
+deploy_timing_k8s_rollout_wait kubectl "$SERVICE_NAME" "$NAMESPACE"
 echo -e "${GREEN}OK rollout complete${NC}"
+deploy_timing_phase_end "Wait for rollout"
 
+deploy_timing_phase_start "Post-deploy status"
 echo -e "${YELLOW}Current pods:${NC}"
 kubectl get pods -n "$NAMESPACE" -l app="$SERVICE_NAME"
+deploy_timing_phase_end "Post-deploy status"
 
-echo -e "${GREEN}"
-echo "╔════════════════════════════════════════════════════════╗"
-echo "║          ✅ Marathon Deployment successful!            ║"
-echo "╚════════════════════════════════════════════════════════╝"
+deploy_timing_finish_success "Marathon"
 echo "Image:    ${IMAGE}"
 echo "Namespace: ${NAMESPACE}"
 echo "Pods:     $(kubectl get pods -n ${NAMESPACE} -l app=${SERVICE_NAME} --no-headers | wc -l) running"
-echo -e "${NC}"
+DEPLOY_TIMING_FINISHED=1
+exit 0
