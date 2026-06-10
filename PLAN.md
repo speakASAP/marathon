@@ -33,6 +33,6 @@ Completion rate and payment conversion dashboards. NPS survey flow.
 
 ---
 
-## Phase 5 — Business Orchestrator Integration (Backlog)
+## Phase 5 — RunLayer Integration (Backlog)
 
-Register marathon in business-orchestrator. Define AI task types for participant engagement.
+Register marathon in runlayer. Define AI task types for participant engagement.

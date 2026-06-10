@@ -52,4 +52,3 @@ allowed_mcp_servers: [filesystem, postgres]
 
 ## Active Agents
 <!-- Coordinator-maintained -->
-None — awaiting business-orchestrator onboarding (see GOALS.md Phase 5).

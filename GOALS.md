@@ -48,6 +48,6 @@ Automate winner record creation: when a participant completes all steps, detect 
 
 Course completion rate tracking. Payment conversion rate. Participant NPS collection (post-marathon survey via notifications-microservice).
 
-### Phase 5 — Business Orchestrator Integration
+### Phase 5 — RunLayer Integration
 
-Register `marathon` as an orchestrated project in `business-orchestrator`. Define AI task types for participant engagement (reminder emails, progress nudges via notifications-microservice).
+Register `marathon` as an orchestrated project in `runlayer`. Define AI task types for participant engagement (reminder emails, progress nudges via notifications-microservice).
