@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-015
-status: active
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -28,7 +28,7 @@ Keep the root mobile navigation toggle in a stable top-right position when the m
 
 ## Acceptance Criteria
 
-- [ ] Root mobile menu opens with the toggle still visible in the first header row.
-- [ ] Expanded menu links remain visible and usable.
-- [ ] Backend and frontend builds pass.
-- [ ] Deployment and Browser QA evidence are recorded.
+- [x] Root mobile menu opens with the toggle still visible in the first header row.
+- [x] Expanded menu links remain visible and usable.
+- [x] Backend and frontend builds pass.
+- [x] Deployment and Browser QA evidence are recorded.
