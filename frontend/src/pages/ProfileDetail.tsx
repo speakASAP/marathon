@@ -68,6 +68,8 @@ export default function ProfileDetail() {
   const [data, setData] = useState<MyMarathon | null>(null);
   const [loading, setLoading] = useState(true);
   const [unauth, setUnauth] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
   const [paymentReturn, setPaymentReturn] = useState<PaymentReturnState>(null);
@@ -80,6 +82,10 @@ export default function ProfileDetail() {
 
   useEffect(() => {
     if (!marathonerId) return;
+    setLoading(true);
+    setUnauth(false);
+    setNotFound(false);
+    setLoadError('');
     authFetch(`/api/v1/me/marathons/${marathonerId}`)
       .then((r) => {
         if (r.status === 401) {
@@ -88,6 +94,7 @@ export default function ProfileDetail() {
           return null;
         }
         if (r.status === 404) {
+          setNotFound(true);
           setLoading(false);
           return null;
         }
@@ -98,7 +105,10 @@ export default function ProfileDetail() {
         if (d) setData(d);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setLoadError('Marathon profile could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setLoading(false);
+      });
   }, [marathonerId]);
 
   useEffect(() => {
@@ -118,7 +128,29 @@ export default function ProfileDetail() {
     return <div className="container"><p>Перенаправление на вход…</p></div>;
   }
 
-  if (!data) {
+  if (loadError) {
+    return (
+      <div className="container page-static">
+        <nav className="page-nav">
+          <Link to="/">Главная</Link>
+          <span> · </span>
+          <Link to="/profile">Мои марафоны</Link>
+        </nav>
+        <h1>Marathon profile is temporarily unavailable</h1>
+        <section className="profile-empty-panel" role="alert">
+          <p>{loadError}</p>
+          <div className="profile-payment-actions">
+            <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
+              Refresh
+            </button>
+            <Link to="/support" className="btn-profile-login">Contact support</Link>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (notFound || !data) {
     return (
       <div className="container">
         <p>Марафон не найден.</p>

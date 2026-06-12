@@ -46,3 +46,4 @@
 - [x] 2026-06-12 Gift redemption login guard added: `/gift` now requires profile participant context and a Marathon token before gift-code redemption, with login preserving the exact participant return path
 - [x] 2026-06-12 VIP checkout login handoff added: profile checkout now redirects expired/unauthenticated sessions through portal login with `/profile/:marathonerId#vip-access` preserved instead of showing a generic 401
 - [x] 2026-06-12 Profile dashboard error state added: `/profile` now separates login-required from profile load failures and gives refresh/support actions instead of treating backend errors as unauthenticated
+- [x] 2026-06-12 Profile detail error state added: `/profile/:marathonerId` now separates 404 not-found from profile load failures and gives refresh/support actions instead of claiming the marathon is missing
