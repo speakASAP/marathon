@@ -8,6 +8,7 @@
  */
 
 const DEFAULT_BASE_URL = process.env.MARATHON_BASE_URL || process.env.PUBLIC_BASE_URL || 'https://marathon.alfares.cz';
+const LANDING_IMAGE_ASSETS = ['talk.png', 'grammar.png', 'materials.png', 'result.png', 'start.png', 'finish.png', 'mail.png'];
 
 function parseArgs(argv) {
   const options = {
@@ -333,6 +334,23 @@ async function assertClosedCatalogLanguageFallback(report, options) {
   throw new Error(`/api/v1/marathons/by-language/${language} returned an unexpected response shape.`);
 }
 
+async function assertPublicLandingAssetsServed(report) {
+  for (const asset of LANDING_IMAGE_ASSETS) {
+    const path = `/img/landing/${asset}`;
+    const response = await request(report, path);
+    assertOk(response, path);
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.startsWith('image/')) {
+      throw new Error(`${path} returned ${contentType || 'no content type'} instead of an image.`);
+    }
+    const body = await response.arrayBuffer();
+    if (body.byteLength === 0) {
+      throw new Error(`${path} returned an empty image response.`);
+    }
+  }
+  addCheck(report, 'pass', 'landing-assets-served', 'Resolved landing image assets are served by production as non-empty image responses.');
+}
+
 async function assertFrontendHandoffSource(report, rootHtml) {
   const assetMatch = rootHtml.match(/<script[^>]+src="([^"]*\/assets\/[^"]+\.js)"/);
   if (!assetMatch) {
@@ -351,11 +369,12 @@ async function assertFrontendHandoffSource(report, rootHtml) {
       throw new Error(`Built frontend CSS references missing legacy landing asset: ${missingAsset}`);
     }
   }
-  for (const expectedAsset of ['talk.png', 'grammar.png', 'materials.png', 'result.png', 'start.png', 'finish.png', 'mail.png']) {
+  for (const expectedAsset of LANDING_IMAGE_ASSETS) {
     if (!css.includes(`/img/landing/${expectedAsset}`)) {
       throw new Error(`Built frontend CSS is missing resolved landing asset reference: ${expectedAsset}`);
     }
   }
+  await assertPublicLandingAssetsServed(report);
 
   const assetPath = assetMatch[1].startsWith('http') ? assetMatch[1] : assetMatch[1];
   const response = await request(report, assetPath);
