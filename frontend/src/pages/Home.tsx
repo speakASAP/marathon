@@ -174,8 +174,10 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-              ) : (
+              ) : loading ? (
                 <p>Загрузка…</p>
+              ) : (
+                <p>Финалисты появятся после завершения первых марафонов.</p>
               )}
               <Link to="/winners" className="home-teaser-link">Все финалисты →</Link>
             </div>
@@ -190,8 +192,10 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-              ) : (
+              ) : loading ? (
                 <p>Загрузка…</p>
+              ) : (
+                <p>Отзывы появятся после запуска марафона.</p>
               )}
               <Link to="/reviews" className="home-teaser-link">Все отзывы →</Link>
             </div>
