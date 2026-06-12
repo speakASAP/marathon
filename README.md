@@ -40,6 +40,14 @@ npm run check:readiness
 npm run check:readiness -- --json
 ```
 
+Run the HTTP-level journey smoke verifier after readiness passes:
+
+```bash
+npm run check:journey -- --base-url https://marathon.alfares.cz
+```
+
+The journey verifier is read-only by default. Registration, profile, VIP checkout, gift redemption, and assignment submission checks require explicit `--mutating` options; see `npm run check:journey -- --help`.
+
 ## Notes
 
 - Production-only workflow

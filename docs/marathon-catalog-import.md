@@ -40,6 +40,20 @@ npm run check:readiness
 
 The preflight must pass before the production journey can be considered ready for registration, VIP checkout, gift redemption, and assignment submission verification.
 
+5. Run the HTTP-level journey smoke verifier:
+
+```bash
+npm run check:journey -- --base-url https://marathon.alfares.cz
+```
+
+This verifier is read-only by default. To create a real smoke participant or verify authenticated checkout/gift/submission paths, pass `--mutating` plus the required explicit inputs:
+
+```bash
+npm run check:journey -- --mutating --email smoke@example.com --auth-token '<jwt>' --submit
+npm run check:journey -- --mutating --email smoke@example.com --auth-token '<jwt>' --gift-code '<approved-code>'
+npm run check:journey -- --mutating --email smoke@example.com --auth-token '<jwt>' --checkout
+```
+
 ## Minimal Fields
 
 `Marathon` requires `languageCode`, `title`, `slug`, and `active`.
