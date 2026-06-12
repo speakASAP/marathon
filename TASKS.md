@@ -37,3 +37,4 @@
 - [x] 2026-06-12 VIP payment return UX added: profile detail now explains `payment=success` callback-settlement delay, confirmed VIP state, and cancelled checkout returns
 - [x] 2026-06-12 Saved assignment report UX added: authenticated step pages now load the participant's existing submission/report and show saved state, late status, and bonus-day metadata before resubmission
 - [x] 2026-06-12 Saved assignment report verification added: `npm run check:journey` can read an existing participant submission with explicit auth/IDs and verifies saved-report readback after mutating submission smoke checks
+- [x] 2026-06-12 Profile assignment schedule UX added: profile detail now labels active/completed/late/locked/VIP-gated steps, shows due/saved timing, and links payment-blocked steps back to VIP options

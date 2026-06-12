@@ -454,15 +454,93 @@ a:hover {
 }
 
 .profile-answers li {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0;
+  gap: 14px;
+  padding: 14px 0;
   border-bottom: 1px solid var(--marathon-border);
+}
+
+.profile-step-main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.profile-step-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.answer-title {
+  color: var(--marathon-heading);
+  font-weight: 800;
+}
+
+.answer-state {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #eef3f8;
+  color: #526071;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.profile-step-meta {
+  color: #5e6a80;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.profile-step-action {
+  justify-self: end;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  background: #eef7ff;
+  color: #2f6fbd;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.profile-step-action:hover {
+  background: #ddeeff;
+  color: #245d9f;
+}
+
+.profile-step-action-muted {
+  background: #fff3f1;
+  color: #9b4a33;
+}
+
+.profile-step-action-muted:hover {
+  background: #ffe6df;
+  color: #813820;
+}
+
+.profile-step-action-disabled {
+  background: #f3f5f8;
+  color: #8a95a5;
 }
 
 .answer-state-inactive {
   color: #999;
+}
+
+.answer-state-inactive .answer-title {
+  color: #7b8494;
+}
+
+.answer-state-inactive .answer-state {
+  background: #f3f5f8;
+  color: #7b8494;
 }
 
 .answer-state-active,
@@ -470,8 +548,28 @@ a:hover {
   font-weight: 500;
 }
 
+.answer-state-active .answer-state {
+  background: #e8f5e9;
+  color: #256b2a;
+}
+
+.answer-state-checked .answer-state {
+  background: #eef7ff;
+  color: #2f6fbd;
+}
+
 .answer-state-completed {
   color: #2e7d32;
+}
+
+.answer-state-completed .answer-state {
+  background: #e8f5e9;
+  color: #256b2a;
+}
+
+.answer-state-payment-required .answer-state {
+  background: #fff3f1;
+  color: #9b4a33;
 }
 
 /* Step page */
@@ -1113,6 +1211,15 @@ a:hover {
   .profile-payment-return {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .profile-answers li {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .profile-step-action {
+    justify-self: start;
   }
 
   .gift-hero,

@@ -10,6 +10,7 @@ interface Answer {
   stop: string;
   state: string;
   is_late: boolean;
+  block_reason?: string | null;
 }
 
 interface MyMarathon {
@@ -26,6 +27,37 @@ interface MyMarathon {
 }
 
 type PaymentReturnState = 'success' | 'cancelled' | null;
+
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getStateLabel(answer: Answer) {
+  if (answer.block_reason === 'payment_required') return 'VIP';
+  if (answer.is_late) return 'Late';
+  if (answer.state === 'completed' || answer.state === 'done') return 'Done';
+  if (answer.state === 'checked') return 'Checked';
+  if (answer.state === 'active') return 'Active';
+  return 'Locked';
+}
+
+function getStepMeta(answer: Answer) {
+  if (answer.block_reason === 'payment_required') {
+    return 'VIP access is required to open this assignment.';
+  }
+  if (answer.state === 'inactive') {
+    return 'Unlocks after the previous assignment is completed.';
+  }
+  if (answer.state === 'completed' || answer.state === 'done') {
+    return `Saved ${formatDateTime(answer.stop)}.`;
+  }
+  return `${answer.is_late ? 'Late. ' : ''}Due ${formatDateTime(answer.stop)}.`;
+}
 
 /**
  * My marathon detail: GET /api/v1/me/marathons/:marathonerId (Bearer).
@@ -169,7 +201,7 @@ export default function ProfileDetail() {
         </section>
       )}
       {data.needs_payment && (
-        <section className="profile-payment-panel">
+        <section className="profile-payment-panel" id="vip-access">
           <div>
             <h2>VIP access required</h2>
             <p>The VIP gate is active for this marathon. Pay securely or redeem a gift code to unlock the next assignments.</p>
@@ -188,7 +220,11 @@ export default function ProfileDetail() {
         <section className="profile-current">
           <h2>Текущий этап</h2>
           <p><strong>{current.title}</strong></p>
-          <p>До: {new Date(current.stop).toLocaleString('ru-RU')}</p>
+          <p>
+            {getStateLabel(current)}
+            {' · '}
+            {getStepMeta(current)}
+          </p>
           <Link to={`/steps/${current.stepId}?marathonerId=${encodeURIComponent(data.id)}`} className="btn-profile-open">
             Открыть задание
           </Link>
@@ -197,15 +233,30 @@ export default function ProfileDetail() {
       <section className="profile-steps">
         <h2>Этапы</h2>
         <ul className="profile-answers">
-          {data.answers.map((a) => (
-            <li key={String(a.id)} className={`answer-state-${a.state}`}>
-              <span className="answer-title">{a.title}</span>
-              <span className="answer-state">{a.state}</span>
-              {a.state !== 'inactive' && (
-                <Link to={`/steps/${a.stepId}?marathonerId=${encodeURIComponent(data.id)}`}>Открыть</Link>
-              )}
-            </li>
-          ))}
+          {data.answers.map((a) => {
+            const paymentBlocked = a.block_reason === 'payment_required';
+            const canOpen = a.state !== 'inactive' && !paymentBlocked;
+            return (
+              <li key={String(a.id)} className={`answer-state-${a.state}${paymentBlocked ? ' answer-state-payment-required' : ''}`}>
+                <div className="profile-step-main">
+                  <div className="profile-step-heading">
+                    <span className="answer-title">{a.title}</span>
+                    <span className="answer-state">{getStateLabel(a)}</span>
+                  </div>
+                  <span className="profile-step-meta">{getStepMeta(a)}</span>
+                </div>
+                {canOpen && (
+                  <Link className="profile-step-action" to={`/steps/${a.stepId}?marathonerId=${encodeURIComponent(data.id)}`}>Открыть</Link>
+                )}
+                {paymentBlocked && (
+                  <a className="profile-step-action profile-step-action-muted" href="#vip-access">VIP options</a>
+                )}
+                {!canOpen && !paymentBlocked && (
+                  <span className="profile-step-action profile-step-action-disabled">Locked</span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </section>
     </div>
