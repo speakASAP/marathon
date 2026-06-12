@@ -6,6 +6,9 @@ interface StepInfo {
   id: string;
   title: string;
   sequence: number;
+  assignmentContent: string | null;
+  formKey: string | null;
+  socialLink: string | null;
 }
 
 interface RandomAnswer {
@@ -112,6 +115,8 @@ export default function Step() {
     }
   };
 
+  const assignmentContent = step?.assignmentContent?.trim();
+
   if (loadingStep && !step) {
     return (
       <div className="container">
@@ -165,7 +170,18 @@ export default function Step() {
 
       {tab === 'task' && (
         <section className="step-task">
-          <p>Содержание задания для этого этапа. Submit your completed work in the “Мой отчет” tab.</p>
+          {assignmentContent ? (
+            <div className="step-assignment-content">{assignmentContent}</div>
+          ) : (
+            <div className="step-content-missing" role="alert">
+              Assignment content is not configured for this step. Contact support before submitting a report.
+            </div>
+          )}
+          {step?.socialLink && (
+            <a className="step-resource-link" href={step.socialLink} target="_blank" rel="noopener noreferrer">
+              Open supporting material
+            </a>
+          )}
         </section>
       )}
 
@@ -204,10 +220,7 @@ export default function Step() {
                   <span> — {new Date(randomAnswer.complete_time).toLocaleString('ru-RU')}</span>
                 )}
               </p>
-              <div
-                className="random-report-body"
-                dangerouslySetInnerHTML={{ __html: randomAnswer.report }}
-              />
+              <div className="random-report-body">{randomAnswer.report}</div>
             </div>
           )}
           {!loadingRandom && randomAnswer && (

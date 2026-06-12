@@ -28,18 +28,19 @@ model Marathon {
 }
 
 model MarathonStep {
-  id          String   @id @default(uuid())
-  marathonId  String
-  title       String
-  sequence    Int
-  isPenalized Boolean  @default(true)
-  formKey     String?
-  socialLink  String?
-  isTrialStep Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  marathon    Marathon @relation(fields: [marathonId], references: [id])
-  submissions StepSubmission[]
+  id                String   @id @default(uuid())
+  marathonId        String
+  title             String
+  assignmentContent String?
+  sequence          Int
+  isPenalized       Boolean  @default(true)
+  formKey           String?
+  socialLink        String?
+  isTrialStep       Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  marathon          Marathon @relation(fields: [marathonId], references: [id])
+  submissions       StepSubmission[]
 
   @@unique([marathonId, sequence])
 }

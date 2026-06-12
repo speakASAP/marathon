@@ -30,3 +30,5 @@
 - [x] 2026-06-12 Journey smoke verifier added: `npm run check:journey` checks public Marathon routes read-only by default and supports explicit guarded mutating registration/profile/VIP/gift/submission verification after catalog load
 - [x] 2026-06-12 Journey smoke verifier guardrails tightened: checkout/gift/submission flags now fail without `--mutating` and authenticated smoke inputs instead of being silently skipped
 - [x] 2026-06-12 Gift redemption closed-catalog UX corrected: `/gift` and the landing VIP panel now show readiness/status messaging instead of gift redemption actions when production has no active marathon or unused gift codes
+- [x] 2026-06-12 Readiness preflight operator output hardened: database connection failures now show the in-pod Kubernetes command and HTTP journey fallback instead of a raw Prisma error
+- [x] 2026-06-12 Assignment content readiness added: MarathonStep catalog rows now require approved `assignmentContent`, step/support pages render it as plain text, peer reports no longer inject HTML, and readiness/journey checks fail missing assignment content

@@ -5,6 +5,9 @@ export type StepSummary = {
   id: string;
   title: string;
   sequence: number;
+  assignmentContent: string | null;
+  formKey: string | null;
+  socialLink: string | null;
 };
 
 @Injectable()
@@ -23,6 +26,9 @@ export class StepsService {
       id: step.id,
       title: step.title,
       sequence: step.sequence,
+      assignmentContent: step.assignmentContent,
+      formKey: step.formKey,
+      socialLink: step.socialLink,
     };
   }
 
@@ -36,6 +42,9 @@ export class StepsService {
       id: s.id,
       title: s.title,
       sequence: s.sequence,
+      assignmentContent: s.assignmentContent,
+      formKey: s.formKey,
+      socialLink: s.socialLink,
     }));
   }
 }

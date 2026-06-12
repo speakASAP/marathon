@@ -513,6 +513,28 @@ a:hover {
   margin-bottom: 1rem;
 }
 
+.step-assignment-content {
+  color: #172033;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.step-content-missing {
+  padding: 1rem;
+  border: 1px solid #ffd9a8;
+  border-radius: 8px;
+  background: #fff8ed;
+  color: #7a4b00;
+  font-weight: 700;
+}
+
+.step-resource-link {
+  display: inline-flex;
+  margin-top: 1rem;
+  color: #246b45;
+  font-weight: 800;
+}
+
 .random-report {
   margin: 1rem 0;
   padding: 1rem;
@@ -527,6 +549,7 @@ a:hover {
 
 .random-report-body {
   line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .random-report-body p {

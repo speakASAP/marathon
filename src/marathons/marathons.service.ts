@@ -38,6 +38,7 @@ export type MarathonCatalogReadiness = {
     gifts: number;
     unusedGifts: number;
     steps: number;
+    stepsWithContent: number;
   };
   missing: string[];
 };
@@ -166,6 +167,7 @@ export class MarathonsService {
       gifts,
       unusedGifts,
       steps,
+      stepsWithContent,
     ] = await Promise.all([
       this.prisma.marathon.count({ where: { active: true } }),
       this.prisma.marathon.count(),
@@ -173,18 +175,43 @@ export class MarathonsService {
       this.prisma.marathonGift.count(),
       this.prisma.marathonGift.count({ where: { usedAt: null } }),
       this.prisma.marathonStep.count(),
+      this.prisma.marathonStep.count({ where: { assignmentContent: { not: null } } }),
     ]);
+
+    const activeCatalog = await this.prisma.marathon.findMany({
+      where: { active: true },
+      include: {
+        product: { select: { id: true } },
+        gifts: { where: { usedAt: null }, select: { id: true } },
+        steps: {
+          select: {
+            assignmentContent: true,
+            isTrialStep: true,
+          },
+        },
+      },
+    });
+
+    const allActiveHaveProducts = activeCatalog.length > 0 && activeCatalog.every((marathon) => marathon.product);
+    const allActiveHaveGifts = activeCatalog.length > 0 && activeCatalog.every((marathon) => marathon.gifts.length > 0);
+    const allActiveHaveSteps = activeCatalog.length > 0 && activeCatalog.every((marathon) => marathon.steps.length > 0);
+    const allActiveHaveGatedSteps = activeCatalog.length > 0
+      && activeCatalog.every((marathon) => marathon.steps.some((step) => !step.isTrialStep));
+    const allActiveStepsHaveContent = activeCatalog.length > 0
+      && activeCatalog.every((marathon) => marathon.steps.every((step) => Boolean(step.assignmentContent?.trim())));
 
     const missing: string[] = [];
     if (activeMarathons === 0) missing.push('active-marathon');
-    if (steps === 0) missing.push('steps');
-    if (products === 0) missing.push('product');
-    if (unusedGifts === 0) missing.push('gift');
+    if (!allActiveHaveSteps) missing.push('steps');
+    if (!allActiveHaveGatedSteps) missing.push('gated-step');
+    if (!allActiveStepsHaveContent) missing.push('step-content');
+    if (!allActiveHaveProducts) missing.push('product');
+    if (!allActiveHaveGifts) missing.push('gift');
 
     const registrationOpen = activeMarathons > 0;
-    const paymentReady = activeMarathons > 0 && products > 0;
-    const giftReady = activeMarathons > 0 && unusedGifts > 0;
-    const assignmentReady = activeMarathons > 0 && steps > 0;
+    const paymentReady = registrationOpen && allActiveHaveProducts;
+    const giftReady = registrationOpen && allActiveHaveGifts;
+    const assignmentReady = registrationOpen && allActiveHaveSteps && allActiveHaveGatedSteps && allActiveStepsHaveContent;
 
     return {
       ready: registrationOpen && paymentReady && giftReady && assignmentReady,
@@ -199,6 +226,7 @@ export class MarathonsService {
         gifts,
         unusedGifts,
         steps,
+        stepsWithContent,
       },
       missing,
     };

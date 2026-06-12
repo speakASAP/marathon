@@ -237,6 +237,10 @@ async function checkPublicRoutes(report, options) {
     throw new Error('Step detail did not return an id.');
   }
   addCheck(report, 'pass', 'step-detail-api', 'Step detail API returned the first step.');
+  if (!step.json.assignmentContent?.trim()) {
+    throw new Error('Step detail did not include assignmentContent.');
+  }
+  addCheck(report, 'pass', 'step-content-api', 'Step detail API returned assignment content.');
   return { marathon: marathon.json, steps: steps.json };
 }
 

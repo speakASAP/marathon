@@ -12,6 +12,54 @@ function hasArg(name) {
   return process.argv.slice(2).includes(name);
 }
 
+function isDatabaseConnectionError(error) {
+  const message = String(error?.message || error || '');
+  return (
+    message.includes("Can't reach database server") ||
+    message.includes('P1001') ||
+    message.includes('ECONNREFUSED') ||
+    message.includes('ENOTFOUND') ||
+    message.includes('getaddrinfo')
+  );
+}
+
+function redactedDatabaseUrl() {
+  if (!process.env.DATABASE_URL) return 'not set';
+  try {
+    const url = new URL(process.env.DATABASE_URL);
+    if (url.username) url.username = '***';
+    if (url.password) url.password = '***';
+    return url.toString();
+  } catch {
+    return '[set but not parseable]';
+  }
+}
+
+function buildConnectionFailureReport(error) {
+  return {
+    ok: false,
+    summary: null,
+    checks: [
+      {
+        status: 'fail',
+        code: 'database-connection',
+        message: 'Could not reach the Marathon database from this runtime.',
+        detail: {
+          databaseUrl: redactedDatabaseUrl(),
+          error: String(error?.message || error),
+          recommendation:
+            'Run this preflight inside the deployed Marathon pod so cluster DNS, DATABASE_URL, and payment environment variables match production.',
+          command:
+            "kubectl exec -n statex-apps deploy/marathon -- sh -lc 'cd /app && npm run check:readiness'",
+          httpFallback:
+            'For external read-only smoke checks, use npm run check:journey -- --base-url https://marathon.alfares.cz',
+        },
+      },
+    ],
+    activeMarathons: [],
+  };
+}
+
 function addCheck(checks, status, code, message, detail = undefined) {
   checks.push({ status, code, message, ...(detail === undefined ? {} : { detail }) });
 }
@@ -34,6 +82,7 @@ function publicMarathon(marathon) {
         }
       : null,
     stepCount: marathon.steps.length,
+    stepContentCount: marathon.steps.filter((step) => step.assignmentContent?.trim()).length,
     trialStepCount: marathon.steps.filter((step) => step.isTrialStep).length,
     gatedStepCount: marathon.steps.filter((step) => !step.isTrialStep).length,
     unusedGiftCount: marathon.gifts.length,
@@ -53,6 +102,7 @@ async function buildReport() {
       gifts,
       unusedGifts,
       steps,
+      stepsWithContent,
       participants,
     ] = await Promise.all([
       prisma.marathon.count({ where: { active: true } }),
@@ -61,6 +111,7 @@ async function buildReport() {
       prisma.marathonGift.count(),
       prisma.marathonGift.count({ where: { usedAt: null } }),
       prisma.marathonStep.count(),
+      prisma.marathonStep.count({ where: { assignmentContent: { not: null } } }),
       prisma.marathonParticipant.count(),
     ]);
 
@@ -76,6 +127,7 @@ async function buildReport() {
           orderBy: { sequence: 'asc' },
           select: {
             id: true,
+            assignmentContent: true,
             isTrialStep: true,
             sequence: true,
             title: true,
@@ -92,6 +144,7 @@ async function buildReport() {
       gifts,
       unusedGifts,
       steps,
+      stepsWithContent,
       participants,
     };
 
@@ -103,6 +156,9 @@ async function buildReport() {
 
     if (steps === 0) {
       addCheck(checks, 'fail', 'catalog-steps', 'No MarathonStep rows exist; assignment submission cannot be verified.');
+    }
+    if (stepsWithContent < steps) {
+      addCheck(checks, 'fail', 'catalog-step-content', 'One or more MarathonStep rows have no assignmentContent; assignment pages cannot be verified.');
     }
     if (products === 0) {
       addCheck(checks, 'fail', 'catalog-products', 'No MarathonProduct rows exist; VIP checkout cannot be verified.');
@@ -117,6 +173,19 @@ async function buildReport() {
         addCheck(checks, 'fail', 'steps', `${label} has no MarathonStep rows; assignments cannot open.`);
       } else {
         addCheck(checks, 'pass', 'steps', `${label} has ${marathon.steps.length} MarathonStep row(s).`);
+      }
+
+      const missingContentSteps = marathon.steps.filter((step) => !step.assignmentContent?.trim());
+      if (missingContentSteps.length > 0) {
+        addCheck(
+          checks,
+          'fail',
+          'step-content',
+          `${label} has ${missingContentSteps.length} step(s) without approved assignmentContent.`,
+          missingContentSteps.map((step) => ({ sequence: step.sequence, title: step.title })),
+        );
+      } else if (marathon.steps.length > 0) {
+        addCheck(checks, 'pass', 'step-content', `${label} has approved assignmentContent for every step.`);
       }
 
       const gatedSteps = marathon.steps.filter((step) => !step.isTrialStep);
@@ -174,10 +243,18 @@ async function buildReport() {
 
 function printText(report) {
   console.log(`Marathon production readiness: ${report.ok ? 'ready' : 'not ready'}`);
-  console.log(`Counts: ${JSON.stringify(report.summary)}`);
+  if (report.summary) {
+    console.log(`Counts: ${JSON.stringify(report.summary)}`);
+  }
   for (const check of report.checks) {
     const marker = check.status === 'pass' ? 'PASS' : 'FAIL';
     console.log(`[${marker}] ${check.code}: ${check.message}`);
+    if (check.code === 'database-connection' && check.detail) {
+      console.log(`Database URL: ${check.detail.databaseUrl}`);
+      console.log(`Reason: ${check.detail.error}`);
+      console.log(`Run inside pod: ${check.detail.command}`);
+      console.log(`External fallback: ${check.detail.httpFallback}`);
+    }
   }
 }
 
@@ -191,6 +268,15 @@ buildReport()
     process.exit(report.ok ? 0 : 1);
   })
   .catch((error) => {
+    if (isDatabaseConnectionError(error)) {
+      const report = buildConnectionFailureReport(error);
+      if (hasArg('--json')) {
+        console.log(JSON.stringify(report, null, 2));
+      } else {
+        printText(report);
+      }
+      process.exit(1);
+    }
     console.error(error.message || error);
     process.exit(1);
   });

@@ -35,7 +35,7 @@ The script is create-only. It aborts if a target marathon slug or gift code alre
 4. Run the read-only production preflight from the Marathon runtime:
 
 ```bash
-npm run check:readiness
+kubectl exec -n statex-apps deploy/marathon -- sh -lc 'cd /app && npm run check:readiness'
 ```
 
 The preflight must pass before the production journey can be considered ready for registration, VIP checkout, gift redemption, and assignment submission verification.
@@ -58,7 +58,7 @@ npm run check:journey -- --mutating --email smoke@example.com --auth-token '<jwt
 
 `Marathon` requires `languageCode`, `title`, `slug`, and `active`.
 
-`MarathonStep` requires `title` and `sequence`; use only human-approved step titles, sequence numbers, and `formKey` values.
+`MarathonStep` requires `title`, `sequence`, and `assignmentContent`; use only human-approved step titles, assignment instructions, sequence numbers, and `formKey` values.
 
 `MarathonProduct` requires `title`, `price`, and `currency`.
 

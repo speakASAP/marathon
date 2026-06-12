@@ -22,7 +22,7 @@ Standalone marathon product (NestJS + TypeScript).
 
 ## Catalog Data
 
-Registration and VIP verification require approved catalog rows in `Marathon`, `MarathonStep`, `MarathonProduct`, and optionally `MarathonGift`.
+Registration and VIP verification require approved catalog rows in `Marathon`, `MarathonStep`, `MarathonProduct`, and optionally `MarathonGift`. Every `MarathonStep` must include approved plain-text `assignmentContent`; the app will not treat placeholder or missing assignment instructions as launch-ready.
 
 Use the safe catalog-only loader for human-approved source data:
 
@@ -36,8 +36,8 @@ The loader is dry-run by default, rejects user/progress data, and does not overw
 Run the read-only production preflight from the Marathon runtime after loading catalog data:
 
 ```bash
-npm run check:readiness
-npm run check:readiness -- --json
+kubectl exec -n statex-apps deploy/marathon -- sh -lc 'cd /app && npm run check:readiness'
+kubectl exec -n statex-apps deploy/marathon -- sh -lc 'cd /app && npm run check:readiness -- --json'
 ```
 
 Run the HTTP-level journey smoke verifier after readiness passes:

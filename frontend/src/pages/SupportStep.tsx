@@ -5,6 +5,8 @@ interface StepInfo {
   id: string;
   title: string;
   sequence: number;
+  assignmentContent: string | null;
+  socialLink: string | null;
 }
 
 /**
@@ -40,6 +42,7 @@ export default function SupportStep() {
     );
   }
   if (!step) return null;
+  const assignmentContent = step.assignmentContent?.trim();
 
   return (
     <div className="container page-static">
@@ -49,7 +52,18 @@ export default function SupportStep() {
         <Link to="/support">Поддержка</Link>
       </nav>
       <h1>{step.title}</h1>
-      <p>Просмотр этапа (поддержка). Содержание задания.</p>
+      {assignmentContent ? (
+        <div className="step-assignment-content">{assignmentContent}</div>
+      ) : (
+        <div className="step-content-missing" role="alert">
+          Assignment content is not configured for this step.
+        </div>
+      )}
+      {step.socialLink && (
+        <a className="step-resource-link" href={step.socialLink} target="_blank" rel="noopener noreferrer">
+          Open supporting material
+        </a>
+      )}
     </div>
   );
 }

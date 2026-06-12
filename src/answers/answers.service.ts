@@ -90,21 +90,25 @@ export class AnswersService {
   }
 
   /**
-   * Generates report HTML from submission payload.
-   * Note: Legacy implementation uses Django template rendering with form field metadata.
-   * This implementation provides functional parity (all data included) but not exact
-   * HTML structure parity. For exact parity, would need to integrate Django template
-   * engine or replicate template rendering logic.
+   * Generates a plain-text report from submission payload.
+   * The frontend renders this as text with preserved line breaks.
    */
   private generateReport(marathonTitle: string, stepTitle: string, payload: Record<string, any> | null): string {
+    const lines = [`Marathon: ${marathonTitle}`, `Step: ${stepTitle}`];
     if (!payload) {
-      return `<p>Marathon: ${marathonTitle}</p><p>Step: ${stepTitle}</p>`;
+      return lines.join('\n');
     }
 
-    const fields = Object.entries(payload)
-      .map(([key, value]) => `<p><strong>${key}:</strong> ${value}</p>`)
-      .join('');
+    for (const [key, value] of Object.entries(payload)) {
+      lines.push(`${key}: ${this.stringifyPayloadValue(value)}`);
+    }
+    return lines.join('\n');
+  }
 
-    return `<p>Marathon: ${marathonTitle}</p><p>Step: ${stepTitle}</p>${fields}`;
+  private stringifyPayloadValue(value: unknown): string {
+    if (value == null) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    return JSON.stringify(value);
   }
 }

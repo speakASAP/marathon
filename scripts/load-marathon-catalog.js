@@ -41,6 +41,9 @@ const ALLOWED_MARATHON_KEYS = new Set([
   'vip_since',
 ]);
 const ALLOWED_STEP_KEYS = new Set([
+  'assignmentContent',
+  'assignment_content',
+  'content',
   'formKey',
   'form_class',
   'isPenalized',
@@ -240,6 +243,10 @@ function normalizeStep(raw, index, marathonSlug) {
   assertAllowedKeys(raw, ALLOWED_STEP_KEYS, `steps[${index}]`);
 
   return {
+    assignmentContent: requiredString(
+      raw.assignmentContent ?? raw.assignment_content ?? raw.content,
+      `steps[${index}].assignmentContent`,
+    ),
     formKey: optionalString(raw.formKey ?? raw.form_class, `steps[${index}].formKey`),
     isPenalized: optionalBoolean(raw.isPenalized ?? raw.penalize, true, `steps[${index}].isPenalized`),
     isTrialStep: optionalBoolean(raw.isTrialStep ?? raw.trial, false, `steps[${index}].isTrialStep`),
@@ -428,6 +435,7 @@ async function applyCatalog(catalog) {
         const marathon = marathonBySlug.get(step.marathonSlug);
         await tx.marathonStep.create({
           data: {
+            assignmentContent: step.assignmentContent,
             formKey: step.formKey,
             isPenalized: step.isPenalized,
             isTrialStep: step.isTrialStep,

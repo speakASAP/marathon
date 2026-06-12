@@ -16,6 +16,7 @@
         {
           "sequence": 1,
           "title": "APPROVED_STEP_TITLE_1",
+          "assignmentContent": "APPROVED_STEP_ASSIGNMENT_CONTENT_1",
           "isPenalized": true,
           "isTrialStep": true,
           "formKey": "APPROVED_FORM_KEY_1",
