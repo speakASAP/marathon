@@ -356,7 +356,8 @@ export class VipService {
   private validateCallbackApiKey(apiKey: string | string[] | undefined): void {
     const expected = process.env.PAYMENT_WEBHOOK_API_KEY;
     if (!expected) {
-      return;
+      this.logger.error('Payment callback rejected because PAYMENT_WEBHOOK_API_KEY is not configured');
+      throw new UnauthorizedException('Payment callback API key is not configured');
     }
     const value = Array.isArray(apiKey) ? apiKey[0] : apiKey;
     if (value !== expected) {

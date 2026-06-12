@@ -655,6 +655,18 @@ async function checkPublicRoutes(report, options) {
   assertResponse(unauthenticatedNps, 401, 'unauthenticated NPS survey');
   addCheck(report, 'pass', 'nps-survey-auth-guard', 'Participant NPS survey endpoint requires authentication.');
 
+  const unauthenticatedPaymentCallback = await request(report, '/api/v1/payments/webhook', {
+    method: 'POST',
+    body: JSON.stringify({
+      orderId: 'marathon:smoke-participant:0',
+      status: 'success',
+      amount: 1,
+      currency: 'EUR',
+    }),
+  });
+  assertResponse(unauthenticatedPaymentCallback, 401, 'unauthenticated payment callback');
+  addCheck(report, 'pass', 'payment-webhook-auth-guard', 'Payment webhook rejects callbacks without the configured API key.');
+
   await assertFrontendHandoffSource(report, rootHtml);
 
   const readiness = await requestJson(report, '/api/v1/marathons/readiness');

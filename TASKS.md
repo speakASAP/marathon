@@ -8,6 +8,7 @@
 - [ ] T4: Verify end-to-end VIP upgrade flow (goal_id: vip-payment, priority: 2)
 - [ ] Review course step content for upcoming marathon (priority: 3)
 - [x] Generate participant progress report (priority: 3)
+- [x] TASK-MAR-034: Harden payment webhook fail-closed auth guard before catalog load (goal_id: vip-payment, priority: 1)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
@@ -87,3 +88,4 @@
 - [x] 2026-06-12 Post-load journey verification runbook deployed: `/support` lists placeholder-only registration, VIP, gift, and assignment smoke commands for the first approved catalog launch
 - [x] 2026-06-12 Support runbook mobile layout and ready-state visibility deployed: `/support` command lists use mobile-safe counter columns, and post-load smoke commands remain outside the closed-catalog launch gate
 - [x] 2026-06-12 Closed-catalog landing real-data posture deployed: language landing pages no longer show fake price, task, day, progress, workflow, duration, or metadata claims before approved catalog data exists
+- [x] 2026-06-12 Payment webhook fail-closed guard verified: callbacks now reject missing webhook secret configuration and journey smoke checks unauthenticated callback rejection before catalog readiness
