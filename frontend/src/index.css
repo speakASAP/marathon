@@ -928,16 +928,77 @@ a:hover {
   overflow-wrap: anywhere;
 }
 
-.support-readiness-note {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.support-launch-runbook {
+  display: grid;
+  gap: 16px;
   margin-top: 14px;
-  padding: 12px 14px;
+  padding: 18px;
   border: 1px solid #f1d1c4;
   border-radius: 8px;
   background: #fff8f5;
   color: #67412f;
+}
+
+.support-launch-runbook > div:first-child strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #101832;
+  font-size: 1.05rem;
+}
+
+.support-launch-runbook p {
+  margin: 0;
+}
+
+.support-missing-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.support-missing-grid span {
+  padding: 6px 10px;
+  border: 1px solid #f1d1c4;
+  border-radius: 999px;
+  background: #fff;
+  color: #67412f;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.support-runbook-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.support-runbook-list li {
+  padding-left: 4px;
+}
+
+.support-runbook-list strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #101832;
+}
+
+.support-runbook-list code {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #ead4c8;
+  border-radius: 7px;
+  background: #fff;
+  color: #263653;
+  font-size: 0.84rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.support-runbook-note {
+  color: #80513c;
+  font-size: 0.9rem;
 }
 
 .support-marathon-list {

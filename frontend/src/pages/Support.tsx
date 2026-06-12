@@ -72,6 +72,32 @@ interface MarathonAnalytics {
   };
 }
 
+const CATALOG_RUNBOOK_STEPS = [
+  {
+    title: 'Prepare approved catalog JSON',
+    detail: 'Use docs/schemas/marathon-catalog.schema.json and include only Marathon/Product/Gift/Step data.',
+  },
+  {
+    title: 'Dry-run inside the runtime pod',
+    detail: 'kubectl -n statex-apps exec deploy/marathon -- npm run load:catalog -- /path/to/catalog.json',
+  },
+  {
+    title: 'Apply after approval',
+    detail: 'kubectl -n statex-apps exec deploy/marathon -- npm run load:catalog -- /path/to/catalog.json --apply',
+  },
+  {
+    title: 'Verify launch readiness',
+    detail: 'kubectl -n statex-apps exec deploy/marathon -- npm run check:readiness',
+  },
+];
+
+function formatMissingLabel(value: string): string {
+  return value
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 /**
  * Support: list marathons and links to each step (support view).
  */
@@ -146,10 +172,30 @@ export default function Support() {
               <div><span>Avg. survey score</span><strong>{analytics.surveys.averageScore}</strong></div>
             </div>
             {!analytics.catalog.ready && (
-              <div className="support-readiness-note">
-                <strong>Launch gate:</strong>
-                <span>{analytics.catalog.missing.length ? analytics.catalog.missing.join(', ') : 'waiting for catalog verification'}</span>
-              </div>
+              <section className="support-launch-runbook" aria-label="Launch unblocker">
+                <div>
+                  <strong>Launch gate</strong>
+                  <p>
+                    Registration, VIP checkout, gift redemption, and assignment verification stay closed until the approved catalog is loaded.
+                  </p>
+                </div>
+                <div className="support-missing-grid" aria-label="Missing catalog classes">
+                  {(analytics.catalog.missing.length ? analytics.catalog.missing : ['waiting-for-catalog-verification']).map((item) => (
+                    <span key={item}>{formatMissingLabel(item)}</span>
+                  ))}
+                </div>
+                <ol className="support-runbook-list">
+                  {CATALOG_RUNBOOK_STEPS.map((step) => (
+                    <li key={step.title}>
+                      <strong>{step.title}</strong>
+                      <code>{step.detail}</code>
+                    </li>
+                  ))}
+                </ol>
+                <p className="support-runbook-note">
+                  Do not paste gift-code inventories, participant exports, JWTs, payment keys, or assignment reports into validation notes.
+                </p>
+              </section>
             )}
           </>
         ) : !analyticsError ? (
