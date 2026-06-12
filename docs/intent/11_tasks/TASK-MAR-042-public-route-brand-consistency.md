@@ -2,11 +2,11 @@
 
 ```yaml
 id: TASK-MAR-042
-status: in_progress
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
-completeness_level: partial
+completeness_level: complete
 upstream:
   - docs/intent/01_vision/VISION.md
   - docs/intent/10_features/FEAT-001-launch-ready-catalog-flow.md
@@ -33,12 +33,23 @@ Finish the Marathon-first public rebrand beyond the root page by updating langua
 
 ## Acceptance Criteria
 
-- [ ] `/en/` language landing chrome shows Marathon as the primary brand.
-- [ ] Static information pages use Marathon-first titles/headings.
-- [ ] Smoke coverage protects language/static public brand markers.
-- [ ] Production Browser QA records root-adjacent public route evidence.
-- [ ] Validation is recorded in `docs/intent/12_validation/VAL-TASK-MAR-042.md`.
+- [x] `/en/` language landing chrome shows Marathon as the primary brand.
+- [x] Static information pages use Marathon-first titles/headings.
+- [x] Smoke coverage protects language/static public brand markers.
+- [x] Production Browser QA records root-adjacent public route evidence.
+- [x] Validation is recorded in `docs/intent/12_validation/VAL-TASK-MAR-042.md`.
 
 ## Current Blocker
 
 The full registration/payment/assignment journey remains blocked by missing approved catalog rows. This task only closes public-route rebrand consistency before that load.
+
+## Verification Summary
+
+- Commit: `0690852`.
+- Deployed image: `localhost:5000/marathon:0690852`.
+- `npm run check:journey` passes the expanded `public-marathon-branding` check and all frontend/read-only checks before the known `catalog-readiness` failure.
+- Browser QA verified `/en/`, `/about`, `/rules`, and `/winners`; screenshots:
+  - `/private/tmp/marathon-landing-en-0690852.png`
+  - `/private/tmp/marathon-about-0690852.png`
+  - `/private/tmp/marathon-rules-0690852.png`
+  - `/private/tmp/marathon-winners-0690852.png`
