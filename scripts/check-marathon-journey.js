@@ -190,7 +190,7 @@ async function assertFrontendShell(report, path, code, message) {
   addCheck(report, 'pass', code, message);
 }
 
-async function assertRegistrationHandoffSource(report, rootHtml) {
+async function assertFrontendHandoffSource(report, rootHtml) {
   const assetMatch = rootHtml.match(/<script[^>]+src="([^"]*\/assets\/[^"]+\.js)"/);
   if (!assetMatch) {
     throw new Error('Root HTML does not reference a built frontend JavaScript asset.');
@@ -202,7 +202,11 @@ async function assertRegistrationHandoffSource(report, rootHtml) {
   if (!js.includes('marathon_token') || !js.includes('next=') || !js.includes('/profile/')) {
     throw new Error('Built frontend bundle does not include token-aware registration profile handoff.');
   }
+  if (!js.includes('Sign in to submit your report') || !js.includes('Open this assignment from your marathon profile')) {
+    throw new Error('Built frontend bundle does not include assignment submit authentication guard.');
+  }
   addCheck(report, 'pass', 'registration-login-handoff', 'Registration frontend bundle routes new participants through token-aware profile login handoff.');
+  addCheck(report, 'pass', 'assignment-login-guard', 'Assignment report UI requires profile context and token-aware login before submission.');
 }
 
 async function checkPublicRoutes(report, options) {
@@ -243,7 +247,7 @@ async function checkPublicRoutes(report, options) {
     'frontend-gift-return',
     'Direct gift-code login return route serves the frontend shell.',
   );
-  await assertRegistrationHandoffSource(report, rootHtml);
+  await assertFrontendHandoffSource(report, rootHtml);
 
   const readiness = await requestJson(report, '/api/v1/marathons/readiness');
   assertOk(readiness.response, '/api/v1/marathons/readiness');

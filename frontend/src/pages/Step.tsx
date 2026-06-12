@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { FormEvent, useEffect, useState } from 'react';
-import { authFetch, redirectToLogin } from '../auth';
+import { authFetch, getToken, redirectToLogin } from '../auth';
 
 interface StepInfo {
   id: string;
@@ -45,6 +45,7 @@ export default function Step() {
   const [savedSubmission, setSavedSubmission] = useState<SavedSubmission | null>(null);
   const [loadingSavedSubmission, setLoadingSavedSubmission] = useState(false);
   const [savedSubmissionError, setSavedSubmissionError] = useState('');
+  const [submissionAuthRequired, setSubmissionAuthRequired] = useState(false);
 
   useEffect(() => {
     if (!stepId) return;
@@ -53,6 +54,7 @@ export default function Step() {
     setRandomAnswer(null);
     setSavedSubmission(null);
     setSavedSubmissionError('');
+    setSubmissionAuthRequired(false);
     setReport('');
     setLoadingStep(true);
     fetch(`/api/v1/steps/${encodeURIComponent(stepId)}`)
@@ -69,10 +71,16 @@ export default function Step() {
     if (!stepId || !participantId) return;
     setLoadingSavedSubmission(true);
     setSavedSubmissionError('');
+    setSubmissionAuthRequired(false);
+    if (!getToken()) {
+      setSubmissionAuthRequired(true);
+      setLoadingSavedSubmission(false);
+      return;
+    }
     authFetch(`/api/v1/me/marathons/${encodeURIComponent(participantId)}/submissions/${encodeURIComponent(stepId)}`)
       .then((r) => {
         if (r.status === 401) {
-          setSavedSubmissionError('Sign in to load your saved report for this assignment.');
+          setSubmissionAuthRequired(true);
           return null;
         }
         if (!r.ok) throw new Error(String(r.status));
@@ -126,6 +134,10 @@ export default function Step() {
       setSubmitError('Open this assignment from your marathon profile before sending a report.');
       return;
     }
+    if (submissionAuthRequired || !getToken()) {
+      redirectToLogin(`/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
+      return;
+    }
     if (!report.trim()) {
       setSubmitError('Write your report before submitting.');
       return;
@@ -170,6 +182,12 @@ export default function Step() {
   };
 
   const assignmentContent = step?.assignmentContent?.trim();
+  const hasParticipantContext = Boolean(marathonerId.trim());
+  const stepReturnPath = stepId && hasParticipantContext
+    ? `/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`
+    : '/profile';
+  const openLogin = () => redirectToLogin(stepReturnPath);
+  const submitDisabled = submitting || loadingSavedSubmission || submissionAuthRequired || !hasParticipantContext;
 
   if (loadingStep && !step) {
     return (
@@ -245,6 +263,20 @@ export default function Step() {
           <p className="step-report-note">Write what you completed for this assignment. The platform records your progress and updates bonus-day status automatically.</p>
           {loadingSavedSubmission && <p className="step-report-note">Checking saved report status...</p>}
           {savedSubmissionError && <p className="ml-error">{savedSubmissionError}</p>}
+          {!hasParticipantContext && (
+            <div className="step-submit-auth-panel" role="alert">
+              <strong>Open this assignment from your marathon profile</strong>
+              <span>The profile link includes the participant ID needed to save your report to the right marathon.</span>
+              <Link to="/profile" className="btn-profile-login">Open profile</Link>
+            </div>
+          )}
+          {hasParticipantContext && submissionAuthRequired && (
+            <div className="step-submit-auth-panel" role="alert">
+              <strong>Sign in to submit your report</strong>
+              <span>Your report is saved only after the portal returns with a Marathon token for this participant.</span>
+              <button type="button" className="btn-profile-login" onClick={openLogin}>Sign in</button>
+            </div>
+          )}
           {savedSubmission?.exists && (
             <div className="step-saved-report" aria-live="polite">
               <strong>{savedSubmission.state === 'completed' ? 'Saved report loaded' : 'Draft report loaded'}</strong>
@@ -263,9 +295,10 @@ export default function Step() {
               onChange={(event) => setReport(event.target.value)}
               placeholder="Describe your answer, links, notes, or practice result..."
               rows={8}
+              disabled={!hasParticipantContext || submissionAuthRequired}
             />
-            <button type="submit" className="btn-show-more" disabled={submitting}>
-              {submitting ? 'Saving...' : 'Submit report'}
+            <button type="submit" className="btn-show-more" disabled={submitDisabled}>
+              {submitting ? 'Saving...' : submissionAuthRequired ? 'Sign in required' : 'Submit report'}
             </button>
           </form>
           {submitMessage && <p className="step-submit-success">{submitMessage}</p>}

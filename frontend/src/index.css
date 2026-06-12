@@ -792,6 +792,34 @@ a:hover {
   color: var(--marathon-text);
 }
 
+.step-submit-form textarea:disabled {
+  background: #f4f6f8;
+  color: #78838f;
+  cursor: not-allowed;
+}
+
+.step-submit-auth-panel {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1rem;
+  border: 1px solid #d7e2ef;
+  border-radius: 8px;
+  background: #f7fafc;
+  color: #243244;
+}
+
+.step-submit-auth-panel strong {
+  color: #142235;
+}
+
+.step-submit-auth-panel span {
+  line-height: 1.5;
+}
+
+.step-submit-auth-panel .btn-profile-login {
+  justify-self: start;
+}
+
 .step-saved-report {
   display: grid;
   gap: 0.25rem;
