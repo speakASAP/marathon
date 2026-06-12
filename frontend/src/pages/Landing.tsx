@@ -1,6 +1,16 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import RegistrationForm from '../components/RegistrationForm';
+import {
+  fetchCatalogReadiness,
+  fetchMarathonByLanguage,
+  fetchMarathonLanguages,
+  fetchPublicReviews,
+  type CatalogReadiness,
+  type MarathonLanguage,
+  type MarathonSummary,
+  type PublicReview,
+} from '../api/publicMarathon';
 import '../landing.css';
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -11,38 +21,6 @@ const LANGUAGE_LABELS: Record<string, string> = {
   it: 'Italian',
   ru: 'Russian',
 };
-
-interface MarathonSummary {
-  id: string;
-  languageCode: string;
-  title: string;
-  slug?: string;
-  landingVideoUrl?: string;
-}
-
-interface LangItem {
-  code: string;
-  name: string;
-  url?: string;
-}
-
-interface Review {
-  name: string;
-  photo: string;
-  text: string;
-}
-
-interface CatalogReadiness {
-  registrationOpen: boolean;
-  counts?: {
-    activeMarathons: number;
-    steps: number;
-    stepsWithContent: number;
-    products: number;
-    unusedGifts: number;
-  };
-  missing?: string[];
-}
 
 function formatLanguageName(marathon: MarathonSummary): string {
   return marathon.title || LANGUAGE_LABELS[marathon.languageCode.toLowerCase()] || 'this language';
@@ -58,9 +36,9 @@ function formatMissingGate(value: string): string {
 export default function Landing() {
   const { langSlug } = useParams<{ langSlug: string }>();
   const [marathon, setMarathon] = useState<MarathonSummary | null>(null);
-  const [languages, setLanguages] = useState<LangItem[]>([]);
+  const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<PublicReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [formError, setFormError] = useState('');
@@ -72,20 +50,10 @@ export default function Landing() {
     setLoading(true);
     setLoadError('');
     Promise.all([
-      fetch(`/api/v1/marathons/by-language/${encodeURIComponent(langSlug)}`).then((r) => {
-        if (r.status === 404) return null;
-        if (!r.ok) throw new Error(`marathon:${r.status}`);
-        return r.text().then((body) => (body.trim() ? JSON.parse(body) : null));
-      }),
-      fetch('/api/v1/marathons/languages')
-        .then((r) => (r.ok ? r.json() : []))
-        .then((data: LangItem[]) => (Array.isArray(data) ? data : [])),
-      fetch('/api/v1/marathons/readiness')
-        .then((r) => {
-          if (!r.ok) throw new Error(`readiness:${r.status}`);
-          return r.json();
-        }),
-      fetch('/api/v1/reviews').then((r) => (r.ok ? r.json() : [])).catch(() => []),
+      fetchMarathonByLanguage(langSlug),
+      fetchMarathonLanguages(),
+      fetchCatalogReadiness(),
+      fetchPublicReviews(),
     ])
       .then(([marathonData, langs, readinessData, reviewsData]) => {
         setMarathon(marathonData || {
