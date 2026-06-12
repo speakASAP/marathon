@@ -34,3 +34,7 @@ Pass. Current validation artifacts contain no NPS comments, JWTs, or participant
 - Survey table check from the deployed pod: `{"surveyResponses":0}`.
 - Journey smoke: all read-only/auth/bundle checks passed through `nps-survey-ui`, then expected `catalog-readiness` failure.
 - Screenshot evidence: `/private/tmp/marathon-nps-support-2598bfc.png`.
+
+## Closure Note
+
+The implementation evidence is verified, but the upstream task remains `blocked` with `completeness_level: partial` until a real finished production participant can safely exercise NPS create/update. Do not treat aggregate analytics and auth-guard evidence as proof of the finished-participant mutation path.

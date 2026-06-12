@@ -2,11 +2,12 @@
 
 ```yaml
 id: EP-TASK-MAR-005
-status: active
+status: blocked
 source_task: docs/intent/11_tasks/TASK-MAR-005-post-marathon-nps-survey.md
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
+completeness_level: partial
 ```
 
 ## Traceability
@@ -49,3 +50,8 @@ The submit endpoint is idempotent by participant: repeat submissions update the 
 - deployed `/api/v1/marathons/analytics`
 - deployed `npm run check:journey`
 - Browser check for profile/support surfaces when reachable without private credentials.
+
+## Current Status
+
+Implemented and partially verified by `VAL-TASK-MAR-005`.
+Final plan closure is blocked until approved catalog data creates a safe production participant fixture that can finish a marathon and exercise NPS create/update without inventing participant records.

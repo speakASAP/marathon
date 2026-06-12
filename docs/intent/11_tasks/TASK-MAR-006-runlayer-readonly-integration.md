@@ -2,10 +2,11 @@
 
 ```yaml
 id: TASK-MAR-006
-status: active
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
+completeness_level: complete
 upstream:
   - docs/intent/10_features/FEAT-003-runlayer-orchestration.md
 goal_impact:
@@ -31,8 +32,12 @@ Sensitive. The integration must return aggregate-only data and must not include 
 
 ## Acceptance Criteria
 
-- [ ] Marathon external task endpoint returns `{ output_ref }` for supported task types.
-- [ ] Unsupported Marathon task types are rejected.
-- [ ] RunLayer routes `marathon:*` to Marathon.
-- [ ] RunLayer project `marathon` exists with repo reference.
-- [ ] Build, deploy, and smoke validation pass except known catalog gate.
+- [x] Marathon external task endpoint returns `{ output_ref }` for supported task types.
+- [x] Unsupported Marathon task types are rejected.
+- [x] RunLayer routes `marathon:*` to Marathon.
+- [x] RunLayer project `marathon` exists with repo reference.
+- [x] Build, deploy, and smoke validation pass except known catalog gate.
+
+## Validation Summary
+
+`VAL-TASK-MAR-006` verifies the Marathon task endpoint, RunLayer route, project registration, build/deploy evidence, and journey-smoke coverage. This read-only integration is complete even though final Marathon registration/payment/assignment launch remains catalog-blocked.

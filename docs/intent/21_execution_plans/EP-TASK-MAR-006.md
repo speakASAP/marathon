@@ -2,11 +2,12 @@
 
 ```yaml
 id: EP-TASK-MAR-006
-status: active
+status: verified
 source_task: docs/intent/11_tasks/TASK-MAR-006-runlayer-readonly-integration.md
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
+completeness_level: complete
 ```
 
 ## Traceability
@@ -47,3 +48,7 @@ No task response may contain participant identifiers, emails, report text, JWTs,
 - Deployed Marathon `/api/v1/tasks/execute` smoke.
 - Deployed RunLayer pod calls Marathon service URL.
 - Marathon `npm run check:journey`.
+
+## Current Status
+
+Verified by `VAL-TASK-MAR-006`. The read-only integration plan is complete; the broader Marathon launch remains blocked by missing approved catalog data and mutating journey inputs.
