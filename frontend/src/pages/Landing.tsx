@@ -372,13 +372,27 @@ export default function Landing() {
 
         <section className="ml-how" id="how">
           <div className="ml-section-head">
-            <h2>How the Marathon works</h2>
-            <p>Short tasks, a visible daily rhythm, and enough pressure to keep momentum without overload.</p>
+            <h2>{registrationOpen ? 'How the Marathon works' : 'How launch opens'}</h2>
+            <p>
+              {registrationOpen
+                ? 'Short tasks, a visible daily rhythm, and enough pressure to keep momentum without overload.'
+                : 'Daily assignments, feedback, and progress tracking are shown only after approved catalog data is loaded.'}
+            </p>
           </div>
           <div className="ml-how-grid">
-            <article><span>01</span><h3>Daily assignment</h3><p>Open one focused task with exact timing and a clear report window.</p></article>
-            <article><span>02</span><h3>Personal feedback</h3><p>Use corrections, examples, and peer answers to improve the next day.</p></article>
-            <article><span>03</span><h3>Track progress</h3><p>See completed days, locked steps, VIP access, and final certificate path.</p></article>
+            {registrationOpen ? (
+              <>
+                <article><span>01</span><h3>Daily assignment</h3><p>Open one focused task with exact timing and a clear report window.</p></article>
+                <article><span>02</span><h3>Personal feedback</h3><p>Use corrections, examples, and peer answers to improve the next day.</p></article>
+                <article><span>03</span><h3>Track progress</h3><p>See completed days, locked steps, VIP access, and final certificate path.</p></article>
+              </>
+            ) : (
+              <>
+                <article><span>01</span><h3>Approve catalog</h3><p>Source-owner approved marathon, step, product, and gift rows must be loaded first.</p></article>
+                <article><span>02</span><h3>Verify readiness</h3><p>Production readiness must pass before public registration, checkout, gift, or assignment entry opens.</p></article>
+                <article><span>03</span><h3>Run journey smoke</h3><p>Registration, profile, VIP, gift, and assignment checks run after approved catalog data exists.</p></article>
+              </>
+            )}
           </div>
         </section>
 
