@@ -589,6 +589,24 @@ a:hover {
   color: var(--marathon-text);
 }
 
+.step-saved-report {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid #c9e7d7;
+  border-radius: 8px;
+  background: #f1fbf6;
+  color: #224d37;
+}
+
+.step-saved-report strong {
+  color: #183b2a;
+}
+
+.step-saved-report span {
+  line-height: 1.5;
+}
+
 .step-submit-success {
   margin: 0;
   padding: 0.75rem 1rem;

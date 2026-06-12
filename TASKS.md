@@ -35,3 +35,4 @@
 - [x] 2026-06-12 Registration launch gate tightened: direct registration now requires a launch-ready language catalog and public CTAs/forms use the same `registrationOpen` readiness contract
 - [x] 2026-06-12 VIP payment settlement guardrail added: checkout creates a `MarathonPaymentAttempt` ledger row and payment callbacks must match the issued order before unlocking VIP
 - [x] 2026-06-12 VIP payment return UX added: profile detail now explains `payment=success` callback-settlement delay, confirmed VIP state, and cancelled checkout returns
+- [x] 2026-06-12 Saved assignment report UX added: authenticated step pages now load the participant's existing submission/report and show saved state, late status, and bonus-day metadata before resubmission

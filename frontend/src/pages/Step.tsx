@@ -17,6 +17,16 @@ interface RandomAnswer {
   complete_time: string;
 }
 
+interface SavedSubmission {
+  exists: boolean;
+  id?: string;
+  report: string;
+  state: 'completed' | 'active';
+  is_late: boolean;
+  bonus_left: number;
+  updated_at?: string;
+}
+
 /**
  * Step (task) page: tabs Задание / Отчет; other marathoners' results from GET /api/v1/answers/random.
  */
@@ -32,12 +42,18 @@ export default function Step() {
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const [submitError, setSubmitError] = useState('');
+  const [savedSubmission, setSavedSubmission] = useState<SavedSubmission | null>(null);
+  const [loadingSavedSubmission, setLoadingSavedSubmission] = useState(false);
+  const [savedSubmissionError, setSavedSubmissionError] = useState('');
 
   useEffect(() => {
     if (!stepId) return;
     setMarathonerId(new URLSearchParams(window.location.search).get('marathonerId') || '');
     setStep(null);
     setRandomAnswer(null);
+    setSavedSubmission(null);
+    setSavedSubmissionError('');
+    setReport('');
     setLoadingStep(true);
     fetch(`/api/v1/steps/${encodeURIComponent(stepId)}`)
       .then((r) => (r.ok ? r.json() : null))
@@ -47,6 +63,35 @@ export default function Step() {
       })
       .catch(() => setLoadingStep(false));
   }, [stepId]);
+
+  useEffect(() => {
+    const participantId = marathonerId.trim();
+    if (!stepId || !participantId) return;
+    setLoadingSavedSubmission(true);
+    setSavedSubmissionError('');
+    authFetch(`/api/v1/me/marathons/${encodeURIComponent(participantId)}/submissions/${encodeURIComponent(stepId)}`)
+      .then((r) => {
+        if (r.status === 401) {
+          setSavedSubmissionError('Sign in to load your saved report for this assignment.');
+          return null;
+        }
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then((data) => {
+        if (data) {
+          setSavedSubmission(data);
+          if (data.exists && typeof data.report === 'string') {
+            setReport(data.report);
+          }
+        }
+        setLoadingSavedSubmission(false);
+      })
+      .catch(() => {
+        setSavedSubmissionError('Saved report status could not be loaded.');
+        setLoadingSavedSubmission(false);
+      });
+  }, [stepId, marathonerId]);
 
   const loadRandomReport = () => {
     if (!stepId) return;
@@ -107,6 +152,15 @@ export default function Step() {
       if (!res.ok) {
         throw new Error(body.message || body.error || `Submission failed (${res.status})`);
       }
+      setSavedSubmission({
+        exists: true,
+        id: body.id,
+        report: report.trim(),
+        state: body.state || 'completed',
+        is_late: Boolean(body.is_late),
+        bonus_left: typeof body.bonus_left === 'number' ? body.bonus_left : 0,
+        updated_at: body.updated_at,
+      });
       setSubmitMessage(body.is_late ? 'Report saved. It was marked late and one bonus day was used.' : 'Report saved. Your progress is now recorded.');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Submission failed');
@@ -189,6 +243,18 @@ export default function Step() {
         <section className="step-submit">
           <h2>Мой отчет</h2>
           <p className="step-report-note">Write what you completed for this assignment. The platform records your progress and updates bonus-day status automatically.</p>
+          {loadingSavedSubmission && <p className="step-report-note">Checking saved report status...</p>}
+          {savedSubmissionError && <p className="ml-error">{savedSubmissionError}</p>}
+          {savedSubmission?.exists && (
+            <div className="step-saved-report" aria-live="polite">
+              <strong>{savedSubmission.state === 'completed' ? 'Saved report loaded' : 'Draft report loaded'}</strong>
+              <span>
+                {savedSubmission.updated_at && `Updated ${new Date(savedSubmission.updated_at).toLocaleString('ru-RU')}. `}
+                Bonus days left: {savedSubmission.bonus_left}.
+                {savedSubmission.is_late ? ' Marked late.' : ''}
+              </span>
+            </div>
+          )}
           <form onSubmit={submitReport} className="step-submit-form">
             <label htmlFor="step-report">Report</label>
             <textarea

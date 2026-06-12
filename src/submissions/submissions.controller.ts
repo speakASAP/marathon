@@ -1,7 +1,12 @@
-import { Body, Controller, Logger, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthGuard } from '../shared/auth.guard';
-import { SubmissionRequest, SubmissionResponse, SubmissionsService } from './submissions.service';
+import {
+  SubmissionDetailResponse,
+  SubmissionRequest,
+  SubmissionResponse,
+  SubmissionsService,
+} from './submissions.service';
 
 type AuthenticatedRequest = Request & {
   user?: {
@@ -15,6 +20,17 @@ export class SubmissionsController {
   private readonly logger = new Logger(SubmissionsController.name);
 
   constructor(private readonly submissionsService: SubmissionsService) {}
+
+  @Get(':stepId')
+  async getForStep(
+    @Req() req: AuthenticatedRequest,
+    @Param('marathonerId') marathonerId: string,
+    @Param('stepId') stepId: string,
+  ): Promise<SubmissionDetailResponse> {
+    const userId = req.user!.id;
+    this.logger.debug(`Submission lookup: userId=${userId}, marathonerId=${marathonerId}, stepId=${stepId}`);
+    return this.submissionsService.getForStep(userId, marathonerId, stepId);
+  }
 
   @Post()
   async submit(

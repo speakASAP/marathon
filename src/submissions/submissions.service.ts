@@ -27,6 +27,19 @@ export type SubmissionResponse = {
   updated_at: string;
 };
 
+export type SubmissionDetailResponse = {
+  exists: boolean;
+  id?: string;
+  marathonerId: string;
+  stepId: string;
+  report: string;
+  payload: Record<string, unknown>;
+  state: 'completed' | 'active';
+  is_late: boolean;
+  bonus_left: number;
+  updated_at?: string;
+};
+
 @Injectable()
 export class SubmissionsService {
   private readonly logger = new Logger(SubmissionsService.name);
@@ -161,6 +174,61 @@ export class SubmissionsService {
     };
   }
 
+  async getForStep(userId: string, marathonerId: string, stepId: string): Promise<SubmissionDetailResponse> {
+    const normalizedStepId = stepId.trim();
+    if (!normalizedStepId) {
+      throw new BadRequestException('stepId is required');
+    }
+
+    const participant = await this.findAndClaimParticipant(userId, marathonerId);
+    const step = await this.prisma.marathonStep.findFirst({
+      where: {
+        id: normalizedStepId,
+        marathonId: participant.marathonId,
+      },
+    });
+    if (!step) {
+      throw new NotFoundException('Step not found for this marathon');
+    }
+
+    const submission = await this.prisma.stepSubmission.findFirst({
+      where: {
+        participantId: participant.id,
+        stepId: step.id,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!submission) {
+      return {
+        exists: false,
+        marathonerId: participant.id,
+        stepId: step.id,
+        report: '',
+        payload: {},
+        state: 'active',
+        is_late: false,
+        bonus_left: participant.bonusDaysLeft,
+      };
+    }
+
+    const payloadJson = this.normalizePayloadJson(submission.payloadJson);
+    const report = typeof payloadJson.report === 'string' ? payloadJson.report : '';
+
+    return {
+      exists: true,
+      id: submission.id,
+      marathonerId: participant.id,
+      stepId: step.id,
+      report,
+      payload: payloadJson,
+      state: submission.isCompleted ? 'completed' : 'active',
+      is_late: step.isPenalized && submission.endAt > this.resolveDueAt(participant.reportHour, step.sequence),
+      bonus_left: participant.bonusDaysLeft,
+      updated_at: submission.updatedAt.toISOString(),
+    };
+  }
+
   private async findAndClaimParticipant(userId: string, marathonerId: string) {
     const participant = await this.prisma.marathonParticipant.findFirst({
       where: {
@@ -193,6 +261,13 @@ export class SubmissionsService {
       return fallback;
     }
     return Math.max(0, Math.min(5, Math.round(value)));
+  }
+
+  private normalizePayloadJson(value: unknown): Record<string, unknown> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+    return value as Record<string, unknown>;
   }
 
   private resolveStartAt(reportHour: Date, sequence: number): Date {
