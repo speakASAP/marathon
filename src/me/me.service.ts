@@ -64,10 +64,10 @@ export class MeService {
   async getMarathonById(userId: string, marathonerId: string): Promise<MyMarathon | null> {
     this.logger.debug(`My marathon requested (userId=${userId}, marathonerId=${marathonerId})`);
 
-    const participant = await this.prisma.marathonParticipant.findFirst({
+    let participant = await this.prisma.marathonParticipant.findFirst({
       where: {
         id: marathonerId,
-        userId,
+        OR: [{ userId }, { userId: null }],
       },
       include: {
         marathon: {
@@ -92,6 +92,30 @@ export class MeService {
       return null;
     }
 
+    if (!participant.userId) {
+      participant = await this.prisma.marathonParticipant.update({
+        where: { id: participant.id },
+        data: { userId },
+        include: {
+          marathon: {
+            include: {
+              steps: {
+                orderBy: { sequence: 'asc' },
+              },
+            },
+          },
+          submissions: {
+            include: {
+              step: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+        },
+      });
+    }
+
     return this.mapToMyMarathon(participant);
   }
 
@@ -112,9 +136,7 @@ export class MeService {
       !this.isWinner(participant, steps) &&
       (!latestStep || !latestStep.isPenalized);
 
-    const needsPayment = latestSubmission
-      ? this.calculateNeedsPayment(participant, latestStep, marathon)
-      : false;
+    const needsPayment = this.calculateNeedsPayment(participant, latestStep, marathon);
 
     return {
       title: marathon.title,

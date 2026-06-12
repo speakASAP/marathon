@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { MarathonLogger } from './shared/marathon-logger';
 import { validateEnv } from './shared/validate-env';
@@ -29,6 +30,10 @@ async function bootstrap(): Promise<void> {
     console.log('App created');
     app.enableShutdownHooks();
     app.setGlobalPrefix('api/v1', { exclude: ['health', 'info'] });
+    const expressApp = app.getHttpAdapter().getInstance();
+    expressApp.get(/^\/(?!api\/v1(?:\/|$)|health$|info$|assets\/|static\/|img\/|favicon\.ico$).*/, (_req: any, res: any) => {
+      res.sendFile(join(__dirname, '..', 'public', 'index.html'));
+    });
     const port = Number(process.env.PORT);
     console.log(`Starting server on port ${port}...`);
     await app.listen(port);

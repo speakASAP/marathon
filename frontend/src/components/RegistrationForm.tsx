@@ -47,8 +47,11 @@ export default function RegistrationForm({
         return;
       }
       onSuccess?.(data.marathonerId, data.redirectUrl);
-      if (data.redirectUrl) {
-        window.location.href = data.redirectUrl;
+      if (data.marathonerId) {
+        window.location.href = `/profile/${encodeURIComponent(data.marathonerId)}`;
+      } else if (data.redirectUrl) {
+        const normalizedRedirect = String(data.redirectUrl).replace(/^(https?:\/\/[^/]+)?\/marathon\/([a-z]{2})\/?$/i, '$1/$2/');
+        window.location.href = normalizedRedirect;
       }
     } catch (err) {
       onError?.(err instanceof Error ? err.message : 'Ошибка отправки');
@@ -59,7 +62,7 @@ export default function RegistrationForm({
 
   return (
     <form onSubmit={handleSubmit} className="landing-form">
-      <h4>Регистрация на языковой марафон SpeakASAP®</h4>
+      <h4>Register for SpeakASAP Marathon</h4>
       <p className="landing-form-marathon">{marathonTitle}</p>
       <div>
         <label htmlFor="reg-email">Email *</label>
@@ -73,28 +76,29 @@ export default function RegistrationForm({
         />
       </div>
       <div>
-        <label htmlFor="reg-name">Имя</label>
+        <label htmlFor="reg-name">Name</label>
         <input
           id="reg-name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Имя"
+          placeholder="Your name"
         />
       </div>
       <div>
-        <label htmlFor="reg-phone">Телефон</label>
+        <label htmlFor="reg-phone">Phone</label>
         <input
           id="reg-phone"
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          placeholder="+7 ..."
+          placeholder="+420 ..."
         />
       </div>
       <button type="submit" disabled={submitting}>
-        {submitting ? 'Отправка…' : 'Принять участие'}
+        {submitting ? 'Sending...' : 'Start my marathon'}
       </button>
+      <p className="landing-form-note">Secure registration. No payment is required to start.</p>
     </form>
   );
 }

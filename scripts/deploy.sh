@@ -101,7 +101,7 @@ deploy_timing_phase_end "Apply Kubernetes manifests"
 
 deploy_timing_phase_start "Set deployment image"
 echo -e "${YELLOW}Setting deployment image to ${IMAGE}...${NC}"
-kubectl set image "deployment/${SERVICE_NAME}" app="$IMAGE_LATEST" -n "$NAMESPACE"
+kubectl set image "deployment/${SERVICE_NAME}" app="$IMAGE" -n "$NAMESPACE"
 deploy_timing_phase_end "Set deployment image"
 
 deploy_timing_phase_start "Wait for rollout"

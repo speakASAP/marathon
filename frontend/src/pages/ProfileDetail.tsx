@@ -34,6 +34,8 @@ export default function ProfileDetail() {
   const [data, setData] = useState<MyMarathon | null>(null);
   const [loading, setLoading] = useState(true);
   const [unauth, setUnauth] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
 
   useEffect(() => {
     if (!marathonerId) return;
@@ -85,20 +87,73 @@ export default function ProfileDetail() {
   }
 
   const current = data.current_step;
+  const completedCount = data.answers.filter((answer) => answer.state === 'done' || answer.state === 'completed').length;
+  const progressPct = data.answers.length ? Math.round((completedCount / data.answers.length) * 100) : 0;
+
+  const startCheckout = async () => {
+    if (!data) return;
+    setCheckoutLoading(true);
+    setCheckoutError('');
+    try {
+      const res = await authFetch('/api/v1/vip/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ marathonerId: data.id }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.message || body.error || `Checkout failed (${res.status})`);
+      }
+      const redirectUrl = body.redirectUrl || body.payment?.data?.redirectUrl || body.payment?.redirectUrl;
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+        return;
+      }
+      setCheckoutError('Checkout was created, but no payment redirect URL was returned.');
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : 'Checkout failed');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
 
   return (
-    <div className="container page-static">
+    <div className="container page-static profile-dashboard">
       <nav className="page-nav">
         <Link to="/">Главная</Link>
         <span> · </span>
         <Link to="/profile">Мои марафоны</Link>
       </nav>
-      <h1>{data.title}</h1>
-      <p className="profile-meta">
-        {data.type === 'trial' && 'Пробный период. '}
-        Бонусных дней: {data.bonus_left} из {data.bonus_total}.
-        {data.needs_payment && ' Требуется оплата.'}
-      </p>
+      <section className="profile-hero-panel">
+        <div>
+          <h1>{data.title}</h1>
+          <p className="profile-meta">
+            {data.type === 'trial' && 'Пробный период. '}
+            Бонусных дней: {data.bonus_left} из {data.bonus_total}.
+          </p>
+        </div>
+        <div className="profile-progress-card">
+          <span>Progress</span>
+          <strong>{progressPct}%</strong>
+          <div className="profile-progress-track"><span style={{ width: `${progressPct}%` }} /></div>
+        </div>
+      </section>
+      {data.needs_payment && (
+        <section className="profile-payment-panel">
+          <div>
+            <h2>VIP access required</h2>
+            <p>The VIP gate is active for this marathon. Pay securely or redeem a gift code to unlock the next assignments.</p>
+            {checkoutError && <p className="ml-error">{checkoutError}</p>}
+          </div>
+          <div className="profile-payment-actions">
+            <button type="button" className="btn-profile-open" onClick={startCheckout} disabled={checkoutLoading}>
+              {checkoutLoading ? 'Opening checkout...' : 'Pay for VIP'}
+            </button>
+            <Link to={`/gift?marathonerId=${encodeURIComponent(data.id)}`} className="btn-profile-open">Gift code</Link>
+            <Link to="/support" className="btn-profile-login">Contact support</Link>
+          </div>
+        </section>
+      )}
       {current && (
         <section className="profile-current">
           <h2>Текущий этап</h2>

@@ -6,10 +6,10 @@
 
 | ID | Task | Status |
 |----|------|--------|
-| T1 | Implement VIP checkout endpoint calling payments-microservice:3468 | pending |
-| T2 | Implement payment webhook handler — set `isFree=false`, `paymentReported=true` on confirmation | pending |
-| T3 | Implement gift code redemption endpoint — validate code, mark used, upgrade participant to VIP | pending |
-| T4 | Verify end-to-end VIP flow: registration → gate → payment/gift → VIP access | pending |
+| T1 | Implement VIP checkout endpoint calling payments-microservice:3468 | implemented; pending live payment verification |
+| T2 | Implement payment webhook handler — set `isFree=false`, `paymentReported=true` on confirmation | implemented; pending live payment verification |
+| T3 | Implement gift code redemption endpoint — validate code, mark used, upgrade participant to VIP | implemented; pending gift-code data verification |
+| T4 | Verify end-to-end VIP flow: registration → gate → payment/gift → VIP access | blocked by missing active production marathon/product/gift data |
 
 **Completion criterion:** At least one participant completes VIP upgrade (payment or gift code) with `isFree = false` and confirmed post-gate step access.
 

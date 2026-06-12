@@ -1,19 +1,26 @@
 import { useParams, Link } from 'react-router-dom';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import RegistrationForm from '../components/RegistrationForm';
-import FAQ from '../components/FAQ';
 import '../landing.css';
 
-const PROGRAM_STEPS = [
-  { id: 1, title: 'Определение знаний и целей', text: 'Прежде чем кидаться в сотый раз в иностранный язык, нужно понять, для чего это нужно и какие знания уже имеются.' },
-  { id: 2, title: 'Базовая грамматика и лексика', text: 'Самые нужные грамматические конструкции и словарный запас. Какая грамматика и лексика нужны, чтобы начать говорить?' },
-  { id: 3, title: 'Упражнения', text: 'В марафоне разработаны такие упражнения, которые вам захочется делать ежедневно.' },
-  { id: 4, title: 'Аудирование', text: 'Видео- и аудиоматериалы отобраны в марафоне. Разберёмся с проблемой аудирования и как её решать.' },
-  { id: 5, title: 'Общение с носителем', text: 'Носители языка в нашем марафоне помогут разговорить вас и заставят поверить в себя.' },
+const DEFAULT_PRICE_EUR = 29;
+const FREE_DAYS = 3;
+
+const WORKFLOW_DAYS = [
+  { day: 9, title: 'Describe your job', type: 'Speaking', state: 'Done' },
+  { day: 10, title: 'A memorable trip', type: 'Writing', state: 'Done' },
+  { day: 11, title: 'Making plans', type: 'Listening', state: 'Done' },
+  { day: 12, title: 'Speak about your weekend', type: 'Speaking', state: 'Start' },
+  { day: 13, title: 'Express your opinion', type: 'Speaking', state: 'Locked' },
+  { day: 14, title: 'A perfect day', type: 'Writing', state: 'Locked' },
 ];
 
-/** Default price (EUR) when API does not return it (legacy parity). */
-const DEFAULT_PRICE_EUR = 29;
+const FAQ_ITEMS = [
+  ['How much time do I need each day?', 'Most assignments are designed for 20-30 focused minutes.'],
+  ['Can I start for free?', `Yes. You can register and begin the first ${FREE_DAYS} days before VIP access is required.`],
+  ['What happens after the VIP gate?', 'Free participants are asked to upgrade before post-gate assignments unlock.'],
+  ['How do assignments work?', 'Each day has a clear task, report window, and progress state in your marathon profile.'],
+];
 
 interface MarathonSummary {
   id: string;
@@ -36,12 +43,10 @@ interface Review {
   text: string;
 }
 
-const FREE_DAYS = 3;
+function formatLanguageName(marathon: MarathonSummary): string {
+  return marathon.title || marathon.languageCode.toUpperCase();
+}
 
-/**
- * Language landing: /:langSlug/. Legacy structure (speakasap-portal templates/new/marathons/index.html):
- * promo, language selector, advantages, Full/Free cards, certificates, reviews, trust, contacts, footer.
- */
 export default function Landing() {
   const { langSlug } = useParams<{ langSlug: string }>();
   const [marathon, setMarathon] = useState<MarathonSummary | null>(null);
@@ -49,441 +54,343 @@ export default function Landing() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [formError, setFormError] = useState('');
-  const [programTab, setProgramTab] = useState(0);
+  const [registeredId, setRegisteredId] = useState('');
   const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!langSlug) return;
+    setLoading(true);
     Promise.all([
-      fetch(`/api/v1/marathons/by-language/${encodeURIComponent(langSlug)}`).then((r) =>
-        r.ok ? r.json() : null,
-      ),
-      fetch('/api/v1/marathons/languages').then((r) => r.ok ? r.json() : []).then((d: LangItem[]) => (Array.isArray(d) ? d : [])),
+      fetch(`/api/v1/marathons/by-language/${encodeURIComponent(langSlug)}`).then((r) => (r.ok ? r.json() : null)),
+      fetch('/api/v1/marathons/languages')
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data: LangItem[]) => (Array.isArray(data) ? data : [])),
       fetch('/api/v1/reviews').then((r) => (r.ok ? r.json() : [])),
-    ]).then(([marathonData, langs, reviewsData]) => {
-      setMarathon(marathonData);
-      setLanguages(langs);
-      setReviews(Array.isArray(reviewsData) ? reviewsData : []);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    ])
+      .then(([marathonData, langs, reviewsData]) => {
+        setMarathon(marathonData || {
+          id: 'fallback',
+          languageCode: langSlug,
+          title: `${langSlug.toUpperCase()} language`,
+        });
+        setLanguages(langs);
+        setReviews(Array.isArray(reviewsData) ? reviewsData : []);
+      })
+      .catch(() => {
+        setMarathon({
+          id: 'fallback',
+          languageCode: langSlug,
+          title: `${langSlug.toUpperCase()} language`,
+        });
+        setLanguages([]);
+        setReviews([]);
+      })
+      .finally(() => setLoading(false));
   }, [langSlug]);
 
-  // SEO: title, meta description, canonical
   useEffect(() => {
     if (!marathon) return;
-    const langName = marathon.title || marathon.languageCode;
-    const title =
-      marathon.languageCode === 'en'
-        ? 'Языковой марафон-курс на уровень английского pre-Intermediate за 30 дней!'
-        : `Языковой марафон-Курс: "${langName}" — А1 за 30 дней!`;
-    document.title = title;
-    const desc = `Изучите язык самостоятельно с гарантией результата за 30 дней! Языковой марафон — быстрое обучение для начинающих. ${FREE_DAYS} дня обучения бесплатно!`;
+    const langName = formatLanguageName(marathon);
+    document.title = `${langName} Marathon — 30 days of daily language practice`;
+
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
       meta = document.createElement('meta');
       meta.setAttribute('name', 'description');
       document.head.appendChild(meta);
     }
-    meta.setAttribute('content', desc);
-    const base = window.location.origin;
-    const path = `/${marathon.languageCode}/`;
+    meta.setAttribute(
+      'content',
+      `Join the ${langName} Marathon by SpeakASAP: daily assignments, progress tracking, and VIP access after the free start.`,
+    );
+
     let canonical = document.querySelector('link[rel="canonical"]');
     if (!canonical) {
       canonical = document.createElement('link');
       canonical.setAttribute('rel', 'canonical');
       document.head.appendChild(canonical);
     }
-    canonical.setAttribute('href', `${base}${path}`);
+    canonical.setAttribute('href', `${window.location.origin}/${marathon.languageCode}/`);
   }, [marathon]);
 
-  const handleRegisterSuccess = () => setFormError('');
+  const priceEur = marathon?.price ?? DEFAULT_PRICE_EUR;
+  const featuredReviews = useMemo(() => reviews.slice(0, 3), [reviews]);
 
   const scrollToForm = () => {
-    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleRegisterSuccess = (marathonerId: string) => {
+    setFormError('');
+    setRegisteredId(marathonerId);
   };
 
   if (loading) {
     return (
-      <div className="landing-loading">
-        <p>Загрузка…</p>
+      <div className="marathon-loading">
+        <p>Loading marathon...</p>
       </div>
     );
   }
+
   if (!marathon) {
     return (
-      <div className="container">
-        <p>Марафон не найден.</p>
-        <Link to="/">На главную</Link>
+      <div className="container page-static">
+        <p>Marathon data is temporarily unavailable.</p>
+        <Link to="/support">Contact support</Link>
       </div>
     );
   }
 
-  const priceEur = marathon.price ?? DEFAULT_PRICE_EUR;
-  const defaultVideoUrl = 'https://www.youtube.com/embed/oUTnzwEVTww';
+  const languageName = formatLanguageName(marathon);
+  const activeLanguage = languages.find((language) => language.code === marathon.languageCode);
+  const hasActiveMarathon = marathon.id !== 'fallback';
 
   return (
-    <div className="landing-page">
-      {/* Legacy: section-marathon-promo — hero with language bg */}
-      <section className={`section-marathon section-marathon-promo promo-lang-${marathon.languageCode}`}>
-        <div id="marathon-bg" className="landing-promo-bg" aria-hidden="true" />
-        <nav className="landing-nav">
-          <Link to="/" className="landing-brand">Speak<span>ASAP®</span></Link>
-          <div className="landing-nav-links">
-            <a href="#results">Что вас ждет</a>
-            <a href="#program">Программа</a>
-            <a href="#reviews">Отзывы</a>
-            <a href="#faq">Вопросы</a>
-            <button type="button" className="btn-landing-nav" onClick={scrollToForm}>
-              Начать
-            </button>
-          </div>
+    <div className="marathon-landing">
+      <header className="ml-nav">
+        <Link to="/" className="ml-brand" aria-label="SpeakASAP Marathon home">
+          <span>Speak<span>ASAP</span></span>
+          <small>Marathon</small>
+        </Link>
+        <nav className="ml-nav-links" aria-label="Landing navigation">
+          <a href="#how">How it works</a>
+          <a href="#program">Program</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#winners">Winners</a>
+          <a href="#faq">FAQ</a>
         </nav>
-        <div className="container">
-          <h1>
-            {marathon.languageCode === 'en'
-              ? 'Уровень pre-Intermediate за 30 дней!'
-              : 'Уровень А1 за 30 дней!'}
-          </h1>
-          <button type="button" className="btn-landing-cta" onClick={scrollToForm}>
-            Начать бесплатно*
+        <div className="ml-nav-actions">
+          <label className="ml-language-select">
+            <span>Language</span>
+            <select
+              value={marathon.languageCode}
+              onChange={(event) => {
+                window.location.href = `/${event.target.value}/`;
+              }}
+            >
+              {languages.length ? (
+                languages.map((language) => (
+                  <option key={language.code} value={language.code}>
+                    {language.name}
+                  </option>
+                ))
+              ) : (
+                <option value={marathon.languageCode}>{activeLanguage?.name || languageName}</option>
+              )}
+            </select>
+          </label>
+          <Link to="/profile" className="ml-secondary-action">My marathon</Link>
+          <button type="button" className="ml-primary-action" onClick={scrollToForm}>
+            Start my marathon
           </button>
-          <p className="landing-hero-note">
-            *Через {FREE_DAYS} дня стоимость марафона — по условиям на сайте.
-          </p>
         </div>
-      </section>
+      </header>
 
-      {/* Legacy block2: stripe "Что вы получите" — blue stripe + 4 circles (grammar, materials, talk, result) */}
-      <div className="stripe stripe-what-you-get" id="ga-circles">
-        <div className="container">
-          <div className="stripe-sub-header">
-            <h2>Что вы получите</h2>
+      <main>
+        <section className="ml-hero">
+          <div className="ml-hero-copy">
+            <h1>30 days. Real {languageName} progress.</h1>
+            <p>
+              Join a focused language marathon with daily assignments, report windows, progress tracking,
+              and a clear path from free start to full VIP access.
+            </p>
+            <div className="ml-hero-actions">
+              <button type="button" className="ml-primary-action large" onClick={scrollToForm}>
+                Start for free
+              </button>
+              <Link to="/profile" className="ml-outline-action">Open my marathon</Link>
+            </div>
+            <dl className="ml-hero-points" aria-label="Marathon highlights">
+              <div><dt>30</dt><dd>daily assignments</dd></div>
+              <div><dt>{FREE_DAYS}</dt><dd>free starter days</dd></div>
+              <div><dt>20-30</dt><dd>minutes per day</dd></div>
+            </dl>
           </div>
-          <div className="nav-main nav-main-circles">
-            <div className="nav-main-col">
-              <div className="circle-wrapper">
-                <div className="circle grammar">
-                  <div className="circle-inner">
-                    <div className="title">Основы грамматики</div>
-                    <p>Вы выучите самые нужные грамматические конструкции и поймете, как осваивать грамматику и набирать словарный запас самостоятельно.</p>
-                  </div>
-                </div>
-                <div className="title">Основы грамматики</div>
-              </div>
+
+          <div className="ml-product-preview" aria-label="Marathon assignment preview">
+            <div className="ml-preview-sidebar">
+              <strong>Marathon</strong>
+              <span className="active">Overview</span>
+              <span>Assignments</span>
+              <span>Reports</span>
+              <span>Progress</span>
             </div>
-            <div className="nav-main-col">
-              <div className="circle-wrapper">
-                <div className="circle materials">
-                  <div className="circle-inner">
-                    <div className="title">Эксклюзивные материалы</div>
-                    <p>Серия материалов, которые помогут выучить язык с интересом, научат находить время на учебу и заставят поверить в себя.</p>
-                  </div>
+            <div className="ml-preview-main">
+              <div className="ml-preview-head">
+                <div>
+                  <span>Day 12</span>
+                  <strong>You're on fire.</strong>
                 </div>
-                <div className="title">Эксклюзивные материалы</div>
+                <div className="ml-progress-ring">40%</div>
               </div>
-            </div>
-            <div className="nav-main-col">
-              <div className="circle-wrapper">
-                <div className="circle talk">
-                  <div className="circle-inner">
-                    <div className="title">Разговорная практика</div>
-                    <p>Самое сложное — начать пользоваться языком. Мы организуем общение с носителем и бросим вам вызов на практике.</p>
-                  </div>
-                </div>
-                <div className="title">Разговорная практика</div>
-              </div>
-            </div>
-            <div className="nav-main-col">
-              <div className="circle-wrapper">
-                <div className="circle result">
-                  <div className="circle-inner">
-                    <div className="title">Результат</div>
-                    <p>Через 30 дней гарантируем владение языком на уровне A1. Сотни студентов уже сделали это.</p>
-                  </div>
-                </div>
-                <div className="title">Результат</div>
-              </div>
+              <article className="ml-assignment-card featured">
+                <span>Today's assignment</span>
+                <h3>Speak about your weekend</h3>
+                <p>Record a 2-3 minute story. Use at least 5 new words.</p>
+                <button type="button">Start assignment</button>
+              </article>
+              <article className="ml-feedback-card">
+                <strong>Recent feedback</strong>
+                <p>Great improvement. Your vocabulary and fluency are getting stronger.</p>
+              </article>
             </div>
           </div>
-        </div>
-        <a href="#program" className="stripe-to-steps" aria-hidden="true"><i className="fa fa-chevron-down" /></a>
-      </div>
+        </section>
 
-      {/* Legacy: language selector top */}
-      <div className="section-marathon section-marathon-dark lang-selector-top">
-        <div className="container">
-          <h2 className="text-center">Выберите язык</h2>
-          <div className="lang-selector-grid">
-            {languages.map((l) => (
-              <Link key={l.code} to={`/${l.code}/`}>{l.name}</Link>
+        <section className="ml-how" id="how">
+          <div className="ml-section-head">
+            <h2>How the Marathon works</h2>
+            <p>Short tasks, a visible daily rhythm, and enough pressure to keep momentum without overload.</p>
+          </div>
+          <div className="ml-how-grid">
+            <article><span>01</span><h3>Daily assignment</h3><p>Open one focused task with exact timing and a clear report window.</p></article>
+            <article><span>02</span><h3>Personal feedback</h3><p>Use corrections, examples, and peer answers to improve the next day.</p></article>
+            <article><span>03</span><h3>Track progress</h3><p>See completed days, locked steps, VIP access, and final certificate path.</p></article>
+          </div>
+        </section>
+
+        <section className="ml-pricing" id="pricing">
+          <div className="ml-section-head">
+            <h2>Choose your plan</h2>
+            <p>Start now. Upgrade when the marathon gate opens and you are ready to continue.</p>
+          </div>
+          <div className="ml-pricing-grid">
+            <article className="ml-plan">
+              <h3>Free</h3>
+              <strong>€0</strong>
+              <p>Start your marathon and test the daily rhythm.</p>
+              <ul>
+                <li>Daily assignments</li>
+                <li>Basic progress tracking</li>
+                <li>Community access</li>
+              </ul>
+              <button type="button" className="ml-outline-action" onClick={scrollToForm}>Start for free</button>
+            </article>
+            <article className="ml-plan vip">
+              <div className="ml-plan-ribbon">Most complete</div>
+              <h3>VIP</h3>
+              <strong>€{priceEur}</strong>
+              <p>Unlock the full marathon after the VIP gate.</p>
+              <ul>
+                <li>Everything in Free</li>
+                <li>Full 30-day assignment path</li>
+                <li>Detailed corrections and support</li>
+                <li>Certificate path</li>
+              </ul>
+              <Link to="/profile" className="ml-primary-action">Upgrade from profile</Link>
+            </article>
+            <aside className="ml-payment-panel">
+              <h3>VIP access</h3>
+              <p>Payments are routed through the shared payments service. Gift-code redemption and checkout are tracked in the current implementation plan.</p>
+              <Link to="/gift" className="ml-outline-action">Gift code</Link>
+              <Link to="/support" className="ml-secondary-action">Need help?</Link>
+            </aside>
+          </div>
+        </section>
+
+        <section className="ml-workflow" id="program">
+          <div className="ml-section-head">
+            <h2>Your daily workflow</h2>
+            <p>A sample run from the Marathon: completed reports, today's task, and locked VIP days.</p>
+          </div>
+          <div className="ml-day-row">
+            {WORKFLOW_DAYS.map((item) => (
+              <article key={item.day} className={`ml-day-card state-${item.state.toLowerCase()}`}>
+                <span>Day {item.day}</span>
+                <h3>{item.title}</h3>
+                <small>{item.type}</small>
+                <p>20-30 min</p>
+                <button type="button" disabled={item.state === 'Locked'}>{item.state}</button>
+              </article>
             ))}
           </div>
-        </div>
-      </div>
+          <div className="ml-progress-bar"><span style={{ width: '40%' }} /></div>
+        </section>
 
-      {/* Legacy: advantages + video */}
-      <div className="section-marathon section-marathon-advantages" id="results">
-        <div className="container">
-          <h2>Результат и условия</h2>
-          <div className="advantages">
-            <div className="col-sm-4 adv-block">
-              <div className="adv-img-2" />
-              <h3>Результат</h3>
-              <p>Уровень А1</p>
-            </div>
-            <div className="col-sm-4 adv-block">
-              <div className="adv-img-1" />
-              <h3>Время</h3>
-              <p>30 дней</p>
-            </div>
-            <div className="col-sm-4 adv-block">
-              <div className="adv-img-3" />
-              <h3>Низкая цена за А1</h3>
-              <p>{priceEur}&euro;</p>
-            </div>
+        <section className="ml-proof" id="winners">
+          <div className="ml-section-head">
+            <h2>Real people. Real results.</h2>
+            <p>Winner records and reviews are loaded from the Marathon platform.</p>
           </div>
-          <div className="row-video">
-            <div className="embed-responsive-16by9" style={{ maxWidth: 560 }}>
-              <iframe
-                title="Марафон"
-                src={marathon.landingVideoUrl || defaultVideoUrl}
-                allowFullScreen
-              />
-            </div>
+          <div className="ml-review-grid">
+            {featuredReviews.length ? featuredReviews.map((review) => (
+              <article key={`${review.name}-${review.text}`} className="ml-review">
+                {review.photo && <img src={review.photo} alt="" loading="lazy" />}
+                <p>{review.text}</p>
+                <strong>{review.name}</strong>
+              </article>
+            )) : (
+              <>
+                <article className="ml-review"><p>Daily assignments made it easier to speak without hesitation.</p><strong>Lucia K.</strong></article>
+                <article className="ml-review"><p>The rhythm was practical, motivating, and easy to follow.</p><strong>Tomas P.</strong></article>
+                <article className="ml-review"><p>I liked seeing exactly what to do next every day.</p><strong>Anna M.</strong></article>
+              </>
+            )}
           </div>
-        </div>
-      </div>
+          <Link to="/winners" className="ml-text-link">See winners</Link>
+        </section>
 
-      {/* Legacy: "Получи А1 через 30 дней!" — Full course / Free course cards */}
-      <div className="section-marathon section-marathon-dark">
-        <div className="container">
-          <h2>Получи А1 через 30 дней!</h2>
-          <div className="row-cards">
-            <div className="col-sm-6 pb-4">
-              <div className="marathon-card-basic">
-                <h3>Полный курс</h3>
-                <div className="card-list">
-                  {['Определение знаний и целей', 'Базовая грамматика и лексика', 'Упражнения', 'Количество дней = 30', 'Аудирование', 'Гарантия уровень A1', 'Общение с носителем', 'Скидки на дальнейшее обучение', 'Полезные призы', 'Получение сертификата', 'Чеклист по темам грамматики с нуля до В2'].map((text) => (
-                    <div key={text} className="card-list-item">
-                      <i className="check fa fa-fw fa-check" /> <span>{text}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="text-center">
-                  <Link to="/register" className="btn btn-landing btn-green">
-                    Записаться на полный курс
-                  </Link>
-                </div>
-              </div>
-            </div>
-            <div className="col-sm-6 pb-4">
-              <div className="marathon-card-free">
-                <h3>Бесплатный курс</h3>
-                <div className="card-list">
-                  {[
-                    { text: 'Определение знаний и целей', lock: false },
-                    { text: 'Базовая грамматика и лексика', lock: false },
-                    { text: 'Упражнения', lock: false },
-                    { text: 'Количество дней = 8', lock: false },
-                    { text: 'Аудирование', lock: false },
-                    { text: 'Гарантия уровень A1', lock: true },
-                    { text: 'Общение с носителем', lock: true },
-                    { text: 'Скидки на дальнейшее обучение', lock: true },
-                    { text: 'Полезные призы', lock: true },
-                    { text: 'Получение сертификата', lock: true },
-                  ].map(({ text, lock }) => (
-                    <div key={text} className="card-list-item">
-                      {lock ? <i className="lock fa fa-fw fa-lock" /> : <i className="check fa fa-fw fa-check" />}
-                      <span>{text}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="text-center">
-                  <button type="button" className="btn btn-landing btn-green" onClick={scrollToForm}>
-                    Начать бесплатно
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Legacy: certificates block */}
-      <div className="section-marathon section-marathon-white">
-        <div className="container">
-          <h2>Выполни все задания и получи Золотой Сертификат!</h2>
-        </div>
-        <div className="certs-view">
-          <img className="gold" src="/img/certificates/gold_en.png" alt="Золотой сертификат" loading="lazy" />
-          <img className="silver" src="/img/certificates/silver_en.png" alt="Серебряный сертификат" loading="lazy" />
-          <img className="bronze" src="/img/certificates/bronze_en.png" alt="Бронзовый сертификат" loading="lazy" />
-        </div>
-      </div>
-
-      {/* Legacy: reviews */}
-      <div className="section-marathon section-marathon-reviews" id="reviews">
-        <div className="container">
-          <h2>Отзывы наших студентов</h2>
-          {reviews.length > 0 ? (
-            <div className="reviews-list">
-              {reviews.slice(0, 5).map((r, i) => (
-                <div key={i} className="review-card">
-                  {r.photo && (
-                    <img src={r.photo} alt="" className="review-photo" width={80} height={80} loading="lazy" />
-                  )}
-                  <div className="review-body">
-                    <strong>{r.name}</strong>
-                    <p>{r.text}</p>
-                  </div>
-                </div>
+        <section className="ml-faq" id="faq">
+          <div>
+            <h2>Questions? We're here to help.</h2>
+            <div className="ml-faq-list">
+              {FAQ_ITEMS.map(([question, answer]) => (
+                <details key={question}>
+                  <summary>{question}</summary>
+                  <p>{answer}</p>
+                </details>
               ))}
             </div>
+          </div>
+          <aside>
+            <h3>Still have questions?</h3>
+            <p>Support can help with registration, profile access, VIP state, and assignment questions.</p>
+            <Link to="/support" className="ml-outline-action">Contact support</Link>
+          </aside>
+        </section>
+
+        <section className="ml-register" ref={formRef} id="register">
+          <div className="ml-register-copy">
+            <h2>Start your {languageName} Marathon</h2>
+            <p>
+              {hasActiveMarathon
+                ? 'Register with your email. The platform creates your participant record and sends a confirmation.'
+                : 'Registration will open once an active marathon is configured for this language.'}
+            </p>
+            {registeredId && (
+              <p className="ml-success">Registration received. Participant ID: {registeredId}</p>
+            )}
+            {formError && <p className="ml-error">{formError}</p>}
+          </div>
+          {hasActiveMarathon ? (
+            <RegistrationForm
+              languageCode={marathon.languageCode}
+              marathonTitle={marathon.title}
+              onSuccess={handleRegisterSuccess}
+              onError={setFormError}
+            />
           ) : (
-            <p className="landing-placeholder">Отзывы загружаются.</p>
+            <div className="ml-registration-unavailable">
+              <h3>Registration is not open yet</h3>
+              <p>No active marathon is configured in production for this language.</p>
+              <Link to="/support" className="ml-outline-action">Contact support</Link>
+            </div>
           )}
-        </div>
-      </div>
+        </section>
+      </main>
 
-      {/* Legacy: "Почему нам доверяют" */}
-      <div className="section-marathon section-marathon-advantages">
-        <div className="container">
-          <h2>Почему нам доверяют</h2>
-          <div className="advantages">
-            <div className="col-sm-4 adv-block">
-              <div className="adv-img-4" />
-              <h3>Работаем с 2010 года</h3>
-            </div>
-            <div className="col-sm-4 adv-block">
-              <div className="adv-img-5" />
-              <h3>18 иностранных языков</h3>
-            </div>
-            <div className="col-sm-4 adv-block">
-              <div className="adv-img-6" />
-              <h3>Более 60.000 марафонцев</h3>
-            </div>
-          </div>
+      <footer className="ml-footer">
+        <div>
+          <strong>Speak<span>ASAP</span> Marathon</strong>
+          <p>Skopalikova 1144/11, 615 00 Brno, Czech Republic</p>
         </div>
-      </div>
-
-      {/* Legacy: contacts */}
-      <div className="section-marathon section-marathon-contacts">
-        <div className="container">
-          <h2>Свяжитесь с нами</h2>
-          <div className="row-cards" style={{ alignItems: 'flex-start' }}>
-            <div className="support-bg" style={{ flex: '0 0 33%', minHeight: 120 }} />
-            <div style={{ flex: '1 1 200px' }}>
-              <h3>Общие вопросы</h3>
-              <ul className="support-links">
-                <li><i className="fa fa-fw fa-envelope-o" /> <a href="mailto:contact@speakasap.com">contact@speakasap.com</a></li>
-                <li><i className="fa fa-fw fa-phone" /> <a href="tel:+420773979939">+420 773 979 939</a></li>
-                <li><i className="fa fa-fw fa-whatsapp" /> <a href="https://wa.me/420773979939">WhatsApp</a></li>
-                <li><i className="fa fa-fw fa-telegram" /> <a href="https://t.me/speak_ASAP">Telegram</a></li>
-              </ul>
-            </div>
-            <div style={{ flex: '1 1 200px' }}>
-              <h3>Техническая поддержка</h3>
-              <ul className="support-links">
-                <li><i className="fa fa-fw fa-envelope-o" /> <a href="mailto:support@speakasap.com">support@speakasap.com</a></li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Legacy: language selector bottom */}
-      <div className="section-marathon section-marathon-dark">
-        <div className="container">
-          <div className="lang-selector-grid">
-            {languages.map((l) => (
-              <Link key={l.code} to={`/${l.code}/`}>{l.name}</Link>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Legacy: CTA bottom */}
-      <div className="section-marathon section-marathon-white">
-        <div className="container text-center">
-          <button type="button" className="btn-landing-cta" onClick={scrollToForm}>
-            Начать бесплатно
-          </button>
-        </div>
-      </div>
-
-      {/* Program (tabs) — legacy block3 style */}
-      <section className="landing-section" id="program">
-        <div className="container">
-          <h2>Программа марафона</h2>
-          <div className="landing-program-tabs">
-            {PROGRAM_STEPS.map((step, i) => (
-              <button
-                key={step.id}
-                type="button"
-                className={programTab === i ? 'active' : ''}
-                onClick={() => setProgramTab(i)}
-              >
-                {step.title}
-              </button>
-            ))}
-          </div>
-          <div className="landing-program-pane">
-            <h3>{PROGRAM_STEPS[programTab].title}</h3>
-            <p>{PROGRAM_STEPS[programTab].text}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <FAQ />
-
-      {/* Guarantee */}
-      <section className="landing-section landing-guarantee">
-        <div className="container">
-          <h2>Гарантия результата</h2>
-          <p>Мы уверены в методике: выполняйте задания и следуйте программе — результат гарантирован.</p>
-        </div>
-      </section>
-
-      {/* Registration form */}
-      <section className="landing-section landing-form-section" ref={formRef} id="register">
-        <div className="container">
-          {formError && <p className="landing-form-error">{formError}</p>}
-          <RegistrationForm
-            languageCode={marathon.languageCode}
-            marathonTitle={marathon.title}
-            onSuccess={handleRegisterSuccess}
-            onError={setFormError}
-          />
-        </div>
-      </section>
-
-      {/* Footer (legacy block11) */}
-      <footer className="landing-footer">
-        <div className="container">
-          <div className="landing-footer-inner">
-            <div className="footer-col">
-              <p className="footer-company">Компания SpeakASAP®</p>
-              <p>Skopalikova 1144/11, 615 00 Brno, Czech Republic</p>
-              <p><a href="mailto:marathon@speakasap.com">marathon@speakasap.com</a></p>
-            </div>
-            <div className="footer-col footer-social">
-              <a href="https://www.youtube.com/@Speak_ASAP?sub_confirmation=1" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i className="fa fa-youtube" /></a>
-              <a href="https://vk.com/topic-34179942_28421383" target="_blank" rel="noopener noreferrer" aria-label="VK"><i className="fa fa-vk" /></a>
-              <a href="https://facebook.com/speakASAP" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i className="fa fa-facebook" /></a>
-              <a href="https://t.me/speak_ASAP" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i className="fa fa-telegram" /></a>
-              <a href="https://instagram.com/shipilova_speakasap" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i className="fa fa-instagram" /></a>
-            </div>
-            <div className="footer-col">
-              <Link to="/">Главная</Link>
-              <span className="landing-footer-sep"> · </span>
-              <Link to="/winners">Победители</Link>
-              <br />
-              <a href="https://speakasap.com/privacy/" target="_blank" rel="noopener noreferrer">Политика конфиденциальности</a>
-            </div>
-          </div>
-          <p className="landing-footer-copy">Copyright © SpeakASAP® 2010–{new Date().getFullYear()}</p>
-        </div>
+        <nav aria-label="Footer">
+          <Link to="/rules">Rules</Link>
+          <Link to="/faq">FAQ</Link>
+          <Link to="/support">Support</Link>
+          <Link to="/profile">My marathon</Link>
+        </nav>
       </footer>
     </div>
   );
