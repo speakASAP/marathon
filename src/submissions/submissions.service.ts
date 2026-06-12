@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
+import { WinnersService } from '../winners/winners.service';
 
 export type SubmissionRequest = {
   stepId?: string;
@@ -44,7 +45,10 @@ export type SubmissionDetailResponse = {
 export class SubmissionsService {
   private readonly logger = new Logger(SubmissionsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly winnersService: WinnersService,
+  ) {}
 
   async submit(userId: string, marathonerId: string, payload: SubmissionRequest): Promise<SubmissionResponse> {
     const normalizedStepId = payload.stepId?.trim();
@@ -161,6 +165,22 @@ export class SubmissionsService {
     this.logger.log(
       `Step submission saved: participantId=${participant.id}, stepId=${step.id}, submissionId=${result.submission.id}, completed=${completed}, late=${isLate}`,
     );
+
+    if (completed) {
+      try {
+        const reconciliation = await this.winnersService.reconcileParticipantCompletion(participant.id, userId);
+        if (reconciliation.completed) {
+          this.logger.log(
+            `Winner reconciliation after submission: participantId=${participant.id}, winnerId=${reconciliation.winnerId || 'none'}, medal=${reconciliation.medal || 'none'}`,
+          );
+        }
+      } catch (error) {
+        this.logger.error(
+          `Winner reconciliation failed after submission: participantId=${participant.id}, stepId=${step.id}, error=${error instanceof Error ? error.message : String(error)}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      }
+    }
 
     return {
       id: result.submission.id,

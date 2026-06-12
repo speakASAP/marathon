@@ -6,5 +6,6 @@ import { PrismaService } from '../shared/prisma.service';
 @Module({
   controllers: [WinnersController],
   providers: [WinnersService, PrismaService],
+  exports: [WinnersService],
 })
 export class WinnersModule {}

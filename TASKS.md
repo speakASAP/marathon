@@ -55,3 +55,4 @@
 - [x] 2026-06-12 Global registration CTA readiness state added: shared navigation now separates readiness API load failures from normal closed-catalog `Скоро` state and points users to registration status details
 - [x] 2026-06-12 Catalog loader launch-ready validation tightened: default catalog dry runs now require an active marathon, trial step, gated step, VIP product, and gift code before approved data can be treated as registration/payment/assignment ready
 - [x] 2026-06-12 Participant progress report added: authenticated profile detail can generate a read-only assignment/VIP/bonus/payment-attempt report with JSON download, and journey smoke verifies the auth guard plus frontend report UI
+- [x] 2026-06-12 Winner automation added: completed assignment submissions now reconcile participant finish state and user medal totals into `MarathonWinner`, with journey smoke covering the public leaderboard shape

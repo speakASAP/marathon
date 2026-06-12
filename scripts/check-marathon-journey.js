@@ -273,6 +273,13 @@ async function checkPublicRoutes(report, options) {
   assertOk(register, '/register');
   addCheck(report, 'pass', 'frontend-register', '/register route is served.');
 
+  const winners = await requestJson(report, '/api/v1/winners?page=1&limit=1');
+  assertOk(winners.response, '/api/v1/winners');
+  if (!winners.json || !Array.isArray(winners.json.items) || typeof winners.json.total !== 'number') {
+    throw new Error('/api/v1/winners did not return the expected paginated winner shape.');
+  }
+  addCheck(report, 'pass', 'winners-list', 'Winners endpoint returns the paginated leaderboard shape.');
+
   await assertFrontendShell(
     report,
     '/profile/smoke-participant?marathon_token=smoke-token',

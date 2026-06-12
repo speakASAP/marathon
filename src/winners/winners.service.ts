@@ -31,6 +31,14 @@ export type WinnersPaginated = {
   prevPage: number | null;
 };
 
+export type WinnerReconciliationResult = {
+  completed: boolean;
+  participantId: string;
+  userId: string;
+  medal: 'gold' | 'silver' | 'bronze' | null;
+  winnerId: string | null;
+};
+
 type WinnerRecord = {
   id: string;
   userId: string;
@@ -166,6 +174,76 @@ export class WinnersService {
     };
   }
 
+  async reconcileParticipantCompletion(
+    participantId: string,
+    userId: string,
+  ): Promise<WinnerReconciliationResult> {
+    const participant = await this.prisma.marathonParticipant.findFirst({
+      where: {
+        id: participantId,
+        userId,
+      },
+      include: {
+        marathon: {
+          include: {
+            steps: {
+              select: { id: true },
+            },
+          },
+        },
+        submissions: {
+          where: {
+            isCompleted: true,
+          },
+          select: {
+            stepId: true,
+          },
+        },
+        penaltyReports: true,
+      },
+    });
+
+    if (!participant) {
+      return { completed: false, participantId, userId, medal: null, winnerId: null };
+    }
+
+    const stepIds = new Set(participant.marathon.steps.map((step) => step.id));
+    const completedStepIds = new Set(participant.submissions.map((submission) => submission.stepId));
+    const completed =
+      stepIds.size > 0 &&
+      Array.from(stepIds).every((stepId) => completedStepIds.has(stepId));
+
+    if (!completed) {
+      return { completed: false, participantId, userId, medal: null, winnerId: null };
+    }
+
+    const finishedAt = participant.finishedAt || new Date();
+    if (participant.active || !participant.finishedAt) {
+      await this.prisma.marathonParticipant.update({
+        where: { id: participant.id },
+        data: {
+          active: false,
+          finishedAt,
+        },
+      });
+    }
+
+    const medal = this.getWinnerState(participant);
+    const winner = await this.recomputeWinnerMedals(userId);
+
+    this.logger.log(
+      `Winner reconciliation complete: userId=${userId}, participantId=${participantId}, medal=${medal || 'none'}, winnerId=${winner?.id || 'none'}`,
+    );
+
+    return {
+      completed: true,
+      participantId,
+      userId,
+      medal,
+      winnerId: winner?.id || null,
+    };
+  }
+
   private async getUserInfo(userId: string): Promise<{ name: string; avatar: string }> {
     if (this.authServiceUrl) {
       const url = `${this.authServiceUrl}/api/users/${userId}`;
@@ -219,10 +297,10 @@ export class WinnersService {
       },
       include: {
         marathon: true,
+        penaltyReports: true,
         submissions: {
           where: {
             isCompleted: true,
-            isChecked: true,
           },
         },
       },
@@ -267,7 +345,83 @@ export class WinnersService {
     return reviews.sort((a, b) => new Date(b.completed).getTime() - new Date(a.completed).getTime());
   }
 
-  private getWinnerState(participant: any): string | null {
+  private async recomputeWinnerMedals(userId: string): Promise<WinnerRecord | null> {
+    const participants = await this.prisma.marathonParticipant.findMany({
+      where: {
+        userId,
+        active: false,
+        finishedAt: { not: null },
+      },
+      include: {
+        marathon: {
+          include: {
+            steps: {
+              select: { id: true },
+            },
+          },
+        },
+        submissions: {
+          where: {
+            isCompleted: true,
+          },
+          select: {
+            stepId: true,
+          },
+        },
+        penaltyReports: true,
+      },
+    });
+
+    const medals = { goldCount: 0, silverCount: 0, bronzeCount: 0 };
+
+    for (const participant of participants) {
+      const stepIds = new Set(participant.marathon.steps.map((step) => step.id));
+      const completedStepIds = new Set(participant.submissions.map((submission) => submission.stepId));
+      const completed =
+        stepIds.size > 0 &&
+        Array.from(stepIds).every((stepId) => completedStepIds.has(stepId));
+
+      if (!completed) {
+        continue;
+      }
+
+      const medal = this.getWinnerState(participant);
+      if (medal === 'gold') medals.goldCount += 1;
+      if (medal === 'silver') medals.silverCount += 1;
+      if (medal === 'bronze') medals.bronzeCount += 1;
+    }
+
+    const existing = (await this.prisma.marathonWinner.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'asc' },
+    })) as WinnerRecord | null;
+
+    if (medals.goldCount + medals.silverCount + medals.bronzeCount === 0) {
+      if (existing) {
+        return (await this.prisma.marathonWinner.update({
+          where: { id: existing.id },
+          data: medals,
+        })) as WinnerRecord;
+      }
+      return null;
+    }
+
+    if (existing) {
+      return (await this.prisma.marathonWinner.update({
+        where: { id: existing.id },
+        data: medals,
+      })) as WinnerRecord;
+    }
+
+    return (await this.prisma.marathonWinner.create({
+      data: {
+        userId,
+        ...medals,
+      },
+    })) as WinnerRecord;
+  }
+
+  private getWinnerState(participant: any): 'gold' | 'silver' | 'bronze' | null {
     if (participant.canUsePenalty && participant.bonusDaysLeft >= 7) {
       return 'gold';
     }
