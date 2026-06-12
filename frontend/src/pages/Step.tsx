@@ -1,31 +1,16 @@
 import { useParams, Link } from 'react-router-dom';
 import { FormEvent, useEffect, useState } from 'react';
-import { authFetch, getToken, redirectToLogin } from '../auth';
-
-interface StepInfo {
-  id: string;
-  title: string;
-  sequence: number;
-  assignmentContent: string | null;
-  formKey: string | null;
-  socialLink: string | null;
-}
-
-interface RandomAnswer {
-  marathoner: { name: string };
-  report: string;
-  complete_time: string;
-}
-
-interface SavedSubmission {
-  exists: boolean;
-  id?: string;
-  report: string;
-  state: 'completed' | 'active';
-  is_late: boolean;
-  bonus_left: number;
-  updated_at?: string;
-}
+import { getToken, redirectToLogin } from '../auth';
+import {
+  MarathonAuthRequiredError,
+  fetchRandomAnswer,
+  fetchSavedSubmission,
+  fetchStepInfo,
+  submitStepReport,
+  type RandomAnswer,
+  type SavedSubmission,
+  type StepInfo,
+} from '../api/assignmentMarathon';
 
 /**
  * Step (task) page: tabs Задание / Отчет; other marathoners' results from GET /api/v1/answers/random.
@@ -61,18 +46,13 @@ export default function Step() {
     setSubmissionAuthRequired(false);
     setReport('');
     setLoadingStep(true);
-    fetch(`/api/v1/steps/${encodeURIComponent(stepId)}`)
-      .then((r) => {
-        if (r.status === 404) {
-          setStepNotFound(true);
-          return null;
-        }
-        if (!r.ok) {
-          throw new Error(String(r.status));
-        }
-        return r.json();
-      })
+    fetchStepInfo(stepId)
       .then((data) => {
+        if (!data) {
+          setStepNotFound(true);
+          setLoadingStep(false);
+          return;
+        }
         setStep(data);
         setLoadingStep(false);
       })
@@ -93,26 +73,20 @@ export default function Step() {
       setLoadingSavedSubmission(false);
       return;
     }
-    authFetch(`/api/v1/me/marathons/${encodeURIComponent(participantId)}/submissions/${encodeURIComponent(stepId)}`)
-      .then((r) => {
-        if (r.status === 401) {
-          setSubmissionAuthRequired(true);
-          return null;
-        }
-        if (!r.ok) throw new Error(String(r.status));
-        return r.json();
-      })
+    fetchSavedSubmission(participantId, stepId)
       .then((data) => {
-        if (data) {
-          setSavedSubmission(data);
-          if (data.exists && typeof data.report === 'string') {
-            setReport(data.report);
-          }
+        setSavedSubmission(data);
+        if (data.exists && typeof data.report === 'string') {
+          setReport(data.report);
         }
         setLoadingSavedSubmission(false);
       })
-      .catch(() => {
-        setSavedSubmissionError('Saved report status could not be loaded.');
+      .catch((error) => {
+        if (error instanceof MarathonAuthRequiredError) {
+          setSubmissionAuthRequired(true);
+        } else {
+          setSavedSubmissionError('Saved report status could not be loaded.');
+        }
         setLoadingSavedSubmission(false);
       });
   }, [stepId, marathonerId]);
@@ -120,10 +94,7 @@ export default function Step() {
   const loadRandomReport = () => {
     if (!stepId) return;
     setLoadingRandom(true);
-    const params = new URLSearchParams({ stepId });
-    if (marathonerId) params.set('excludeMarathonerId', marathonerId);
-    fetch(`/api/v1/answers/random?${params}`)
-      .then((r) => (r.ok ? r.json() : null))
+    fetchRandomAnswer(stepId, marathonerId)
       .then((data) => {
         setRandomAnswer(data);
         setLoadingRandom(false);
@@ -165,25 +136,7 @@ export default function Step() {
 
     setSubmitting(true);
     try {
-      const res = await authFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId.trim())}/submissions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stepId,
-          report: report.trim(),
-          completed: true,
-        }),
-      });
-
-      if (res.status === 401) {
-        redirectToLogin(`/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
-        return;
-      }
-
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(body.message || body.error || `Submission failed (${res.status})`);
-      }
+      const body = await submitStepReport(marathonerId.trim(), stepId, report.trim());
       setSavedSubmission({
         exists: true,
         id: body.id,
@@ -195,6 +148,10 @@ export default function Step() {
       });
       setSubmitMessage(body.is_late ? 'Report saved. It was marked late and one bonus day was used.' : 'Report saved. Your progress is now recorded.');
     } catch (error) {
+      if (error instanceof MarathonAuthRequiredError) {
+        redirectToLogin(`/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
+        return;
+      }
       setSubmitError(error instanceof Error ? error.message : 'Submission failed');
     } finally {
       setSubmitting(false);

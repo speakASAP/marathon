@@ -1,0 +1,28 @@
+# VAL-TASK-MAR-047: Assignment API Helper Validation
+
+```yaml
+id: VAL-TASK-MAR-047
+task: docs/intent/11_tasks/TASK-MAR-047-assignment-api-helper.md
+status: pending_deploy
+created: 2026-06-12
+last_updated: 2026-06-12
+environment: production
+```
+
+## Validation Plan
+
+- Build frontend assets with `npm run build:frontend`.
+- Run read-only journey smoke before deployment.
+- Deploy from a clean detached worktree.
+- Confirm Kubernetes serves the deployed image tag.
+- Browser-check the assignment guard route after deployment.
+
+## Evidence
+
+- `npm run build:frontend` passed after extracting `frontend/src/api/assignmentMarathon.ts`.
+- Built frontend emitted `public/assets/index-BDekEUsP.js` and preserved `public/assets/index-CqV-Tb1C.css`.
+- Pre-deploy `npm run check:journey` passed catalog-independent assignment guard assertions, including `assignment-login-guard`, `assignment-status-error-submit-guard`, `assignment-content-submit-guard`, `step-error-state`, and `step-peer-empty-state`, before the expected `catalog-readiness` gate.
+
+## Result
+
+Pending production deployment and rendered verification.
