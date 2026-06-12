@@ -8,6 +8,36 @@ interface MyMarathon {
   type: string;
   needs_payment: boolean;
   registered: boolean;
+  bonus_left: number;
+  bonus_total: number;
+  current_step: Answer | null;
+  answers: Answer[];
+}
+
+interface Answer {
+  id: string | number;
+  stepId: string;
+  title: string;
+  start: string;
+  stop: string;
+  state: string;
+  is_late: boolean;
+  block_reason?: string | null;
+}
+
+function getCompletedCount(marathon: MyMarathon) {
+  return marathon.answers.filter((answer) => answer.state === 'completed' || answer.state === 'done').length;
+}
+
+function getProgressPct(marathon: MyMarathon) {
+  return marathon.answers.length ? Math.round((getCompletedCount(marathon) / marathon.answers.length) * 100) : 0;
+}
+
+function getStatusLabel(marathon: MyMarathon) {
+  if (marathon.needs_payment) return 'VIP required';
+  if (marathon.type === 'vip') return 'VIP active';
+  if (marathon.type === 'trial') return 'Trial';
+  return 'Active';
 }
 
 /**
@@ -70,24 +100,53 @@ export default function Profile() {
   }
 
   return (
-    <div className="container page-static">
+    <div className="container page-static profile-dashboard">
       <nav className="page-nav">
         <Link to="/">Главная</Link>
       </nav>
       <h1>Мои марафоны</h1>
       {list.length === 0 ? (
-        <p>У вас пока нет марафонов.</p>
+        <section className="profile-empty-panel">
+          <h2>У вас пока нет марафонов</h2>
+          <p>Когда регистрация откроется и вы начнете марафон, здесь появятся прогресс, текущий этап и доступ к заданиям.</p>
+          <Link to="/register" className="btn-profile-login">Перейти к регистрации</Link>
+        </section>
       ) : (
         <ul className="profile-marathon-list">
-          {list.map((m) => (
-            <li key={m.id}>
-              <Link to={`/profile/${m.id}`}>
-                {m.title}
-                {m.type === 'trial' ? ' (пробный)' : ''}
-                {m.needs_payment ? ' — требуется оплата' : ''}
-              </Link>
-            </li>
-          ))}
+          {list.map((m) => {
+            const progressPct = getProgressPct(m);
+            const completedCount = getCompletedCount(m);
+            return (
+              <li key={m.id} className="profile-marathon-card">
+                <div className="profile-marathon-card-main">
+                  <div className="profile-marathon-card-heading">
+                    <h2>{m.title}</h2>
+                    <span className={m.needs_payment ? 'profile-marathon-status status-payment' : 'profile-marathon-status'}>
+                      {getStatusLabel(m)}
+                    </span>
+                  </div>
+                  <p>
+                    {m.current_step
+                      ? `Текущий этап: ${m.current_step.title}`
+                      : 'Активный этап появится после старта расписания.'}
+                  </p>
+                  <div className="profile-card-progress">
+                    <span>{completedCount}/{m.answers.length || 0} этапов</span>
+                    <strong>{progressPct}%</strong>
+                    <div className="profile-progress-track"><span style={{ width: `${progressPct}%` }} /></div>
+                  </div>
+                </div>
+                <div className="profile-marathon-card-side">
+                  <span>Бонусные дни</span>
+                  <strong>{m.bonus_left}/{m.bonus_total}</strong>
+                  {m.needs_payment && <p>VIP gate is active.</p>}
+                  <Link to={`/profile/${m.id}`} className="btn-profile-open">
+                    Открыть
+                  </Link>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

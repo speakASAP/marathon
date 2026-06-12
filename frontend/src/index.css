@@ -414,10 +414,115 @@ a:hover {
 .profile-marathon-list {
   list-style: none;
   padding: 0;
+  display: grid;
+  gap: 16px;
 }
 
-.profile-marathon-list li {
-  margin-bottom: 0.5rem;
+.profile-marathon-card,
+.profile-empty-panel {
+  border: 1px solid #dce6f2;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 16px 42px rgba(32, 52, 88, 0.08);
+}
+
+.profile-marathon-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 22px;
+  padding: 24px;
+}
+
+.profile-marathon-card-main {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.profile-marathon-card-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-marathon-card-heading h2 {
+  margin: 0;
+  color: #101832;
+  font-size: 1.25rem;
+}
+
+.profile-marathon-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #e8f5e9;
+  color: #256b2a;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.profile-marathon-status.status-payment {
+  background: #fff3f1;
+  color: #9b4a33;
+}
+
+.profile-marathon-card-main p,
+.profile-marathon-card-side p {
+  margin: 0;
+  color: #5e6a80;
+  line-height: 1.5;
+}
+
+.profile-card-progress {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-card-progress span,
+.profile-marathon-card-side span {
+  color: #5e6a80;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.profile-card-progress strong {
+  color: #101832;
+  font-size: 1.15rem;
+}
+
+.profile-marathon-card-side {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 10px;
+  padding-left: 20px;
+  border-left: 1px solid #e4ebf4;
+}
+
+.profile-marathon-card-side strong {
+  color: #101832;
+  font-size: 1.75rem;
+}
+
+.profile-empty-panel {
+  margin: 20px 0;
+  padding: 28px;
+}
+
+.profile-empty-panel h2 {
+  margin: 0 0 8px;
+  color: #101832;
+}
+
+.profile-empty-panel p {
+  margin: 0 0 18px;
+  color: #5e6a80;
+  line-height: 1.6;
 }
 
 .profile-current {
@@ -1220,6 +1325,17 @@ a:hover {
 
   .profile-step-action {
     justify-self: start;
+  }
+
+  .profile-marathon-card {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-marathon-card-side {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid #e4ebf4;
+    padding-top: 16px;
   }
 
   .gift-hero,
