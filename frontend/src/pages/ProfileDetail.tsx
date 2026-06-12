@@ -149,6 +149,10 @@ export default function ProfileDetail() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ marathonerId: data.id }),
       });
+      if (res.status === 401) {
+        redirectToLogin(`/profile/${data.id}#vip-access`);
+        return;
+      }
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(body.message || body.error || `Checkout failed (${res.status})`);

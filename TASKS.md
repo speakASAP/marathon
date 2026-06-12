@@ -44,3 +44,4 @@
 - [x] 2026-06-12 Registration login handoff hardened: registration success now sends unauthenticated participants to portal login with their exact `/profile/:marathonerId` return path, while existing token holders open the profile directly
 - [x] 2026-06-12 Assignment submit login guard added: step report UI now requires profile participant context and a Marathon token before enabling report submission, with login preserving the exact step return path
 - [x] 2026-06-12 Gift redemption login guard added: `/gift` now requires profile participant context and a Marathon token before gift-code redemption, with login preserving the exact participant return path
+- [x] 2026-06-12 VIP checkout login handoff added: profile checkout now redirects expired/unauthenticated sessions through portal login with `/profile/:marathonerId#vip-access` preserved instead of showing a generic 401

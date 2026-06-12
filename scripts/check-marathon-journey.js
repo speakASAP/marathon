@@ -208,9 +208,13 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Sign in to redeem a gift code') || !js.includes('Open gift redemption from your marathon profile')) {
     throw new Error('Built frontend bundle does not include gift redemption authentication guard.');
   }
+  if (!js.includes('#vip-access') || !js.includes('Opening checkout...')) {
+    throw new Error('Built frontend bundle does not include VIP checkout login return guard.');
+  }
   addCheck(report, 'pass', 'registration-login-handoff', 'Registration frontend bundle routes new participants through token-aware profile login handoff.');
   addCheck(report, 'pass', 'assignment-login-guard', 'Assignment report UI requires profile context and token-aware login before submission.');
   addCheck(report, 'pass', 'gift-login-guard', 'Gift redemption UI requires profile context and token-aware login before redemption.');
+  addCheck(report, 'pass', 'checkout-login-handoff', 'VIP checkout UI preserves profile gate return path when login is required.');
 }
 
 async function checkPublicRoutes(report, options) {
