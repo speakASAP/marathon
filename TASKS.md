@@ -8,6 +8,7 @@
 - [ ] T4: Verify end-to-end VIP upgrade flow (goal_id: vip-payment, priority: 2)
 - [ ] Review course step content for upcoming marathon (priority: 3)
 - [x] Generate participant progress report (priority: 3)
+- [ ] TASK-MAR-035: Hide gift redemption until readiness loads and align nav status label (goal_id: vip-payment, priority: 2)
 - [x] TASK-MAR-034: Harden payment webhook fail-closed auth guard before catalog load (goal_id: vip-payment, priority: 1)
 
 ## Completed

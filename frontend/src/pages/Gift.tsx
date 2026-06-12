@@ -111,6 +111,11 @@ export default function Gift() {
   const openLogin = () => redirectToLogin(giftReturnPath);
   const redeemDisabled = submitting || readinessLoading || giftStatusUnavailable || !hasParticipantContext || needsLogin;
   const missingLaunchGates = readiness?.missing ?? [];
+  const heroCopy = readinessLoading
+    ? 'Checking Marathon readiness before showing gift-code redemption.'
+    : giftUnavailable
+      ? 'Gift redemption will open after an active marathon and approved unused gift codes are configured.'
+      : 'Gift codes unlock VIP participation without a payment after the marathon gate.';
 
   return (
     <div className="container page-static gift-page">
@@ -122,13 +127,14 @@ export default function Gift() {
       <section className="gift-hero">
         <div>
           <h1>Gift code for VIP Marathon access</h1>
-          <p>
-            {giftUnavailable
-              ? 'Gift redemption will open after an active marathon and approved unused gift codes are configured.'
-              : 'Gift codes unlock VIP participation without a payment after the marathon gate.'}
-          </p>
+          <p>{heroCopy}</p>
         </div>
-        {giftStatusUnavailable ? (
+        {readinessLoading ? (
+          <div className="gift-card gift-card-readiness gift-card-loading" aria-live="polite">
+            <h2>Checking gift redemption status</h2>
+            <p>Gift-code entry stays hidden until the production catalog and gift inventory status are verified.</p>
+          </div>
+        ) : giftStatusUnavailable ? (
           <div className="gift-card gift-card-readiness" role="alert">
             <h2>Gift redemption status is temporarily unavailable</h2>
             <p>{readinessError}</p>

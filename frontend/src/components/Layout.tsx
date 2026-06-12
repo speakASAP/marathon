@@ -58,7 +58,7 @@ export default function Layout() {
             <Link to="/rules">Правила</Link>
             <Link to="/faq">Помощь</Link>
             <Link to="/profile">Мой профиль</Link>
-            <Link to="/register">Регистрация</Link>
+            <Link to="/register" className="nav-registration-link" title={navRegistrationTitle}>{navRegistrationLabel}</Link>
             <Link to="/awards">Награды</Link>
             <Link to="/support">Поддержка</Link>
             <Link
