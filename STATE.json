@@ -8,8 +8,8 @@
   "tasks_active": 0,
   "tasks_failed_last_cycle": 0,
   "open_task_ids": ["T4", "production-data-active-marathon", "assignment-live-verification"],
-  "last_milestone": "analytics-dashboard-2026-06-12",
-  "next_focus": "Obtain human-approved launch-ready catalog-only Marathon/Product/Gift/Step JSON from a source of truth, validate it with npm run load:catalog -- <file>, apply it with --apply, run npm run check:readiness, then verify registration -> assignment submission -> gate -> payment/gift -> VIP access",
+  "last_milestone": "intent-trace-remote-restore-2026-06-12",
+  "next_focus": "Use the restored docs/intent pre-coding gate for the next implementation slice; final launch still requires human-approved launch-ready catalog-only Marathon/Product/Gift/Step JSON from a source of truth, validation with npm run load:catalog -- <file>, apply with --apply, npm run check:readiness, then registration -> assignment submission -> gate -> payment/gift -> VIP access verification",
   "blockers": [
     "P0: Production has no active Marathon rows/languages, so public registration is not open",
     "P0: Production has no MarathonProduct/Gift/Step data for live VIP and assignment verification",

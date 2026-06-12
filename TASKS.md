@@ -58,3 +58,4 @@
 - [x] 2026-06-12 Participant progress report added: authenticated profile detail can generate a read-only assignment/VIP/bonus/payment-attempt report with JSON download, and journey smoke verifies the auth guard plus frontend report UI
 - [x] 2026-06-12 Winner automation added: completed assignment submissions now reconcile participant finish state and user medal totals into `MarathonWinner`, with journey smoke covering the public leaderboard shape
 - [x] 2026-06-12 Analytics dashboard added: `/api/v1/marathons/analytics` exposes aggregate catalog/registration/assignment/VIP/payment/gift/winner metrics and `/support` renders an operational dashboard without participant PII
+- [x] 2026-06-12 Intent-preservation trace restored to remote scope: `docs/intent/` task, execution plan, context package, validation, governance, gate, ADR, and template artifacts are ready to enforce the documented pre-coding and deployment gates
