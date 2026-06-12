@@ -132,6 +132,22 @@ function getStepMeta(answer: Answer) {
   return `${answer.is_late ? 'Late. ' : ''}Due ${formatDateTime(answer.stop)}.`;
 }
 
+function getCheckoutRedirectUrl(body: unknown) {
+  const payload = body as {
+    redirectUrl?: unknown;
+    payment?: { data?: { redirectUrl?: unknown }; redirectUrl?: unknown };
+  };
+  const rawUrl = payload.redirectUrl ?? payload.payment?.data?.redirectUrl ?? payload.payment?.redirectUrl;
+  if (typeof rawUrl !== 'string' || !rawUrl.trim()) return '';
+  try {
+    const url = new URL(rawUrl, window.location.origin);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return '';
+    return url.href;
+  } catch {
+    return '';
+  }
+}
+
 /**
  * My marathon detail: GET /api/v1/me/marathons/:marathonerId (Bearer).
  * Shows current step, progress, link to step page.
@@ -277,12 +293,12 @@ export default function ProfileDetail() {
       if (!res.ok) {
         throw new Error(body.message || body.error || `Checkout failed (${res.status})`);
       }
-      const redirectUrl = body.redirectUrl || body.payment?.data?.redirectUrl || body.payment?.redirectUrl;
+      const redirectUrl = getCheckoutRedirectUrl(body);
       if (redirectUrl) {
         window.location.href = redirectUrl;
         return;
       }
-      setCheckoutError('Checkout was created, but no payment redirect URL was returned.');
+      setCheckoutError('Checkout was created, but no valid payment redirect URL was returned.');
     } catch (error) {
       setCheckoutError(error instanceof Error ? error.message : 'Checkout failed');
     } finally {

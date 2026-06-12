@@ -180,6 +180,18 @@ function assertOk(response, label) {
   }
 }
 
+function getCheckoutRedirectUrl(body, baseUrl) {
+  const rawUrl = body?.redirectUrl || body?.payment?.data?.redirectUrl || body?.payment?.redirectUrl;
+  if (typeof rawUrl !== 'string' || !rawUrl.trim()) return '';
+  try {
+    const url = new URL(rawUrl, baseUrl);
+    if (!['http:', 'https:'].includes(url.protocol)) return '';
+    return url.href;
+  } catch (error) {
+    return '';
+  }
+}
+
 async function assertFrontendShell(report, path, code, message) {
   const response = await request(report, path);
   assertOk(response, path);
@@ -321,6 +333,14 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('#vip-access') || !js.includes('Opening checkout...')) {
     throw new Error('Built frontend bundle does not include VIP checkout login return guard.');
   }
+  if (
+    !js.includes('Checkout was created, but no valid payment redirect URL was returned') ||
+    !js.includes('Payment confirmation is processing') ||
+    !js.includes('VIP access is active') ||
+    !js.includes('Payment was cancelled')
+  ) {
+    throw new Error('Built frontend bundle does not include VIP checkout redirect validation and payment return states.');
+  }
   if (!js.includes('Profile is temporarily unavailable') || !js.includes('Profile could not be loaded')) {
     throw new Error('Built frontend bundle does not include profile dashboard load-error state.');
   }
@@ -365,6 +385,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'assignment-status-error-submit-guard', 'Assignment report UI blocks submission when saved-report status cannot be loaded.');
   addCheck(report, 'pass', 'gift-login-guard', 'Gift redemption UI requires profile context and token-aware login before redemption.');
   addCheck(report, 'pass', 'checkout-login-handoff', 'VIP checkout UI preserves profile gate return path when login is required.');
+  addCheck(report, 'pass', 'checkout-return-state-ui', 'VIP checkout UI validates payment redirects and renders payment return states.');
   addCheck(report, 'pass', 'profile-error-state', 'Profile dashboard distinguishes load failures from login-required state.');
   addCheck(report, 'pass', 'profile-detail-error-state', 'Profile detail distinguishes load failures from not-found state.');
   addCheck(report, 'pass', 'step-error-state', 'Assignment page distinguishes load failures from not-found state.');
@@ -664,7 +685,17 @@ async function checkMutatingJourney(report, options, publicContext) {
     if (!checkout.json?.orderId) {
       throw new Error('Checkout response did not include orderId for payment callback reconciliation.');
     }
+    const checkoutRedirectUrl = getCheckoutRedirectUrl(checkout.json, report.baseUrl);
+    if (!checkoutRedirectUrl) {
+      throw new Error('Checkout response did not include a valid payment redirect URL.');
+    }
+    report.context.checkout = {
+      orderId: checkout.json.orderId,
+      status: checkout.json.status,
+      redirectHost: new URL(checkoutRedirectUrl).host,
+    };
     addCheck(report, 'pass', 'checkout', `VIP checkout returned status ${checkout.json.status}.`);
+    addCheck(report, 'pass', 'checkout-redirect-url', 'VIP checkout returned a valid payment redirect URL.');
   }
 
   if (options.submit) {
