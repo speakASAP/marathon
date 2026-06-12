@@ -602,6 +602,27 @@
   padding: 24px;
 }
 
+.ml-review-empty {
+  grid-column: 1 / -1;
+  padding: 30px;
+  border: 1px solid var(--ml-border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.ml-review-empty h3 {
+  margin: 0 0 10px;
+  color: var(--ml-ink);
+  letter-spacing: 0;
+}
+
+.ml-review-empty p {
+  max-width: 680px;
+  margin: 0 0 18px;
+  color: var(--ml-muted);
+  line-height: 1.55;
+}
+
 .ml-review img {
   width: 58px;
   height: 58px;

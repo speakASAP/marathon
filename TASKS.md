@@ -80,3 +80,4 @@
 - [x] 2026-06-12 Legacy landing asset references resolved: built CSS now uses existing public landing icons/backgrounds instead of missing `adv_*` and `support.png` URLs
 - [x] 2026-06-12 Registration missing launch gates surfaced: `/register` now lists the exact readiness classes blocking registration and journey smoke protects the bundle state
 - [x] 2026-06-12 Assignment content submit guard added: step report submission is blocked in UI and API when approved assignment content is missing
+- [x] 2026-06-12 Landing review empty state deployed: language landing pages now show a real-data empty state instead of invented fallback testimonial names

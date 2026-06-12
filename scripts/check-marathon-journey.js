@@ -424,6 +424,17 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Marathon landing is temporarily unavailable') || !js.includes('Marathon landing could not be loaded')) {
     throw new Error('Built frontend bundle does not include language landing load-error state.');
   }
+  if (
+    !js.includes('Reviews will appear after the first Marathon launch') ||
+    !js.includes('Winner records and participant reviews are shown only after real participants complete')
+  ) {
+    throw new Error('Built frontend bundle does not include honest language landing review empty state.');
+  }
+  for (const fakeReviewMarker of ['Lucia K.', 'Tomas P.', 'Anna M.']) {
+    if (js.includes(fakeReviewMarker)) {
+      throw new Error(`Built frontend bundle still includes invented landing review marker: ${fakeReviewMarker}`);
+    }
+  }
   if (!js.includes('Marathon home is temporarily unavailable') || !js.includes('Marathon home could not be loaded')) {
     throw new Error('Built frontend bundle does not include home load-error state.');
   }
@@ -473,6 +484,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'step-error-state', 'Assignment page distinguishes load failures from not-found state.');
   addCheck(report, 'pass', 'step-peer-empty-state', 'Assignment peer-report tab includes a no-examples empty state.');
   addCheck(report, 'pass', 'landing-error-state', 'Language landing distinguishes API load failures from closed-catalog fallback state.');
+  addCheck(report, 'pass', 'landing-review-empty-state', 'Language landing uses a real-data empty state instead of invented testimonials.');
   addCheck(report, 'pass', 'home-error-state', 'Home page distinguishes readiness API load failures from closed-catalog state.');
   addCheck(report, 'pass', 'home-teaser-empty-state', 'Home finalists and reviews teasers include post-load empty states.');
   addCheck(report, 'pass', 'winners-empty-state-ui', 'Winners frontend includes a post-load empty state.');

@@ -414,11 +414,14 @@ export default function Landing() {
                 <strong>{review.name}</strong>
               </article>
             )) : (
-              <>
-                <article className="ml-review"><p>Daily assignments made it easier to speak without hesitation.</p><strong>Lucia K.</strong></article>
-                <article className="ml-review"><p>The rhythm was practical, motivating, and easy to follow.</p><strong>Tomas P.</strong></article>
-                <article className="ml-review"><p>I liked seeing exactly what to do next every day.</p><strong>Anna M.</strong></article>
-              </>
+              <article className="ml-review-empty" aria-live="polite">
+                <h3>Reviews will appear after the first Marathon launch.</h3>
+                <p>
+                  Winner records and participant reviews are shown only after real participants complete
+                  approved production marathons.
+                </p>
+                <Link to="/support" className="ml-outline-action">Launch status</Link>
+              </article>
             )}
           </div>
           <Link to="/winners" className="ml-text-link">See winners</Link>
