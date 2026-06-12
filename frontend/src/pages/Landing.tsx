@@ -22,6 +22,15 @@ const FAQ_ITEMS = [
   ['How do assignments work?', 'Each day has a clear task, report window, and progress state in your marathon profile.'],
 ];
 
+const LANGUAGE_LABELS: Record<string, string> = {
+  de: 'German',
+  en: 'English',
+  es: 'Spanish',
+  fr: 'French',
+  it: 'Italian',
+  ru: 'Russian',
+};
+
 interface MarathonSummary {
   id: string;
   languageCode: string;
@@ -48,7 +57,7 @@ interface CatalogReadiness {
 }
 
 function formatLanguageName(marathon: MarathonSummary): string {
-  return marathon.title || marathon.languageCode.toUpperCase();
+  return marathon.title || LANGUAGE_LABELS[marathon.languageCode.toLowerCase()] || 'this language';
 }
 
 export default function Landing() {
@@ -87,7 +96,7 @@ export default function Landing() {
         setMarathon(marathonData || {
           id: 'fallback',
           languageCode: langSlug,
-          title: `${langSlug.toUpperCase()} language`,
+          title: '',
         });
         setLanguages(langs);
         setReadiness(readinessData);
@@ -192,6 +201,13 @@ export default function Landing() {
   const pricingIntro = registrationOpen
     ? 'Start now. Upgrade when the marathon gate opens and you are ready to continue.'
     : 'Registration opens after production catalog data is configured for this language.';
+  const heroTitle = registrationOpen
+    ? `30 days. Real ${languageName} progress.`
+    : `${languageName} Marathon is being prepared.`;
+  const heroIntro = registrationOpen
+    ? 'Join a focused language marathon with daily assignments, report windows, progress tracking, and a clear path from free start to full VIP access.'
+    : 'Registration will open after the approved marathon catalog, assignments, VIP product, and gift codes are loaded in production.';
+  const registerTitle = registrationOpen ? `Start your ${languageName} Marathon` : 'Registration status';
 
   return (
     <div className="marathon-landing">
@@ -242,11 +258,8 @@ export default function Landing() {
       <main>
         <section className="ml-hero">
           <div className="ml-hero-copy">
-            <h1>30 days. Real {languageName} progress.</h1>
-            <p>
-              Join a focused language marathon with daily assignments, report windows, progress tracking,
-              and a clear path from free start to full VIP access.
-            </p>
+            <h1>{heroTitle}</h1>
+            <p>{heroIntro}</p>
             <div className="ml-hero-actions">
               <button
                 type="button"
@@ -432,7 +445,7 @@ export default function Landing() {
 
         <section className="ml-register" ref={formRef} id="register">
           <div className="ml-register-copy">
-            <h2>Start your {languageName} Marathon</h2>
+            <h2>{registerTitle}</h2>
             <p>
               {registrationOpen
                 ? 'Register with your email. The platform creates your participant record and sends a confirmation.'

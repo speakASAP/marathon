@@ -94,6 +94,11 @@
   text-decoration: none;
 }
 
+.ml-nav-links a {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .ml-nav a:hover,
 .ml-footer a:hover,
 .ml-text-link:hover {
@@ -786,6 +791,7 @@
     width: 100%;
     justify-content: flex-start;
     overflow-x: auto;
+    padding-bottom: 2px;
   }
 
   .ml-hero,
