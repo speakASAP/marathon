@@ -931,6 +931,7 @@ a:hover {
 .support-launch-runbook {
   display: grid;
   gap: 16px;
+  scroll-margin-top: 90px;
   margin-top: 14px;
   padding: 18px;
   border: 1px solid #f1d1c4;
