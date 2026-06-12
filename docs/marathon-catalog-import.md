@@ -17,6 +17,24 @@ Legacy full-export loaders are intentionally disabled. Do not use `scripts/load-
 
 Default validation is launch-ready validation. For every active marathon, the catalog must include at least one trial step, at least one non-trial gated step, one VIP product, and one gift code. Use `--allow-incomplete` only for staged non-launch imports that must not open registration yet.
 
+## Contract
+
+Use these artifacts when asking a source owner to prepare launch data:
+
+- Shape-only example: `docs/examples/marathon-catalog.example.json`
+- JSON Schema: `docs/schemas/marathon-catalog.schema.json`
+
+The schema and loader allow either nested rows under each marathon or top-level `steps`, `products`, and `gifts` with `marathonSlug`. The loader remains authoritative because it also checks cross-row references, duplicate slugs, duplicate gift codes, active-launch readiness, and unsafe progress keys.
+
+Human approval must confirm:
+
+- Every active marathon has the intended `languageCode`, `title`, `slug`, and launch state.
+- Every active marathon has at least one trial step and one gated non-trial step.
+- Every step has approved plain-text `assignmentContent`.
+- Every active marathon has exactly one VIP product with approved price and currency.
+- Every active marathon has approved gift codes; do not paste full code inventories into validation reports.
+- The file contains no participants, users, answers, submissions, winners, payment attempts, JWTs, or secrets.
+
 ## Runbook
 
 1. Place the approved JSON file on the Alphares server.
@@ -25,6 +43,14 @@ Default validation is launch-ready validation. For every active marathon, the ca
 ```bash
 node scripts/load-marathon-catalog.js /path/to/marathon-catalog.json
 ```
+
+Dry-run output includes `launchChecklist.marathons[]`, which reports one redacted checklist row per marathon:
+
+- `active`, `languageCode`, `slug`, `title`
+- step counts, including `trialSteps` and `gatedSteps`
+- VIP product count
+- gift-code count only, never gift-code values
+- `assignmentContentReady`, `launchReady`, and `missing`
 
 For a staged non-launch import only:
 

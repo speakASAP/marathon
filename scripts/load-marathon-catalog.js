@@ -329,6 +329,60 @@ function validateLaunchReadiness(catalog, options = {}) {
   }
 }
 
+function buildLaunchChecklist(catalog) {
+  const productsBySlug = new Map(catalog.products.map((product) => [product.marathonSlug, product]));
+  const giftsBySlug = new Map();
+  const stepsBySlug = new Map();
+
+  for (const gift of catalog.gifts) {
+    if (!giftsBySlug.has(gift.marathonSlug)) giftsBySlug.set(gift.marathonSlug, []);
+    giftsBySlug.get(gift.marathonSlug).push(gift);
+  }
+
+  for (const step of catalog.steps) {
+    if (!stepsBySlug.has(step.marathonSlug)) stepsBySlug.set(step.marathonSlug, []);
+    stepsBySlug.get(step.marathonSlug).push(step);
+  }
+
+  const marathons = catalog.marathons.map((marathon) => {
+    const steps = stepsBySlug.get(marathon.slug) || [];
+    const trialSteps = steps.filter((step) => step.isTrialStep);
+    const gatedSteps = steps.filter((step) => !step.isTrialStep);
+    const gifts = giftsBySlug.get(marathon.slug) || [];
+    const hasProduct = productsBySlug.has(marathon.slug);
+    const missing = [];
+
+    if (marathon.active) {
+      if (!steps.length) missing.push('steps');
+      if (!trialSteps.length) missing.push('trial-step');
+      if (!gatedSteps.length) missing.push('gated-step');
+      if (!hasProduct) missing.push('product');
+      if (!gifts.length) missing.push('gift');
+    }
+
+    return {
+      active: marathon.active,
+      assignmentContentReady: steps.every((step) => Boolean(step.assignmentContent)),
+      gatedSteps: gatedSteps.length,
+      giftCodes: gifts.length,
+      languageCode: marathon.languageCode,
+      launchReady: missing.length === 0,
+      missing,
+      products: hasProduct ? 1 : 0,
+      slug: marathon.slug,
+      steps: steps.length,
+      title: marathon.title,
+      trialSteps: trialSteps.length,
+    };
+  });
+
+  return {
+    activeMarathons: marathons.filter((marathon) => marathon.active).length,
+    marathons,
+    note: 'Gift codes are reported only as counts. Review the source file directly for approved code values.',
+  };
+}
+
 function normalizeCatalog(input, options = {}) {
   assertPlainObject(input, 'catalog');
 
@@ -531,14 +585,27 @@ async function main() {
     products: catalog.products.length,
     steps: catalog.steps.length,
   };
+  const launchChecklist = buildLaunchChecklist(catalog);
 
   if (!apply) {
-    console.log(JSON.stringify({ mode: 'dry-run', ok: true, launchReadyValidation: !allowIncomplete, summary }, null, 2));
+    console.log(JSON.stringify({
+      launchChecklist,
+      launchReadyValidation: !allowIncomplete,
+      mode: 'dry-run',
+      ok: true,
+      summary,
+    }, null, 2));
     return;
   }
 
   const result = await applyCatalog(catalog);
-  console.log(JSON.stringify({ mode: 'apply', ok: true, launchReadyValidation: !allowIncomplete, summary: result }, null, 2));
+  console.log(JSON.stringify({
+    launchChecklist,
+    launchReadyValidation: !allowIncomplete,
+    mode: 'apply',
+    ok: true,
+    summary: result,
+  }, null, 2));
 }
 
 main().catch((error) => {
