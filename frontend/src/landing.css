@@ -153,6 +153,15 @@
   background: var(--ml-coral-dark);
 }
 
+.ml-primary-action.is-closed {
+  background: #566987;
+  box-shadow: none;
+}
+
+.ml-primary-action.is-closed:hover {
+  background: #42536e;
+}
+
 .ml-primary-action.large {
   min-height: 52px;
   padding-inline: 24px;
@@ -169,6 +178,13 @@
 .ml-outline-action:hover {
   border-color: #b7c8df;
   color: var(--ml-blue);
+}
+
+.ml-availability-note {
+  margin: 0;
+  max-width: 620px;
+  color: var(--ml-muted);
+  font-size: 0.96rem;
 }
 
 .ml-hero {

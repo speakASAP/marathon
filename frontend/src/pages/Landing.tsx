@@ -145,6 +145,15 @@ export default function Landing() {
   const languageName = formatLanguageName(marathon);
   const activeLanguage = languages.find((language) => language.code === marathon.languageCode);
   const hasActiveMarathon = marathon.id !== 'fallback';
+  const registrationStatusId = hasActiveMarathon ? undefined : 'registration-status-note';
+  const startCtaLabel = hasActiveMarathon ? 'Start my marathon' : 'Registration opens soon';
+  const heroCtaLabel = hasActiveMarathon ? 'Start for free' : 'View registration status';
+  const heroSecondary = hasActiveMarathon
+    ? { to: '/profile', label: 'Open my marathon' }
+    : { to: '/support', label: 'Contact support' };
+  const pricingIntro = hasActiveMarathon
+    ? 'Start now. Upgrade when the marathon gate opens and you are ready to continue.'
+    : 'Registration opens after production catalog data is configured for this language.';
 
   return (
     <div className="marathon-landing">
@@ -181,8 +190,13 @@ export default function Landing() {
             </select>
           </label>
           <Link to="/profile" className="ml-secondary-action">My marathon</Link>
-          <button type="button" className="ml-primary-action" onClick={scrollToForm}>
-            Start my marathon
+          <button
+            type="button"
+            className={`ml-primary-action${hasActiveMarathon ? '' : ' is-closed'}`}
+            onClick={scrollToForm}
+            aria-describedby={registrationStatusId}
+          >
+            {startCtaLabel}
           </button>
         </div>
       </header>
@@ -196,11 +210,21 @@ export default function Landing() {
               and a clear path from free start to full VIP access.
             </p>
             <div className="ml-hero-actions">
-              <button type="button" className="ml-primary-action large" onClick={scrollToForm}>
-                Start for free
+              <button
+                type="button"
+                className={`ml-primary-action large${hasActiveMarathon ? '' : ' is-closed'}`}
+                onClick={scrollToForm}
+                aria-describedby={registrationStatusId}
+              >
+                {heroCtaLabel}
               </button>
-              <Link to="/profile" className="ml-outline-action">Open my marathon</Link>
+              <Link to={heroSecondary.to} className="ml-outline-action">{heroSecondary.label}</Link>
             </div>
+            {!hasActiveMarathon && (
+              <p className="ml-availability-note" id="registration-status-note">
+                Registration is closed until an active marathon and course catalog are configured in production.
+              </p>
+            )}
             <dl className="ml-hero-points" aria-label="Marathon highlights">
               <div><dt>30</dt><dd>daily assignments</dd></div>
               <div><dt>{FREE_DAYS}</dt><dd>free starter days</dd></div>
@@ -253,7 +277,7 @@ export default function Landing() {
         <section className="ml-pricing" id="pricing">
           <div className="ml-section-head">
             <h2>Choose your plan</h2>
-            <p>Start now. Upgrade when the marathon gate opens and you are ready to continue.</p>
+            <p>{pricingIntro}</p>
           </div>
           <div className="ml-pricing-grid">
             <article className="ml-plan">
@@ -265,7 +289,9 @@ export default function Landing() {
                 <li>Basic progress tracking</li>
                 <li>Community access</li>
               </ul>
-              <button type="button" className="ml-outline-action" onClick={scrollToForm}>Start for free</button>
+              <button type="button" className="ml-outline-action" onClick={scrollToForm}>
+                {hasActiveMarathon ? 'Start for free' : 'View registration status'}
+              </button>
             </article>
             <article className="ml-plan vip">
               <div className="ml-plan-ribbon">Most complete</div>
@@ -278,7 +304,13 @@ export default function Landing() {
                 <li>Detailed corrections and support</li>
                 <li>Certificate path</li>
               </ul>
-              <Link to="/profile" className="ml-primary-action">Upgrade from profile</Link>
+              {hasActiveMarathon ? (
+                <Link to="/profile" className="ml-primary-action">Upgrade from profile</Link>
+              ) : (
+                <button type="button" className="ml-primary-action is-closed" onClick={scrollToForm}>
+                  Available after registration
+                </button>
+              )}
             </article>
             <aside className="ml-payment-panel">
               <h3>VIP access</h3>
