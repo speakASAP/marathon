@@ -23,6 +23,7 @@ Use these artifacts when asking a source owner to prepare launch data:
 
 - Shape-only example: `docs/examples/marathon-catalog.example.json`
 - JSON Schema: `docs/schemas/marathon-catalog.schema.json`
+- Source-owner approval checklist: `docs/marathon-catalog-approval-checklist.md`
 
 The schema and loader allow either nested rows under each marathon or top-level `steps`, `products`, and `gifts` with `marathonSlug`. The loader remains authoritative because it also checks cross-row references, duplicate slugs, duplicate gift codes, active-launch readiness, and unsafe progress keys.
 

@@ -252,6 +252,30 @@ async function assertPublicCatalogContract(report) {
     }
   }
   addCheck(report, 'pass', 'catalog-contract-example', 'Public catalog example is placeholder-only JSON.');
+
+  const approvalResponse = await request(report, '/catalog/marathon-catalog.approval-checklist.md');
+  assertOk(approvalResponse, '/catalog/marathon-catalog.approval-checklist.md');
+  const approvalBody = await approvalResponse.text();
+  if (approvalBody.includes('<div id="root"></div>') || approvalBody.includes('<!DOCTYPE html>')) {
+    throw new Error('/catalog/marathon-catalog.approval-checklist.md returned the frontend shell instead of Markdown.');
+  }
+  for (const required of [
+    'Marathon Catalog Source-Owner Approval Checklist',
+    'The file contains only `marathons`, `steps`, `products`, and `gifts`.',
+    'full gift-code values are not pasted',
+    'launchReady: true',
+    'npm run load:catalog:pod -- /path/to/marathon-catalog.json --apply',
+  ]) {
+    if (!approvalBody.includes(required)) {
+      throw new Error(`/catalog/marathon-catalog.approval-checklist.md is missing required checklist text: ${required}`);
+    }
+  }
+  for (const forbidden of ['test@example.com', 'MARATHON_SMOKE_AUTH_TOKEN=', 'PAYMENT_WEBHOOK_API_KEY=']) {
+    if (approvalBody.includes(forbidden)) {
+      throw new Error(`/catalog/marathon-catalog.approval-checklist.md contains forbidden sensitive marker: ${forbidden}`);
+    }
+  }
+  addCheck(report, 'pass', 'catalog-approval-checklist', 'Public source-owner approval checklist is served without sensitive placeholders.');
 }
 
 async function assertClosedCatalogLanguageFallback(report, options) {
@@ -374,6 +398,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('npm run load:catalog:pod -- /path/to/catalog.json') || !js.includes('removes the staged catalog copy')) {
     throw new Error('Built frontend bundle does not include the pod-safe catalog load runbook.');
   }
+  if (!js.includes('/catalog/marathon-catalog.approval-checklist.md') || !js.includes('Approval Checklist')) {
+    throw new Error('Built frontend bundle does not link the source-owner catalog approval checklist.');
+  }
   if (!js.includes('Gift redemption status is temporarily unavailable') || !js.includes('Gift redemption status could not be loaded')) {
     throw new Error('Built frontend bundle does not include gift readiness load-error state.');
   }
@@ -403,6 +430,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'winners-empty-state-ui', 'Winners frontend includes a post-load empty state.');
   addCheck(report, 'pass', 'register-error-state', 'Registration page distinguishes readiness API load failures from closed-catalog state.');
   addCheck(report, 'pass', 'catalog-pod-runbook-ui', 'Support runbook includes pod-safe catalog dry-run/apply commands.');
+  addCheck(report, 'pass', 'catalog-approval-checklist-ui', 'Support runbook links the public source-owner catalog approval checklist.');
   addCheck(report, 'pass', 'gift-readiness-error-state', 'Gift redemption blocks redemption when readiness status cannot be loaded.');
   addCheck(report, 'pass', 'nav-readiness-error-state', 'Global registration CTA distinguishes readiness load failures from closed-catalog state.');
   addCheck(report, 'pass', 'progress-report-ui', 'Profile detail frontend includes authenticated participant progress report generation and JSON download UI.');

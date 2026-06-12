@@ -94,6 +94,7 @@ const CATALOG_RUNBOOK_STEPS = [
 const CATALOG_CONTRACT_LINKS = [
   { href: '/catalog/marathon-catalog.schema.json', label: 'JSON Schema' },
   { href: '/catalog/marathon-catalog.example.json', label: 'Example JSON' },
+  { href: '/catalog/marathon-catalog.approval-checklist.md', label: 'Approval Checklist' },
   { href: '/api/v1/marathons/readiness', label: 'Readiness API' },
 ];
 

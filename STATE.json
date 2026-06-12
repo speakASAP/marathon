@@ -8,8 +8,8 @@
   "tasks_active": 0,
   "tasks_failed_last_cycle": 0,
   "open_task_ids": ["T4", "production-data-active-marathon", "assignment-live-verification"],
-  "last_milestone": "pod-safe-catalog-load-runbook-2026-06-12",
-  "next_focus": "Continue toward final launch by obtaining human-approved launch-ready catalog-only Marathon/Product/Gift/Step JSON from a source of truth, loading it with the safe catalog loader, then running readiness plus registration -> assignment submission -> gate -> payment/gift -> VIP access verification",
+  "last_milestone": "catalog-source-owner-approval-checklist-2026-06-12",
+  "next_focus": "Have the source owner complete the public catalog approval checklist, then load approved launch-ready Marathon/Product/Gift/Step JSON with npm run load:catalog:pod and run readiness plus registration -> assignment submission -> gate -> payment/gift -> VIP access verification",
   "blockers": [
     "P0: Production has no active Marathon rows/languages, so public registration is not open",
     "P0: Production has no MarathonProduct/Gift/Step data for live VIP and assignment verification",
