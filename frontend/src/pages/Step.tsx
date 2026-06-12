@@ -203,7 +203,13 @@ export default function Step() {
     ? `/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`
     : '/profile';
   const openLogin = () => redirectToLogin(stepReturnPath);
-  const submitDisabled = submitting || loadingSavedSubmission || submissionAuthRequired || !hasParticipantContext;
+  const submitBlockedByStatusError = Boolean(savedSubmissionError);
+  const submitDisabled = submitting
+    || loadingSavedSubmission
+    || submissionAuthRequired
+    || !hasParticipantContext
+    || submitBlockedByStatusError;
+  const peerReportEmpty = tab === 'report' && !loadingRandom && !randomAnswer;
 
   if (loadingStep && !step) {
     return (
@@ -335,7 +341,7 @@ export default function Step() {
               onChange={(event) => setReport(event.target.value)}
               placeholder="Describe your answer, links, notes, or practice result..."
               rows={8}
-              disabled={!hasParticipantContext || submissionAuthRequired}
+              disabled={!hasParticipantContext || submissionAuthRequired || submitBlockedByStatusError}
             />
             <button type="submit" className="btn-show-more" disabled={submitDisabled}>
               {submitting ? 'Saving...' : submissionAuthRequired ? 'Sign in required' : 'Submit report'}
@@ -366,6 +372,18 @@ export default function Step() {
             <button type="button" className="btn-show-more" onClick={loadRandomReport}>
               Показать ещё
             </button>
+          )}
+          {peerReportEmpty && (
+            <div className="step-peer-empty" aria-live="polite">
+              <strong>Пока нет примеров отчетов</strong>
+              <span>
+                Когда участники сохранят первые отчеты по этому этапу, здесь появится случайный пример
+                для самопроверки. Ваш собственный отчет можно отправить во вкладке «Мой отчет».
+              </span>
+              <button type="button" className="btn-show-more" onClick={loadRandomReport}>
+                Проверить еще раз
+              </button>
+            </div>
           )}
         </section>
       )}

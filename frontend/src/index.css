@@ -768,6 +768,29 @@ a:hover {
   margin: 0.5rem 0;
 }
 
+.step-peer-empty {
+  display: grid;
+  gap: 0.55rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #d7e2ef;
+  border-radius: 8px;
+  background: #f7fafc;
+  color: #243244;
+}
+
+.step-peer-empty strong {
+  color: #142235;
+}
+
+.step-peer-empty span {
+  line-height: 1.5;
+}
+
+.step-peer-empty .btn-show-more {
+  justify-self: start;
+}
+
 .step-submit {
   display: grid;
   gap: 1rem;

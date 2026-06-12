@@ -312,6 +312,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Sign in to submit your report') || !js.includes('Open this assignment from your marathon profile')) {
     throw new Error('Built frontend bundle does not include assignment submit authentication guard.');
   }
+  if (!js.includes('Saved report status could not be loaded') || !js.includes('submitBlockedByStatusError')) {
+    throw new Error('Built frontend bundle does not block assignment submission after saved-report status load failures.');
+  }
   if (!js.includes('Sign in to redeem a gift code') || !js.includes('Open gift redemption from your marathon profile')) {
     throw new Error('Built frontend bundle does not include gift redemption authentication guard.');
   }
@@ -326,6 +329,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   }
   if (!js.includes('Assignment is temporarily unavailable') || !js.includes('Assignment could not be loaded')) {
     throw new Error('Built frontend bundle does not include assignment step load-error state.');
+  }
+  if (!js.includes('Пока нет примеров отчетов') || !js.includes('Ваш собственный отчет можно отправить')) {
+    throw new Error('Built frontend bundle does not include assignment peer-report empty state.');
   }
   if (!js.includes('Marathon landing is temporarily unavailable') || !js.includes('Marathon landing could not be loaded')) {
     throw new Error('Built frontend bundle does not include language landing load-error state.');
@@ -356,11 +362,13 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   }
   addCheck(report, 'pass', 'registration-login-handoff', 'Registration frontend bundle routes new participants through token-aware profile login handoff.');
   addCheck(report, 'pass', 'assignment-login-guard', 'Assignment report UI requires profile context and token-aware login before submission.');
+  addCheck(report, 'pass', 'assignment-status-error-submit-guard', 'Assignment report UI blocks submission when saved-report status cannot be loaded.');
   addCheck(report, 'pass', 'gift-login-guard', 'Gift redemption UI requires profile context and token-aware login before redemption.');
   addCheck(report, 'pass', 'checkout-login-handoff', 'VIP checkout UI preserves profile gate return path when login is required.');
   addCheck(report, 'pass', 'profile-error-state', 'Profile dashboard distinguishes load failures from login-required state.');
   addCheck(report, 'pass', 'profile-detail-error-state', 'Profile detail distinguishes load failures from not-found state.');
   addCheck(report, 'pass', 'step-error-state', 'Assignment page distinguishes load failures from not-found state.');
+  addCheck(report, 'pass', 'step-peer-empty-state', 'Assignment peer-report tab includes a no-examples empty state.');
   addCheck(report, 'pass', 'landing-error-state', 'Language landing distinguishes API load failures from closed-catalog fallback state.');
   addCheck(report, 'pass', 'home-error-state', 'Home page distinguishes readiness API load failures from closed-catalog state.');
   addCheck(report, 'pass', 'home-teaser-empty-state', 'Home finalists and reviews teasers include post-load empty states.');
