@@ -77,6 +77,10 @@ export class SubmissionsService {
       throw new NotFoundException('Step not found for this marathon');
     }
 
+    if (!step.assignmentContent?.trim()) {
+      throw new ConflictException('Assignment content is not configured for this step');
+    }
+
     if (this.needsPayment(participant) && !step.isTrialStep) {
       throw new ForbiddenException('VIP access is required before submitting this step');
     }

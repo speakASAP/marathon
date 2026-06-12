@@ -392,6 +392,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Saved report status could not be loaded') || !js.includes('Submission is paused until this assignment status can be checked')) {
     throw new Error('Built frontend bundle does not block assignment submission after saved-report status load failures.');
   }
+  if (!js.includes('Assignment content is not configured') || !js.includes('Submission is blocked until support adds approved assignment content')) {
+    throw new Error('Built frontend bundle does not block assignment submission when approved assignment content is missing.');
+  }
   if (!js.includes('Sign in to redeem a gift code') || !js.includes('Open gift redemption from your marathon profile')) {
     throw new Error('Built frontend bundle does not include gift redemption authentication guard.');
   }
@@ -461,6 +464,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'registration-auth-binding-ui', 'Registration frontend sends Marathon token for immediate participant binding and handles expired sessions.');
   addCheck(report, 'pass', 'assignment-login-guard', 'Assignment report UI requires profile context and token-aware login before submission.');
   addCheck(report, 'pass', 'assignment-status-error-submit-guard', 'Assignment report UI blocks submission when saved-report status cannot be loaded.');
+  addCheck(report, 'pass', 'assignment-content-submit-guard', 'Assignment report UI blocks submission when approved assignment content is missing.');
   addCheck(report, 'pass', 'gift-login-guard', 'Gift redemption UI requires profile context and token-aware login before redemption.');
   addCheck(report, 'pass', 'checkout-login-handoff', 'VIP checkout UI preserves profile gate return path when login is required.');
   addCheck(report, 'pass', 'checkout-return-state-ui', 'VIP checkout UI validates payment redirects and renders payment return states.');

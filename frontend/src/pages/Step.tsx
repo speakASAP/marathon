@@ -154,6 +154,10 @@ export default function Step() {
       redirectToLogin(`/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
       return;
     }
+    if (!assignmentContent) {
+      setSubmitError('Assignment content is not configured. Submission is blocked until support adds approved assignment content.');
+      return;
+    }
     if (!report.trim()) {
       setSubmitError('Write your report before submitting.');
       return;
@@ -208,6 +212,7 @@ export default function Step() {
     || loadingSavedSubmission
     || submissionAuthRequired
     || !hasParticipantContext
+    || !assignmentContent
     || submitBlockedByStatusError;
   const peerReportEmpty = tab === 'report' && !loadingRandom && !randomAnswer;
 
@@ -313,6 +318,13 @@ export default function Step() {
               {savedSubmissionError} Submission is paused until this assignment status can be checked.
             </p>
           )}
+          {!assignmentContent && (
+            <div className="step-submit-auth-panel" role="alert">
+              <strong>Assignment content is not configured</strong>
+              <span>Submission is blocked until support adds approved assignment content for this step.</span>
+              <Link to="/support" className="btn-profile-login">Contact support</Link>
+            </div>
+          )}
           {!hasParticipantContext && (
             <div className="step-submit-auth-panel" role="alert">
               <strong>Open this assignment from your marathon profile</strong>
@@ -345,7 +357,7 @@ export default function Step() {
               onChange={(event) => setReport(event.target.value)}
               placeholder="Describe your answer, links, notes, or practice result..."
               rows={8}
-              disabled={!hasParticipantContext || submissionAuthRequired || submitBlockedByStatusError}
+              disabled={!hasParticipantContext || submissionAuthRequired || submitBlockedByStatusError || !assignmentContent}
             />
             <button type="submit" className="btn-show-more" disabled={submitDisabled}>
               {submitting ? 'Saving...' : submissionAuthRequired ? 'Sign in required' : 'Submit report'}
