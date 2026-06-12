@@ -34,6 +34,8 @@ export default function Step() {
   const { stepId } = useParams<{ stepId: string }>();
   const [step, setStep] = useState<StepInfo | null>(null);
   const [loadingStep, setLoadingStep] = useState(true);
+  const [stepNotFound, setStepNotFound] = useState(false);
+  const [stepLoadError, setStepLoadError] = useState('');
   const [tab, setTab] = useState<'task' | 'submit' | 'report'>('task');
   const [randomAnswer, setRandomAnswer] = useState<RandomAnswer | null>(null);
   const [loadingRandom, setLoadingRandom] = useState(false);
@@ -51,6 +53,8 @@ export default function Step() {
     if (!stepId) return;
     setMarathonerId(new URLSearchParams(window.location.search).get('marathonerId') || '');
     setStep(null);
+    setStepNotFound(false);
+    setStepLoadError('');
     setRandomAnswer(null);
     setSavedSubmission(null);
     setSavedSubmissionError('');
@@ -58,12 +62,24 @@ export default function Step() {
     setReport('');
     setLoadingStep(true);
     fetch(`/api/v1/steps/${encodeURIComponent(stepId)}`)
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => {
+        if (r.status === 404) {
+          setStepNotFound(true);
+          return null;
+        }
+        if (!r.ok) {
+          throw new Error(String(r.status));
+        }
+        return r.json();
+      })
       .then((data) => {
         setStep(data);
         setLoadingStep(false);
       })
-      .catch(() => setLoadingStep(false));
+      .catch(() => {
+        setStepLoadError('Assignment could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setLoadingStep(false);
+      });
   }, [stepId]);
 
   useEffect(() => {
@@ -197,9 +213,33 @@ export default function Step() {
     );
   }
 
-  if (!stepId || (!loadingStep && !step)) {
+  if (stepLoadError) {
     return (
-      <div className="container">
+      <div className="container page-static page-step">
+        <nav className="page-nav">
+          <Link to="/">Главная</Link>
+          <span> · </span>
+          <Link to="/profile">Мои марафоны</Link>
+        </nav>
+        <h1>Assignment is temporarily unavailable</h1>
+        <section className="profile-empty-panel" role="alert">
+          <p>{stepLoadError}</p>
+          <div className="profile-empty-actions">
+            <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
+              Refresh
+            </button>
+            <a className="btn-profile-login" href="mailto:support@speakasap.com">
+              Contact support
+            </a>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (!stepId || stepNotFound || (!loadingStep && !step)) {
+    return (
+      <div className="container page-static page-step">
         <p>Этап не найден.</p>
         <Link to="/profile">Мои марафоны</Link>
       </div>

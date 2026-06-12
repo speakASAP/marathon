@@ -217,12 +217,16 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Marathon profile is temporarily unavailable') || !js.includes('Marathon profile could not be loaded')) {
     throw new Error('Built frontend bundle does not include profile detail load-error state.');
   }
+  if (!js.includes('Assignment is temporarily unavailable') || !js.includes('Assignment could not be loaded')) {
+    throw new Error('Built frontend bundle does not include assignment step load-error state.');
+  }
   addCheck(report, 'pass', 'registration-login-handoff', 'Registration frontend bundle routes new participants through token-aware profile login handoff.');
   addCheck(report, 'pass', 'assignment-login-guard', 'Assignment report UI requires profile context and token-aware login before submission.');
   addCheck(report, 'pass', 'gift-login-guard', 'Gift redemption UI requires profile context and token-aware login before redemption.');
   addCheck(report, 'pass', 'checkout-login-handoff', 'VIP checkout UI preserves profile gate return path when login is required.');
   addCheck(report, 'pass', 'profile-error-state', 'Profile dashboard distinguishes load failures from login-required state.');
   addCheck(report, 'pass', 'profile-detail-error-state', 'Profile detail distinguishes load failures from not-found state.');
+  addCheck(report, 'pass', 'step-error-state', 'Assignment page distinguishes load failures from not-found state.');
 }
 
 async function checkPublicRoutes(report, options) {
