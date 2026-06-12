@@ -136,6 +136,26 @@ function formatMissingLabel(value: string): string {
     .join(' ');
 }
 
+function SupportPostLoadVerification() {
+  return (
+    <div className="support-post-load-verification">
+      <strong>Post-load journey verification</strong>
+      <p>
+        Run these only after readiness is green and use throwaway smoke data. Keep JWTs,
+        approved smoke gift codes, participant IDs, and step IDs out of screenshots and notes.
+      </p>
+      <ol className="support-verification-list">
+        {POST_LOAD_VERIFICATION_STEPS.map((step) => (
+          <li key={step.title}>
+            <strong>{step.title}</strong>
+            <code className="support-runbook-command">{step.detail}</code>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 /**
  * Support: list marathons and links to each step (support view).
  */
@@ -233,30 +253,16 @@ export default function Support() {
                   {CATALOG_RUNBOOK_STEPS.map((step) => (
                     <li key={step.title}>
                       <strong>{step.title}</strong>
-                      <code>{step.detail}</code>
+                      <code className="support-runbook-command">{step.detail}</code>
                     </li>
                   ))}
                 </ol>
-                <div className="support-post-load-verification">
-                  <strong>Post-load journey verification</strong>
-                  <p>
-                    Run these only after readiness is green and use throwaway smoke data. Keep JWTs,
-                    approved smoke gift codes, participant IDs, and step IDs out of screenshots and notes.
-                  </p>
-                  <ol className="support-verification-list">
-                    {POST_LOAD_VERIFICATION_STEPS.map((step) => (
-                      <li key={step.title}>
-                        <strong>{step.title}</strong>
-                        <code>{step.detail}</code>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
                 <p className="support-runbook-note">
                   The pod helper removes the staged catalog copy after each run. Do not paste gift-code inventories, participant exports, JWTs, payment keys, or assignment reports into validation notes.
                 </p>
               </section>
             )}
+            <SupportPostLoadVerification />
           </>
         ) : !analyticsError ? (
           <p>Loading operational analytics...</p>

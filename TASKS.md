@@ -85,3 +85,4 @@
 - [x] 2026-06-12 Gift missing launch gates deployed: gift redemption closed-catalog panel lists exact readiness blockers and journey smoke protects the bundle state
 - [x] 2026-06-12 Home missing launch gates deployed: root closed-catalog panel lists exact readiness blockers and journey smoke protects the bundle state
 - [x] 2026-06-12 Post-load journey verification runbook deployed: `/support` lists placeholder-only registration, VIP, gift, and assignment smoke commands for the first approved catalog launch
+- [ ] 2026-06-12 Support runbook mobile layout and ready-state visibility: `/support` command lists should use mobile-safe counter columns, and post-load smoke commands should remain visible after catalog readiness turns green
