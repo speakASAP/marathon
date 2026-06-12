@@ -54,6 +54,19 @@ preflight_cluster() {
   echo -e "${GREEN}Preflight passed${NC}"
 }
 
+post_deploy_journey_readiness() {
+  echo -e "${YELLOW}Checking registration/payment/assignment readiness...${NC}"
+
+  if kubectl exec "deployment/${SERVICE_NAME}" -n "$NAMESPACE" -- sh -lc 'cd /app && npm run check:readiness'; then
+    echo -e "${GREEN}OK production journey readiness passed${NC}"
+    return 0
+  fi
+
+  echo -e "${YELLOW}WARN production journey readiness is not complete yet.${NC}"
+  echo -e "${YELLOW}WARN Deploy remains successful because this usually means catalog data is still awaiting approval/load.${NC}"
+  return 0
+}
+
 echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║            Kubernetes Deployment: Marathon             ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${NC}"
@@ -114,6 +127,8 @@ deploy_timing_phase_start "Post-deploy status"
 echo -e "${YELLOW}Current pods:${NC}"
 kubectl get pods -n "$NAMESPACE" -l app="$SERVICE_NAME"
 deploy_timing_phase_end "Post-deploy status"
+
+deploy_timing_run_phase "Journey readiness" post_deploy_journey_readiness
 
 deploy_timing_finish_success "Marathon"
 echo "Image:    ${IMAGE}"
