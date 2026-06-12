@@ -15,10 +15,11 @@ upstream:
 | Criterion | Result | Evidence |
 |---|---|---|
 | Script syntax passes | Pass | 2026-06-12 `node --check scripts/check-marathon-journey.js` completed. |
-| Language landing shell is covered | Pass | 2026-06-12 `npm run check:journey` reported `[PASS] frontend-language-fallback-shell: /en/ language landing route serves the frontend shell before catalog readiness.` |
-| Empty active-marathon API response is covered | Pass | 2026-06-12 `npm run check:journey` reported `[PASS] language-marathon-api-empty-safe: No active marathon API response for en is represented as an empty HTTP 200 body.` |
-| Browser hydration confirms visitor state | Pass | 2026-06-12 Browser QA on `https://marathon.alfares.cz/en/?qa=continue-audit` hydrated to `English Marathon is being prepared.` and `Registration status` instead of remaining on `Loading marathon...`. |
-| Journey remains guarded | Pass | 2026-06-12 `npm run check:journey` passed the new language fallback checks, then stopped at expected `[FAIL] catalog-readiness`; mutating checks remained skipped. |
+| Language landing shell is covered | Pass | 2026-06-12 deployed pod `npm run check:journey` reported `[PASS] frontend-language-fallback-shell: /en/ language landing route serves the frontend shell before catalog readiness.` |
+| Empty active-marathon API response is covered | Pass | 2026-06-12 deployed pod `npm run check:journey` reported `[PASS] language-marathon-api-empty-safe: No active marathon API response for en is represented as an empty HTTP 200 body.` |
+| Browser hydration confirms visitor state | Pass | 2026-06-12 Browser QA on `https://marathon.alfares.cz/en/?qa=language-fallback-0f61f26-screens` hydrated to `English Marathon is being prepared.` and `Registration status` instead of remaining on `Loading marathon...`. Screenshots: `/private/tmp/marathon-language-fallback-0f61f26-top.png`, `/private/tmp/marathon-language-fallback-0f61f26-status.png`. |
+| Journey remains guarded | Pass | 2026-06-12 deployed pod `npm run check:journey` passed the new language fallback checks, then stopped at expected `[FAIL] catalog-readiness`; mutating checks remained skipped. |
+| Build/deploy passes | Pass | 2026-06-12 `npm run build` passed; deployment rolled out image `localhost:5000/marathon:0f61f26`. |
 
 ## Sensitive-Data Scan
 
