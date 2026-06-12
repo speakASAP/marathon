@@ -312,7 +312,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Sign in to submit your report') || !js.includes('Open this assignment from your marathon profile')) {
     throw new Error('Built frontend bundle does not include assignment submit authentication guard.');
   }
-  if (!js.includes('Saved report status could not be loaded') || !js.includes('submitBlockedByStatusError')) {
+  if (!js.includes('Saved report status could not be loaded') || !js.includes('Submission is paused until this assignment status can be checked')) {
     throw new Error('Built frontend bundle does not block assignment submission after saved-report status load failures.');
   }
   if (!js.includes('Sign in to redeem a gift code') || !js.includes('Open gift redemption from your marathon profile')) {

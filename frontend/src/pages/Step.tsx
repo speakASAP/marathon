@@ -308,7 +308,11 @@ export default function Step() {
           <h2>Мой отчет</h2>
           <p className="step-report-note">Write what you completed for this assignment. The platform records your progress and updates bonus-day status automatically.</p>
           {loadingSavedSubmission && <p className="step-report-note">Checking saved report status...</p>}
-          {savedSubmissionError && <p className="ml-error">{savedSubmissionError}</p>}
+          {savedSubmissionError && (
+            <p className="ml-error">
+              {savedSubmissionError} Submission is paused until this assignment status can be checked.
+            </p>
+          )}
           {!hasParticipantContext && (
             <div className="step-submit-auth-panel" role="alert">
               <strong>Open this assignment from your marathon profile</strong>
