@@ -6,7 +6,7 @@ Use this checklist before any launch catalog JSON is applied to production. The 
 
 - Owner name or team:
 - Source-of-truth system or document:
-- Catalog JSON file path on Alphares:
+- Catalog JSON file path on alfares:
 - Intended launch date:
 
 ## Required Approval

@@ -38,7 +38,7 @@ Human approval must confirm:
 
 ## Runbook
 
-1. Place the approved JSON file on the Alphares server.
+1. Place the approved JSON file on the alfares server.
 2. Validate without writing from the Marathon repository:
 
 ```bash

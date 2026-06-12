@@ -12,7 +12,7 @@ upstream:
 
 ## Objective
 
-Make the approved catalog load path directly executable from the Alphares Marathon repository without requiring operators to manually stage catalog JSON inside the runtime pod.
+Make the approved catalog load path directly executable from the alfares Marathon repository without requiring operators to manually stage catalog JSON inside the runtime pod.
 
 ## Scope
 
