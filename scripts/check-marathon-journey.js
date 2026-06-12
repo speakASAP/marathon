@@ -190,6 +190,21 @@ async function assertFrontendShell(report, path, code, message) {
   addCheck(report, 'pass', code, message);
 }
 
+async function assertRegistrationHandoffSource(report, rootHtml) {
+  const assetMatch = rootHtml.match(/<script[^>]+src="([^"]*\/assets\/[^"]+\.js)"/);
+  if (!assetMatch) {
+    throw new Error('Root HTML does not reference a built frontend JavaScript asset.');
+  }
+  const assetPath = assetMatch[1].startsWith('http') ? assetMatch[1] : assetMatch[1];
+  const response = await request(report, assetPath);
+  assertOk(response, assetPath);
+  const js = await response.text();
+  if (!js.includes('marathon_token') || !js.includes('next=') || !js.includes('/profile/')) {
+    throw new Error('Built frontend bundle does not include token-aware registration profile handoff.');
+  }
+  addCheck(report, 'pass', 'registration-login-handoff', 'Registration frontend bundle routes new participants through token-aware profile login handoff.');
+}
+
 async function checkPublicRoutes(report, options) {
   const health = await requestJson(report, '/health');
   assertOk(health.response, '/health');
@@ -228,6 +243,7 @@ async function checkPublicRoutes(report, options) {
     'frontend-gift-return',
     'Direct gift-code login return route serves the frontend shell.',
   );
+  await assertRegistrationHandoffSource(report, rootHtml);
 
   const readiness = await requestJson(report, '/api/v1/marathons/readiness');
   assertOk(readiness.response, '/api/v1/marathons/readiness');

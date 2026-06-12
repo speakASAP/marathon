@@ -1,4 +1,5 @@
 import { useState, FormEvent } from 'react';
+import { getToken, redirectToLogin } from '../auth';
 
 export interface RegistrationFormProps {
   languageCode: string;
@@ -46,9 +47,15 @@ export default function RegistrationForm({
         setSubmitting(false);
         return;
       }
-      onSuccess?.(data.marathonerId, data.redirectUrl);
-      if (data.marathonerId) {
-        window.location.href = `/profile/${encodeURIComponent(data.marathonerId)}`;
+      const marathonerId = typeof data.marathonerId === 'string' ? data.marathonerId : '';
+      onSuccess?.(marathonerId, data.redirectUrl);
+      if (marathonerId) {
+        const profilePath = `/profile/${encodeURIComponent(marathonerId)}`;
+        if (getToken()) {
+          window.location.href = profilePath;
+        } else {
+          redirectToLogin(profilePath);
+        }
       } else if (data.redirectUrl) {
         const normalizedRedirect = String(data.redirectUrl).replace(/^(https?:\/\/[^/]+)?\/marathon\/([a-z]{2})\/?$/i, '$1/$2/');
         window.location.href = normalizedRedirect;

@@ -41,3 +41,4 @@
 - [x] 2026-06-12 Profile dashboard UX added: `/profile` now renders marathon cards with progress, current step, VIP/payment state, bonus days, and direct continuation actions
 - [x] 2026-06-12 Login-return token capture centralized: frontend bootstrap now stores `marathon_token` before route effects run so direct returns to profile detail, gift redemption, and assignment pages can authenticate
 - [x] 2026-06-12 Login-return route smoke coverage added: default journey verifier now checks direct profile-detail, assignment, and gift login-return URLs serve the SPA shell before catalog readiness
+- [x] 2026-06-12 Registration login handoff hardened: registration success now sends unauthenticated participants to portal login with their exact `/profile/:marathonerId` return path, while existing token holders open the profile directly
