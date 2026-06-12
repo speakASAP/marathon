@@ -440,6 +440,19 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Launch blockers') || !js.includes('ml-missing-gates')) {
     throw new Error('Built frontend bundle does not include language landing missing-launch-gates readiness detail.');
   }
+  if (
+    !js.includes('No course preview is shown before approval') ||
+    !js.includes('ml-readiness-list') ||
+    !js.includes('VIP price and checkout appear only after an approved product is configured') ||
+    !js.includes('No sample course sequence is shown while the production catalog is empty')
+  ) {
+    throw new Error('Built frontend bundle does not include closed-catalog landing readiness-only program and pricing state.');
+  }
+  for (const fakeLandingMarker of ['€29', 'Speak about your weekend', 'Day 12', 'A sample run from the Marathon', '40%']) {
+    if (js.includes(fakeLandingMarker)) {
+      throw new Error(`Built frontend bundle still includes invented closed-catalog landing marker: ${fakeLandingMarker}`);
+    }
+  }
   for (const fakeReviewMarker of ['Lucia K.', 'Tomas P.', 'Anna M.']) {
     if (js.includes(fakeReviewMarker)) {
       throw new Error(`Built frontend bundle still includes invented landing review marker: ${fakeReviewMarker}`);
@@ -510,6 +523,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'landing-error-state', 'Language landing distinguishes API load failures from closed-catalog fallback state.');
   addCheck(report, 'pass', 'landing-review-empty-state', 'Language landing uses a real-data empty state instead of invented testimonials.');
   addCheck(report, 'pass', 'landing-missing-gates-ui', 'Language landing closed-registration panel includes exact missing launch gates from readiness data.');
+  addCheck(report, 'pass', 'landing-closed-catalog-real-data-ui', 'Language landing removes invented closed-catalog course, progress, and price markers.');
   addCheck(report, 'pass', 'home-error-state', 'Home page distinguishes readiness API load failures from closed-catalog state.');
   addCheck(report, 'pass', 'home-missing-gates-ui', 'Home closed-catalog panel includes exact missing launch gates from readiness data.');
   addCheck(report, 'pass', 'home-teaser-empty-state', 'Home finalists and reviews teasers include post-load empty states.');

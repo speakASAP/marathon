@@ -381,6 +381,36 @@
   background: #fbfdff;
 }
 
+.ml-readiness-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0 0;
+}
+
+.ml-readiness-list div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--ml-line);
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.ml-readiness-list dt {
+  margin: 0 0 4px;
+  color: var(--ml-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.ml-readiness-list dd {
+  margin: 0;
+  color: var(--ml-ink);
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
 .ml-how,
 .ml-pricing,
 .ml-workflow,
@@ -589,6 +619,10 @@
   display: block;
   height: 100%;
   background: var(--ml-mint);
+}
+
+.ml-workflow-gates {
+  margin-top: 22px;
 }
 
 .ml-review-grid {
@@ -940,6 +974,10 @@
   .ml-payment-panel,
   .landing-form {
     padding: 22px;
+  }
+
+  .ml-readiness-list {
+    grid-template-columns: 1fr;
   }
 
   .ml-hero-points div {

@@ -3,17 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import RegistrationForm from '../components/RegistrationForm';
 import '../landing.css';
 
-const DEFAULT_PRICE_EUR = 29;
 const FREE_DAYS = 3;
-
-const WORKFLOW_DAYS = [
-  { day: 9, title: 'Describe your job', type: 'Speaking', state: 'Done' },
-  { day: 10, title: 'A memorable trip', type: 'Writing', state: 'Done' },
-  { day: 11, title: 'Making plans', type: 'Listening', state: 'Done' },
-  { day: 12, title: 'Speak about your weekend', type: 'Speaking', state: 'Start' },
-  { day: 13, title: 'Express your opinion', type: 'Speaking', state: 'Locked' },
-  { day: 14, title: 'A perfect day', type: 'Writing', state: 'Locked' },
-];
 
 const FAQ_ITEMS = [
   ['How much time do I need each day?', 'Most assignments are designed for 20-30 focused minutes.'],
@@ -37,7 +27,6 @@ interface MarathonSummary {
   title: string;
   slug?: string;
   landingVideoUrl?: string;
-  price?: number;
 }
 
 interface LangItem {
@@ -152,7 +141,6 @@ export default function Landing() {
     canonical.setAttribute('href', `${window.location.origin}/${marathon.languageCode}/`);
   }, [marathon]);
 
-  const priceEur = marathon?.price ?? DEFAULT_PRICE_EUR;
   const featuredReviews = useMemo(() => reviews.slice(0, 3), [reviews]);
 
   const scrollToForm = () => {
@@ -224,6 +212,10 @@ export default function Landing() {
     : 'Registration will open after the approved marathon catalog, assignments, VIP product, and gift codes are loaded in production.';
   const registerTitle = registrationOpen ? `Start your ${languageName} Marathon` : 'Registration status';
   const missingLaunchGates = readiness?.missing ?? [];
+  const readinessCounts = readiness?.counts;
+  const approvedStepsLabel = readinessCounts
+    ? `${readinessCounts.stepsWithContent}/${readinessCounts.steps}`
+    : '0/0';
 
   return (
     <div className="marathon-landing">
@@ -292,39 +284,79 @@ export default function Landing() {
                 Registration is closed until the active marathon, assignments, VIP product, and gift codes are configured in production.
               </p>
             )}
-            <dl className="ml-hero-points" aria-label="Marathon highlights">
-              <div><dt>30</dt><dd>daily assignments</dd></div>
-              <div><dt>{FREE_DAYS}</dt><dd>free starter days</dd></div>
-              <div><dt>20-30</dt><dd>minutes per day</dd></div>
+            <dl className="ml-hero-points" aria-label={registrationOpen ? 'Marathon highlights' : 'Catalog readiness summary'}>
+              {registrationOpen ? (
+                <>
+                  <div><dt>Free</dt><dd>starter access</dd></div>
+                  <div><dt>VIP</dt><dd>checkout from profile</dd></div>
+                  <div><dt>Daily</dt><dd>approved assignments</dd></div>
+                </>
+              ) : (
+                <>
+                  <div><dt>{readinessCounts?.activeMarathons ?? 0}</dt><dd>active marathons</dd></div>
+                  <div><dt>{approvedStepsLabel}</dt><dd>approved steps</dd></div>
+                  <div><dt>{readinessCounts?.products ?? 0}</dt><dd>VIP products</dd></div>
+                </>
+              )}
             </dl>
           </div>
 
-          <div className="ml-product-preview" aria-label="Marathon assignment preview">
+          <div className="ml-product-preview" aria-label={registrationOpen ? 'Marathon profile preview' : 'Marathon launch readiness preview'}>
             <div className="ml-preview-sidebar">
               <strong>Marathon</strong>
-              <span className="active">Overview</span>
-              <span>Assignments</span>
-              <span>Reports</span>
-              <span>Progress</span>
+              <span className="active">{registrationOpen ? 'Overview' : 'Readiness'}</span>
+              <span>{registrationOpen ? 'Assignments' : 'Catalog'}</span>
+              <span>{registrationOpen ? 'Reports' : 'VIP'}</span>
+              <span>{registrationOpen ? 'Progress' : 'Launch gate'}</span>
             </div>
             <div className="ml-preview-main">
-              <div className="ml-preview-head">
-                <div>
-                  <span>Day 12</span>
-                  <strong>You're on fire.</strong>
-                </div>
-                <div className="ml-progress-ring">40%</div>
-              </div>
-              <article className="ml-assignment-card featured">
-                <span>Today's assignment</span>
-                <h3>Speak about your weekend</h3>
-                <p>Record a 2-3 minute story. Use at least 5 new words.</p>
-                <button type="button">Start assignment</button>
-              </article>
-              <article className="ml-feedback-card">
-                <strong>Recent feedback</strong>
-                <p>Great improvement. Your vocabulary and fluency are getting stronger.</p>
-              </article>
+              {registrationOpen ? (
+                <>
+                  <div className="ml-preview-head">
+                    <div>
+                      <span>Profile dashboard</span>
+                      <strong>Your approved marathon path opens here.</strong>
+                    </div>
+                    <div className="ml-progress-ring">Live</div>
+                  </div>
+                  <article className="ml-assignment-card featured">
+                    <span>Current assignment</span>
+                    <h3>Open the next approved task from your profile.</h3>
+                    <p>Your saved report, VIP gate, due state, and completion status are loaded from the live Marathon APIs.</p>
+                    <Link to="/profile" className="ml-primary-action">Open profile</Link>
+                  </article>
+                  <article className="ml-feedback-card">
+                    <strong>Progress stays attached to your account</strong>
+                    <p>Portal login returns to the exact profile, gift, checkout, or assignment route you opened.</p>
+                  </article>
+                </>
+              ) : (
+                <>
+                  <div className="ml-preview-head">
+                    <div>
+                      <span>Launch status</span>
+                      <strong>Waiting for approved catalog data.</strong>
+                    </div>
+                    <div className="ml-progress-ring">Closed</div>
+                  </div>
+                  <article className="ml-assignment-card featured">
+                    <span>Catalog readiness</span>
+                    <h3>No course preview is shown before approval.</h3>
+                    <p>Assignments, pricing, VIP checkout, gift redemption, and registration stay hidden until production readiness is green.</p>
+                    <dl className="ml-readiness-list">
+                      <div><dt>Active marathons</dt><dd>{readinessCounts?.activeMarathons ?? 0}</dd></div>
+                      <div><dt>Approved steps</dt><dd>{approvedStepsLabel}</dd></div>
+                      <div><dt>VIP products</dt><dd>{readinessCounts?.products ?? 0}</dd></div>
+                      <div><dt>Gift codes</dt><dd>{readinessCounts?.unusedGifts ?? 0}</dd></div>
+                    </dl>
+                  </article>
+                  <article className="ml-feedback-card">
+                    <strong>Next operational action</strong>
+                    <p>Load a source-owner approved catalog packet, then run readiness and post-load journey smoke checks from Support.</p>
+                    <Link to="/support" className="ml-outline-action">Open support runbook</Link>
+                  </article>
+                </>
+              )}
             </div>
           </div>
         </section>
@@ -363,11 +395,15 @@ export default function Landing() {
             <article className="ml-plan vip">
               <div className="ml-plan-ribbon">Most complete</div>
               <h3>VIP</h3>
-              <strong>€{priceEur}</strong>
-              <p>Unlock the full marathon after the VIP gate.</p>
+              <strong>{registrationOpen ? 'Checkout' : 'Pending'}</strong>
+              <p>
+                {registrationOpen
+                  ? 'Unlock the full marathon from your profile after the VIP gate.'
+                  : 'VIP price and checkout appear only after an approved product is configured.'}
+              </p>
               <ul>
                 <li>Everything in Free</li>
-                <li>Full 30-day assignment path</li>
+                <li>Approved post-gate assignments</li>
                 <li>Detailed corrections and support</li>
                 <li>Certificate path</li>
               </ul>
@@ -400,21 +436,74 @@ export default function Landing() {
 
         <section className="ml-workflow" id="program">
           <div className="ml-section-head">
-            <h2>Your daily workflow</h2>
-            <p>A sample run from the Marathon: completed reports, today's task, and locked VIP days.</p>
+            <h2>{registrationOpen ? 'Your daily workflow' : 'Launch readiness workflow'}</h2>
+            <p>
+              {registrationOpen
+                ? 'Open approved assignments from your profile, submit reports, and continue through the VIP gate when it appears.'
+                : 'No sample course sequence is shown while the production catalog is empty. These are the gates that must pass before registration opens.'}
+            </p>
           </div>
           <div className="ml-day-row">
-            {WORKFLOW_DAYS.map((item) => (
-              <article key={item.day} className={`ml-day-card state-${item.state.toLowerCase()}`}>
-                <span>Day {item.day}</span>
-                <h3>{item.title}</h3>
-                <small>{item.type}</small>
-                <p>20-30 min</p>
-                <button type="button" disabled={item.state === 'Locked'}>{item.state}</button>
-              </article>
-            ))}
+            {registrationOpen ? (
+              <>
+                <article className="ml-day-card state-done">
+                  <span>Profile</span>
+                  <h3>Open your participant dashboard</h3>
+                  <small>Account-bound</small>
+                  <p>Progress, payment state, and saved reports stay linked to your Marathon login.</p>
+                  <Link to="/profile" className="ml-outline-action">Open</Link>
+                </article>
+                <article className="ml-day-card state-start">
+                  <span>Assignment</span>
+                  <h3>Continue the current approved step</h3>
+                  <small>Live catalog</small>
+                  <p>The active task, due state, VIP gate, and saved-report readback come from production APIs.</p>
+                  <Link to="/profile" className="ml-primary-action">Continue</Link>
+                </article>
+                <article className="ml-day-card state-locked">
+                  <span>VIP</span>
+                  <h3>Unlock post-gate access from profile</h3>
+                  <small>Payment or gift</small>
+                  <p>Checkout and gift redemption use the server-side product and gift inventory.</p>
+                  <button type="button" disabled>Profile gated</button>
+                </article>
+              </>
+            ) : (
+              <>
+                <article className="ml-day-card state-locked">
+                  <span>Gate 1</span>
+                  <h3>Approved active marathon</h3>
+                  <small>{readinessCounts?.activeMarathons ?? 0} configured</small>
+                  <p>Registration stays closed until an active language catalog exists.</p>
+                  <Link to="/support" className="ml-outline-action">Runbook</Link>
+                </article>
+                <article className="ml-day-card state-locked">
+                  <span>Gate 2</span>
+                  <h3>Approved assignment content</h3>
+                  <small>{approvedStepsLabel} ready</small>
+                  <p>Every step needs approved plain-text assignment content before launch.</p>
+                  <Link to="/support" className="ml-outline-action">Runbook</Link>
+                </article>
+                <article className="ml-day-card state-locked">
+                  <span>Gate 3</span>
+                  <h3>VIP product and gift inventory</h3>
+                  <small>{readinessCounts?.products ?? 0} products / {readinessCounts?.unusedGifts ?? 0} gifts</small>
+                  <p>Payment and gift checks wait for source-owner approved product and gift rows.</p>
+                  <Link to="/support" className="ml-outline-action">Runbook</Link>
+                </article>
+              </>
+            )}
           </div>
-          <div className="ml-progress-bar"><span style={{ width: '40%' }} /></div>
+          {!registrationOpen && missingLaunchGates.length ? (
+            <div className="ml-missing-gates ml-workflow-gates" aria-label="Missing launch gates">
+              <strong>Launch blockers</strong>
+              <div>
+                {missingLaunchGates.map((item) => (
+                  <span key={item}>{formatMissingGate(item)}</span>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="ml-proof" id="winners">

@@ -86,3 +86,4 @@
 - [x] 2026-06-12 Home missing launch gates deployed: root closed-catalog panel lists exact readiness blockers and journey smoke protects the bundle state
 - [x] 2026-06-12 Post-load journey verification runbook deployed: `/support` lists placeholder-only registration, VIP, gift, and assignment smoke commands for the first approved catalog launch
 - [x] 2026-06-12 Support runbook mobile layout and ready-state visibility deployed: `/support` command lists use mobile-safe counter columns, and post-load smoke commands remain outside the closed-catalog launch gate
+- [ ] 2026-06-12 Closed-catalog landing real-data posture: language landing pages should not show fake price, task, day, progress, or workflow examples before approved catalog data exists
