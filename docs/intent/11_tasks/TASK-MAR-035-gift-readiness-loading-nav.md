@@ -2,11 +2,11 @@
 
 ```yaml
 id: TASK-MAR-035
-status: in_progress
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
-completeness_level: draft
+completeness_level: complete
 upstream:
   - docs/intent/11_tasks/TASK-MAR-004-verify-end-to-end-vip-flow.md
 validation:
@@ -36,11 +36,19 @@ This improves the production registered-user journey without requiring approved 
 
 ## Acceptance Criteria
 
-- [ ] `/gift` displays a readiness-loading panel instead of the redemption form while readiness is pending.
-- [ ] Gift closed-catalog and readiness-error guards continue to render after loading.
-- [ ] The global nav registration text link uses the same readiness-aware label as the CTA.
-- [ ] Journey smoke reports `gift-readiness-loading-state` before the expected catalog-readiness gate.
-- [ ] Validation records only safe route/check/status evidence.
+- [x] `/gift` displays a readiness-loading panel instead of the redemption form while readiness is pending.
+- [x] Gift closed-catalog and readiness-error guards continue to render after loading.
+- [x] The global nav registration text link uses the same readiness-aware label as the CTA.
+- [x] Journey smoke reports `gift-readiness-loading-state` before the expected catalog-readiness gate.
+- [x] Validation records only safe route/check/status evidence.
+
+## Validation Summary
+
+- `npm run build:frontend` passed and emitted the production asset bundle.
+- Production deployed `localhost:5000/marathon:95fb2c7`.
+- In-pod read-only journey smoke reported `[PASS] gift-readiness-loading-state` and `[PASS] nav-readiness-error-state` before the expected `[FAIL] catalog-readiness` gate.
+- Browser validation on `https://marathon.alfares.cz/gift?qa=95fb2c7` showed the closed-catalog gift readiness panel, no redeem button, nav text `Скоро`, and no current-page framework overlay.
+- Browser interaction opened the mobile menu, clicked `.nav-registration-link`, and landed on `/register` with the closed-registration panel and missing launch gates visible.
 
 ## Sensitive-Data Classification
 
