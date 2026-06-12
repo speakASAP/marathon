@@ -32,6 +32,7 @@ COPY package*.json ./
 COPY prisma ./prisma
 # Prisma CLI for migrate deploy at startup
 RUN npm install prisma@5 --no-save
+COPY scripts/*.js /app/scripts/
 COPY scripts/docker-entrypoint.sh /app/scripts/docker-entrypoint.sh
 RUN chmod +x /app/scripts/docker-entrypoint.sh
 EXPOSE ${PORT}

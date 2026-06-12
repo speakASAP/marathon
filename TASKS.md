@@ -21,3 +21,4 @@
 - [x] 2026-06-12 Legacy portal exporter audited: current `speakasap-portal` exporter is a stub because the legacy DB was archived; historical exporter included participants/answers/winners and is not safe to run as-is under no-bulk-progress-export rules
 - [x] 2026-06-12 Safe catalog-only loader added: `scripts/load-marathon-catalog.js` dry-runs by default, rejects user/progress keys, and creates only approved Marathon/Product/Gift/Step rows when run with `--apply`
 - [x] 2026-06-12 Production readiness preflight added: `scripts/check-marathon-readiness.js` performs read-only DB/env checks for registration, VIP checkout, gift redemption, and assignment submission readiness
+- [x] 2026-06-12 Runtime packaging fixed: Docker image now includes operational `scripts/*.js` so `npm run load:catalog` and `npm run check:readiness` are available inside the Marathon pod
