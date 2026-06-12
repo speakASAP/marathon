@@ -58,6 +58,7 @@ export default function Landing() {
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [formError, setFormError] = useState('');
   const [registeredId, setRegisteredId] = useState('');
   const formRef = useRef<HTMLDivElement>(null);
@@ -65,15 +66,22 @@ export default function Landing() {
   useEffect(() => {
     if (!langSlug) return;
     setLoading(true);
+    setLoadError('');
     Promise.all([
-      fetch(`/api/v1/marathons/by-language/${encodeURIComponent(langSlug)}`).then((r) => (r.ok ? r.json() : null)),
+      fetch(`/api/v1/marathons/by-language/${encodeURIComponent(langSlug)}`).then((r) => {
+        if (r.status === 404) return null;
+        if (!r.ok) throw new Error(`marathon:${r.status}`);
+        return r.json();
+      }),
       fetch('/api/v1/marathons/languages')
         .then((r) => (r.ok ? r.json() : []))
         .then((data: LangItem[]) => (Array.isArray(data) ? data : [])),
       fetch('/api/v1/marathons/readiness')
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null),
-      fetch('/api/v1/reviews').then((r) => (r.ok ? r.json() : [])),
+        .then((r) => {
+          if (!r.ok) throw new Error(`readiness:${r.status}`);
+          return r.json();
+        }),
+      fetch('/api/v1/reviews').then((r) => (r.ok ? r.json() : [])).catch(() => []),
     ])
       .then(([marathonData, langs, readinessData, reviewsData]) => {
         setMarathon(marathonData || {
@@ -86,14 +94,11 @@ export default function Landing() {
         setReviews(Array.isArray(reviewsData) ? reviewsData : []);
       })
       .catch(() => {
-        setMarathon({
-          id: 'fallback',
-          languageCode: langSlug,
-          title: `${langSlug.toUpperCase()} language`,
-        });
+        setMarathon(null);
         setLanguages([]);
         setReadiness(null);
         setReviews([]);
+        setLoadError('Marathon landing could not be loaded. Refresh this page, or contact support if the problem continues.');
       })
       .finally(() => setLoading(false));
   }, [langSlug]);
@@ -139,6 +144,28 @@ export default function Landing() {
     return (
       <div className="marathon-loading">
         <p>Loading marathon...</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="container page-static">
+        <nav className="page-nav">
+          <Link to="/">Главная</Link>
+        </nav>
+        <h1>Marathon landing is temporarily unavailable</h1>
+        <section className="profile-empty-panel" role="alert">
+          <p>{loadError}</p>
+          <div className="profile-empty-actions">
+            <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
+              Refresh
+            </button>
+            <Link to="/support" className="btn-profile-login">
+              Contact support
+            </Link>
+          </div>
+        </section>
       </div>
     );
   }

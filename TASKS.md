@@ -48,3 +48,4 @@
 - [x] 2026-06-12 Profile dashboard error state added: `/profile` now separates login-required from profile load failures and gives refresh/support actions instead of treating backend errors as unauthenticated
 - [x] 2026-06-12 Profile detail error state added: `/profile/:marathonerId` now separates 404 not-found from profile load failures and gives refresh/support actions instead of claiming the marathon is missing
 - [x] 2026-06-12 Assignment step error state added: `/steps/:stepId` now separates 404 not-found from assignment load failures and gives refresh/support actions instead of claiming the step is missing
+- [x] 2026-06-12 Language landing error state added: `/:langSlug/` now separates primary API/readiness load failures from closed-catalog fallback state and gives refresh/support actions

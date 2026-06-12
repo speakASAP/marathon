@@ -220,6 +220,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Assignment is temporarily unavailable') || !js.includes('Assignment could not be loaded')) {
     throw new Error('Built frontend bundle does not include assignment step load-error state.');
   }
+  if (!js.includes('Marathon landing is temporarily unavailable') || !js.includes('Marathon landing could not be loaded')) {
+    throw new Error('Built frontend bundle does not include language landing load-error state.');
+  }
   addCheck(report, 'pass', 'registration-login-handoff', 'Registration frontend bundle routes new participants through token-aware profile login handoff.');
   addCheck(report, 'pass', 'assignment-login-guard', 'Assignment report UI requires profile context and token-aware login before submission.');
   addCheck(report, 'pass', 'gift-login-guard', 'Gift redemption UI requires profile context and token-aware login before redemption.');
@@ -227,6 +230,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'profile-error-state', 'Profile dashboard distinguishes load failures from login-required state.');
   addCheck(report, 'pass', 'profile-detail-error-state', 'Profile detail distinguishes load failures from not-found state.');
   addCheck(report, 'pass', 'step-error-state', 'Assignment page distinguishes load failures from not-found state.');
+  addCheck(report, 'pass', 'landing-error-state', 'Language landing distinguishes API load failures from closed-catalog fallback state.');
 }
 
 async function checkPublicRoutes(report, options) {
