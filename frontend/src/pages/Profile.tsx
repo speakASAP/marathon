@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { authFetch, captureTokenFromUrl, redirectToLogin } from '../auth';
+import { authFetch, redirectToLogin } from '../auth';
 
 interface MyMarathon {
   id: string;
@@ -51,7 +51,6 @@ export default function Profile() {
 
   useEffect(() => {
     document.title = 'Мои марафоны — Marathon';
-    captureTokenFromUrl();
   }, []);
 
   useEffect(() => {

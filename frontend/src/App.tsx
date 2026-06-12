@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
@@ -17,8 +18,13 @@ import Register from './pages/Register';
 import Awards from './pages/Awards';
 import Gift from './pages/Gift';
 import LeaveConfirm from './pages/LeaveConfirm';
+import { captureTokenFromUrl } from './auth';
 
 function App() {
+  useEffect(() => {
+    captureTokenFromUrl();
+  }, []);
+
   return (
     <Routes>
       <Route element={<Layout />}>
