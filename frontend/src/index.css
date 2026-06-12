@@ -862,6 +862,7 @@ a:hover {
 
 .profile-hero-panel,
 .profile-payment-panel,
+.profile-payment-return,
 .gift-hero,
 .gift-next-steps article {
   border: 1px solid #dce6f2;
@@ -924,6 +925,37 @@ a:hover {
   margin-bottom: 22px;
   padding: 24px 28px;
   background: linear-gradient(135deg, #fff, #fff3f1);
+}
+
+.profile-payment-return {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 20px 24px;
+}
+
+.profile-payment-return-success {
+  border-color: #bfe8d2;
+  background: #f1fbf6;
+}
+
+.profile-payment-return-cancelled {
+  border-color: #f1d1c4;
+  background: #fff8f5;
+}
+
+.profile-payment-return h2 {
+  margin: 0 0 6px;
+  color: #101832;
+  font-size: 1.1rem;
+}
+
+.profile-payment-return p {
+  margin: 0;
+  color: #526071;
+  line-height: 1.55;
 }
 
 .profile-payment-panel h2,
@@ -1059,7 +1091,8 @@ a:hover {
 
 @media (max-width: 820px) {
   .profile-hero-panel,
-  .profile-payment-panel {
+  .profile-payment-panel,
+  .profile-payment-return {
     align-items: stretch;
     flex-direction: column;
   }

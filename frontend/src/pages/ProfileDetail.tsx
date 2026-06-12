@@ -25,6 +25,8 @@ interface MyMarathon {
   answers: Answer[];
 }
 
+type PaymentReturnState = 'success' | 'cancelled' | null;
+
 /**
  * My marathon detail: GET /api/v1/me/marathons/:marathonerId (Bearer).
  * Shows current step, progress, link to step page.
@@ -36,6 +38,13 @@ export default function ProfileDetail() {
   const [unauth, setUnauth] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
+  const [paymentReturn, setPaymentReturn] = useState<PaymentReturnState>(null);
+
+  useEffect(() => {
+    const payment = new URLSearchParams(window.location.search).get('payment');
+    if (payment === 'success') setPaymentReturn('success');
+    if (payment === 'cancelled' || payment === 'cancel') setPaymentReturn('cancelled');
+  }, []);
 
   useEffect(() => {
     if (!marathonerId) return;
@@ -89,6 +98,14 @@ export default function ProfileDetail() {
   const current = data.current_step;
   const completedCount = data.answers.filter((answer) => answer.state === 'done' || answer.state === 'completed').length;
   const progressPct = data.answers.length ? Math.round((completedCount / data.answers.length) * 100) : 0;
+  const paymentReturnTitle = paymentReturn === 'success'
+    ? (data.needs_payment ? 'Payment confirmation is processing' : 'VIP access is active')
+    : 'Payment was cancelled';
+  const paymentReturnBody = paymentReturn === 'success'
+    ? (data.needs_payment
+      ? 'The payment provider returned you here. We are waiting for the secure callback to confirm VIP access; refresh this page in a moment if the gate is still visible.'
+      : 'Your payment has been confirmed and the next VIP assignments are available from this profile.')
+    : 'No charge was completed. You can reopen checkout, use a gift code, or contact support from this page.';
 
   const startCheckout = async () => {
     if (!data) return;
@@ -138,6 +155,19 @@ export default function ProfileDetail() {
           <div className="profile-progress-track"><span style={{ width: `${progressPct}%` }} /></div>
         </div>
       </section>
+      {paymentReturn && (
+        <section className={`profile-payment-return profile-payment-return-${paymentReturn}`}>
+          <div>
+            <h2>{paymentReturnTitle}</h2>
+            <p>{paymentReturnBody}</p>
+          </div>
+          {paymentReturn === 'success' && data.needs_payment && (
+            <button type="button" className="btn-profile-login" onClick={() => window.location.reload()}>
+              Refresh status
+            </button>
+          )}
+        </section>
+      )}
       {data.needs_payment && (
         <section className="profile-payment-panel">
           <div>

@@ -8,7 +8,7 @@
   "tasks_active": 0,
   "tasks_failed_last_cycle": 0,
   "open_task_ids": ["T4", "production-data-active-marathon", "assignment-live-verification", "winner-automation"],
-  "last_milestone": "payments-marathon-callback-registration-2026-06-12",
+  "last_milestone": "profile-payment-return-ux-2026-06-12",
   "next_focus": "Obtain human-approved catalog-only Marathon/Product/Gift/Step JSON from a source of truth, validate it with npm run load:catalog -- <file>, apply it with --apply, run npm run check:readiness, then verify registration -> assignment submission -> gate -> payment/gift -> VIP access",
   "blockers": [
     "P0: Production has no active Marathon rows/languages, so public registration is not open",
