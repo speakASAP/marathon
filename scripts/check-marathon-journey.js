@@ -430,6 +430,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   ) {
     throw new Error('Built frontend bundle does not include honest language landing review empty state.');
   }
+  if (!js.includes('Launch blockers') || !js.includes('ml-missing-gates')) {
+    throw new Error('Built frontend bundle does not include language landing missing-launch-gates readiness detail.');
+  }
   for (const fakeReviewMarker of ['Lucia K.', 'Tomas P.', 'Anna M.']) {
     if (js.includes(fakeReviewMarker)) {
       throw new Error(`Built frontend bundle still includes invented landing review marker: ${fakeReviewMarker}`);
@@ -485,6 +488,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'step-peer-empty-state', 'Assignment peer-report tab includes a no-examples empty state.');
   addCheck(report, 'pass', 'landing-error-state', 'Language landing distinguishes API load failures from closed-catalog fallback state.');
   addCheck(report, 'pass', 'landing-review-empty-state', 'Language landing uses a real-data empty state instead of invented testimonials.');
+  addCheck(report, 'pass', 'landing-missing-gates-ui', 'Language landing closed-registration panel includes exact missing launch gates from readiness data.');
   addCheck(report, 'pass', 'home-error-state', 'Home page distinguishes readiness API load failures from closed-catalog state.');
   addCheck(report, 'pass', 'home-teaser-empty-state', 'Home finalists and reviews teasers include post-load empty states.');
   addCheck(report, 'pass', 'winners-empty-state-ui', 'Winners frontend includes a post-load empty state.');

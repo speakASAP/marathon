@@ -54,10 +54,25 @@ interface Review {
 
 interface CatalogReadiness {
   registrationOpen: boolean;
+  counts?: {
+    activeMarathons: number;
+    steps: number;
+    stepsWithContent: number;
+    products: number;
+    unusedGifts: number;
+  };
+  missing?: string[];
 }
 
 function formatLanguageName(marathon: MarathonSummary): string {
   return marathon.title || LANGUAGE_LABELS[marathon.languageCode.toLowerCase()] || 'this language';
+}
+
+function formatMissingGate(value: string): string {
+  return value
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 export default function Landing() {
@@ -208,6 +223,7 @@ export default function Landing() {
     ? 'Join a focused language marathon with daily assignments, report windows, progress tracking, and a clear path from free start to full VIP access.'
     : 'Registration will open after the approved marathon catalog, assignments, VIP product, and gift codes are loaded in production.';
   const registerTitle = registrationOpen ? `Start your ${languageName} Marathon` : 'Registration status';
+  const missingLaunchGates = readiness?.missing ?? [];
 
   return (
     <div className="marathon-landing">
@@ -470,6 +486,16 @@ export default function Landing() {
             <div className="ml-registration-unavailable">
               <h3>Registration is not open yet</h3>
               <p>The production catalog must include an active marathon, approved assignment content, VIP product, and gift codes before registration opens.</p>
+              {missingLaunchGates.length ? (
+                <div className="ml-missing-gates" aria-label="Missing launch gates">
+                  <strong>Launch blockers</strong>
+                  <div>
+                    {missingLaunchGates.map((item) => (
+                      <span key={item}>{formatMissingGate(item)}</span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <Link to="/support" className="ml-outline-action">Contact support</Link>
             </div>
           )}

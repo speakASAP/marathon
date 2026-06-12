@@ -713,6 +713,40 @@
   margin: 0;
 }
 
+.ml-missing-gates {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(255, 90, 79, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.ml-missing-gates strong {
+  color: var(--ml-ink);
+  font-size: 0.88rem;
+  letter-spacing: 0;
+}
+
+.ml-missing-gates div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ml-missing-gates span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--ml-line);
+  border-radius: 999px;
+  background: #fff;
+  color: #34425e;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .landing-form h4 {
   margin: 0;
   color: var(--ml-ink);
