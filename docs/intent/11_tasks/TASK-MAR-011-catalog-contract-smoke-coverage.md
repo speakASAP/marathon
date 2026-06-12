@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-011
-status: active
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -29,8 +29,7 @@ Make the read-only journey smoke verifier protect the public catalog schema/exam
 
 ## Acceptance Criteria
 
-- [ ] `npm run check:journey` reports `catalog-contract-schema`.
-- [ ] `npm run check:journey` reports `catalog-contract-example`.
-- [ ] The smoke still stops at the expected `catalog-readiness` gate while production catalog data is absent.
-- [ ] Build, deploy, and validation evidence are recorded.
-
+- [x] `npm run check:journey` reports `catalog-contract-schema`.
+- [x] `npm run check:journey` reports `catalog-contract-example`.
+- [x] The smoke still stops at the expected `catalog-readiness` gate while production catalog data is absent.
+- [x] Build, deploy, and validation evidence are recorded.

@@ -2,7 +2,7 @@
 
 ```yaml
 id: VAL-TASK-MAR-011
-status: active
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -14,13 +14,12 @@ upstream:
 
 | Criterion | Result | Evidence |
 |---|---|---|
-| Script syntax passes | Pending | [MISSING: `node --check`.] |
-| Public schema smoke check passes | Pending | [MISSING: deployed smoke output.] |
-| Public example smoke check passes | Pending | [MISSING: deployed smoke output.] |
-| Journey remains guarded | Pending | [MISSING: deployed smoke output.] |
-| Build/deploy passes | Pending | [MISSING: build/deploy evidence.] |
+| Script syntax passes | Pass | 2026-06-12 `node --check scripts/check-marathon-journey.js` completed. |
+| Public schema smoke check passes | Pass | 2026-06-12 deployed pod `npm run check:journey` reported `[PASS] catalog-contract-schema: Public catalog JSON Schema is served as JSON.` |
+| Public example smoke check passes | Pass | 2026-06-12 deployed pod `npm run check:journey` reported `[PASS] catalog-contract-example: Public catalog example is placeholder-only JSON.` |
+| Journey remains guarded | Pass | 2026-06-12 deployed pod smoke passed public/frontend/auth/RunLayer checks, then stopped at expected `[FAIL] catalog-readiness`; mutating checks remained skipped. |
+| Build/deploy passes | Pass | 2026-06-12 `npm run build` passed; deployed image `localhost:5000/marathon:ceadcfa`. |
 
 ## Sensitive-Data Scan
 
-Validation must reference only static public contract artifacts, placeholder markers, and aggregate readiness state. Do not include real catalog content, gift-code inventories, participants, JWTs, payment keys, or assignment reports.
-
+Validation referenced only static public contract artifacts, placeholder markers, and aggregate readiness state. No real catalog content, gift-code inventories, participants, JWTs, payment keys, or assignment reports were recorded.
