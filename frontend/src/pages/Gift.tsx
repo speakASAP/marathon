@@ -7,8 +7,19 @@ interface CatalogReadiness {
   giftReady: boolean;
   counts: {
     activeMarathons: number;
+    steps?: number;
+    stepsWithContent?: number;
+    products?: number;
     unusedGifts: number;
   };
+  missing?: string[];
+}
+
+function formatMissingGate(value: string): string {
+  return value
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 export default function Gift() {
@@ -99,6 +110,7 @@ export default function Gift() {
     : '/profile';
   const openLogin = () => redirectToLogin(giftReturnPath);
   const redeemDisabled = submitting || readinessLoading || giftStatusUnavailable || !hasParticipantContext || needsLogin;
+  const missingLaunchGates = readiness?.missing ?? [];
 
   return (
     <div className="container page-static gift-page">
@@ -136,9 +148,22 @@ export default function Gift() {
             {readiness && (
               <dl className="gift-readiness-list">
                 <div><dt>Active marathons</dt><dd>{readiness.counts.activeMarathons}</dd></div>
+                <div><dt>Steps</dt><dd>{readiness.counts.steps ?? 0}</dd></div>
+                <div><dt>Steps with content</dt><dd>{readiness.counts.stepsWithContent ?? 0}</dd></div>
+                <div><dt>VIP products</dt><dd>{readiness.counts.products ?? 0}</dd></div>
                 <div><dt>Unused gift codes</dt><dd>{readiness.counts.unusedGifts}</dd></div>
               </dl>
             )}
+            {missingLaunchGates.length ? (
+              <div className="gift-missing-gates" aria-label="Missing launch gates">
+                <strong>Gift launch blockers</strong>
+                <div>
+                  {missingLaunchGates.map((item) => (
+                    <span key={item}>{formatMissingGate(item)}</span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <Link to="/support" className="btn-profile-login">Contact support</Link>
           </div>
         ) : (

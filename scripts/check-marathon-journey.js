@@ -465,6 +465,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Gift redemption status is temporarily unavailable') || !js.includes('Gift redemption status could not be loaded')) {
     throw new Error('Built frontend bundle does not include gift readiness load-error state.');
   }
+  if (!js.includes('Gift launch blockers') || !js.includes('gift-missing-gates')) {
+    throw new Error('Built frontend bundle does not include gift missing-launch-gates readiness detail.');
+  }
   if (!js.includes('Registration status unavailable. Open registration status page for details.') || !js.includes('registration-status-unavailable')) {
     throw new Error('Built frontend bundle does not include global navigation readiness-unavailable state.');
   }
@@ -499,6 +502,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'catalog-approval-checklist-ui', 'Support runbook links the public source-owner catalog approval checklist.');
   addCheck(report, 'pass', 'landing-assets-resolved', 'Built frontend CSS references existing legacy landing assets instead of missing adv/support images.');
   addCheck(report, 'pass', 'gift-readiness-error-state', 'Gift redemption blocks redemption when readiness status cannot be loaded.');
+  addCheck(report, 'pass', 'gift-missing-gates-ui', 'Gift redemption closed-catalog panel includes exact missing launch gates from readiness data.');
   addCheck(report, 'pass', 'nav-readiness-error-state', 'Global registration CTA distinguishes readiness load failures from closed-catalog state.');
   addCheck(report, 'pass', 'progress-report-ui', 'Profile detail frontend includes authenticated participant progress report generation and JSON download UI.');
   addCheck(report, 'pass', 'nps-survey-ui', 'Profile detail frontend includes completed-marathon NPS feedback UI.');

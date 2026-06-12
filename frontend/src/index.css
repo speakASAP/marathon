@@ -1752,6 +1752,39 @@ a:hover {
   font-weight: 900;
 }
 
+.gift-missing-gates {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #d9e4f2;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.gift-missing-gates strong {
+  color: #101832;
+  font-size: 0.86rem;
+}
+
+.gift-missing-gates div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gift-missing-gates span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid #d9e4f2;
+  border-radius: 999px;
+  background: #f8fbff;
+  color: #31415d;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .gift-next-steps {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
