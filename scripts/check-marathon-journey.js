@@ -398,6 +398,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('npm run load:catalog:pod -- /path/to/catalog.json') || !js.includes('removes the staged catalog copy')) {
     throw new Error('Built frontend bundle does not include the pod-safe catalog load runbook.');
   }
+  if (!js.includes('npm run load:catalog:pod -- /path/to/catalog.json --approval-packet')) {
+    throw new Error('Built frontend bundle does not include the catalog approval-packet command.');
+  }
   if (!js.includes('/catalog/marathon-catalog.approval-checklist.md') || !js.includes('Approval Checklist')) {
     throw new Error('Built frontend bundle does not link the source-owner catalog approval checklist.');
   }
@@ -430,6 +433,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'winners-empty-state-ui', 'Winners frontend includes a post-load empty state.');
   addCheck(report, 'pass', 'register-error-state', 'Registration page distinguishes readiness API load failures from closed-catalog state.');
   addCheck(report, 'pass', 'catalog-pod-runbook-ui', 'Support runbook includes pod-safe catalog dry-run/apply commands.');
+  addCheck(report, 'pass', 'catalog-approval-packet-ui', 'Support runbook includes the redacted catalog approval-packet command.');
   addCheck(report, 'pass', 'catalog-approval-checklist-ui', 'Support runbook links the public source-owner catalog approval checklist.');
   addCheck(report, 'pass', 'gift-readiness-error-state', 'Gift redemption blocks redemption when readiness status cannot be loaded.');
   addCheck(report, 'pass', 'nav-readiness-error-state', 'Global registration CTA distinguishes readiness load failures from closed-catalog state.');

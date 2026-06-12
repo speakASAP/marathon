@@ -8,7 +8,7 @@ POD_PATH="${MARATHON_CATALOG_POD_PATH:-/tmp/marathon-catalog.json}"
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/load-catalog-in-pod.sh <catalog.json> [--apply] [--allow-incomplete]
+  scripts/load-catalog-in-pod.sh <catalog.json> [--apply] [--allow-incomplete] [--approval-packet]
 
 Copies a human-approved catalog JSON file into the running Marathon pod,
 runs the catalog loader there, then removes the staged pod copy.
@@ -40,7 +40,7 @@ fi
 
 for arg in "$@"; do
   case "$arg" in
-    --apply|--allow-incomplete) ;;
+    --apply|--allow-incomplete|--approval-packet) ;;
     *)
       echo "Unsupported option: $arg" >&2
       usage >&2

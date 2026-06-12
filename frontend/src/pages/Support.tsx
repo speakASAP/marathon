@@ -82,6 +82,10 @@ const CATALOG_RUNBOOK_STEPS = [
     detail: 'npm run load:catalog:pod -- /path/to/catalog.json',
   },
   {
+    title: 'Generate approval packet',
+    detail: 'npm run load:catalog:pod -- /path/to/catalog.json --approval-packet',
+  },
+  {
     title: 'Apply after approval',
     detail: 'npm run load:catalog:pod -- /path/to/catalog.json --apply',
   },

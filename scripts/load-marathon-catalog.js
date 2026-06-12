@@ -69,9 +69,10 @@ const ALLOWED_GIFT_KEYS = new Set(['code', 'marathonSlug']);
 function usage(exitCode = 0) {
   const message = [
     'Usage:',
-    '  node scripts/load-marathon-catalog.js <catalog.json> [--apply] [--allow-incomplete]',
+    '  node scripts/load-marathon-catalog.js <catalog.json> [--apply] [--allow-incomplete] [--approval-packet]',
     '',
     'Default mode validates a launch-ready catalog and prints a dry-run summary.',
+    'Use --approval-packet to print a redacted Markdown packet for source-owner approval.',
     'Use --apply only after the JSON has been human-approved.',
     'Use --allow-incomplete only for staged non-launch imports.',
   ].join('\n');
@@ -86,11 +87,20 @@ function parseArgs(argv) {
     usage(0);
   }
 
-  const apply = args.includes('--apply');
   const allowIncomplete = args.includes('--allow-incomplete');
-  const unexpected = args.filter((arg) => arg.startsWith('-') && arg !== '--apply' && arg !== '--allow-incomplete');
+  const apply = args.includes('--apply');
+  const approvalPacket = args.includes('--approval-packet');
+  const unexpected = args.filter((arg) => (
+    arg.startsWith('-')
+    && arg !== '--apply'
+    && arg !== '--allow-incomplete'
+    && arg !== '--approval-packet'
+  ));
   if (unexpected.length) {
     throw new Error(`Unsupported option: ${unexpected[0]}`);
+  }
+  if (apply && approvalPacket) {
+    throw new Error('--approval-packet cannot be combined with --apply');
   }
 
   const fileArg = args.find((arg) => !arg.startsWith('-'));
@@ -101,6 +111,7 @@ function parseArgs(argv) {
   return {
     allowIncomplete,
     apply,
+    approvalPacket,
     filePath: path.resolve(fileArg),
   };
 }
@@ -383,6 +394,80 @@ function buildLaunchChecklist(catalog) {
   };
 }
 
+function markdownCell(value) {
+  if (value == null || value === '') return '-';
+  return String(value).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+}
+
+function buildApprovalPacket(catalog, options = {}) {
+  const launchChecklist = buildLaunchChecklist(catalog);
+  const productsBySlug = new Map(catalog.products.map((product) => [product.marathonSlug, product]));
+  const generatedAt = new Date().toISOString();
+  const sourceFile = options.filePath ? path.basename(options.filePath) : 'catalog.json';
+
+  const lines = [
+    '# Marathon Catalog Approval Packet',
+    '',
+    `Generated at: ${generatedAt}`,
+    `Catalog file: ${sourceFile}`,
+    `Launch-ready validation: ${options.allowIncomplete ? 'disabled with --allow-incomplete' : 'enabled'}`,
+    '',
+    'This packet is redacted for approval evidence. It never prints gift-code values, assignment report payloads, participant records, JWTs, payment keys, or full assignment text.',
+    '',
+    '## Summary',
+    '',
+    `- Marathons: ${catalog.marathons.length}`,
+    `- Active marathons: ${launchChecklist.activeMarathons}`,
+    `- Steps: ${catalog.steps.length}`,
+    `- Products: ${catalog.products.length}`,
+    `- Gift codes: ${catalog.gifts.length} (count only)`,
+    '',
+    '## Marathon Readiness',
+    '',
+    '| Active | Language | Slug | Title | Steps | Trial | Gated | Product | Gift codes | Assignment content | Launch ready | Missing |',
+    '|---|---|---|---|---:|---:|---:|---|---:|---|---|---|',
+  ];
+
+  for (const marathon of launchChecklist.marathons) {
+    const product = productsBySlug.get(marathon.slug);
+    const productLabel = product
+      ? `${product.title} ${product.price} ${product.currency}`
+      : 'missing';
+    lines.push([
+      markdownCell(marathon.active ? 'yes' : 'no'),
+      markdownCell(marathon.languageCode),
+      markdownCell(marathon.slug),
+      markdownCell(marathon.title),
+      markdownCell(marathon.steps),
+      markdownCell(marathon.trialSteps),
+      markdownCell(marathon.gatedSteps),
+      markdownCell(productLabel),
+      markdownCell(marathon.giftCodes),
+      markdownCell(marathon.assignmentContentReady ? 'yes' : 'no'),
+      markdownCell(marathon.launchReady ? 'yes' : 'no'),
+      markdownCell(marathon.missing.length ? marathon.missing.join(', ') : 'none'),
+    ].join(' | ').replace(/^/, '| ').replace(/$/, ' |'));
+  }
+
+  lines.push(
+    '',
+    '## Source-Owner Sign-Off',
+    '',
+    '- [ ] Every active marathon language, slug, title, launch state, VIP product, price, currency, assignment text, and gift-code inventory count matches the source of truth.',
+    '- [ ] The source owner reviewed actual gift-code values in the source file or source system, but this packet intentionally records counts only.',
+    '- [ ] The JSON file contains only Marathon/Product/Gift/Step catalog rows and no participant progress, users, answers, submissions, winners, payment attempts, JWTs, or secrets.',
+    '- [ ] `launchReady` is `yes` for every active marathon before `--apply` is run.',
+    '',
+    'Next command after approval:',
+    '',
+    '```bash',
+    'npm run load:catalog:pod -- /path/to/marathon-catalog.json --apply',
+    '```',
+  );
+
+  return lines.join('\n');
+}
+
 function normalizeCatalog(input, options = {}) {
   assertPlainObject(input, 'catalog');
 
@@ -577,7 +662,7 @@ async function applyCatalog(catalog) {
 }
 
 async function main() {
-  const { allowIncomplete, apply, filePath } = parseArgs(process.argv);
+  const { allowIncomplete, apply, approvalPacket, filePath } = parseArgs(process.argv);
   const catalog = normalizeCatalog(readJson(filePath), { allowIncomplete });
   const summary = {
     gifts: catalog.gifts.length,
@@ -586,6 +671,11 @@ async function main() {
     steps: catalog.steps.length,
   };
   const launchChecklist = buildLaunchChecklist(catalog);
+
+  if (approvalPacket) {
+    console.log(buildApprovalPacket(catalog, { allowIncomplete, filePath }));
+    return;
+  }
 
   if (!apply) {
     console.log(JSON.stringify({

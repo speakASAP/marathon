@@ -61,6 +61,8 @@ Stage: active — core marathon, registration, steps, answers, me, submissions, 
 
 Source-owner catalog approval addendum, 2026-06-12: the catalog handoff now also includes `docs/marathon-catalog-approval-checklist.md` and the public `/catalog/marathon-catalog.approval-checklist.md` artifact. `/support` links this checklist from the launch gate, and journey smoke covers both the public Markdown artifact and the frontend support link. The checklist records approval gates and commands only; it explicitly forbids storing participant exports, JWTs, payment keys, assignment reports, or full gift-code inventories in validation notes.
 
+Catalog approval packet addendum, 2026-06-12: `scripts/load-marathon-catalog.js` now supports `--approval-packet`, a read-only Markdown output mode for source-owner sign-off. It reuses catalog validation, refuses to combine with `--apply`, and prints only launch readiness, product title/price/currency, assignment-content readiness, and gift-code counts. `scripts/load-catalog-in-pod.sh` accepts the flag so operators can generate the packet in the runtime pod with `npm run load:catalog:pod -- <catalog.json> --approval-packet`; `/support` and journey smoke cover the command.
+
 ## Known Issues
 <!-- AI-maintained -->
 - P0: Production has no active Marathon rows/languages; public registration cannot open until an active `Marathon` is configured

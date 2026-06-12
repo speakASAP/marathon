@@ -55,6 +55,14 @@ Dry-run output includes `launchChecklist.marathons[]`, which reports one redacte
 - gift-code count only, never gift-code values
 - `assignmentContentReady`, `launchReady`, and `missing`
 
+Generate a redacted approval packet for source-owner sign-off:
+
+```bash
+npm run load:catalog:pod -- /path/to/marathon-catalog.json --approval-packet
+```
+
+The approval packet is Markdown and is safe for validation notes because it prints only launch readiness, product title/price/currency, assignment-content readiness, and gift-code counts. It never prints gift-code values, participant records, JWTs, payment keys, assignment reports, or assignment text.
+
 For a staged non-launch import only:
 
 ```bash

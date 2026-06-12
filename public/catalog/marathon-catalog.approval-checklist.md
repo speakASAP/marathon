@@ -22,6 +22,7 @@ Confirm every item before an operator runs `npm run load:catalog:pod -- <catalog
 - [ ] Every active marathon has approved gift codes available for launch.
 - [ ] Gift-code inventory was checked in the source-of-truth system, but full gift-code values are not pasted into this checklist or validation notes.
 - [ ] The dry run completed without unsafe-key, duplicate-slug, duplicate-gift-code, missing-reference, or launch-readiness errors.
+- [ ] The redacted approval packet was generated and reviewed.
 - [ ] The dry-run `launchChecklist.marathons[]` shows `launchReady: true` for each active marathon.
 
 ## Operator Commands
@@ -32,7 +33,15 @@ Dry-run first:
 npm run load:catalog:pod -- /path/to/marathon-catalog.json
 ```
 
-Apply only after all approvals above are checked:
+Generate the redacted approval packet:
+
+```bash
+npm run load:catalog:pod -- /path/to/marathon-catalog.json --approval-packet
+```
+
+This command prints a Markdown approval packet with readiness flags and gift-code counts only.
+
+Generate the redacted approval packet:
 
 ```bash
 npm run load:catalog:pod -- /path/to/marathon-catalog.json --apply
