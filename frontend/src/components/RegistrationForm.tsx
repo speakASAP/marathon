@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { getToken, redirectToLogin } from '../auth';
+import { clearToken, getToken, redirectToLogin } from '../auth';
 
 export interface RegistrationFormProps {
   languageCode: string;
@@ -31,9 +31,14 @@ export default function RegistrationForm({
     setSubmitting(true);
     onError?.('');
     try {
+      const token = getToken();
+      const headers = new Headers({ 'Content-Type': 'application/json' });
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
       const res = await fetch('/api/v1/registrations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           email: email.trim(),
           name: name.trim() || undefined,
@@ -42,6 +47,12 @@ export default function RegistrationForm({
         }),
       });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 401 && token) {
+        clearToken();
+        onError?.('Registration session expired. Sign in again to bind this marathon to your profile.');
+        redirectToLogin(`/${languageCode}/#register`);
+        return;
+      }
       if (!res.ok) {
         onError?.(data.message || data.detail || `Ошибка ${res.status}`);
         setSubmitting(false);
@@ -51,7 +62,7 @@ export default function RegistrationForm({
       onSuccess?.(marathonerId, data.redirectUrl);
       if (marathonerId) {
         const profilePath = `/profile/${encodeURIComponent(marathonerId)}`;
-        if (getToken()) {
+        if (token && data.userBound === true) {
           window.location.href = profilePath;
         } else {
           redirectToLogin(profilePath);

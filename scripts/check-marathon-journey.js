@@ -321,6 +321,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('marathon_token') || !js.includes('next=') || !js.includes('/profile/')) {
     throw new Error('Built frontend bundle does not include token-aware registration profile handoff.');
   }
+  if (!js.includes('Registration session expired. Sign in again to bind this marathon to your profile') || !js.includes('Authorization')) {
+    throw new Error('Built frontend bundle does not include authenticated registration binding guard.');
+  }
   if (!js.includes('Sign in to submit your report') || !js.includes('Open this assignment from your marathon profile')) {
     throw new Error('Built frontend bundle does not include assignment submit authentication guard.');
   }
@@ -381,6 +384,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
     throw new Error('Built frontend bundle does not include post-marathon NPS feedback UI.');
   }
   addCheck(report, 'pass', 'registration-login-handoff', 'Registration frontend bundle routes new participants through token-aware profile login handoff.');
+  addCheck(report, 'pass', 'registration-auth-binding-ui', 'Registration frontend sends Marathon token for immediate participant binding and handles expired sessions.');
   addCheck(report, 'pass', 'assignment-login-guard', 'Assignment report UI requires profile context and token-aware login before submission.');
   addCheck(report, 'pass', 'assignment-status-error-submit-guard', 'Assignment report UI blocks submission when saved-report status cannot be loaded.');
   addCheck(report, 'pass', 'gift-login-guard', 'Gift redemption UI requires profile context and token-aware login before redemption.');
@@ -634,6 +638,7 @@ async function checkMutatingJourney(report, options, publicContext) {
 
   const registration = await requestJson(report, '/api/v1/registrations', {
     method: 'POST',
+    authToken: options.authToken,
     body: JSON.stringify({
       email: options.email,
       languageCode: publicContext.marathon.languageCode,
@@ -652,6 +657,10 @@ async function checkMutatingJourney(report, options, publicContext) {
     addCheck(report, 'pass', 'auth-skipped', 'Authenticated profile/payment/submission checks skipped; no auth token provided.');
     return;
   }
+  if (registration.json.userBound !== true) {
+    throw new Error('Authenticated registration did not bind the participant to the supplied user token.');
+  }
+  addCheck(report, 'pass', 'registration-auth-binding', 'Authenticated registration bound the smoke participant to the supplied user token.');
 
   const profile = await requestJson(report, `/api/v1/me/marathons/${encodeURIComponent(marathonerId)}`, {
     authToken: options.authToken,

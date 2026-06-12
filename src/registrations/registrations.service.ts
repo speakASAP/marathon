@@ -13,6 +13,7 @@ export type RegistrationRequest = {
 export type RegistrationResponse = {
   marathonerId: string;
   redirectUrl?: string;
+  userBound: boolean;
 };
 
 @Injectable()
@@ -24,7 +25,7 @@ export class RegistrationsService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async register(payload: RegistrationRequest): Promise<RegistrationResponse> {
+  async register(payload: RegistrationRequest, userId?: string): Promise<RegistrationResponse> {
     this.logger.log(`Registration requested for ${payload.email}`);
 
     if (!payload.email && !payload.phone) {
@@ -73,6 +74,7 @@ export class RegistrationsService {
         email: payload.email,
         phone: payload.phone,
         name: payload.name,
+        userId,
         isFree: true,
         vipRequired: !!marathon.vipGateDate,
         reportHour,
@@ -98,7 +100,7 @@ export class RegistrationsService {
       });
     }
 
-    return { marathonerId: participant.id, redirectUrl };
+    return { marathonerId: participant.id, redirectUrl, userBound: Boolean(userId) };
   }
 
   private assertRegistrationReady(marathon: {

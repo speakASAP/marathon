@@ -1,6 +1,7 @@
-import { Body, Controller, Logger, Post, Req } from '@nestjs/common';
+import { Body, Controller, Logger, Post, Req, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 import { RegistrationsService, RegistrationRequest, RegistrationResponse } from './registrations.service';
+import { validatePortalToken, validateToken } from '../shared/auth-client';
 
 @Controller('registrations')
 export class RegistrationsController {
@@ -32,13 +33,15 @@ export class RegistrationsController {
     })}`);
 
     try {
-      const result = await this.registrationsService.register(payload);
+      const userId = await this.getOptionalUserId(req);
+      const result = await this.registrationsService.register(payload, userId);
       this.logger.log(
-        `Registration successful: marathonerId=${result.marathonerId}, hasRedirect=${!!result.redirectUrl}`,
+        `Registration successful: marathonerId=${result.marathonerId}, hasRedirect=${!!result.redirectUrl}, userBound=${result.userBound}`,
       );
       this.logger.debug(`Registration response: ${JSON.stringify({
         marathonerId: result.marathonerId,
         hasRedirectUrl: !!result.redirectUrl,
+        userBound: result.userBound,
       })}`);
       return result;
     } catch (error) {
@@ -48,5 +51,21 @@ export class RegistrationsController {
       );
       throw error;
     }
+  }
+
+  private async getOptionalUserId(req?: Request): Promise<string | undefined> {
+    const auth = req?.headers.authorization;
+    if (!auth) {
+      return undefined;
+    }
+    if (!auth.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Invalid registration authorization header');
+    }
+    const token = auth.slice(7);
+    const user = (await validateToken(token)) || validatePortalToken(token);
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired registration token');
+    }
+    return user.id;
   }
 }
