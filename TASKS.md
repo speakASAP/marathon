@@ -53,3 +53,4 @@
 - [x] 2026-06-12 Home readiness error state added: `/` now separates readiness API load failures from closed-catalog state while keeping winners/reviews teasers optional
 - [x] 2026-06-12 Registration and gift readiness error states added: `/register` and `/gift` now separate readiness API load failures from closed-catalog/gift-unavailable states, and gift redemption stays blocked until readiness is verified
 - [x] 2026-06-12 Global registration CTA readiness state added: shared navigation now separates readiness API load failures from normal closed-catalog `Скоро` state and points users to registration status details
+- [x] 2026-06-12 Catalog loader launch-ready validation tightened: default catalog dry runs now require an active marathon, trial step, gated step, VIP product, and gift code before approved data can be treated as registration/payment/assignment ready

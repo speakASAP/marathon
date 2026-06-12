@@ -69,10 +69,11 @@ const ALLOWED_GIFT_KEYS = new Set(['code', 'marathonSlug']);
 function usage(exitCode = 0) {
   const message = [
     'Usage:',
-    '  node scripts/load-marathon-catalog.js <catalog.json> [--apply]',
+    '  node scripts/load-marathon-catalog.js <catalog.json> [--apply] [--allow-incomplete]',
     '',
-    'Default mode validates and prints a dry-run summary.',
+    'Default mode validates a launch-ready catalog and prints a dry-run summary.',
     'Use --apply only after the JSON has been human-approved.',
+    'Use --allow-incomplete only for staged non-launch imports.',
   ].join('\n');
   const stream = exitCode === 0 ? process.stdout : process.stderr;
   stream.write(`${message}\n`);
@@ -86,7 +87,8 @@ function parseArgs(argv) {
   }
 
   const apply = args.includes('--apply');
-  const unexpected = args.filter((arg) => arg.startsWith('-') && arg !== '--apply');
+  const allowIncomplete = args.includes('--allow-incomplete');
+  const unexpected = args.filter((arg) => arg.startsWith('-') && arg !== '--apply' && arg !== '--allow-incomplete');
   if (unexpected.length) {
     throw new Error(`Unsupported option: ${unexpected[0]}`);
   }
@@ -97,6 +99,7 @@ function parseArgs(argv) {
   }
 
   return {
+    allowIncomplete,
     apply,
     filePath: path.resolve(fileArg),
   };
@@ -280,7 +283,53 @@ function normalizeGift(raw, index, marathonSlug) {
   };
 }
 
-function normalizeCatalog(input) {
+function validateLaunchReadiness(catalog, options = {}) {
+  if (options.allowIncomplete) return;
+
+  const activeMarathons = catalog.marathons.filter((marathon) => marathon.active);
+  if (activeMarathons.length === 0) {
+    throw new Error('launch-ready catalog requires at least one active marathon; use --allow-incomplete only for staged non-launch imports');
+  }
+
+  const productsBySlug = new Map(catalog.products.map((product) => [product.marathonSlug, product]));
+  const giftsBySlug = new Map();
+  const stepsBySlug = new Map();
+
+  for (const gift of catalog.gifts) {
+    if (!giftsBySlug.has(gift.marathonSlug)) giftsBySlug.set(gift.marathonSlug, []);
+    giftsBySlug.get(gift.marathonSlug).push(gift);
+  }
+
+  for (const step of catalog.steps) {
+    if (!stepsBySlug.has(step.marathonSlug)) stepsBySlug.set(step.marathonSlug, []);
+    stepsBySlug.get(step.marathonSlug).push(step);
+  }
+
+  for (const marathon of activeMarathons) {
+    const label = `${marathon.languageCode}/${marathon.slug}`;
+    const marathonSteps = stepsBySlug.get(marathon.slug) || [];
+    const trialSteps = marathonSteps.filter((step) => step.isTrialStep);
+    const gatedSteps = marathonSteps.filter((step) => !step.isTrialStep);
+
+    if (marathonSteps.length === 0) {
+      throw new Error(`launch-ready catalog requires at least one MarathonStep for active marathon ${label}`);
+    }
+    if (trialSteps.length === 0) {
+      throw new Error(`launch-ready catalog requires at least one trial MarathonStep for active marathon ${label}`);
+    }
+    if (gatedSteps.length === 0) {
+      throw new Error(`launch-ready catalog requires at least one non-trial MarathonStep for active marathon ${label}`);
+    }
+    if (!productsBySlug.has(marathon.slug)) {
+      throw new Error(`launch-ready catalog requires one MarathonProduct for active marathon ${label}`);
+    }
+    if (!giftsBySlug.has(marathon.slug)) {
+      throw new Error(`launch-ready catalog requires at least one MarathonGift code for active marathon ${label}`);
+    }
+  }
+}
+
+function normalizeCatalog(input, options = {}) {
   assertPlainObject(input, 'catalog');
 
   for (const key of Object.keys(input)) {
@@ -378,7 +427,9 @@ function normalizeCatalog(input) {
     throw new Error('catalog must contain at least one approved MarathonStep');
   }
 
-  return { gifts, marathons, products, steps };
+  const catalog = { gifts, marathons, products, steps };
+  validateLaunchReadiness(catalog, options);
+  return catalog;
 }
 
 async function assertNoExistingRows(prisma, catalog) {
@@ -472,8 +523,8 @@ async function applyCatalog(catalog) {
 }
 
 async function main() {
-  const { apply, filePath } = parseArgs(process.argv);
-  const catalog = normalizeCatalog(readJson(filePath));
+  const { allowIncomplete, apply, filePath } = parseArgs(process.argv);
+  const catalog = normalizeCatalog(readJson(filePath), { allowIncomplete });
   const summary = {
     gifts: catalog.gifts.length,
     marathons: catalog.marathons.length,
@@ -482,12 +533,12 @@ async function main() {
   };
 
   if (!apply) {
-    console.log(JSON.stringify({ mode: 'dry-run', ok: true, summary }, null, 2));
+    console.log(JSON.stringify({ mode: 'dry-run', ok: true, launchReadyValidation: !allowIncomplete, summary }, null, 2));
     return;
   }
 
   const result = await applyCatalog(catalog);
-  console.log(JSON.stringify({ mode: 'apply', ok: true, summary: result }, null, 2));
+  console.log(JSON.stringify({ mode: 'apply', ok: true, launchReadyValidation: !allowIncomplete, summary: result }, null, 2));
 }
 
 main().catch((error) => {

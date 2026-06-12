@@ -21,6 +21,15 @@
           "isTrialStep": true,
           "formKey": "APPROVED_FORM_KEY_1",
           "socialLink": "https://speakasap.com/marathon"
+        },
+        {
+          "sequence": 4,
+          "title": "APPROVED_GATED_STEP_TITLE_4",
+          "assignmentContent": "APPROVED_GATED_STEP_ASSIGNMENT_CONTENT_4",
+          "isPenalized": true,
+          "isTrialStep": false,
+          "formKey": "APPROVED_FORM_KEY_4",
+          "socialLink": "https://speakasap.com/marathon"
         }
       ],
       "gifts": [

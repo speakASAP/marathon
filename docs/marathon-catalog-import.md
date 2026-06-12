@@ -8,12 +8,14 @@ The catalog file may contain only:
 
 - `marathons`: required; one or more `Marathon` rows
 - `steps`: required either top-level or nested under a marathon; approved `MarathonStep` rows
-- `products`: optional; `MarathonProduct` rows for VIP checkout
-- `gifts`: optional; `MarathonGift` codes for gift redemption
+- `products`: required for every active launch marathon; `MarathonProduct` rows for VIP checkout
+- `gifts`: required for every active launch marathon; `MarathonGift` codes for gift redemption
 
 The loader rejects user/progress keys such as `marathoners`, `participants`, `answers`, `submissions`, `stepSubmissions`, `penaltyReports`, `users`, and `winners`.
 
 Legacy full-export loaders are intentionally disabled. Do not use `scripts/load-marathon-export.js` or `scripts/load_marathon_export.py` for launch data; historical exports include participant progress and winner data.
+
+Default validation is launch-ready validation. For every active marathon, the catalog must include at least one trial step, at least one non-trial gated step, one VIP product, and one gift code. Use `--allow-incomplete` only for staged non-launch imports that must not open registration yet.
 
 ## Runbook
 
@@ -24,7 +26,13 @@ Legacy full-export loaders are intentionally disabled. Do not use `scripts/load-
 node scripts/load-marathon-catalog.js /path/to/marathon-catalog.json
 ```
 
-3. Apply only after human approval:
+For a staged non-launch import only:
+
+```bash
+node scripts/load-marathon-catalog.js /path/to/marathon-catalog.json --allow-incomplete
+```
+
+3. Apply only after human approval and a passing launch-ready dry run:
 
 ```bash
 node scripts/load-marathon-catalog.js /path/to/marathon-catalog.json --apply
