@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-008
-status: active
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -29,8 +29,7 @@ Improve the rendered language landing fallback while production catalog data is 
 
 ## Acceptance Criteria
 
-- [ ] `/en/` no-catalog hero says the marathon is being prepared.
-- [ ] Mobile landing nav links do not split words/phrases across lines.
-- [ ] Frontend build passes.
-- [ ] Browser QA captures rendered evidence and console status.
-
+- [x] `/en/` no-catalog hero says the marathon is being prepared.
+- [x] Mobile landing nav links do not split words/phrases across lines.
+- [x] Frontend build passes.
+- [x] Browser QA captures rendered evidence and console status.
