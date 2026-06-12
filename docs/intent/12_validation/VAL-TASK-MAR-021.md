@@ -2,7 +2,7 @@
 
 ```yaml
 id: VAL-TASK-MAR-021
-status: pending
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -14,12 +14,12 @@ upstream:
 
 | Criterion | Result | Evidence |
 |---|---|---|
-| Checklist document exists | Pending | Confirm local and deployed checklist artifacts exist. |
-| Public checklist is served | Pending | Confirm `/catalog/marathon-catalog.approval-checklist.md` returns Markdown text, not the SPA shell. |
-| Support launch gate links checklist | Pending | Confirm `/support` includes the public approval checklist link. |
-| Journey smoke covers checklist | Pending | Confirm deployed `npm run check:journey` reports `catalog-approval-checklist` and `catalog-approval-checklist-ui` before the expected catalog gate. |
-| Deployment passes | Pending | Confirm Kubernetes rollout and health checks pass. |
+| Checklist document exists | Pass | Remote source includes `docs/marathon-catalog-approval-checklist.md`, `frontend/public/catalog/marathon-catalog.approval-checklist.md`, and built `public/catalog/marathon-catalog.approval-checklist.md`. |
+| Public checklist is served | Pass | Production `curl -i -H 'Cache-Control: no-cache' https://marathon.alfares.cz/catalog/marathon-catalog.approval-checklist.md` returned HTTP 200 with `content-type: text/markdown` and the source-owner approval checklist text, not the SPA shell. |
+| Support launch gate links checklist | Pass | In-app Browser DOM validation on `https://marathon.alfares.cz/support?qa=catalog-approval-checklist-3d7f49f&fresh=2` loaded `assets/index-Cc8QClRS.js`, showed `Launch gate`, and exposed an `Approval Checklist` link with href `/catalog/marathon-catalog.approval-checklist.md`. Screenshot capture timed out in the Browser runtime; DOM, bundle, and HTTP evidence were captured instead. |
+| Journey smoke covers checklist | Pass with expected catalog gate | Deployed pod `npm run check:journey` reported `[PASS] catalog-approval-checklist` and `[PASS] catalog-approval-checklist-ui`, then stopped at the expected `[FAIL] catalog-readiness` because approved launch catalog rows are still absent. |
+| Deployment passes | Pass with expected readiness warning | Kubernetes rollout completed on image `localhost:5000/marathon:3d7f49f`; production readiness still reports zero Marathon/Product/Gift/Step rows. |
 
 ## Sensitive-Data Scan
 
-Validation may record only public checklist text presence, command status, deployment image identity, and aggregate readiness status. Do not include catalog gift-code inventories, JWTs, payment keys, participant records, or assignment report payloads.
+Validation recorded only public checklist text presence, command status, deployment image identity, frontend bundle identity, public link presence, and aggregate readiness status. It did not include catalog gift-code inventories, JWTs, payment keys, participant records, or assignment report payloads.
