@@ -180,6 +180,16 @@ function assertOk(response, label) {
   }
 }
 
+async function assertFrontendShell(report, path, code, message) {
+  const response = await request(report, path);
+  assertOk(response, path);
+  const html = await response.text();
+  if (!html.includes('/assets/') || !html.includes('<div id="root"></div>')) {
+    throw new Error(`${path} did not return the frontend shell.`);
+  }
+  addCheck(report, 'pass', code, message);
+}
+
 async function checkPublicRoutes(report, options) {
   const health = await requestJson(report, '/health');
   assertOk(health.response, '/health');
@@ -199,6 +209,25 @@ async function checkPublicRoutes(report, options) {
   const register = await request(report, '/register');
   assertOk(register, '/register');
   addCheck(report, 'pass', 'frontend-register', '/register route is served.');
+
+  await assertFrontendShell(
+    report,
+    '/profile/smoke-participant?marathon_token=smoke-token',
+    'frontend-profile-return',
+    'Direct profile-detail login return route serves the frontend shell.',
+  );
+  await assertFrontendShell(
+    report,
+    '/steps/smoke-step?marathonerId=smoke-participant&marathon_token=smoke-token',
+    'frontend-step-return',
+    'Direct assignment login return route serves the frontend shell.',
+  );
+  await assertFrontendShell(
+    report,
+    '/gift?marathonerId=smoke-participant&marathon_token=smoke-token',
+    'frontend-gift-return',
+    'Direct gift-code login return route serves the frontend shell.',
+  );
 
   const readiness = await requestJson(report, '/api/v1/marathons/readiness');
   assertOk(readiness.response, '/api/v1/marathons/readiness');
