@@ -44,11 +44,29 @@ export default function Winners() {
   }, [page]);
 
   const items = data?.items || [];
+  const hasLoadedEmptyState = !loading && items.length === 0;
 
   return (
     <div className="container page-winners">
       <h1>Финалисты языковых марафонов SpeakASAP®</h1>
       {loading && items.length === 0 && <p>Загрузка…</p>}
+      {hasLoadedEmptyState && (
+        <section className="winners-empty-state">
+          <h2>Финалисты появятся после запуска марафона</h2>
+          <p>
+            Сейчас production каталог еще не загружен, поэтому победители и медали пока не сформированы.
+            Как только участники завершат первые марафоны, здесь появятся их результаты.
+          </p>
+          <div className="winners-empty-actions">
+            <Link to="/register" className="btn btn-landing navbar-cta navbar-cta-closed">
+              Статус регистрации
+            </Link>
+            <Link to="/support" className="btn btn-winner-link">
+              Поддержка
+            </Link>
+          </div>
+        </section>
+      )}
       <div className="winners-grid">
         {items.map((w) => (
           <article key={w.id} className="card-winner">

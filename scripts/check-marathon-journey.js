@@ -336,6 +336,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Финалисты появятся после завершения первых марафонов') || !js.includes('Отзывы появятся после запуска марафона')) {
     throw new Error('Built frontend bundle does not include root finalist/review empty states.');
   }
+  if (!js.includes('Финалисты появятся после запуска марафона') || !js.includes('победители и медали пока не сформированы')) {
+    throw new Error('Built frontend bundle does not include winners page empty state.');
+  }
   if (!js.includes('Registration status is temporarily unavailable') || !js.includes('Registration status could not be loaded')) {
     throw new Error('Built frontend bundle does not include registration readiness load-error state.');
   }
@@ -361,6 +364,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'landing-error-state', 'Language landing distinguishes API load failures from closed-catalog fallback state.');
   addCheck(report, 'pass', 'home-error-state', 'Home page distinguishes readiness API load failures from closed-catalog state.');
   addCheck(report, 'pass', 'home-teaser-empty-state', 'Home finalists and reviews teasers include post-load empty states.');
+  addCheck(report, 'pass', 'winners-empty-state-ui', 'Winners frontend includes a post-load empty state.');
   addCheck(report, 'pass', 'register-error-state', 'Registration page distinguishes readiness API load failures from closed-catalog state.');
   addCheck(report, 'pass', 'gift-readiness-error-state', 'Gift redemption blocks redemption when readiness status cannot be loaded.');
   addCheck(report, 'pass', 'nav-readiness-error-state', 'Global registration CTA distinguishes readiness load failures from closed-catalog state.');
