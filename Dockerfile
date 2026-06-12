@@ -28,6 +28,9 @@ ENV PRISMA_CLI_BINARY_TARGETS=linux-musl-openssl-3.0.x
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY public ./public
+COPY docs/marathon-catalog-import.md ./docs/marathon-catalog-import.md
+COPY docs/examples ./docs/examples
+COPY docs/schemas ./docs/schemas
 COPY package*.json ./
 COPY prisma ./prisma
 # Prisma CLI for migrate deploy at startup
