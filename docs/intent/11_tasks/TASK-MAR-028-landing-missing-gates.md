@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-028
-status: pending-validation
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -30,8 +30,8 @@ Make the language landing registration-status panel show the exact readiness cla
 
 ## Acceptance Criteria
 
-- [ ] Closed language landing registration panel lists missing launch gates from readiness data.
-- [ ] Frontend production build succeeds.
-- [ ] Backend build or syntax checks pass for touched verifier code.
-- [ ] Journey smoke reports `landing-missing-gates-ui` before the expected catalog-readiness gate.
-- [ ] Deployment and validation evidence are recorded without sensitive data.
+- [x] Closed language landing registration panel lists missing launch gates from readiness data.
+- [x] Frontend production build succeeds.
+- [x] Backend build or syntax checks pass for touched verifier code.
+- [x] Journey smoke reports `landing-missing-gates-ui` before the expected catalog-readiness gate.
+- [x] Deployment and validation evidence are recorded without sensitive data.
