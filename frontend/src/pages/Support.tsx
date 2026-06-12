@@ -1,160 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-interface MarathonSummary {
-  id: string;
-  title: string;
+interface CatalogReadiness {
+  ready: boolean;
+  registrationOpen: boolean;
+  paymentReady: boolean;
+  giftReady: boolean;
+  assignmentReady: boolean;
+  counts: {
+    activeMarathons: number;
+    products: number;
+    unusedGifts: number;
+    steps: number;
+    stepsWithContent: number;
+  };
+  missing: string[];
 }
 
-interface StepSummary {
-  id: string;
-  title: string;
-  sequence: number;
-}
-
-interface MarathonAnalytics {
-  generatedAt: string;
-  catalog: {
-    ready: boolean;
-    registrationOpen: boolean;
-    paymentReady: boolean;
-    giftReady: boolean;
-    assignmentReady: boolean;
-    counts: {
-      activeMarathons: number;
-      marathons: number;
-      products: number;
-      gifts: number;
-      unusedGifts: number;
-      steps: number;
-      stepsWithContent: number;
-    };
-    missing: string[];
-  };
-  participants: {
-    total: number;
-    active: number;
-    finished: number;
-    vip: number;
-    paymentBlocked: number;
-  };
-  assignments: {
-    submissions: number;
-    completed: number;
-    penaltyReports: number;
-    completionRate: number;
-  };
-  payments: {
-    attempts: number;
-    confirmed: number;
-    conversionRate: number;
-    statusCounts: Record<string, number>;
-  };
-  gifts: {
-    total: number;
-    used: number;
-    unused: number;
-    redemptionRate: number;
-  };
-  winners: {
-    medalRows: number;
-    gold: number;
-    silver: number;
-    bronze: number;
-  };
-  surveys: {
-    responses: number;
-    promoters: number;
-    passives: number;
-    detractors: number;
-    averageScore: number;
-    npsScore: number;
-  };
-}
-
-const CATALOG_RUNBOOK_STEPS = [
-  {
-    title: 'Prepare approved catalog JSON',
-    detail: 'Use docs/schemas/marathon-catalog.schema.json and include only Marathon/Product/Gift/Step data.',
-  },
-  {
-    title: 'Dry-run through the runtime pod',
-    detail: 'npm run load:catalog:pod -- /path/to/catalog.json',
-  },
-  {
-    title: 'Generate approval packet',
-    detail: 'npm run load:catalog:pod -- /path/to/catalog.json --approval-packet',
-  },
-  {
-    title: 'Apply after approval',
-    detail: 'npm run load:catalog:pod -- /path/to/catalog.json --apply',
-  },
-  {
-    title: 'Verify launch readiness',
-    detail: 'kubectl -n statex-apps exec deploy/marathon -- npm run check:readiness',
-  },
-];
-
-const POST_LOAD_VERIFICATION_STEPS = [
-  {
-    title: 'Read-only journey smoke',
-    detail: 'npm run check:journey',
-  },
-  {
-    title: 'Registration smoke',
-    detail: 'npm run check:journey -- --mutating --email smoke+marathon-launch@example.com',
-  },
-  {
-    title: 'Authenticated VIP checkout smoke',
-    detail: 'npm run check:journey -- --mutating --email smoke+marathon-launch@example.com --auth-token <portal-jwt> --checkout',
-  },
-  {
-    title: 'Gift redemption smoke',
-    detail: 'npm run check:journey -- --mutating --email smoke+marathon-launch@example.com --auth-token <portal-jwt> --gift-code <approved-smoke-gift-code>',
-  },
-  {
-    title: 'Saved assignment readback',
-    detail: 'npm run check:journey -- --auth-token <portal-jwt> --marathoner-id <participant-id> --step-id <step-id>',
-  },
-  {
-    title: 'Assignment submission smoke',
-    detail: 'npm run check:journey -- --mutating --email smoke+marathon-launch@example.com --auth-token <portal-jwt> --submit',
-  },
-];
-
-const RENDERED_ROUTE_QA_STEPS = [
-  {
-    title: 'Home closed-catalog route',
-    detail: '/ renders registration-status copy, missing launch gates, and finalist/review empty states without a framework overlay.',
-  },
-  {
-    title: 'Language landing route',
-    detail: '/en/ renders registration status, readiness counts, no fake price/course sequence, and no invented testimonials.',
-  },
-  {
-    title: 'Registration route',
-    detail: '/register renders the closed-registration panel and exact missing launch gates instead of language choices.',
-  },
-  {
-    title: 'Gift route',
-    detail: '/gift renders gift readiness state with no redeem button until readiness and participant context are verified.',
-  },
-  {
-    title: 'Profile route',
-    detail: '/profile renders login-required or profile-error state without misreporting backend failures as missing marathons.',
-  },
-  {
-    title: 'Assignment route',
-    detail: '/steps/<step-id>?marathonerId=<participant-id> renders not-found/error/auth/content guards before report submission is possible.',
-  },
-];
-
-const CATALOG_CONTRACT_LINKS = [
-  { href: '/catalog/marathon-catalog.schema.json', label: 'JSON Schema' },
-  { href: '/catalog/marathon-catalog.example.json', label: 'Example JSON' },
-  { href: '/catalog/marathon-catalog.approval-checklist.md', label: 'Approval Checklist' },
-  { href: '/api/v1/marathons/readiness', label: 'Readiness API' },
-];
+const SUPPORT_EMAIL = 'marathon@speakasap.com';
 
 function formatMissingLabel(value: string): string {
   return value
@@ -163,183 +26,124 @@ function formatMissingLabel(value: string): string {
     .join(' ');
 }
 
-function SupportPostLoadVerification() {
-  return (
-    <div className="support-post-load-verification">
-      <strong>Post-load journey verification</strong>
-      <p>
-        Run these only after readiness is green and use throwaway smoke data. Keep JWTs,
-        approved smoke gift codes, participant IDs, and step IDs out of screenshots and notes.
-      </p>
-      <ol className="support-verification-list">
-        {POST_LOAD_VERIFICATION_STEPS.map((step) => (
-          <li key={step.title}>
-            <strong>{step.title}</strong>
-            <code className="support-runbook-command">{step.detail}</code>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
-function SupportRenderedRouteQa() {
-  return (
-    <div className="support-rendered-route-qa">
-      <strong>Rendered route QA checklist</strong>
-      <p>
-        Use Browser QA after every frontend release and before opening registration.
-        These checks prove the user-visible route state, not just built-bundle string presence.
-      </p>
-      <ol className="support-verification-list">
-        {RENDERED_ROUTE_QA_STEPS.map((step) => (
-          <li key={step.title}>
-            <strong>{step.title}</strong>
-            <code className="support-runbook-command">{step.detail}</code>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
-/**
- * Support: list marathons and links to each step (support view).
- */
 export default function Support() {
-  const [marathons, setMarathons] = useState<Array<MarathonSummary & { steps: StepSummary[] }>>([]);
-  const [analytics, setAnalytics] = useState<MarathonAnalytics | null>(null);
-  const [analyticsError, setAnalyticsError] = useState('');
+  const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     document.title = 'Поддержка — Marathon';
-    Promise.all([
-      fetch('/api/v1/marathons/analytics')
-        .then((r) => {
-          if (!r.ok) throw new Error(`analytics:${r.status}`);
-          return r.json();
-        })
-        .then((data: MarathonAnalytics) => {
-          setAnalytics(data);
-          setAnalyticsError('');
-        })
-        .catch(() => {
-          setAnalytics(null);
-          setAnalyticsError('Operational analytics are temporarily unavailable.');
-        }),
-      fetch('/api/v1/marathons?active=true')
-      .then((r) => (r.ok ? r.json() : []))
-      .then((list: MarathonSummary[]) => {
-        if (!Array.isArray(list) || list.length === 0) {
-          return [];
-        }
-        return Promise.all(
-          list.map((m) =>
-            fetch(`/api/v1/steps?marathonId=${encodeURIComponent(m.id)}`)
-              .then((r) => (r.ok ? r.json() : []))
-              .then((steps: StepSummary[]) => ({ ...m, steps: steps || [] })),
-          ),
-        );
+    setLoading(true);
+    setError('');
+    fetch('/api/v1/marathons/readiness')
+      .then((response) => {
+        if (!response.ok) throw new Error(`readiness:${response.status}`);
+        return response.json();
       })
-      .then((withSteps) => setMarathons(withSteps))
-      .catch(() => setMarathons([])),
-    ]).finally(() => setLoading(false));
+      .then((data: CatalogReadiness) => setReadiness(data))
+      .catch(() => {
+        setReadiness(null);
+        setError('Registration status is temporarily unavailable. Please contact support before trying to start a marathon.');
+      })
+      .finally(() => setLoading(false));
   }, []);
+
+  const registrationOpen = readiness?.registrationOpen === true;
+  const missing = readiness?.missing ?? [];
 
   return (
     <div className="container page-static page-support">
       <nav className="page-nav">
         <Link to="/">Главная</Link>
       </nav>
-      <h1>Поддержка</h1>
-      <p>Список марафонов и этапов (для поддержки).</p>
-      <section className="support-analytics" aria-live="polite">
-        <div className="support-analytics-heading">
-          <h2>Operational dashboard</h2>
-          {analytics && <span>Updated {new Date(analytics.generatedAt).toLocaleString('ru-RU')}</span>}
+
+      <section className="support-public-hero">
+        <div>
+          <h1>Marathon support</h1>
+          <p>
+            Help with registration, profile access, VIP status, gift codes, and assignment pages.
+          </p>
         </div>
-        {analyticsError && <p className="ml-error">{analyticsError}</p>}
-        {analytics ? (
-          <>
-            <div className="support-analytics-grid">
-              <div><span>Registration</span><strong>{analytics.catalog.registrationOpen ? 'Open' : 'Closed'}</strong></div>
-              <div><span>Active marathons</span><strong>{analytics.catalog.counts.activeMarathons}</strong></div>
-              <div><span>Participants</span><strong>{analytics.participants.total}</strong></div>
-              <div><span>VIP users</span><strong>{analytics.participants.vip}</strong></div>
-              <div><span>Payment blocked</span><strong>{analytics.participants.paymentBlocked}</strong></div>
-              <div><span>Completion</span><strong>{analytics.assignments.completionRate}%</strong></div>
-              <div><span>Payment conversion</span><strong>{analytics.payments.conversionRate}%</strong></div>
-              <div><span>Gift redemption</span><strong>{analytics.gifts.redemptionRate}%</strong></div>
-              <div><span>Winners</span><strong>{analytics.winners.medalRows}</strong></div>
-              <div><span>NPS responses</span><strong>{analytics.surveys.responses}</strong></div>
-              <div><span>NPS score</span><strong>{analytics.surveys.npsScore}</strong></div>
-              <div><span>Avg. survey score</span><strong>{analytics.surveys.averageScore}</strong></div>
-            </div>
-            {!analytics.catalog.ready && (
-              <section className="support-launch-runbook" aria-label="Launch unblocker">
-                <div>
-                  <strong>Launch gate</strong>
-                  <p>
-                    Registration, VIP checkout, gift redemption, and assignment verification stay closed until the approved catalog is loaded.
-                  </p>
-                </div>
-                <div className="support-missing-grid" aria-label="Missing catalog classes">
-                  {(analytics.catalog.missing.length ? analytics.catalog.missing : ['waiting-for-catalog-verification']).map((item) => (
-                    <span key={item}>{formatMissingLabel(item)}</span>
-                  ))}
-                </div>
-                <div className="support-contract-links" aria-label="Catalog contract links">
-                  {CATALOG_CONTRACT_LINKS.map((link) => (
-                    <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer">
-                      {link.label}
-                    </a>
-                  ))}
-                </div>
-                <ol className="support-runbook-list">
-                  {CATALOG_RUNBOOK_STEPS.map((step) => (
-                    <li key={step.title}>
-                      <strong>{step.title}</strong>
-                      <code className="support-runbook-command">{step.detail}</code>
-                    </li>
-                  ))}
-                </ol>
-                <p className="support-runbook-note">
-                  The pod helper removes the staged catalog copy after each run. Do not paste gift-code inventories, participant exports, JWTs, payment keys, or assignment reports into validation notes.
-                </p>
-              </section>
-            )}
-            <SupportPostLoadVerification />
-            <SupportRenderedRouteQa />
-          </>
-        ) : !analyticsError ? (
-          <p>Loading operational analytics...</p>
-        ) : null}
+        <a className="btn-profile-login" href={`mailto:${SUPPORT_EMAIL}`}>
+          Contact support
+        </a>
       </section>
-      {loading && <p>Загрузка…</p>}
-      {!loading && marathons.length === 0 && <p>Нет марафонов.</p>}
-      {!loading && marathons.length > 0 && (
-        <ul className="support-marathon-list">
-          {marathons.map((m) => (
-            <li key={m.id}>
-              <strong>{m.title}</strong>
-              {m.steps.length > 0 ? (
-                <ul className="support-steps-list">
-                  {m.steps.map((s) => (
-                    <li key={s.id}>
-                      <Link to={`/support/step/${s.id}`}>
-                        {s.sequence}. {s.title}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <span> — этапов нет</span>
-              )}
-            </li>
-          ))}
+
+      <section className="support-public-status" aria-live="polite">
+        <div>
+          <span>Registration status</span>
+          <strong>{loading ? 'Checking' : registrationOpen ? 'Open' : 'Not open yet'}</strong>
+        </div>
+        {error ? (
+          <p className="ml-error">{error}</p>
+        ) : registrationOpen ? (
+          <p>Registration is open. Choose a language and start from the registration page.</p>
+        ) : (
+          <p>
+            Registration opens after the approved marathon catalog, assignments, VIP product, and gift inventory are ready.
+          </p>
+        )}
+        {!loading && readiness && (
+          <dl className="support-public-counts">
+            <div><dt>Active marathons</dt><dd>{readiness.counts.activeMarathons}</dd></div>
+            <div><dt>Assignments</dt><dd>{readiness.counts.stepsWithContent}/{readiness.counts.steps}</dd></div>
+            <div><dt>VIP products</dt><dd>{readiness.counts.products}</dd></div>
+            <div><dt>Gift codes</dt><dd>{readiness.counts.unusedGifts}</dd></div>
+          </dl>
+        )}
+        {!loading && missing.length > 0 && (
+          <div className="support-public-missing" aria-label="Registration blockers">
+            {missing.map((item) => (
+              <span key={item}>{formatMissingLabel(item)}</span>
+            ))}
+          </div>
+        )}
+        <div className="support-public-actions">
+          <Link to="/register" className="btn-profile-login">
+            {registrationOpen ? 'Go to registration' : 'View registration status'}
+          </Link>
+          <Link to="/profile" className="btn-profile-open">Open profile</Link>
+        </div>
+      </section>
+
+      <section className="support-public-grid">
+        <article>
+          <span>Profile and login</span>
+          <h2>Cannot see your marathon?</h2>
+          <p>
+            Sign in through SpeakASAP from the profile page. Login returns you to the exact marathon profile when a participant record is already linked.
+          </p>
+          <Link to="/profile">Open profile</Link>
+        </article>
+        <article>
+          <span>VIP access</span>
+          <h2>Payment or gift code</h2>
+          <p>
+            VIP checkout and gift-code redemption appear from your marathon profile when the VIP gate is active and the launch catalog is ready.
+          </p>
+          <Link to="/gift">Gift code page</Link>
+        </article>
+        <article>
+          <span>Assignments</span>
+          <h2>Report submission</h2>
+          <p>
+            Open assignments from your marathon profile so the page can verify your participant ID, login session, saved report state, and assignment content.
+          </p>
+          <Link to="/profile">Continue marathon</Link>
+        </article>
+      </section>
+
+      <section className="support-public-contact">
+        <h2>What to include</h2>
+        <ul>
+          <li>Your registration email.</li>
+          <li>The language marathon you are trying to open.</li>
+          <li>A short description of the page or action that needs help.</li>
         </ul>
-      )}
+        <p>
+          Do not send passwords, payment card details, full gift-code lists, or private assignment reports by email.
+        </p>
+      </section>
     </div>
   );
 }

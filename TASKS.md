@@ -14,6 +14,7 @@
 - [x] TASK-MAR-037: Add rendered-route QA checklist to support runbook (goal_id: frontend-readiness, priority: 2)
 - [x] TASK-MAR-038: Make empty profile dashboard readiness-aware (goal_id: frontend-readiness, priority: 2)
 - [x] TASK-MAR-039: Align readiness step-content counts with launch gate (goal_id: frontend-readiness, priority: 2)
+- [ ] TASK-MAR-040: Make public support page participant-safe (goal_id: frontend-readiness, priority: 1)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
