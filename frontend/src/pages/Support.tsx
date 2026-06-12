@@ -91,6 +91,12 @@ const CATALOG_RUNBOOK_STEPS = [
   },
 ];
 
+const CATALOG_CONTRACT_LINKS = [
+  { href: '/catalog/marathon-catalog.schema.json', label: 'JSON Schema' },
+  { href: '/catalog/marathon-catalog.example.json', label: 'Example JSON' },
+  { href: '/api/v1/marathons/readiness', label: 'Readiness API' },
+];
+
 function formatMissingLabel(value: string): string {
   return value
     .split('-')
@@ -182,6 +188,13 @@ export default function Support() {
                 <div className="support-missing-grid" aria-label="Missing catalog classes">
                   {(analytics.catalog.missing.length ? analytics.catalog.missing : ['waiting-for-catalog-verification']).map((item) => (
                     <span key={item}>{formatMissingLabel(item)}</span>
+                  ))}
+                </div>
+                <div className="support-contract-links" aria-label="Catalog contract links">
+                  {CATALOG_CONTRACT_LINKS.map((link) => (
+                    <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer">
+                      {link.label}
+                    </a>
                   ))}
                 </div>
                 <ol className="support-runbook-list">

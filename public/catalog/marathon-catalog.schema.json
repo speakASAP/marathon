@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://marathon.alfares.cz/schemas/marathon-catalog.schema.json",
+  "title": "Marathon catalog-only launch data",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["marathons"],
+  "properties": {
+    "marathons": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/marathon" }
+    },
+    "products": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/productWithMarathonSlug" }
+    },
+    "gifts": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/giftWithMarathonSlug" }
+    },
+    "steps": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/stepWithMarathonSlug" }
+    }
+  },
+  "definitions": {
+    "isoDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "marathon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["languageCode", "title", "slug", "active"],
+      "properties": {
+        "active": { "type": "boolean" },
+        "coverImageUrl": { "type": "string", "minLength": 1 },
+        "discountEndsAt": { "$ref": "#/definitions/isoDate" },
+        "folder": { "type": "string", "minLength": 1 },
+        "gifts": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/gift" }
+        },
+        "id": {
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "string", "minLength": 1 }
+          ]
+        },
+        "landingVideoUrl": { "type": "string", "minLength": 1 },
+        "languageCode": { "type": "string", "minLength": 1 },
+        "language_code": { "type": "string", "minLength": 1 },
+        "product": { "$ref": "#/definitions/product" },
+        "rulesTemplate": { "type": "string", "minLength": 1 },
+        "rules_template": { "type": "string", "minLength": 1 },
+        "slug": { "type": "string", "minLength": 1 },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/step" }
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "vipGateDate": { "$ref": "#/definitions/isoDate" },
+        "vip_since": { "$ref": "#/definitions/isoDate" }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "assignmentContent"],
+      "properties": {
+        "assignmentContent": { "type": "string", "minLength": 1 },
+        "assignment_content": { "type": "string", "minLength": 1 },
+        "content": { "type": "string", "minLength": 1 },
+        "formKey": { "type": "string", "minLength": 1 },
+        "form_class": { "type": "string", "minLength": 1 },
+        "isPenalized": { "type": "boolean" },
+        "isTrialStep": { "type": "boolean" },
+        "marathonSlug": { "type": "string", "minLength": 1 },
+        "order": { "type": "integer", "minimum": 1 },
+        "penalize": { "type": "boolean" },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "sn_link": { "type": "string", "minLength": 1 },
+        "socialLink": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "trial": { "type": "boolean" }
+      },
+      "oneOf": [
+        { "required": ["sequence"] },
+        { "required": ["order"] }
+      ],
+      "anyOf": [
+        { "required": ["assignmentContent"] },
+        { "required": ["assignment_content"] },
+        { "required": ["content"] }
+      ]
+    },
+    "stepWithMarathonSlug": {
+      "allOf": [
+        { "$ref": "#/definitions/step" },
+        { "required": ["marathonSlug"] }
+      ]
+    },
+    "product": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "price", "currency"],
+      "properties": {
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Za-z]{3}$"
+        },
+        "marathonSlug": { "type": "string", "minLength": 1 },
+        "price": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d+(\\.\\d{1,2})?$"
+            },
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          ]
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "totalHours": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "productWithMarathonSlug": {
+      "allOf": [
+        { "$ref": "#/definitions/product" },
+        { "required": ["marathonSlug"] }
+      ]
+    },
+    "gift": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "marathonSlug": { "type": "string", "minLength": 1 }
+      }
+    },
+    "giftWithMarathonSlug": {
+      "allOf": [
+        { "$ref": "#/definitions/gift" },
+        { "required": ["marathonSlug"] }
+      ]
+    }
+  }
+}
