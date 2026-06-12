@@ -77,3 +77,4 @@
 - [x] 2026-06-12 Pod-safe catalog load runbook deployed: `npm run load:catalog:pod` stages approved catalog JSON into the Marathon pod, runs the existing loader, removes the staged copy, and `/support` shows the dry-run/apply commands
 - [x] 2026-06-12 Catalog source-owner approval checklist deployed: `/catalog/marathon-catalog.approval-checklist.md` documents approval gates, no-sensitive-data rules, dry-run/apply commands, and `/support` links it from the launch gate
 - [x] 2026-06-12 Redacted catalog approval packet added: `--approval-packet` prints source-owner sign-off Markdown with launch readiness, product price/currency, assignment-content readiness, and gift-code counts only
+- [x] 2026-06-12 Legacy landing asset references resolved: built CSS now uses existing public landing icons/backgrounds instead of missing `adv_*` and `support.png` URLs

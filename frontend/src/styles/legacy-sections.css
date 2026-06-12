@@ -100,12 +100,12 @@
   margin: 0 auto 1rem;
 }
 
-.section-marathon-advantages .adv-img-1 { background-color: rgba(13, 71, 161, 0.15); background-image: url(/img/landing/adv_1.png); }
-.section-marathon-advantages .adv-img-2 { background-color: rgba(13, 71, 161, 0.15); background-image: url(/img/landing/adv_2.png); }
-.section-marathon-advantages .adv-img-3 { background-color: rgba(13, 71, 161, 0.15); background-image: url(/img/landing/adv_3.png); }
-.section-marathon-advantages .adv-img-4 { background-color: rgba(13, 71, 161, 0.15); background-image: url(/img/landing/adv_4.png); }
-.section-marathon-advantages .adv-img-5 { background-color: rgba(13, 71, 161, 0.15); background-image: url(/img/landing/adv_5.png); }
-.section-marathon-advantages .adv-img-6 { background-color: rgba(13, 71, 161, 0.15); background-image: url(/img/landing/adv_6.png); }
+.section-marathon-advantages .adv-img-1 { background-color: rgba(13, 71, 161, 0.15); background-image: url(/img/landing/talk.png); }
+.section-marathon-advantages .adv-img-2 { background-color: rgba(13, 71, 161, 0.15); background-image: url(/img/landing/grammar.png); }
+.section-marathon-advantages .adv-img-3 { background-color: rgba(13, 71, 161, 0.15); background-image: url(/img/landing/materials.png); }
+.section-marathon-advantages .adv-img-4 { background-color: rgba(13, 71, 161, 0.15); background-image: url(/img/landing/result.png); }
+.section-marathon-advantages .adv-img-5 { background-color: rgba(13, 71, 161, 0.15); background-image: url(/img/landing/start.png); }
+.section-marathon-advantages .adv-img-6 { background-color: rgba(13, 71, 161, 0.15); background-image: url(/img/landing/finish.png); }
 
 .section-marathon-advantages .adv-block h3,
 .section-marathon-advantages .advantages h3 {
@@ -293,7 +293,7 @@
 
 .section-marathon-contacts .support-bg {
   min-height: 120px;
-  background: url(/img/landing/support.png) no-repeat center bottom;
+  background: url(/img/landing/mail.png) no-repeat center bottom;
   background-size: contain;
 }
 

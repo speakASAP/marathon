@@ -63,6 +63,8 @@ Source-owner catalog approval addendum, 2026-06-12: the catalog handoff now also
 
 Catalog approval packet addendum, 2026-06-12: `scripts/load-marathon-catalog.js` now supports `--approval-packet`, a read-only Markdown output mode for source-owner sign-off. It reuses catalog validation, refuses to combine with `--apply`, and prints only launch readiness, product title/price/currency, assignment-content readiness, and gift-code counts. `scripts/load-catalog-in-pod.sh` accepts the flag so operators can generate the packet in the runtime pod with `npm run load:catalog:pod -- <catalog.json> --approval-packet`; `/support` and journey smoke cover the command.
 
+Landing asset addendum, 2026-06-12: legacy landing section CSS no longer points at missing `/img/landing/adv_1.png` through `/img/landing/adv_6.png` or `/img/landing/support.png`. It reuses existing public assets (`talk`, `grammar`, `materials`, `result`, `start`, `finish`, and `mail`) and journey smoke checks the built CSS for those resolved references.
+
 ## Known Issues
 <!-- AI-maintained -->
 - P0: Production has no active Marathon rows/languages; public registration cannot open until an active `Marathon` is configured

@@ -338,6 +338,25 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!assetMatch) {
     throw new Error('Root HTML does not reference a built frontend JavaScript asset.');
   }
+  const cssMatch = rootHtml.match(/<link[^>]+href="([^"]*\/assets\/[^"]+\.css)"/);
+  if (!cssMatch) {
+    throw new Error('Root HTML does not reference a built frontend CSS asset.');
+  }
+  const cssPath = cssMatch[1].startsWith('http') ? cssMatch[1] : cssMatch[1];
+  const cssResponse = await request(report, cssPath);
+  assertOk(cssResponse, cssPath);
+  const css = await cssResponse.text();
+  for (const missingAsset of ['adv_1.png', 'adv_2.png', 'adv_3.png', 'adv_4.png', 'adv_5.png', 'adv_6.png', 'support.png']) {
+    if (css.includes(`/img/landing/${missingAsset}`)) {
+      throw new Error(`Built frontend CSS references missing legacy landing asset: ${missingAsset}`);
+    }
+  }
+  for (const expectedAsset of ['talk.png', 'grammar.png', 'materials.png', 'result.png', 'start.png', 'finish.png', 'mail.png']) {
+    if (!css.includes(`/img/landing/${expectedAsset}`)) {
+      throw new Error(`Built frontend CSS is missing resolved landing asset reference: ${expectedAsset}`);
+    }
+  }
+
   const assetPath = assetMatch[1].startsWith('http') ? assetMatch[1] : assetMatch[1];
   const response = await request(report, assetPath);
   assertOk(response, assetPath);
@@ -435,6 +454,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'catalog-pod-runbook-ui', 'Support runbook includes pod-safe catalog dry-run/apply commands.');
   addCheck(report, 'pass', 'catalog-approval-packet-ui', 'Support runbook includes the redacted catalog approval-packet command.');
   addCheck(report, 'pass', 'catalog-approval-checklist-ui', 'Support runbook links the public source-owner catalog approval checklist.');
+  addCheck(report, 'pass', 'landing-assets-resolved', 'Built frontend CSS references existing legacy landing assets instead of missing adv/support images.');
   addCheck(report, 'pass', 'gift-readiness-error-state', 'Gift redemption blocks redemption when readiness status cannot be loaded.');
   addCheck(report, 'pass', 'nav-readiness-error-state', 'Global registration CTA distinguishes readiness load failures from closed-catalog state.');
   addCheck(report, 'pass', 'progress-report-ui', 'Profile detail frontend includes authenticated participant progress report generation and JSON download UI.');
