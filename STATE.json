@@ -9,10 +9,11 @@
   "tasks_failed_last_cycle": 0,
   "open_task_ids": ["T4", "production-data-active-marathon", "assignment-live-verification", "winner-automation"],
   "last_milestone": "payments-marathon-callback-registration-2026-06-12",
-  "next_focus": "Configure approved active production Marathon/Product/Gift/Step data, then verify registration -> assignment submission -> gate -> payment/gift -> VIP access",
+  "next_focus": "Obtain approved marathon export/data from speakasap-portal, configure active production Marathon/Product/Gift/Step data, then verify registration -> assignment submission -> gate -> payment/gift -> VIP access",
   "blockers": [
     "P0: Production has no active Marathon rows/languages, so public registration is not open",
-    "P0: Production has no MarathonProduct/Gift/Step data for live VIP and assignment verification"
+    "P0: Production has no MarathonProduct/Gift/Step data for live VIP and assignment verification",
+    "P0: No approved marathon_export.json or seed data was found under /home/ssf/Documents on 2026-06-12"
   ],
   "budget_units_used": 0,
   "metrics": { "custom": {} }

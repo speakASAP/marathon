@@ -17,3 +17,4 @@
 - [x] 2026-06-12 VIP backend implemented: authenticated checkout endpoint, payments callback handler, gift-code redemption, participant claim on profile return, and frontend checkout/gift actions
 - [x] 2026-06-12 Assignment submission implemented: authenticated StepSubmission create/update endpoint, late penalty report/bonus-day tracking, profile next-step activation, and Step page report form
 - [x] 2026-06-12 payments-microservice registered Marathon integration: Kubernetes override secret supplies `marathon` callback API key mapping without exposing secret values
+- [x] 2026-06-12 Production data source checked: no `marathon_export.json` or non-empty seed found under `/home/ssf/Documents`; active Marathon/Product/Gift/Step data still requires approved export or human-provided course data

@@ -50,7 +50,7 @@ Stage: active — core marathon, registration, steps, answers, me, submissions, 
 ## Known Issues
 <!-- AI-maintained -->
 - P0: Production has no active Marathon rows/languages; public registration cannot open until an active `Marathon` is configured
-- P0: Production has no active `MarathonProduct`/`MarathonGift`/`MarathonStep` data to verify VIP checkout, gift redemption, or assignment submission end-to-end
+- P0: Production has no active `MarathonProduct`/`MarathonGift`/`MarathonStep` data to verify VIP checkout, gift redemption, or assignment submission end-to-end; no `marathon_export.json` was found under `/home/ssf/Documents` on 2026-06-12
 - Winner records appear to be manually managed — no auto-detection on step completion
 
 ## Ops
