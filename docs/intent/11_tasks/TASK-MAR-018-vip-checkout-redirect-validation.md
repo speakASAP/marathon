@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-018
-status: active
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -30,8 +30,8 @@ Make the VIP checkout path prove and enforce that a usable payment redirect exis
 
 ## Acceptance Criteria
 
-- [ ] Profile checkout rejects missing or malformed redirect URLs with a visible error.
-- [ ] Payment return states remain visible for pending success, confirmed VIP, and cancelled checkout.
-- [ ] Mutating journey checkout smoke requires a valid redirect URL when checkout is requested.
-- [ ] Read-only journey smoke reports checkout redirect/return-state UI coverage.
-- [ ] Build, deploy, Browser QA, and validation evidence are recorded.
+- [x] Profile checkout rejects missing or malformed redirect URLs with a visible error.
+- [x] Payment return states remain visible for pending success, confirmed VIP, and cancelled checkout.
+- [x] Mutating journey checkout smoke requires a valid redirect URL when checkout is requested.
+- [x] Read-only journey smoke reports checkout redirect/return-state UI coverage.
+- [x] Build, deploy, Browser QA, and validation evidence are recorded.

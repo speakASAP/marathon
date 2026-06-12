@@ -8,7 +8,7 @@
   "tasks_active": 0,
   "tasks_failed_last_cycle": 0,
   "open_task_ids": ["T4", "production-data-active-marathon", "assignment-live-verification"],
-  "last_milestone": "assignment-empty-error-states-2026-06-12",
+  "last_milestone": "vip-checkout-redirect-validation-2026-06-12",
   "next_focus": "Continue toward final launch by obtaining human-approved launch-ready catalog-only Marathon/Product/Gift/Step JSON from a source of truth, loading it with the safe catalog loader, then running readiness plus registration -> assignment submission -> gate -> payment/gift -> VIP access verification",
   "blockers": [
     "P0: Production has no active Marathon rows/languages, so public registration is not open",
