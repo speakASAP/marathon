@@ -2,11 +2,11 @@
 
 ```yaml
 id: TASK-MAR-039
-status: in_progress
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
-completeness_level: draft
+completeness_level: production-verified
 upstream:
   - docs/intent/10_features/FEAT-001-launch-ready-catalog-flow.md
 validation:
@@ -37,11 +37,20 @@ The Marathon launch gate already requires every active step to have non-empty, t
 
 ## Acceptance Criteria
 
-- [ ] The public readiness API reports `stepsWithContent` using trimmed non-empty `assignmentContent`.
-- [ ] The pod readiness CLI reports the same count.
-- [ ] Backend build and script syntax checks pass.
-- [ ] Production deploy succeeds.
-- [ ] Read-only journey smoke still passes all pre-catalog checks and fails only at the expected catalog-readiness gate.
+- [x] The public readiness API reports `stepsWithContent` using trimmed non-empty `assignmentContent`.
+- [x] The pod readiness CLI reports the same count.
+- [x] Backend build and script syntax checks pass.
+- [x] Production deploy succeeds.
+- [x] Read-only journey smoke still passes all pre-catalog checks and fails only at the expected catalog-readiness gate.
+
+## Verification
+
+- Implemented in commit `29bce12` and deployed as image `localhost:5000/marathon:29bce12`.
+- `node --check scripts/check-marathon-readiness.js` passed.
+- `npm run build` passed.
+- `curl https://marathon.alfares.cz/api/v1/marathons/readiness` returned `steps:0` and `stepsWithContent:0` with registration/payment/gift/assignment still closed.
+- In-pod `npm run check:readiness -- --json` returned the same aggregate counts and expected catalog failures.
+- In-pod `npm run check:journey` passed all pre-catalog read-only checks and failed only at `[FAIL] catalog-readiness`, with `[PASS] mutation-skipped`.
 
 ## Sensitive-Data Classification
 
