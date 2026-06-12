@@ -199,7 +199,7 @@ export default function Landing() {
     : { to: '/support', label: 'Contact support' };
   const pricingIntro = registrationOpen
     ? 'Start now. Upgrade when the marathon gate opens and you are ready to continue.'
-    : 'Registration opens after production catalog data is configured for this language.';
+    : 'Plan names, prices, checkout, and gift-code entry appear only after approved catalog and product data are loaded.';
   const heroTitle = registrationOpen
     ? `${languageName} progress with approved daily practice.`
     : `${languageName} Marathon is being prepared.`;
@@ -384,63 +384,69 @@ export default function Landing() {
 
         <section className="ml-pricing" id="pricing">
           <div className="ml-section-head">
-            <h2>Choose your plan</h2>
+            <h2>{registrationOpen ? 'Choose your plan' : 'Pricing opens after catalog approval'}</h2>
             <p>{pricingIntro}</p>
           </div>
-          <div className="ml-pricing-grid">
-            <article className="ml-plan">
-              <h3>Free</h3>
-              <strong>€0</strong>
-              <p>Start your marathon and test the daily rhythm.</p>
-              <ul>
-                <li>Daily assignments</li>
-                <li>Basic progress tracking</li>
-                <li>Community access</li>
-              </ul>
-              <button type="button" className="ml-outline-action" onClick={scrollToForm}>
-                {registrationOpen ? 'Start for free' : 'View registration status'}
-              </button>
-            </article>
-            <article className="ml-plan vip">
-              <div className="ml-plan-ribbon">Most complete</div>
-              <h3>VIP</h3>
-              <strong>{registrationOpen ? 'Checkout' : 'Pending'}</strong>
-              <p>
-                {registrationOpen
-                  ? 'Unlock the full marathon from your profile after the VIP gate.'
-                  : 'VIP price and checkout appear only after an approved product is configured.'}
-              </p>
-              <ul>
-                <li>Everything in Free</li>
-                <li>Approved post-gate assignments</li>
-                <li>Detailed corrections and support</li>
-                <li>Certificate path</li>
-              </ul>
-              {registrationOpen ? (
-                <Link to="/profile" className="ml-primary-action">Upgrade from profile</Link>
-              ) : (
-                <button type="button" className="ml-primary-action is-closed" onClick={scrollToForm}>
-                  Available after registration
-                </button>
-              )}
-            </article>
-            <aside className="ml-payment-panel">
-              <h3>VIP access</h3>
-              <p>
-                {registrationOpen
-                  ? 'Payments are routed through the shared payments service. Checkout and gift-code redemption unlock VIP access from the marathon profile.'
-                  : 'VIP checkout and gift-code redemption will open after an active marathon catalog is configured.'}
-              </p>
-              {registrationOpen ? (
-                <Link to="/gift" className="ml-outline-action">Gift code</Link>
-              ) : (
+          {registrationOpen ? (
+            <div className="ml-pricing-grid">
+              <article className="ml-plan">
+                <h3>Starter</h3>
+                <strong>Included</strong>
+                <p>Start your marathon and test the daily rhythm.</p>
+                <ul>
+                  <li>Daily assignments</li>
+                  <li>Basic progress tracking</li>
+                  <li>Community access</li>
+                </ul>
                 <button type="button" className="ml-outline-action" onClick={scrollToForm}>
-                  View registration status
+                  Start from registration
                 </button>
-              )}
-              <Link to="/support" className="ml-secondary-action">Need help?</Link>
-            </aside>
-          </div>
+              </article>
+              <article className="ml-plan vip">
+                <div className="ml-plan-ribbon">Full access</div>
+                <h3>VIP</h3>
+                <strong>Checkout</strong>
+                <p>Unlock the full marathon from your profile after the VIP gate.</p>
+                <ul>
+                  <li>Starter access included</li>
+                  <li>Approved post-gate assignments</li>
+                  <li>Detailed corrections and support</li>
+                  <li>Certificate path</li>
+                </ul>
+                <Link to="/profile" className="ml-primary-action">Upgrade from profile</Link>
+              </article>
+              <aside className="ml-payment-panel">
+                <h3>VIP access</h3>
+                <p>Payments are routed through the shared payments service. Checkout and gift-code redemption unlock VIP access from the marathon profile.</p>
+                <Link to="/gift" className="ml-outline-action">Gift code</Link>
+                <Link to="/support" className="ml-secondary-action">Need help?</Link>
+              </aside>
+            </div>
+          ) : (
+            <div className="ml-pricing-readiness" aria-label="Pricing readiness">
+              <article>
+                <span>Catalog gate</span>
+                <h3>No public offer is shown before approval.</h3>
+                <p>The page does not publish fallback plan names, free prices, VIP prices, checkout links, or gift redemption until production readiness is green.</p>
+                <dl className="ml-readiness-list">
+                  <div><dt>Active marathons</dt><dd>{readinessCounts?.activeMarathons ?? 0}</dd></div>
+                  <div><dt>Approved steps</dt><dd>{approvedStepsLabel}</dd></div>
+                  <div><dt>VIP products</dt><dd>{readinessCounts?.products ?? 0}</dd></div>
+                  <div><dt>Gift codes</dt><dd>{readinessCounts?.unusedGifts ?? 0}</dd></div>
+                </dl>
+              </article>
+              <aside>
+                <h3>Next action</h3>
+                <p>Load the source-owner approved catalog packet, then run readiness and post-load journey smoke before opening registration.</p>
+                <div className="ml-pricing-readiness-actions">
+                  <button type="button" className="ml-outline-action" onClick={scrollToForm}>
+                    View registration status
+                  </button>
+                  <Link to="/support" className="ml-secondary-action">Support runbook</Link>
+                </div>
+              </aside>
+            </div>
+          )}
         </section>
 
         <section className="ml-workflow" id="program">

@@ -450,12 +450,14 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (
     !js.includes('No course preview is shown before approval') ||
     !js.includes('ml-readiness-list') ||
-    !js.includes('VIP price and checkout appear only after an approved product is configured') ||
+    !js.includes('Pricing opens after catalog approval') ||
+    !js.includes('No public offer is shown before approval') ||
+    !js.includes('ml-pricing-readiness') ||
     !js.includes('No sample course sequence is shown while the production catalog is empty')
   ) {
     throw new Error('Built frontend bundle does not include closed-catalog landing readiness-only program and pricing state.');
   }
-  for (const fakeLandingMarker of ['€29', 'Speak about your weekend', 'Day 12', 'A sample run from the Marathon', '40%', '30 days of daily language practice', '20-30 focused minutes', 'first 3 days']) {
+  for (const fakeLandingMarker of ['€29', '€0', 'Everything in Free', 'Most complete', 'Speak about your weekend', 'Day 12', 'A sample run from the Marathon', '40%', '30 days of daily language practice', '20-30 focused minutes', 'first 3 days']) {
     if (js.includes(fakeLandingMarker)) {
       throw new Error(`Built frontend bundle still includes invented closed-catalog landing marker: ${fakeLandingMarker}`);
     }

@@ -556,6 +556,47 @@
   background: linear-gradient(180deg, #fff, var(--ml-mint-soft));
 }
 
+.ml-pricing-readiness {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.7fr);
+  gap: 20px;
+}
+
+.ml-pricing-readiness > article,
+.ml-pricing-readiness > aside {
+  border: 1px solid var(--ml-line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 46px rgba(32, 52, 88, 0.08);
+  padding: 28px;
+}
+
+.ml-pricing-readiness span {
+  display: inline-flex;
+  margin-bottom: 12px;
+  color: var(--ml-coral-dark);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.ml-pricing-readiness h3 {
+  margin: 0 0 10px;
+  font-size: 1.35rem;
+}
+
+.ml-pricing-readiness p {
+  color: var(--ml-muted);
+  line-height: 1.55;
+}
+
+.ml-pricing-readiness-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
 .ml-day-row {
   display: grid;
   grid-template-columns: repeat(6, minmax(150px, 1fr));
@@ -889,6 +930,7 @@
 
   .ml-hero,
   .ml-pricing-grid,
+  .ml-pricing-readiness,
   .ml-faq,
   .ml-register {
     grid-template-columns: 1fr;
@@ -976,6 +1018,8 @@
   .ml-preview-main,
   .ml-plan,
   .ml-payment-panel,
+  .ml-pricing-readiness > article,
+  .ml-pricing-readiness > aside,
   .landing-form {
     padding: 22px;
   }
