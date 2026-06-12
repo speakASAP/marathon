@@ -43,3 +43,4 @@
 - [x] 2026-06-12 Login-return route smoke coverage added: default journey verifier now checks direct profile-detail, assignment, and gift login-return URLs serve the SPA shell before catalog readiness
 - [x] 2026-06-12 Registration login handoff hardened: registration success now sends unauthenticated participants to portal login with their exact `/profile/:marathonerId` return path, while existing token holders open the profile directly
 - [x] 2026-06-12 Assignment submit login guard added: step report UI now requires profile participant context and a Marathon token before enabling report submission, with login preserving the exact step return path
+- [x] 2026-06-12 Gift redemption login guard added: `/gift` now requires profile participant context and a Marathon token before gift-code redemption, with login preserving the exact participant return path

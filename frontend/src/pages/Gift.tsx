@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { authFetch, redirectToLogin } from '../auth';
+import { authFetch, getToken, redirectToLogin } from '../auth';
 
 interface CatalogReadiness {
   registrationOpen: boolean;
@@ -42,6 +42,10 @@ export default function Gift() {
       setError('Open the gift form from your marathon profile so the participant ID is included.');
       return;
     }
+    if (!getToken()) {
+      redirectToLogin(`/gift?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
+      return;
+    }
     if (!code.trim()) {
       setError('Enter a gift code.');
       return;
@@ -75,6 +79,13 @@ export default function Gift() {
 
   const giftUnavailable = !readinessLoading && readiness?.giftReady === false;
   const registrationClosed = !readinessLoading && readiness?.registrationOpen !== true;
+  const hasParticipantContext = Boolean(marathonerId.trim());
+  const needsLogin = hasParticipantContext && !getToken();
+  const giftReturnPath = hasParticipantContext
+    ? `/gift?marathonerId=${encodeURIComponent(marathonerId.trim())}`
+    : '/profile';
+  const openLogin = () => redirectToLogin(giftReturnPath);
+  const redeemDisabled = submitting || !hasParticipantContext || needsLogin;
 
   return (
     <div className="container page-static gift-page">
@@ -106,6 +117,20 @@ export default function Gift() {
           </div>
         ) : (
           <form className="gift-card" onSubmit={redeem}>
+            {!hasParticipantContext && (
+              <div className="gift-auth-panel" role="alert">
+                <strong>Open gift redemption from your marathon profile</strong>
+                <span>The profile link includes the participant ID needed to unlock VIP access on the correct marathon.</span>
+                <Link to="/profile" className="btn-profile-login">Open profile</Link>
+              </div>
+            )}
+            {needsLogin && (
+              <div className="gift-auth-panel" role="alert">
+                <strong>Sign in to redeem a gift code</strong>
+                <span>Gift redemption requires your Marathon token and will return to this participant after portal login.</span>
+                <button type="button" className="btn-profile-login" onClick={openLogin}>Sign in</button>
+              </div>
+            )}
             <label htmlFor="marathoner-id">Participant ID</label>
             <input
               id="marathoner-id"
@@ -119,9 +144,10 @@ export default function Gift() {
               value={code}
               onChange={(event) => setCode(event.target.value)}
               placeholder="Enter gift code"
+              disabled={!hasParticipantContext || needsLogin}
             />
-            <button type="submit" disabled={submitting}>
-              {submitting ? 'Redeeming...' : 'Redeem gift code'}
+            <button type="submit" disabled={redeemDisabled}>
+              {submitting ? 'Redeeming...' : needsLogin ? 'Sign in required' : 'Redeem gift code'}
             </button>
             {message && <p>{message}</p>}
             {error && <p className="ml-error">{error}</p>}
