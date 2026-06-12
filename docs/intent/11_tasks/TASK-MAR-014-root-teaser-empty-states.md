@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-014
-status: active
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -28,7 +28,7 @@ Make the public root landing page honest after the finalists API returns an empt
 
 ## Acceptance Criteria
 
-- [ ] Root landing finalists teaser no longer shows `Загрузка…` after the empty winners response resolves.
-- [ ] Root landing reviews teaser has a post-load empty state if reviews are unavailable.
-- [ ] `npm run check:journey` reports root teaser empty-state coverage.
-- [ ] Build, deploy, Browser QA, and validation evidence are recorded.
+- [x] Root landing finalists teaser no longer shows `Загрузка…` after the empty winners response resolves.
+- [x] Root landing reviews teaser has a post-load empty state if reviews are unavailable.
+- [x] `npm run check:journey` reports root teaser empty-state coverage.
+- [x] Build, deploy, Browser QA, and validation evidence are recorded.
