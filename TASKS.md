@@ -39,4 +39,4 @@
 - [x] 2026-06-12 Saved assignment report verification added: `npm run check:journey` can read an existing participant submission with explicit auth/IDs and verifies saved-report readback after mutating submission smoke checks
 - [x] 2026-06-12 Profile assignment schedule UX added: profile detail now labels active/completed/late/locked/VIP-gated steps, shows due/saved timing, and links payment-blocked steps back to VIP options
 - [x] 2026-06-12 Profile dashboard UX added: `/profile` now renders marathon cards with progress, current step, VIP/payment state, bonus days, and direct continuation actions
-- [x] 2026-06-12 Login-return token capture centralized: app startup now stores `marathon_token` from any route so direct returns to profile detail, gift redemption, and assignment pages can authenticate
+- [x] 2026-06-12 Login-return token capture centralized: frontend bootstrap now stores `marathon_token` before route effects run so direct returns to profile detail, gift redemption, and assignment pages can authenticate
