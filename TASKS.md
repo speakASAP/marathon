@@ -18,7 +18,7 @@
 - [x] TASK-MAR-041: Make public shell Marathon-first (goal_id: frontend-readiness, priority: 2)
 - [x] TASK-MAR-042: Extend Marathon-first branding across public routes (goal_id: frontend-readiness, priority: 2)
 - [x] TASK-MAR-043: Replace closed-catalog landing pricing offers with readiness gate (goal_id: frontend-readiness, priority: 1)
-- [ ] TASK-MAR-044: Gate closed-catalog landing workflow claims (goal_id: frontend-readiness, priority: 1)
+- [x] TASK-MAR-044: Gate closed-catalog landing workflow claims (goal_id: frontend-readiness, priority: 1)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
@@ -102,3 +102,4 @@
 - [x] 2026-06-12 Gift readiness loading and nav status consistency deployed: `/gift` hides redemption entry until readiness is known and global registration nav uses the same closed-catalog status label as the CTA
 - [x] 2026-06-12 Intent status reconciliation completed: RunLayer read-only integration docs are verified, while NPS docs explicitly remain partial/blocked for live finished-participant mutation proof
 - [x] 2026-06-12 Rendered route QA runbook deployed: `/support` now lists Browser-rendered checks for home, language landing, registration, gift, profile, and assignment guard routes, with smoke coverage before catalog readiness
+- [x] 2026-06-12 Closed-catalog landing workflow gate deployed: language landing pages now show launch-readiness steps instead of live assignment/feedback/progress workflow cards before approved catalog data exists
