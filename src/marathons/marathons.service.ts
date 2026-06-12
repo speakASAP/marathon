@@ -43,6 +43,46 @@ export type MarathonCatalogReadiness = {
   missing: string[];
 };
 
+export type MarathonAnalytics = {
+  generatedAt: string;
+  catalog: MarathonCatalogReadiness;
+  participants: {
+    total: number;
+    active: number;
+    finished: number;
+    free: number;
+    vip: number;
+    vipRequired: number;
+    paymentBlocked: number;
+  };
+  assignments: {
+    submissions: number;
+    completed: number;
+    checked: number;
+    penaltyReports: number;
+    completionRate: number;
+  };
+  payments: {
+    attempts: number;
+    confirmed: number;
+    conversionRate: number;
+    statusCounts: Record<string, number>;
+  };
+  gifts: {
+    total: number;
+    used: number;
+    unused: number;
+    redemptionRate: number;
+  };
+  winners: {
+    rows: number;
+    medalRows: number;
+    gold: number;
+    silver: number;
+    bronze: number;
+  };
+};
+
 type MarathonRecord = {
   id: string;
   languageCode: string;
@@ -230,6 +270,117 @@ export class MarathonsService {
       },
       missing,
     };
+  }
+
+  async analytics(): Promise<MarathonAnalytics> {
+    this.logger.debug('Marathon analytics requested');
+    const catalog = await this.catalogReadiness();
+    const [
+      participants,
+      activeParticipants,
+      finishedParticipants,
+      freeParticipants,
+      vipParticipants,
+      vipRequiredParticipants,
+      paymentBlockedParticipants,
+      submissions,
+      completedSubmissions,
+      checkedSubmissions,
+      penaltyReports,
+      paymentAttempts,
+      confirmedPaymentAttempts,
+      paymentStatuses,
+      totalGifts,
+      usedGifts,
+      winnerRows,
+      medalRows,
+      medalSums,
+    ] = await Promise.all([
+      this.prisma.marathonParticipant.count(),
+      this.prisma.marathonParticipant.count({ where: { active: true } }),
+      this.prisma.marathonParticipant.count({ where: { finishedAt: { not: null } } }),
+      this.prisma.marathonParticipant.count({ where: { isFree: true } }),
+      this.prisma.marathonParticipant.count({ where: { isFree: false } }),
+      this.prisma.marathonParticipant.count({ where: { vipRequired: true } }),
+      this.prisma.marathonParticipant.count({ where: { vipRequired: true, isFree: true } }),
+      this.prisma.stepSubmission.count(),
+      this.prisma.stepSubmission.count({ where: { isCompleted: true } }),
+      this.prisma.stepSubmission.count({ where: { isChecked: true } }),
+      this.prisma.penaltyReport.count(),
+      this.prisma.marathonPaymentAttempt.count(),
+      this.prisma.marathonPaymentAttempt.count({ where: { confirmedAt: { not: null } } }),
+      this.prisma.marathonPaymentAttempt.findMany({ select: { status: true } }),
+      this.prisma.marathonGift.count(),
+      this.prisma.marathonGift.count({ where: { usedAt: { not: null } } }),
+      this.prisma.marathonWinner.count(),
+      this.prisma.marathonWinner.count({
+        where: {
+          OR: [
+            { goldCount: { gt: 0 } },
+            { silverCount: { gt: 0 } },
+            { bronzeCount: { gt: 0 } },
+          ],
+        },
+      }),
+      this.prisma.marathonWinner.aggregate({
+        _sum: {
+          goldCount: true,
+          silverCount: true,
+          bronzeCount: true,
+        },
+      }),
+    ]);
+
+    const statusCounts = paymentStatuses.reduce<Record<string, number>>((acc, attempt) => {
+      const status = attempt.status || 'unknown';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      generatedAt: new Date().toISOString(),
+      catalog,
+      participants: {
+        total: participants,
+        active: activeParticipants,
+        finished: finishedParticipants,
+        free: freeParticipants,
+        vip: vipParticipants,
+        vipRequired: vipRequiredParticipants,
+        paymentBlocked: paymentBlockedParticipants,
+      },
+      assignments: {
+        submissions,
+        completed: completedSubmissions,
+        checked: checkedSubmissions,
+        penaltyReports,
+        completionRate: this.rate(completedSubmissions, submissions),
+      },
+      payments: {
+        attempts: paymentAttempts,
+        confirmed: confirmedPaymentAttempts,
+        conversionRate: this.rate(confirmedPaymentAttempts, paymentAttempts),
+        statusCounts,
+      },
+      gifts: {
+        total: totalGifts,
+        used: usedGifts,
+        unused: totalGifts - usedGifts,
+        redemptionRate: this.rate(usedGifts, totalGifts),
+      },
+      winners: {
+        rows: winnerRows,
+        medalRows,
+        gold: medalSums._sum.goldCount || 0,
+        silver: medalSums._sum.silverCount || 0,
+        bronze: medalSums._sum.bronzeCount || 0,
+      },
+    };
+  }
+
+  private rate(numerator: number, denominator: number): number {
+    if (denominator <= 0) return 0;
+    return Math.round((numerator / denominator) * 1000) / 10;
   }
 }
 

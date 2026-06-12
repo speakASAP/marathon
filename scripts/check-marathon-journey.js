@@ -280,6 +280,18 @@ async function checkPublicRoutes(report, options) {
   }
   addCheck(report, 'pass', 'winners-list', 'Winners endpoint returns the paginated leaderboard shape.');
 
+  const analytics = await requestJson(report, '/api/v1/marathons/analytics');
+  assertOk(analytics.response, '/api/v1/marathons/analytics');
+  if (
+    !analytics.json?.generatedAt ||
+    typeof analytics.json?.participants?.total !== 'number' ||
+    typeof analytics.json?.payments?.conversionRate !== 'number' ||
+    typeof analytics.json?.assignments?.completionRate !== 'number'
+  ) {
+    throw new Error('/api/v1/marathons/analytics did not return the expected aggregate dashboard shape.');
+  }
+  addCheck(report, 'pass', 'analytics-dashboard', 'Marathon analytics endpoint returns aggregate registration, assignment, and payment metrics.');
+
   await assertFrontendShell(
     report,
     '/profile/smoke-participant?marathon_token=smoke-token',

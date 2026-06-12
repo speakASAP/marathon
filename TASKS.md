@@ -11,6 +11,7 @@
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
+- [x] 2026-06-12 Intent Preservation System documentation added: local constitution, vision, business case, domain glossary, system/subsystem docs, ADRs, feature/task chain, goal impact, execution plan, context package, coding prompt, validation report, invariants, audit checklist, and pre-coding/deployment gates
 - [x] 2026-04-05 Documentation standard applied
 - [x] 2026-04-29 Full documentation suite created: SPEC.md, PLAN.md, GOALS.md; SYSTEM.md and AGENTS.md enriched
 - [x] 2026-06-12 Frontend rebuild deployed: modern landing, registration redirect normalization, profile VIP gate panel, gift-code surface, SPA route fallback, and deploy script exact-tag rollout fix
@@ -56,3 +57,4 @@
 - [x] 2026-06-12 Catalog loader launch-ready validation tightened: default catalog dry runs now require an active marathon, trial step, gated step, VIP product, and gift code before approved data can be treated as registration/payment/assignment ready
 - [x] 2026-06-12 Participant progress report added: authenticated profile detail can generate a read-only assignment/VIP/bonus/payment-attempt report with JSON download, and journey smoke verifies the auth guard plus frontend report UI
 - [x] 2026-06-12 Winner automation added: completed assignment submissions now reconcile participant finish state and user medal totals into `MarathonWinner`, with journey smoke covering the public leaderboard shape
+- [x] 2026-06-12 Analytics dashboard added: `/api/v1/marathons/analytics` exposes aggregate catalog/registration/assignment/VIP/payment/gift/winner metrics and `/support` renders an operational dashboard without participant PII
