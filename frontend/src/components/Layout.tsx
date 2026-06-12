@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-
-interface CatalogReadiness {
-  registrationOpen: boolean;
-}
+import { fetchCatalogReadiness, type CatalogReadiness } from '../api/publicMarathon';
 
 /** True when path is a language landing e.g. /de/, /en/ (nav and footer are inside Landing). */
 function isLandingPath(pathname: string): boolean {
@@ -31,11 +28,7 @@ export default function Layout() {
 
   useEffect(() => {
     setReadinessError('');
-    fetch('/api/v1/marathons/readiness')
-      .then((response) => {
-        if (!response.ok) throw new Error(`readiness:${response.status}`);
-        return response.json();
-      })
+    fetchCatalogReadiness()
       .then((data: CatalogReadiness | null) => setReadiness(data))
       .catch(() => {
         setReadiness(null);

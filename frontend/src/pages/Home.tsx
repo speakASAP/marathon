@@ -1,36 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-
-interface Lang {
-  code: string;
-  name: string;
-  url?: string;
-}
-
-interface Winner {
-  id: string;
-  name?: string;
-  gold?: number;
-  silver?: number;
-  bronze?: number;
-}
-
-interface Review {
-  name: string;
-  text: string;
-}
-
-interface CatalogReadiness {
-  registrationOpen: boolean;
-  counts: {
-    activeMarathons: number;
-    steps: number;
-    stepsWithContent: number;
-    products: number;
-    unusedGifts: number;
-  };
-  missing?: string[];
-}
+import {
+  fetchCatalogReadiness,
+  fetchMarathonLanguages,
+  fetchPublicReviews,
+  fetchWinnerSummaries,
+  type CatalogReadiness,
+  type MarathonLanguage,
+  type PublicReview,
+  type WinnerSummary,
+} from '../api/publicMarathon';
 
 function formatMissingGate(value: string): string {
   return value
@@ -43,9 +22,9 @@ function formatMissingGate(value: string): string {
  * Home: hub with hero, language landings list, and winners/reviews teaser.
  */
 export default function Home() {
-  const [languages, setLanguages] = useState<Lang[]>([]);
-  const [winners, setWinners] = useState<Winner[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
+  const [winners, setWinners] = useState<WinnerSummary[]>([]);
+  const [reviews, setReviews] = useState<PublicReview[]>([]);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -57,21 +36,10 @@ export default function Home() {
   useEffect(() => {
     setLoadError('');
     Promise.all([
-      fetch('/api/v1/marathons/languages')
-        .then((r) => (r.ok ? r.json() : []))
-        .then((d: Lang[]) => (Array.isArray(d) ? d : [])),
-      fetch('/api/v1/marathons/readiness').then((r) => {
-        if (!r.ok) throw new Error(`readiness:${r.status}`);
-        return r.json();
-      }),
-      fetch('/api/v1/winners?page=1&limit=6')
-        .then((r) => (r.ok ? r.json() : { items: [] }))
-        .then((d: { items?: Winner[] }) => (d && Array.isArray(d.items) ? d.items : []))
-        .catch(() => []),
-      fetch('/api/v1/reviews')
-        .then((r) => (r.ok ? r.json() : []))
-        .then((d: Review[]) => (Array.isArray(d) ? d.slice(0, 3) : []))
-        .catch(() => []),
+      fetchMarathonLanguages(),
+      fetchCatalogReadiness(),
+      fetchWinnerSummaries(6),
+      fetchPublicReviews().then((items) => items.slice(0, 3)),
     ])
       .then(([langs, ready, win, rev]) => {
         setLanguages(langs);

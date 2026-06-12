@@ -1,21 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-
-interface CatalogReadiness {
-  ready: boolean;
-  registrationOpen: boolean;
-  paymentReady: boolean;
-  giftReady: boolean;
-  assignmentReady: boolean;
-  counts: {
-    activeMarathons: number;
-    products: number;
-    unusedGifts: number;
-    steps: number;
-    stepsWithContent: number;
-  };
-  missing: string[];
-}
+import { fetchCatalogReadiness, type CatalogReadiness } from '../api/publicMarathon';
 
 const SUPPORT_EMAIL = 'marathon@speakasap.com';
 
@@ -35,11 +20,7 @@ export default function Support() {
     document.title = 'Поддержка — Marathon';
     setLoading(true);
     setError('');
-    fetch('/api/v1/marathons/readiness')
-      .then((response) => {
-        if (!response.ok) throw new Error(`readiness:${response.status}`);
-        return response.json();
-      })
+    fetchCatalogReadiness()
       .then((data: CatalogReadiness) => setReadiness(data))
       .catch(() => {
         setReadiness(null);

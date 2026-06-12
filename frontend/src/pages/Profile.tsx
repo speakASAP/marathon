@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { authFetch, redirectToLogin } from '../auth';
+import { fetchCatalogReadiness, type CatalogReadiness } from '../api/publicMarathon';
 
 interface MyMarathon {
   id: string;
@@ -23,10 +24,6 @@ interface Answer {
   state: string;
   is_late: boolean;
   block_reason?: string | null;
-}
-
-interface CatalogReadiness {
-  registrationOpen: boolean;
 }
 
 function getCompletedCount(marathon: MyMarathon) {
@@ -90,11 +87,7 @@ export default function Profile() {
   useEffect(() => {
     setReadinessLoading(true);
     setReadinessError('');
-    fetch('/api/v1/marathons/readiness')
-      .then((response) => {
-        if (!response.ok) throw new Error(`readiness:${response.status}`);
-        return response.json();
-      })
+    fetchCatalogReadiness()
       .then((data: CatalogReadiness | null) => setReadiness(data))
       .catch(() => {
         setReadiness(null);

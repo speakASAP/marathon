@@ -1,23 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-
-interface Lang {
-  code: string;
-  name: string;
-}
-
-interface CatalogReadiness {
-  ready: boolean;
-  registrationOpen: boolean;
-  counts: {
-    activeMarathons: number;
-    steps: number;
-    stepsWithContent: number;
-    products: number;
-    unusedGifts: number;
-  };
-  missing: string[];
-}
+import {
+  fetchCatalogReadiness,
+  fetchMarathonLanguages,
+  type CatalogReadiness,
+  type MarathonLanguage,
+} from '../api/publicMarathon';
 
 function formatMissingGate(value: string): string {
   return value
@@ -30,7 +18,7 @@ function formatMissingGate(value: string): string {
  * Standalone registration: choose language and go to landing with registration form.
  */
 export default function Register() {
-  const [languages, setLanguages] = useState<Lang[]>([]);
+  const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -39,14 +27,8 @@ export default function Register() {
     document.title = 'Регистрация на марафон — Marathon';
     setLoadError('');
     Promise.all([
-      fetch('/api/v1/marathons/languages')
-        .then((r) => (r.ok ? r.json() : []))
-        .then((data) => (Array.isArray(data) ? data : [])),
-      fetch('/api/v1/marathons/readiness')
-        .then((r) => {
-          if (!r.ok) throw new Error(`readiness:${r.status}`);
-          return r.json();
-        }),
+      fetchMarathonLanguages(),
+      fetchCatalogReadiness(),
     ])
       .then(([languageData, readinessData]) => {
         setLanguages(languageData);

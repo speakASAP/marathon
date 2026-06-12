@@ -20,6 +20,7 @@
 - [x] TASK-MAR-043: Replace closed-catalog landing pricing offers with readiness gate (goal_id: frontend-readiness, priority: 1)
 - [x] TASK-MAR-044: Gate closed-catalog landing workflow claims (goal_id: frontend-readiness, priority: 1)
 - [x] TASK-MAR-045: Extract typed public Marathon API helper for landing data (goal_id: frontend-readiness, priority: 2)
+- [x] TASK-MAR-046: Centralize public frontend readiness and teaser API access (goal_id: frontend-readiness, priority: 2)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
@@ -105,3 +106,4 @@
 - [x] 2026-06-12 Rendered route QA runbook deployed: `/support` now lists Browser-rendered checks for home, language landing, registration, gift, profile, and assignment guard routes, with smoke coverage before catalog readiness
 - [x] 2026-06-12 Closed-catalog landing workflow gate deployed: language landing pages now show launch-readiness steps instead of live assignment/feedback/progress workflow cards before approved catalog data exists
 - [x] 2026-06-12 Landing data-fetch refactor deployed: `Landing.tsx` now uses a typed public Marathon API helper for language, readiness, active-marathon, and review data while preserving closed-catalog behavior
+- [x] 2026-06-12 Public frontend API helper widened: home, registration, gift, profile, support, reviews, and global navigation now share typed public readiness/language/review/winner fetch helpers

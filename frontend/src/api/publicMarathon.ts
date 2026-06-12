@@ -15,20 +15,31 @@ export interface MarathonLanguage {
 export interface CatalogReadiness {
   ready?: boolean;
   registrationOpen: boolean;
-  counts?: {
+  paymentReady?: boolean;
+  giftReady?: boolean;
+  assignmentReady?: boolean;
+  counts: {
     activeMarathons: number;
     steps: number;
     stepsWithContent: number;
     products: number;
     unusedGifts: number;
   };
-  missing?: string[];
+  missing: string[];
 }
 
 export interface PublicReview {
   name: string;
   photo?: string;
   text: string;
+}
+
+export interface WinnerSummary {
+  id: string;
+  name?: string;
+  gold?: number;
+  silver?: number;
+  bronze?: number;
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -69,6 +80,15 @@ export function fetchCatalogReadiness(): Promise<CatalogReadiness> {
 export async function fetchPublicReviews(): Promise<PublicReview[]> {
   try {
     return asArray<PublicReview>(await fetchJson<unknown>('/api/v1/reviews'));
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchWinnerSummaries(limit = 6): Promise<WinnerSummary[]> {
+  try {
+    const page = await fetchJson<{ items?: WinnerSummary[] }>(`/api/v1/winners?page=1&limit=${limit}`);
+    return asArray<WinnerSummary>(page.items);
   } catch {
     return [];
   }

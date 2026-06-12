@@ -1,28 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-
-interface Review {
-  name: string;
-  photo: string;
-  text: string;
-}
+import { fetchPublicReviews, type PublicReview } from '../api/publicMarathon';
 
 /**
  * Reviews page: GET /api/v1/reviews. Full list of static reviews.
  */
 export default function Reviews() {
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<PublicReview[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     document.title = 'Отзывы — Marathon';
-    fetch('/api/v1/reviews')
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
-        setReviews(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    fetchPublicReviews()
+      .then((data) => setReviews(data))
+      .finally(() => setLoading(false));
   }, []);
 
   return (

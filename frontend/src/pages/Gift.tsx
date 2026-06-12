@@ -1,19 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { authFetch, getToken, redirectToLogin } from '../auth';
-
-interface CatalogReadiness {
-  registrationOpen: boolean;
-  giftReady: boolean;
-  counts: {
-    activeMarathons: number;
-    steps?: number;
-    stepsWithContent?: number;
-    products?: number;
-    unusedGifts: number;
-  };
-  missing?: string[];
-}
+import { fetchCatalogReadiness, type CatalogReadiness } from '../api/publicMarathon';
 
 function formatMissingGate(value: string): string {
   return value
@@ -36,11 +24,7 @@ export default function Gift() {
     document.title = 'Gift code — SpeakASAP Marathon';
     setMarathonerId(new URLSearchParams(window.location.search).get('marathonerId') || '');
     setReadinessError('');
-    fetch('/api/v1/marathons/readiness')
-      .then((response) => {
-        if (!response.ok) throw new Error(`readiness:${response.status}`);
-        return response.json();
-      })
+    fetchCatalogReadiness()
       .then((data: CatalogReadiness | null) => setReadiness(data))
       .catch(() => {
         setReadiness(null);
