@@ -81,6 +81,14 @@ export type MarathonAnalytics = {
     silver: number;
     bronze: number;
   };
+  surveys: {
+    responses: number;
+    promoters: number;
+    passives: number;
+    detractors: number;
+    averageScore: number;
+    npsScore: number;
+  };
 };
 
 type MarathonRecord = {
@@ -295,6 +303,11 @@ export class MarathonsService {
       winnerRows,
       medalRows,
       medalSums,
+      surveyResponses,
+      surveyPromoters,
+      surveyPassives,
+      surveyDetractors,
+      surveyScoreAverage,
     ] = await Promise.all([
       this.prisma.marathonParticipant.count(),
       this.prisma.marathonParticipant.count({ where: { active: true } }),
@@ -327,6 +340,15 @@ export class MarathonsService {
           goldCount: true,
           silverCount: true,
           bronzeCount: true,
+        },
+      }),
+      this.prisma.marathonSurveyResponse.count(),
+      this.prisma.marathonSurveyResponse.count({ where: { score: { gte: 9 } } }),
+      this.prisma.marathonSurveyResponse.count({ where: { score: { gte: 7, lte: 8 } } }),
+      this.prisma.marathonSurveyResponse.count({ where: { score: { lte: 6 } } }),
+      this.prisma.marathonSurveyResponse.aggregate({
+        _avg: {
+          score: true,
         },
       }),
     ]);
@@ -374,6 +396,14 @@ export class MarathonsService {
         gold: medalSums._sum.goldCount || 0,
         silver: medalSums._sum.silverCount || 0,
         bronze: medalSums._sum.bronzeCount || 0,
+      },
+      surveys: {
+        responses: surveyResponses,
+        promoters: surveyPromoters,
+        passives: surveyPassives,
+        detractors: surveyDetractors,
+        averageScore: Math.round((surveyScoreAverage._avg.score || 0) * 10) / 10,
+        npsScore: this.rate(surveyPromoters, surveyResponses) - this.rate(surveyDetractors, surveyResponses),
       },
     };
   }

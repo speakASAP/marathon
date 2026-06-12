@@ -1,7 +1,7 @@
-import { Controller, Get, Logger, NotFoundException, Param, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Logger, NotFoundException, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthGuard } from '../shared/auth.guard';
-import { MeService, MyMarathon, MyMarathonProgressReport } from './me.service';
+import { MeService, MyMarathon, MyMarathonProgressReport, MyMarathonSurvey } from './me.service';
 
 type RequestWithUser = Request & { user?: { id: string } };
 
@@ -102,6 +102,36 @@ export class MeController {
       }
       this.logger.error(
         `My marathon detail failed: userId=${userId}, marathonerId=${marathonerId}, error=${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
+  }
+
+  @Post(':marathonerId/nps')
+  async submitNps(
+    @Req() req: RequestWithUser,
+    @Param('marathonerId') marathonerId: string,
+    @Body() body: { score?: number; comment?: string },
+  ): Promise<MyMarathonSurvey> {
+    const userId = req.user!.id;
+
+    this.logger.log(`My marathon NPS submit request received: userId=${userId}, marathonerId=${marathonerId}`);
+
+    try {
+      const survey = await this.meService.submitNps(userId, marathonerId, body);
+      if (!survey) {
+        this.logger.warn(`My marathon NPS target not found: userId=${userId}, marathonerId=${marathonerId}`);
+        throw new NotFoundException('Marathon not found');
+      }
+      this.logger.log(`My marathon NPS submit response: userId=${userId}, marathonerId=${marathonerId}, score=${survey.score}`);
+      return survey;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        `My marathon NPS submit failed: userId=${userId}, marathonerId=${marathonerId}, error=${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
       throw error;

@@ -66,6 +66,7 @@ model MarathonParticipant {
   submissions      StepSubmission[]
   penaltyReports   PenaltyReport[]
   paymentAttempts  MarathonPaymentAttempt[]
+  surveyResponse    MarathonSurveyResponse?
 }
 
 model StepSubmission {
@@ -146,4 +147,16 @@ model MarathonPaymentAttempt {
 
   @@index([participantId])
   @@index([status])
+}
+
+model MarathonSurveyResponse {
+  id            String              @id @default(uuid())
+  participantId String              @unique
+  score         Int
+  comment       String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  participant   MarathonParticipant @relation(fields: [participantId], references: [id])
+
+  @@index([score])
 }

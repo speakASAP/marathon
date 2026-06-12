@@ -59,3 +59,4 @@
 - [x] 2026-06-12 Winner automation added: completed assignment submissions now reconcile participant finish state and user medal totals into `MarathonWinner`, with journey smoke covering the public leaderboard shape
 - [x] 2026-06-12 Analytics dashboard added: `/api/v1/marathons/analytics` exposes aggregate catalog/registration/assignment/VIP/payment/gift/winner metrics and `/support` renders an operational dashboard without participant PII
 - [x] 2026-06-12 Intent-preservation trace restored to remote scope: `docs/intent/` task, execution plan, context package, validation, governance, gate, ADR, and template artifacts are ready to enforce the documented pre-coding and deployment gates
+- [x] 2026-06-12 Post-marathon NPS survey implemented: completed participants can save/update private NPS feedback from profile detail, analytics exposes aggregate survey metrics only, and support dashboard renders NPS health without comments or participant PII

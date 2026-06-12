@@ -62,6 +62,14 @@ interface MarathonAnalytics {
     silver: number;
     bronze: number;
   };
+  surveys: {
+    responses: number;
+    promoters: number;
+    passives: number;
+    detractors: number;
+    averageScore: number;
+    npsScore: number;
+  };
 }
 
 /**
@@ -133,6 +141,9 @@ export default function Support() {
               <div><span>Payment conversion</span><strong>{analytics.payments.conversionRate}%</strong></div>
               <div><span>Gift redemption</span><strong>{analytics.gifts.redemptionRate}%</strong></div>
               <div><span>Winners</span><strong>{analytics.winners.medalRows}</strong></div>
+              <div><span>NPS responses</span><strong>{analytics.surveys.responses}</strong></div>
+              <div><span>NPS score</span><strong>{analytics.surveys.npsScore}</strong></div>
+              <div><span>Avg. survey score</span><strong>{analytics.surveys.averageScore}</strong></div>
             </div>
             {!analytics.catalog.ready && (
               <div className="support-readiness-note">

@@ -238,6 +238,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('/progress-report') || !js.includes('Progress report') || !js.includes('Download JSON')) {
     throw new Error('Built frontend bundle does not include participant progress report UI.');
   }
+  if (!js.includes('/nps') || !js.includes('Marathon feedback') || !js.includes('Save feedback')) {
+    throw new Error('Built frontend bundle does not include post-marathon NPS feedback UI.');
+  }
   addCheck(report, 'pass', 'registration-login-handoff', 'Registration frontend bundle routes new participants through token-aware profile login handoff.');
   addCheck(report, 'pass', 'assignment-login-guard', 'Assignment report UI requires profile context and token-aware login before submission.');
   addCheck(report, 'pass', 'gift-login-guard', 'Gift redemption UI requires profile context and token-aware login before redemption.');
@@ -251,6 +254,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'gift-readiness-error-state', 'Gift redemption blocks redemption when readiness status cannot be loaded.');
   addCheck(report, 'pass', 'nav-readiness-error-state', 'Global registration CTA distinguishes readiness load failures from closed-catalog state.');
   addCheck(report, 'pass', 'progress-report-ui', 'Profile detail frontend includes authenticated participant progress report generation and JSON download UI.');
+  addCheck(report, 'pass', 'nps-survey-ui', 'Profile detail frontend includes completed-marathon NPS feedback UI.');
 }
 
 async function checkPublicRoutes(report, options) {
@@ -286,11 +290,13 @@ async function checkPublicRoutes(report, options) {
     !analytics.json?.generatedAt ||
     typeof analytics.json?.participants?.total !== 'number' ||
     typeof analytics.json?.payments?.conversionRate !== 'number' ||
-    typeof analytics.json?.assignments?.completionRate !== 'number'
+    typeof analytics.json?.assignments?.completionRate !== 'number' ||
+    typeof analytics.json?.surveys?.responses !== 'number' ||
+    typeof analytics.json?.surveys?.npsScore !== 'number'
   ) {
     throw new Error('/api/v1/marathons/analytics did not return the expected aggregate dashboard shape.');
   }
-  addCheck(report, 'pass', 'analytics-dashboard', 'Marathon analytics endpoint returns aggregate registration, assignment, and payment metrics.');
+  addCheck(report, 'pass', 'analytics-dashboard', 'Marathon analytics endpoint returns aggregate registration, assignment, payment, and NPS metrics.');
 
   await assertFrontendShell(
     report,
@@ -314,6 +320,13 @@ async function checkPublicRoutes(report, options) {
   const unauthenticatedReport = await request(report, '/api/v1/me/marathons/smoke-participant/progress-report');
   assertResponse(unauthenticatedReport, 401, 'unauthenticated progress report');
   addCheck(report, 'pass', 'progress-report-auth-guard', 'Participant progress report endpoint requires authentication.');
+
+  const unauthenticatedNps = await request(report, '/api/v1/me/marathons/smoke-participant/nps', {
+    method: 'POST',
+    body: JSON.stringify({ score: 10, comment: 'smoke' }),
+  });
+  assertResponse(unauthenticatedNps, 401, 'unauthenticated NPS survey');
+  addCheck(report, 'pass', 'nps-survey-auth-guard', 'Participant NPS survey endpoint requires authentication.');
 
   await assertFrontendHandoffSource(report, rootHtml);
 

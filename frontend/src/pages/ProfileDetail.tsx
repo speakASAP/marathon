@@ -1,5 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { authFetch, redirectToLogin } from '../auth';
 
 interface Answer {
@@ -24,6 +25,14 @@ interface MyMarathon {
   report_time: string | null;
   current_step: Answer | null;
   answers: Answer[];
+  finished_at: string | null;
+  nps_survey: NpsSurvey | null;
+}
+
+interface NpsSurvey {
+  score: number;
+  comment: string | null;
+  submitted_at: string;
 }
 
 interface ProgressReport {
@@ -140,6 +149,11 @@ export default function ProfileDetail() {
   const [report, setReport] = useState<ProgressReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState('');
+  const [npsScore, setNpsScore] = useState<number | null>(null);
+  const [npsComment, setNpsComment] = useState('');
+  const [npsSaving, setNpsSaving] = useState(false);
+  const [npsMessage, setNpsMessage] = useState('');
+  const [npsError, setNpsError] = useState('');
 
   useEffect(() => {
     const payment = new URLSearchParams(window.location.search).get('payment');
@@ -180,6 +194,13 @@ export default function ProfileDetail() {
 
   useEffect(() => {
     if (data) document.title = `${data.title} — Marathon`;
+    if (data?.nps_survey) {
+      setNpsScore(data.nps_survey.score);
+      setNpsComment(data.nps_survey.comment || '');
+    } else if (data) {
+      setNpsScore(null);
+      setNpsComment('');
+    }
   }, [data]);
 
   if (loading) {
@@ -302,6 +323,38 @@ export default function ProfileDetail() {
     URL.revokeObjectURL(url);
   };
 
+  const submitNps = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!data || npsScore === null) {
+      setNpsError('Choose a score from 0 to 10.');
+      return;
+    }
+    setNpsSaving(true);
+    setNpsError('');
+    setNpsMessage('');
+    try {
+      const res = await authFetch(`/api/v1/me/marathons/${encodeURIComponent(data.id)}/nps`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ score: npsScore, comment: npsComment }),
+      });
+      if (res.status === 401) {
+        redirectToLogin(`/profile/${data.id}`);
+        return;
+      }
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.message || body.error || `Feedback failed (${res.status})`);
+      }
+      setData({ ...data, nps_survey: body });
+      setNpsMessage('Thank you. Your marathon feedback was saved.');
+    } catch (error) {
+      setNpsError(error instanceof Error ? error.message : 'Feedback could not be saved');
+    } finally {
+      setNpsSaving(false);
+    }
+  };
+
   return (
     <div className="container page-static profile-dashboard">
       <nav className="page-nav">
@@ -364,6 +417,50 @@ export default function ProfileDetail() {
           <Link to={`/steps/${current.stepId}?marathonerId=${encodeURIComponent(data.id)}`} className="btn-profile-open">
             Открыть задание
           </Link>
+        </section>
+      )}
+      {data.finished_at && (
+        <section className="profile-nps-panel">
+          <div>
+            <h2>Marathon feedback</h2>
+            <p>Your private score helps us improve future marathon assignments and support.</p>
+          </div>
+          <form onSubmit={submitNps} className="profile-nps-form">
+            <fieldset>
+              <legend>How likely are you to recommend this marathon?</legend>
+              <div className="profile-nps-scale">
+                {Array.from({ length: 11 }, (_, score) => (
+                  <label key={score} className={npsScore === score ? 'is-selected' : ''}>
+                    <input
+                      type="radio"
+                      name="nps-score"
+                      value={score}
+                      checked={npsScore === score}
+                      onChange={() => setNpsScore(score)}
+                    />
+                    <span>{score}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <label htmlFor="nps-comment">What should we improve?</label>
+            <textarea
+              id="nps-comment"
+              value={npsComment}
+              onChange={(event) => setNpsComment(event.target.value)}
+              rows={4}
+              maxLength={2000}
+              placeholder="Optional private note for the Marathon team"
+            />
+            <div className="profile-payment-actions">
+              <button type="submit" className="btn-profile-open" disabled={npsSaving || npsScore === null}>
+                {npsSaving ? 'Saving...' : data.nps_survey ? 'Update feedback' : 'Save feedback'}
+              </button>
+              {data.nps_survey && <span className="profile-nps-saved">Saved {formatDateTime(data.nps_survey.submitted_at)}</span>}
+            </div>
+            {npsMessage && <p className="step-submit-success">{npsMessage}</p>}
+            {npsError && <p className="ml-error">{npsError}</p>}
+          </form>
         </section>
       )}
       <section className="profile-report-panel">

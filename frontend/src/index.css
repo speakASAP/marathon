@@ -1295,6 +1295,98 @@ a:hover {
   box-shadow: 0 16px 42px rgba(32, 52, 88, 0.08);
 }
 
+.profile-nps-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 24px;
+  margin-bottom: 22px;
+  padding: 24px 28px;
+  border: 1px solid #dce6f2;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 16px 42px rgba(32, 52, 88, 0.08);
+}
+
+.profile-nps-panel h2 {
+  margin: 0 0 8px;
+  color: #101832;
+}
+
+.profile-nps-panel p {
+  margin: 0;
+  color: #5e6a80;
+  line-height: 1.55;
+}
+
+.profile-nps-form fieldset {
+  min-width: 0;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+}
+
+.profile-nps-form legend,
+.profile-nps-form label {
+  display: block;
+  margin-bottom: 8px;
+  color: #39465a;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.profile-nps-scale {
+  display: grid;
+  grid-template-columns: repeat(11, minmax(32px, 1fr));
+  gap: 6px;
+}
+
+.profile-nps-scale label {
+  display: block;
+  margin: 0;
+  cursor: pointer;
+}
+
+.profile-nps-scale input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.profile-nps-scale span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border: 1px solid #dce6f2;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #101832;
+  font-weight: 900;
+}
+
+.profile-nps-scale label.is-selected span {
+  border-color: #2f7bdc;
+  background: #edf6ff;
+  color: #1458ad;
+}
+
+.profile-nps-form textarea {
+  width: 100%;
+  min-height: 110px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #dce6f2;
+  border-radius: 8px;
+  font: inherit;
+  resize: vertical;
+}
+
+.profile-nps-saved {
+  align-self: center;
+  color: #5e6a80;
+  font-size: 0.9rem;
+}
+
 .profile-report-heading {
   display: flex;
   align-items: center;
@@ -1513,6 +1605,14 @@ a:hover {
   .profile-payment-return {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .profile-nps-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-nps-scale {
+    grid-template-columns: repeat(6, minmax(32px, 1fr));
   }
 
   .profile-report-heading {

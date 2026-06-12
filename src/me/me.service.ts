@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
 
 export type Answer = {
@@ -24,6 +24,14 @@ export type MyMarathon = {
   report_time: string | null;
   current_step: Answer | null;
   answers: Answer[];
+  finished_at: string | null;
+  nps_survey: MyMarathonSurvey | null;
+};
+
+export type MyMarathonSurvey = {
+  score: number;
+  comment: string | null;
+  submitted_at: string;
 };
 
 export type ProgressReportStep = {
@@ -119,6 +127,7 @@ export class MeService {
             createdAt: 'desc',
           },
         },
+        surveyResponse: true,
       },
     });
 
@@ -176,6 +185,7 @@ export class MeService {
               createdAt: 'desc',
             },
           },
+          surveyResponse: true,
         },
       });
     }
@@ -217,6 +227,7 @@ export class MeService {
             createdAt: 'desc',
           },
         },
+        surveyResponse: true,
       },
     });
 
@@ -254,11 +265,63 @@ export class MeService {
               createdAt: 'desc',
             },
           },
+          surveyResponse: true,
         },
       });
     }
 
     return this.mapToProgressReport(participant);
+  }
+
+  async submitNps(
+    userId: string,
+    marathonerId: string,
+    input: { score?: number; comment?: string },
+  ): Promise<MyMarathonSurvey | null> {
+    this.logger.debug(`My marathon NPS submit requested (userId=${userId}, marathonerId=${marathonerId})`);
+
+    const participant = await this.prisma.marathonParticipant.findFirst({
+      where: {
+        id: marathonerId,
+        userId,
+      },
+      include: {
+        surveyResponse: true,
+      },
+    });
+
+    if (!participant) {
+      return null;
+    }
+
+    if (!participant.finishedAt) {
+      throw new BadRequestException('NPS survey is available after marathon completion');
+    }
+
+    const score = Number(input.score);
+    if (!Number.isInteger(score) || score < 0 || score > 10) {
+      throw new BadRequestException('NPS score must be an integer from 0 to 10');
+    }
+
+    const comment = typeof input.comment === 'string' ? input.comment.trim() : '';
+    if (comment.length > 2000) {
+      throw new BadRequestException('NPS comment is too long');
+    }
+
+    const response = await this.prisma.marathonSurveyResponse.upsert({
+      where: { participantId: participant.id },
+      create: {
+        participantId: participant.id,
+        score,
+        comment: comment || null,
+      },
+      update: {
+        score,
+        comment: comment || null,
+      },
+    });
+
+    return this.mapSurvey(response);
   }
 
   private mapToMyMarathon(participant: any): MyMarathon {
@@ -293,6 +356,16 @@ export class MeService {
       report_time: latestSubmission ? latestSubmission.endAt.toISOString() : null,
       current_step: currentStep,
       answers,
+      finished_at: participant.finishedAt ? participant.finishedAt.toISOString() : null,
+      nps_survey: participant.surveyResponse ? this.mapSurvey(participant.surveyResponse) : null,
+    };
+  }
+
+  private mapSurvey(survey: any): MyMarathonSurvey {
+    return {
+      score: survey.score,
+      comment: survey.comment,
+      submitted_at: survey.updatedAt.toISOString(),
     };
   }
 
