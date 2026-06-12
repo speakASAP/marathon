@@ -2,7 +2,7 @@
 
 ```yaml
 id: EP-TASK-MAR-007
-status: active
+status: verified
 source_task: docs/intent/11_tasks/TASK-MAR-007-catalog-handoff-contract.md
 owner: Engineering
 created: 2026-06-12
@@ -28,10 +28,9 @@ last_updated: 2026-06-12
 
 ## Completion Checklist
 
-- [ ] Schema added.
-- [ ] Runbook updated.
-- [ ] Loader dry-run checklist added.
-- [ ] Local validation passed.
-- [ ] Production runtime validation passed.
-- [ ] Intent validation report completed.
-
+- [x] Schema added.
+- [x] Runbook updated.
+- [x] Loader dry-run checklist added.
+- [x] Local validation passed.
+- [x] Production runtime validation passed.
+- [x] Intent validation report completed.

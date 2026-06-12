@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-007
-status: active
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -31,9 +31,8 @@ Make the approved catalog-data handoff explicit and machine-readable so Marathon
 
 ## Acceptance Criteria
 
-- [ ] `docs/schemas/marathon-catalog.schema.json` documents allowed catalog-only fields and rejects extra top-level data.
-- [ ] `docs/marathon-catalog-import.md` tells source owners how to prepare, approve, dry-run, apply, and verify catalog data.
-- [ ] `scripts/load-marathon-catalog.js` dry-run output includes per-marathon readiness counts and missing classes without printing gift code values.
-- [ ] `node scripts/load-marathon-catalog.js docs/examples/marathon-catalog.example.json` passes.
-- [ ] Build and deployed runtime verification are recorded.
-
+- [x] `docs/schemas/marathon-catalog.schema.json` documents allowed catalog-only fields and rejects extra top-level data.
+- [x] `docs/marathon-catalog-import.md` tells source owners how to prepare, approve, dry-run, apply, and verify catalog data.
+- [x] `scripts/load-marathon-catalog.js` dry-run output includes per-marathon readiness counts and missing classes without printing gift code values.
+- [x] `node scripts/load-marathon-catalog.js docs/examples/marathon-catalog.example.json` passes.
+- [x] Build and deployed runtime verification are recorded.
