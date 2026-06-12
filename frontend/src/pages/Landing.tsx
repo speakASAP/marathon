@@ -71,7 +71,7 @@ export default function Landing() {
       fetch(`/api/v1/marathons/by-language/${encodeURIComponent(langSlug)}`).then((r) => {
         if (r.status === 404) return null;
         if (!r.ok) throw new Error(`marathon:${r.status}`);
-        return r.json();
+        return r.text().then((body) => (body.trim() ? JSON.parse(body) : null));
       }),
       fetch('/api/v1/marathons/languages')
         .then((r) => (r.ok ? r.json() : []))
