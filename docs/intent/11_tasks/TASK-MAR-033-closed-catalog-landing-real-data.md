@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-033
-status: pending-validation
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -30,11 +30,21 @@ Remove invented course, progress, and price details from language landing pages 
 
 ## Acceptance Criteria
 
-- [ ] Closed-catalog language landing does not show default VIP price, fake day number, fake progress percent, fake assignment title, or sample workflow copy.
-- [ ] Closed-catalog hero and preview show readiness counts and missing launch gates only.
-- [ ] VIP price/checkout copy does not display a numeric fallback price without an approved product value from the API.
-- [ ] Frontend production build succeeds.
-- [ ] Backend build or verifier syntax checks pass for touched verifier code.
-- [ ] Journey smoke reports `landing-closed-catalog-real-data-ui` before the expected catalog-readiness gate.
-- [ ] Browser validation confirms deployed `/en/` renders readiness-only landing content without the removed fake markers.
-- [ ] Deployment and validation evidence are recorded without sensitive data.
+- [x] Closed-catalog language landing does not show default VIP price, fake day number, fake progress percent, fake assignment title, or sample workflow copy.
+- [x] Closed-catalog hero and preview show readiness counts and missing launch gates only.
+- [x] VIP price/checkout copy does not display a numeric fallback price without an approved product value from the API.
+- [x] Frontend production build succeeds.
+- [x] Backend build or verifier syntax checks pass for touched verifier code.
+- [x] Journey smoke reports `landing-closed-catalog-real-data-ui` before the expected catalog-readiness gate.
+- [x] Browser validation confirms deployed `/en/` renders readiness-only landing content without the removed fake markers.
+- [x] Deployment and validation evidence are recorded without sensitive data.
+
+## Validation
+
+- Remote `node --check scripts/check-marathon-journey.js` passed.
+- Remote `npm run build` passed.
+- Remote `npm run build:frontend` passed and emitted `public/assets/index-heAsvl8G.css` and `public/assets/index-rmpXBK9y.js`.
+- Commits `7a3d823` and `190def4` implemented the landing change; final production deployment uses image `localhost:5000/marathon:190def4`.
+- Production `/health` returned HTTP 200 after deployment.
+- Deployed pod journey smoke reported `[PASS] landing-closed-catalog-real-data-ui` before the expected `[FAIL] catalog-readiness` gate.
+- Browser validation on `https://marathon.alfares.cz/en/?qa=190def4` confirmed title `English Marathon — registration status`, readiness-only meta description, readiness list, launch blockers, and no removed fake markers in page text or metadata.
