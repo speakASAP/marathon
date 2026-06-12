@@ -40,23 +40,43 @@ export default function Home() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     document.title = 'Языковые марафоны SpeakASAP® — Marathon';
   }, []);
 
   useEffect(() => {
+    setLoadError('');
     Promise.all([
-      fetch('/api/v1/marathons/languages').then((r) => r.json()).then((d: Lang[]) => (Array.isArray(d) ? d : [])),
-      fetch('/api/v1/marathons/readiness').then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      fetch('/api/v1/winners?page=1&limit=6').then((r) => r.json()).then((d: { items?: Winner[] }) => (d && Array.isArray(d.items) ? d.items : [])),
-      fetch('/api/v1/reviews').then((r) => r.json()).then((d: Review[]) => (Array.isArray(d) ? d.slice(0, 3) : [])),
+      fetch('/api/v1/marathons/languages')
+        .then((r) => (r.ok ? r.json() : []))
+        .then((d: Lang[]) => (Array.isArray(d) ? d : [])),
+      fetch('/api/v1/marathons/readiness').then((r) => {
+        if (!r.ok) throw new Error(`readiness:${r.status}`);
+        return r.json();
+      }),
+      fetch('/api/v1/winners?page=1&limit=6')
+        .then((r) => (r.ok ? r.json() : { items: [] }))
+        .then((d: { items?: Winner[] }) => (d && Array.isArray(d.items) ? d.items : []))
+        .catch(() => []),
+      fetch('/api/v1/reviews')
+        .then((r) => (r.ok ? r.json() : []))
+        .then((d: Review[]) => (Array.isArray(d) ? d.slice(0, 3) : []))
+        .catch(() => []),
     ])
       .then(([langs, ready, win, rev]) => {
         setLanguages(langs);
         setReadiness(ready);
         setWinners(win);
         setReviews(rev);
+      })
+      .catch(() => {
+        setLanguages([]);
+        setReadiness(null);
+        setWinners([]);
+        setReviews([]);
+        setLoadError('Marathon home could not be loaded. Refresh this page, or contact support if the problem continues.');
       })
       .finally(() => setLoading(false));
   }, []);
@@ -66,6 +86,28 @@ export default function Home() {
   const heroSub = catalogClosed
     ? 'Регистрация откроется после загрузки утвержденного каталога марафона.'
     : 'Изучи любой язык быстро на уровень А1 за 30 дней. Елена Шипилова®.';
+
+  if (loadError) {
+    return (
+      <div className="container page-static">
+        <nav className="page-nav">
+          <Link to="/">Главная</Link>
+        </nav>
+        <h1>Marathon home is temporarily unavailable</h1>
+        <section className="profile-empty-panel" role="alert">
+          <p>{loadError}</p>
+          <div className="profile-empty-actions">
+            <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
+              Refresh
+            </button>
+            <Link to="/support" className="btn-profile-login">
+              Contact support
+            </Link>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="page-home">

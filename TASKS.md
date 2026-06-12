@@ -50,3 +50,4 @@
 - [x] 2026-06-12 Assignment step error state added: `/steps/:stepId` now separates 404 not-found from assignment load failures and gives refresh/support actions instead of claiming the step is missing
 - [x] 2026-06-12 Language landing error state added: `/:langSlug/` now separates primary API/readiness load failures from closed-catalog fallback state and gives refresh/support actions
 - [x] 2026-06-12 Empty language marathon response handled: `/:langSlug/` treats the current 200 empty by-language response as no active catalog instead of a landing outage
+- [x] 2026-06-12 Home readiness error state added: `/` now separates readiness API load failures from closed-catalog state while keeping winners/reviews teasers optional
