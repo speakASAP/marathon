@@ -23,3 +23,4 @@
 - [x] 2026-06-12 Production readiness preflight added: `scripts/check-marathon-readiness.js` performs read-only DB/env checks for registration, VIP checkout, gift redemption, and assignment submission readiness
 - [x] 2026-06-12 Runtime packaging fixed: Docker image now includes operational `scripts/*.js` so `npm run load:catalog` and `npm run check:readiness` are available inside the Marathon pod
 - [x] 2026-06-12 Deploy readiness visibility added: `scripts/deploy.sh` runs the journey readiness preflight after rollout as a non-blocking warning phase
+- [x] 2026-06-12 Public catalog readiness surfaced: `/api/v1/marathons/readiness` exposes safe catalog counts/missing classes and home/register UI now explains registration-closed state when production catalog data is absent

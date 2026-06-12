@@ -25,6 +25,23 @@ export type MarathonLanguage = {
   url: string;
 };
 
+export type MarathonCatalogReadiness = {
+  ready: boolean;
+  registrationOpen: boolean;
+  paymentReady: boolean;
+  giftReady: boolean;
+  assignmentReady: boolean;
+  counts: {
+    activeMarathons: number;
+    marathons: number;
+    products: number;
+    gifts: number;
+    unusedGifts: number;
+    steps: number;
+  };
+  missing: string[];
+};
+
 type MarathonRecord = {
   id: string;
   languageCode: string;
@@ -138,6 +155,53 @@ export class MarathonsService {
         url,
       };
     });
+  }
+
+  async catalogReadiness(): Promise<MarathonCatalogReadiness> {
+    this.logger.debug('Marathon catalog readiness requested');
+    const [
+      activeMarathons,
+      marathons,
+      products,
+      gifts,
+      unusedGifts,
+      steps,
+    ] = await Promise.all([
+      this.prisma.marathon.count({ where: { active: true } }),
+      this.prisma.marathon.count(),
+      this.prisma.marathonProduct.count(),
+      this.prisma.marathonGift.count(),
+      this.prisma.marathonGift.count({ where: { usedAt: null } }),
+      this.prisma.marathonStep.count(),
+    ]);
+
+    const missing: string[] = [];
+    if (activeMarathons === 0) missing.push('active-marathon');
+    if (steps === 0) missing.push('steps');
+    if (products === 0) missing.push('product');
+    if (unusedGifts === 0) missing.push('gift');
+
+    const registrationOpen = activeMarathons > 0;
+    const paymentReady = activeMarathons > 0 && products > 0;
+    const giftReady = activeMarathons > 0 && unusedGifts > 0;
+    const assignmentReady = activeMarathons > 0 && steps > 0;
+
+    return {
+      ready: registrationOpen && paymentReady && giftReady && assignmentReady,
+      registrationOpen,
+      paymentReady,
+      giftReady,
+      assignmentReady,
+      counts: {
+        activeMarathons,
+        marathons,
+        products,
+        gifts,
+        unusedGifts,
+        steps,
+      },
+      missing,
+    };
   }
 }
 

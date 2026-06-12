@@ -1,6 +1,6 @@
 import { Controller, Get, Logger, Param, Query, Req } from '@nestjs/common';
 import { Request } from 'express';
-import { MarathonsService, MarathonSummary, MarathonLanguage } from './marathons.service';
+import { MarathonsService, MarathonSummary, MarathonLanguage, MarathonCatalogReadiness } from './marathons.service';
 
 @Controller('marathons')
 export class MarathonsController {
@@ -53,6 +53,28 @@ export class MarathonsController {
     } catch (error) {
       this.logger.error(
         `Marathon languages failed: error=${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
+  }
+
+  @Get('readiness')
+  async catalogReadiness(@Req() req?: Request): Promise<MarathonCatalogReadiness> {
+    this.logger.log('Marathon catalog readiness request received');
+    this.logger.debug(`Request details: ${JSON.stringify({
+      method: req?.method,
+      path: req?.path,
+      ip: req?.ip,
+    })}`);
+
+    try {
+      const result = await this.marathonsService.catalogReadiness();
+      this.logger.log(`Marathon catalog readiness response: ready=${result.ready}, missing=${result.missing.join(',') || 'none'}`);
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `Marathon catalog readiness failed: error=${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
       throw error;

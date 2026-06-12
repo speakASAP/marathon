@@ -20,6 +20,13 @@ interface Review {
   text: string;
 }
 
+interface CatalogReadiness {
+  registrationOpen: boolean;
+  counts: {
+    activeMarathons: number;
+  };
+}
+
 /**
  * Home: hub with hero, language landings list, and winners/reviews teaser.
  */
@@ -27,6 +34,7 @@ export default function Home() {
   const [languages, setLanguages] = useState<Lang[]>([]);
   const [winners, setWinners] = useState<Winner[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,11 +44,13 @@ export default function Home() {
   useEffect(() => {
     Promise.all([
       fetch('/api/v1/marathons/languages').then((r) => r.json()).then((d: Lang[]) => (Array.isArray(d) ? d : [])),
+      fetch('/api/v1/marathons/readiness').then((r) => (r.ok ? r.json() : null)).catch(() => null),
       fetch('/api/v1/winners?page=1&limit=6').then((r) => r.json()).then((d: { items?: Winner[] }) => (d && Array.isArray(d.items) ? d.items : [])),
       fetch('/api/v1/reviews').then((r) => r.json()).then((d: Review[]) => (Array.isArray(d) ? d.slice(0, 3) : [])),
     ])
-      .then(([langs, win, rev]) => {
+      .then(([langs, ready, win, rev]) => {
         setLanguages(langs);
+        setReadiness(ready);
         setWinners(win);
         setReviews(rev);
       })
@@ -65,6 +75,17 @@ export default function Home() {
         <div className="container">
           <h2 className="home-section-title">Выберите язык</h2>
           {loading && <p className="text-center">Загрузка…</p>}
+          {!loading && languages.length === 0 && (
+            <div className="home-empty-catalog">
+              <h3>Регистрация скоро откроется</h3>
+              <p>
+                Сейчас нет активных языковых марафонов. Каталог production ожидает загрузки
+                утвержденных данных.
+              </p>
+              {readiness && <small>Активные марафоны: {readiness.counts.activeMarathons}</small>}
+              <Link to="/support">Поддержка</Link>
+            </div>
+          )}
           <ul className="home-lang-list">
             {languages.map((lang) => (
               <li key={lang.code}>
