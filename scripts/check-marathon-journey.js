@@ -419,6 +419,13 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Profile is temporarily unavailable') || !js.includes('Profile could not be loaded')) {
     throw new Error('Built frontend bundle does not include profile dashboard load-error state.');
   }
+  if (
+    !js.includes('Registration is not open yet') ||
+    !js.includes('Checking registration status before showing registration actions') ||
+    !js.includes('Статус регистрации')
+  ) {
+    throw new Error('Built frontend bundle does not include readiness-aware empty profile state.');
+  }
   if (!js.includes('Marathon profile is temporarily unavailable') || !js.includes('Marathon profile could not be loaded')) {
     throw new Error('Built frontend bundle does not include profile detail load-error state.');
   }
@@ -533,6 +540,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'checkout-login-handoff', 'VIP checkout UI preserves profile gate return path when login is required.');
   addCheck(report, 'pass', 'checkout-return-state-ui', 'VIP checkout UI validates payment redirects and renders payment return states.');
   addCheck(report, 'pass', 'profile-error-state', 'Profile dashboard distinguishes load failures from login-required state.');
+  addCheck(report, 'pass', 'profile-empty-readiness-state', 'Profile empty state uses registration readiness before linking new marathon actions.');
   addCheck(report, 'pass', 'profile-detail-error-state', 'Profile detail distinguishes load failures from not-found state.');
   addCheck(report, 'pass', 'step-error-state', 'Assignment page distinguishes load failures from not-found state.');
   addCheck(report, 'pass', 'step-peer-empty-state', 'Assignment peer-report tab includes a no-examples empty state.');

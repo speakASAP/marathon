@@ -25,6 +25,10 @@ interface Answer {
   block_reason?: string | null;
 }
 
+interface CatalogReadiness {
+  registrationOpen: boolean;
+}
+
 function getCompletedCount(marathon: MyMarathon) {
   return marathon.answers.filter((answer) => answer.state === 'completed' || answer.state === 'done').length;
 }
@@ -49,6 +53,9 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [unauth, setUnauth] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
+  const [readinessLoading, setReadinessLoading] = useState(true);
+  const [readinessError, setReadinessError] = useState('');
 
   useEffect(() => {
     document.title = 'Мои марафоны — Marathon';
@@ -80,7 +87,25 @@ export default function Profile() {
       });
   }, []);
 
+  useEffect(() => {
+    setReadinessLoading(true);
+    setReadinessError('');
+    fetch('/api/v1/marathons/readiness')
+      .then((response) => {
+        if (!response.ok) throw new Error(`readiness:${response.status}`);
+        return response.json();
+      })
+      .then((data: CatalogReadiness | null) => setReadiness(data))
+      .catch(() => {
+        setReadiness(null);
+        setReadinessError('Registration status could not be loaded.');
+      })
+      .finally(() => setReadinessLoading(false));
+  }, []);
+
   const doLogin = () => redirectToLogin('/profile');
+  const registrationOpen = readiness?.registrationOpen === true;
+  const registrationStatusKnown = !readinessLoading && !readinessError;
 
   if (loading) {
     return (
@@ -135,8 +160,23 @@ export default function Profile() {
       {list.length === 0 ? (
         <section className="profile-empty-panel">
           <h2>У вас пока нет марафонов</h2>
-          <p>Когда регистрация откроется и вы начнете марафон, здесь появятся прогресс, текущий этап и доступ к заданиям.</p>
-          <Link to="/register" className="btn-profile-login">Перейти к регистрации</Link>
+          {readinessLoading ? (
+            <p>Checking registration status before showing registration actions.</p>
+          ) : registrationOpen ? (
+            <p>Registration is open. After you start a marathon, progress, the current assignment, and VIP status appear here.</p>
+          ) : registrationStatusKnown ? (
+            <p>Registration is not open yet. Approved marathon catalog, assignments, VIP product, and gift inventory must be loaded before a new marathon can appear here.</p>
+          ) : (
+            <p>{readinessError} Open the registration status page or contact support before trying to start a marathon.</p>
+          )}
+          <div className="profile-empty-actions">
+            <Link to="/register" className="btn-profile-login">
+              {registrationOpen ? 'Перейти к регистрации' : 'Статус регистрации'}
+            </Link>
+            {!registrationOpen && (
+              <Link to="/support" className="btn-profile-open">Поддержка</Link>
+            )}
+          </div>
         </section>
       ) : (
         <ul className="profile-marathon-list">
