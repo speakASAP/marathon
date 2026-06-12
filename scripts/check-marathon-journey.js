@@ -444,6 +444,15 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   ) {
     throw new Error('Built frontend bundle does not include honest language landing review empty state.');
   }
+  if (
+    !js.includes('How launch opens') ||
+    !js.includes('Participant workflow cards are shown only after approved catalog data is loaded') ||
+    !js.includes('Approve catalog') ||
+    !js.includes('Verify readiness') ||
+    !js.includes('Run journey smoke')
+  ) {
+    throw new Error('Built frontend bundle does not include closed-catalog how-it-works readiness gate.');
+  }
   if (!js.includes('Launch blockers') || !js.includes('ml-missing-gates')) {
     throw new Error('Built frontend bundle does not include language landing missing-launch-gates readiness detail.');
   }
@@ -558,6 +567,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'step-peer-empty-state', 'Assignment peer-report tab includes a no-examples empty state.');
   addCheck(report, 'pass', 'landing-error-state', 'Language landing distinguishes API load failures from closed-catalog fallback state.');
   addCheck(report, 'pass', 'landing-review-empty-state', 'Language landing uses a real-data empty state instead of invented testimonials.');
+  addCheck(report, 'pass', 'landing-how-readiness-state', 'Language landing shows launch-readiness steps instead of live workflow claims before catalog readiness.');
   addCheck(report, 'pass', 'landing-missing-gates-ui', 'Language landing closed-registration panel includes exact missing launch gates from readiness data.');
   addCheck(report, 'pass', 'landing-closed-catalog-real-data-ui', 'Language landing removes invented closed-catalog course, progress, and price markers.');
   addCheck(report, 'pass', 'home-error-state', 'Home page distinguishes readiness API load failures from closed-catalog state.');
