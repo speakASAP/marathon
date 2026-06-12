@@ -3,15 +3,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import RegistrationForm from '../components/RegistrationForm';
 import '../landing.css';
 
-const FREE_DAYS = 3;
-
-const FAQ_ITEMS = [
-  ['How much time do I need each day?', 'Most assignments are designed for 20-30 focused minutes.'],
-  ['Can I start for free?', `Yes. You can register and begin the first ${FREE_DAYS} days before VIP access is required.`],
-  ['What happens after the VIP gate?', 'Free participants are asked to upgrade before post-gate assignments unlock.'],
-  ['How do assignments work?', 'Each day has a clear task, report window, and progress state in your marathon profile.'],
-];
-
 const LANGUAGE_LABELS: Record<string, string> = {
   de: 'German',
   en: 'English',
@@ -119,7 +110,10 @@ export default function Landing() {
   useEffect(() => {
     if (!marathon) return;
     const langName = formatLanguageName(marathon);
-    document.title = `${langName} Marathon — 30 days of daily language practice`;
+    const metaReady = marathon.id !== 'fallback' && readiness?.registrationOpen === true;
+    document.title = metaReady
+      ? `${langName} Marathon — SpeakASAP language practice`
+      : `${langName} Marathon — registration status`;
 
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
@@ -129,7 +123,9 @@ export default function Landing() {
     }
     meta.setAttribute(
       'content',
-      `Join the ${langName} Marathon by SpeakASAP: daily assignments, progress tracking, and VIP access after the free start.`,
+      metaReady
+        ? `Join the ${langName} Marathon by SpeakASAP: approved assignments, profile progress tracking, and VIP access through the Marathon profile.`
+        : `Registration for the ${langName} Marathon opens after approved catalog, assignment, VIP product, and gift data are loaded.`,
     );
 
     let canonical = document.querySelector('link[rel="canonical"]');
@@ -139,7 +135,7 @@ export default function Landing() {
       document.head.appendChild(canonical);
     }
     canonical.setAttribute('href', `${window.location.origin}/${marathon.languageCode}/`);
-  }, [marathon]);
+  }, [marathon, readiness]);
 
   const featuredReviews = useMemo(() => reviews.slice(0, 3), [reviews]);
 
@@ -205,7 +201,7 @@ export default function Landing() {
     ? 'Start now. Upgrade when the marathon gate opens and you are ready to continue.'
     : 'Registration opens after production catalog data is configured for this language.';
   const heroTitle = registrationOpen
-    ? `30 days. Real ${languageName} progress.`
+    ? `${languageName} progress with approved daily practice.`
     : `${languageName} Marathon is being prepared.`;
   const heroIntro = registrationOpen
     ? 'Join a focused language marathon with daily assignments, report windows, progress tracking, and a clear path from free start to full VIP access.'
@@ -216,6 +212,19 @@ export default function Landing() {
   const approvedStepsLabel = readinessCounts
     ? `${readinessCounts.stepsWithContent}/${readinessCounts.steps}`
     : '0/0';
+  const faqItems = registrationOpen
+    ? [
+      ['How much time do I need each day?', 'Use the assignment instructions shown in your profile for the current approved step.'],
+      ['Can I start for free?', 'Registration starts with the free Marathon path. VIP checkout appears from your profile when the gate requires it.'],
+      ['What happens after the VIP gate?', 'Free participants are asked to upgrade before post-gate assignments unlock.'],
+      ['How do assignments work?', 'Each approved task has instructions, report status, and progress state in your marathon profile.'],
+    ]
+    : [
+      ['When will registration open?', 'Registration opens after the approved active marathon, assignments, VIP product, and gift inventory are loaded.'],
+      ['Why is there no price?', 'The landing page does not show a fallback price. VIP checkout uses the approved product configured in production.'],
+      ['Why is there no course preview?', 'Course tasks and assignment text are shown only after approved catalog data exists.'],
+      ['Where can I see launch status?', 'Open Support for the catalog runbook, readiness API, and post-load journey smoke commands.'],
+    ];
 
   return (
     <div className="marathon-landing">
@@ -536,7 +545,7 @@ export default function Landing() {
           <div>
             <h2>Questions? We're here to help.</h2>
             <div className="ml-faq-list">
-              {FAQ_ITEMS.map(([question, answer]) => (
+              {faqItems.map(([question, answer]) => (
                 <details key={question}>
                   <summary>{question}</summary>
                   <p>{answer}</p>

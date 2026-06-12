@@ -448,7 +448,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   ) {
     throw new Error('Built frontend bundle does not include closed-catalog landing readiness-only program and pricing state.');
   }
-  for (const fakeLandingMarker of ['€29', 'Speak about your weekend', 'Day 12', 'A sample run from the Marathon', '40%']) {
+  for (const fakeLandingMarker of ['€29', 'Speak about your weekend', 'Day 12', 'A sample run from the Marathon', '40%', '30 days of daily language practice', '20-30 focused minutes', 'first 3 days']) {
     if (js.includes(fakeLandingMarker)) {
       throw new Error(`Built frontend bundle still includes invented closed-catalog landing marker: ${fakeLandingMarker}`);
     }
