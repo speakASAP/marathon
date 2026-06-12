@@ -48,12 +48,16 @@ export default function Profile() {
   const [list, setList] = useState<MyMarathon[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [unauth, setUnauth] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     document.title = 'Мои марафоны — Marathon';
   }, []);
 
   useEffect(() => {
+    setLoading(true);
+    setLoadError('');
+    setUnauth(false);
     authFetch('/api/v1/me/marathons')
       .then((r) => {
         if (r.status === 401) {
@@ -70,7 +74,10 @@ export default function Profile() {
         }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setLoadError('Profile could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setLoading(false);
+      });
   }, []);
 
   const doLogin = () => redirectToLogin('/profile');
@@ -83,7 +90,7 @@ export default function Profile() {
     );
   }
 
-  if (unauth || !list) {
+  if (unauth) {
     return (
       <div className="container page-static">
         <nav className="page-nav">
@@ -94,6 +101,27 @@ export default function Profile() {
         <button type="button" className="btn-profile-login" onClick={doLogin}>
           Войти через SpeakASAP
         </button>
+      </div>
+    );
+  }
+
+  if (!list) {
+    return (
+      <div className="container page-static">
+        <nav className="page-nav">
+          <Link to="/">Главная</Link>
+        </nav>
+        <h1>Мои марафоны</h1>
+        <section className="profile-empty-panel" role="alert">
+          <h2>Profile is temporarily unavailable</h2>
+          <p>{loadError || 'The marathon profile service did not return a usable response.'}</p>
+          <div className="profile-payment-actions">
+            <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
+              Refresh
+            </button>
+            <Link to="/support" className="btn-profile-login">Contact support</Link>
+          </div>
+        </section>
       </div>
     );
   }
