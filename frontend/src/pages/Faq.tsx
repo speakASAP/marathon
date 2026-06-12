@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
  */
 export default function Faq() {
   useEffect(() => {
-    document.title = 'Помощь в языковых марафонах SpeakASAP® — Marathon';
+    document.title = 'Помощь Marathon — языковые марафоны SpeakASAP®';
   }, []);
 
   return (

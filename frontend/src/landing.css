@@ -51,17 +51,21 @@
   flex: 0 0 auto;
 }
 
-.ml-brand > span,
-.ml-footer strong {
+.ml-brand > span {
   font-size: 1.35rem;
   font-weight: 900;
   letter-spacing: 0;
   text-transform: uppercase;
 }
 
-.ml-brand span span,
 .ml-footer strong span {
   color: var(--ml-coral);
+}
+
+.ml-footer strong {
+  font-size: 1.18rem;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
 .ml-brand small {

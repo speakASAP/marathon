@@ -472,9 +472,14 @@ async function assertFrontendHandoffSource(report, rootHtml) {
     !js.includes('Marathon: языковая практика до результата') ||
     !js.includes('Marathon — языковые марафоны SpeakASAP') ||
     !js.includes('Register for Marathon') ||
-    !js.includes('Secure Marathon registration')
+    !js.includes('Secure Marathon registration') ||
+    !js.includes('Marathon language landing home') ||
+    !js.includes('by SpeakASAP') ||
+    !js.includes('О Marathon') ||
+    !js.includes('Правила Marathon') ||
+    !js.includes('Финалисты Marathon')
   ) {
-    throw new Error('Built frontend bundle does not keep Marathon as the primary public product brand.');
+    throw new Error('Built frontend bundle does not keep Marathon as the primary public product brand across public routes.');
   }
   if (!js.includes('home-missing-gates') || !js.includes('Недостающие условия запуска')) {
     throw new Error('Built frontend bundle does not include home missing-launch-gates readiness detail.');
@@ -554,7 +559,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'landing-missing-gates-ui', 'Language landing closed-registration panel includes exact missing launch gates from readiness data.');
   addCheck(report, 'pass', 'landing-closed-catalog-real-data-ui', 'Language landing removes invented closed-catalog course, progress, and price markers.');
   addCheck(report, 'pass', 'home-error-state', 'Home page distinguishes readiness API load failures from closed-catalog state.');
-  addCheck(report, 'pass', 'public-marathon-branding', 'Public home and registration surfaces keep Marathon as the primary product brand.');
+  addCheck(report, 'pass', 'public-marathon-branding', 'Public home, landing, registration, and static pages keep Marathon as the primary product brand.');
   addCheck(report, 'pass', 'home-missing-gates-ui', 'Home closed-catalog panel includes exact missing launch gates from readiness data.');
   addCheck(report, 'pass', 'home-teaser-empty-state', 'Home finalists and reviews teasers include post-load empty states.');
   addCheck(report, 'pass', 'winners-empty-state-ui', 'Winners frontend includes a post-load empty state.');

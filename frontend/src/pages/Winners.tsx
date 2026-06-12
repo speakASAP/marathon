@@ -26,7 +26,7 @@ export default function Winners() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.title = 'Финалисты языкового марафона SpeakASAP® — Marathon';
+    document.title = 'Финалисты Marathon — языковые марафоны SpeakASAP®';
   }, []);
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function Winners() {
 
   return (
     <div className="container page-winners">
-      <h1>Финалисты языковых марафонов SpeakASAP®</h1>
+      <h1>Финалисты Marathon</h1>
       {loading && items.length === 0 && <p>Загрузка…</p>}
       {hasLoadedEmptyState && (
         <section className="winners-empty-state">

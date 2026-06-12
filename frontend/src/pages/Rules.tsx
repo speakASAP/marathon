@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
  */
 export default function Rules() {
   useEffect(() => {
-    document.title = 'Правила языковых марафонов SpeakASAP® — Marathon';
+    document.title = 'Правила Marathon — языковые марафоны SpeakASAP®';
   }, []);
 
   return (
@@ -16,7 +16,7 @@ export default function Rules() {
         <span> · </span>
         <Link to="/winners">Финалисты</Link>
       </nav>
-      <h1>Правила языковых марафонов SpeakASAP®</h1>
+      <h1>Правила Marathon</h1>
       <div className="static-content">
         <h2>Структура марафона</h2>
         <p>Марафон состоит из 11 грамматических этапов. Этап состоит из 1–3 дней.</p>

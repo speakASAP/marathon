@@ -229,9 +229,9 @@ export default function Landing() {
   return (
     <div className="marathon-landing">
       <header className="ml-nav">
-        <Link to="/" className="ml-brand" aria-label="SpeakASAP Marathon home">
-          <span>Speak<span>ASAP</span></span>
-          <small>Marathon</small>
+        <Link to="/" className="ml-brand" aria-label="Marathon language landing home">
+          <span>Marathon</span>
+          <small>by SpeakASAP</small>
         </Link>
         <nav className="ml-nav-links" aria-label="Landing navigation">
           <a href="#how">How it works</a>
@@ -602,7 +602,7 @@ export default function Landing() {
 
       <footer className="ml-footer">
         <div>
-          <strong>Speak<span>ASAP</span> Marathon</strong>
+          <strong>Marathon <span>by SpeakASAP</span></strong>
           <p>Skopalikova 1144/11, 615 00 Brno, Czech Republic</p>
         </div>
         <nav aria-label="Footer">
