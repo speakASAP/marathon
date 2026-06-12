@@ -1,103 +1,18 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { authFetch, redirectToLogin } from '../auth';
-
-interface Answer {
-  id: string | number;
-  stepId: string;
-  title: string;
-  start: string;
-  stop: string;
-  state: string;
-  is_late: boolean;
-  block_reason?: string | null;
-}
-
-interface MyMarathon {
-  id: string;
-  title: string;
-  type: string;
-  needs_payment: boolean;
-  bonus_left: number;
-  bonus_total: number;
-  can_change_report_time: boolean;
-  report_time: string | null;
-  current_step: Answer | null;
-  answers: Answer[];
-  finished_at: string | null;
-  nps_survey: NpsSurvey | null;
-}
-
-interface NpsSurvey {
-  score: number;
-  comment: string | null;
-  submitted_at: string;
-}
-
-interface ProgressReport {
-  generatedAt: string;
-  participant: {
-    id: string;
-    name: string | null;
-    email: string | null;
-    active: boolean;
-    registeredAt: string;
-    finishedAt: string | null;
-  };
-  marathon: {
-    id: string;
-    title: string;
-    languageCode: string;
-    slug: string;
-  };
-  access: {
-    type: string;
-    needsPayment: boolean;
-    vipRequired: boolean;
-    paymentReported: boolean;
-    bonusDaysLeft: number;
-    bonusDaysTotal: number;
-  };
-  summary: {
-    totalSteps: number;
-    completedSteps: number;
-    checkedSteps: number;
-    activeSteps: number;
-    lockedSteps: number;
-    lateSteps: number;
-    trialSteps: number;
-    gatedSteps: number;
-    completionPercent: number;
-    penaltyReports: number;
-    paymentAttempts: number;
-  };
-  currentStep: {
-    title: string;
-    state: string;
-    isLate: boolean;
-    blockReason?: string | null;
-  } | null;
-  steps: Array<{
-    stepId: string;
-    sequence: number;
-    title: string;
-    state: string;
-    isTrialStep: boolean;
-    isLate: boolean;
-    submittedAt: string | null;
-    blockReason?: string | null;
-  }>;
-  paymentAttempts: Array<{
-    orderId: string;
-    status: string;
-    amount: string;
-    currency: string;
-    paymentMethod: string;
-    createdAt: string;
-    confirmedAt: string | null;
-  }>;
-}
+import { redirectToLogin } from '../auth';
+import {
+  MarathonAuthRequiredError,
+  MarathonNotFoundError,
+  createVipCheckout,
+  fetchMyMarathon,
+  fetchProgressReport,
+  saveNpsSurvey,
+  type Answer,
+  type MyMarathon,
+  type ProgressReport,
+} from '../api/profileMarathon';
 
 type PaymentReturnState = 'success' | 'cancelled' | null;
 
@@ -130,22 +45,6 @@ function getStepMeta(answer: Answer) {
     return `Saved ${formatDateTime(answer.stop)}.`;
   }
   return `${answer.is_late ? 'Late. ' : ''}Due ${formatDateTime(answer.stop)}.`;
-}
-
-function getCheckoutRedirectUrl(body: unknown) {
-  const payload = body as {
-    redirectUrl?: unknown;
-    payment?: { data?: { redirectUrl?: unknown }; redirectUrl?: unknown };
-  };
-  const rawUrl = payload.redirectUrl ?? payload.payment?.data?.redirectUrl ?? payload.payment?.redirectUrl;
-  if (typeof rawUrl !== 'string' || !rawUrl.trim()) return '';
-  try {
-    const url = new URL(rawUrl, window.location.origin);
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return '';
-    return url.href;
-  } catch {
-    return '';
-  }
 }
 
 /**
@@ -183,27 +82,19 @@ export default function ProfileDetail() {
     setUnauth(false);
     setNotFound(false);
     setLoadError('');
-    authFetch(`/api/v1/me/marathons/${marathonerId}`)
-      .then((r) => {
-        if (r.status === 401) {
-          setUnauth(true);
-          setLoading(false);
-          return null;
-        }
-        if (r.status === 404) {
-          setNotFound(true);
-          setLoading(false);
-          return null;
-        }
-        if (!r.ok) throw new Error(String(r.status));
-        return r.json();
-      })
-      .then((d) => {
-        if (d) setData(d);
+    fetchMyMarathon(marathonerId)
+      .then((marathonData) => {
+        setData(marathonData);
         setLoading(false);
       })
-      .catch(() => {
-        setLoadError('Marathon profile could not be loaded. Refresh this page, or contact support if the problem continues.');
+      .catch((error) => {
+        if (error instanceof MarathonAuthRequiredError) {
+          setUnauth(true);
+        } else if (error instanceof MarathonNotFoundError) {
+          setNotFound(true);
+        } else {
+          setLoadError('Marathon profile could not be loaded. Refresh this page, or contact support if the problem continues.');
+        }
         setLoading(false);
       });
   }, [marathonerId]);
@@ -280,26 +171,17 @@ export default function ProfileDetail() {
     setCheckoutLoading(true);
     setCheckoutError('');
     try {
-      const res = await authFetch('/api/v1/vip/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ marathonerId: data.id }),
-      });
-      if (res.status === 401) {
-        redirectToLogin(`/profile/${data.id}#vip-access`);
-        return;
-      }
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(body.message || body.error || `Checkout failed (${res.status})`);
-      }
-      const redirectUrl = getCheckoutRedirectUrl(body);
+      const redirectUrl = await createVipCheckout(data.id);
       if (redirectUrl) {
         window.location.href = redirectUrl;
         return;
       }
       setCheckoutError('Checkout was created, but no valid payment redirect URL was returned.');
     } catch (error) {
+      if (error instanceof MarathonAuthRequiredError) {
+        redirectToLogin(`/profile/${data.id}#vip-access`);
+        return;
+      }
       setCheckoutError(error instanceof Error ? error.message : 'Checkout failed');
     } finally {
       setCheckoutLoading(false);
@@ -311,17 +193,12 @@ export default function ProfileDetail() {
     setReportLoading(true);
     setReportError('');
     try {
-      const res = await authFetch(`/api/v1/me/marathons/${encodeURIComponent(data.id)}/progress-report`);
-      if (res.status === 401) {
+      setReport(await fetchProgressReport(data.id));
+    } catch (error) {
+      if (error instanceof MarathonAuthRequiredError) {
         redirectToLogin(`/profile/${data.id}`);
         return;
       }
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(body.message || body.error || `Progress report failed (${res.status})`);
-      }
-      setReport(body);
-    } catch (error) {
       setReportError(error instanceof Error ? error.message : 'Progress report could not be generated');
     } finally {
       setReportLoading(false);
@@ -349,22 +226,14 @@ export default function ProfileDetail() {
     setNpsError('');
     setNpsMessage('');
     try {
-      const res = await authFetch(`/api/v1/me/marathons/${encodeURIComponent(data.id)}/nps`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ score: npsScore, comment: npsComment }),
-      });
-      if (res.status === 401) {
-        redirectToLogin(`/profile/${data.id}`);
-        return;
-      }
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(body.message || body.error || `Feedback failed (${res.status})`);
-      }
+      const body = await saveNpsSurvey(data.id, npsScore, npsComment);
       setData({ ...data, nps_survey: body });
       setNpsMessage('Thank you. Your marathon feedback was saved.');
     } catch (error) {
+      if (error instanceof MarathonAuthRequiredError) {
+        redirectToLogin(`/profile/${data.id}`);
+        return;
+      }
       setNpsError(error instanceof Error ? error.message : 'Feedback could not be saved');
     } finally {
       setNpsSaving(false);
