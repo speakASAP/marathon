@@ -12,6 +12,7 @@ interface CatalogReadiness {
   counts: {
     activeMarathons: number;
     steps: number;
+    stepsWithContent: number;
     products: number;
     unusedGifts: number;
   };
@@ -44,7 +45,8 @@ export default function Register() {
       .catch(() => setLoading(false));
   }, []);
 
-  const registrationClosed = !loading && languages.length === 0;
+  const registrationClosed = !loading && readiness?.registrationOpen !== true;
+  const visibleLanguages = registrationClosed ? [] : languages;
 
   return (
     <div className="container page-static">
@@ -58,13 +60,14 @@ export default function Register() {
         <section className="registration-closed-panel" aria-live="polite">
           <h2>Регистрация пока закрыта</h2>
           <p>
-            Активный марафон еще не настроен в production. Как только каталог марафона будет загружен,
-            здесь появятся доступные языки.
+            Production каталог еще не готов для регистрации. Как только активный марафон, задания,
+            VIP продукт и подарочные коды будут утверждены, здесь появятся доступные языки.
           </p>
           {readiness && (
             <dl className="registration-readiness-list">
               <div><dt>Активные марафоны</dt><dd>{readiness.counts.activeMarathons}</dd></div>
               <div><dt>Этапы</dt><dd>{readiness.counts.steps}</dd></div>
+              <div><dt>Этапы с заданиями</dt><dd>{readiness.counts.stepsWithContent}</dd></div>
               <div><dt>VIP продукты</dt><dd>{readiness.counts.products}</dd></div>
               <div><dt>Подарочные коды</dt><dd>{readiness.counts.unusedGifts}</dd></div>
             </dl>
@@ -73,7 +76,7 @@ export default function Register() {
         </section>
       )}
       <ul className="register-lang-list">
-        {languages.map((lang) => (
+        {visibleLanguages.map((lang) => (
           <li key={lang.code}>
             <Link to={`/${lang.code}/#register`}>{lang.name}</Link>
           </li>

@@ -43,6 +43,10 @@ interface Review {
   text: string;
 }
 
+interface CatalogReadiness {
+  registrationOpen: boolean;
+}
+
 function formatLanguageName(marathon: MarathonSummary): string {
   return marathon.title || marathon.languageCode.toUpperCase();
 }
@@ -51,6 +55,7 @@ export default function Landing() {
   const { langSlug } = useParams<{ langSlug: string }>();
   const [marathon, setMarathon] = useState<MarathonSummary | null>(null);
   const [languages, setLanguages] = useState<LangItem[]>([]);
+  const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [formError, setFormError] = useState('');
@@ -65,15 +70,19 @@ export default function Landing() {
       fetch('/api/v1/marathons/languages')
         .then((r) => (r.ok ? r.json() : []))
         .then((data: LangItem[]) => (Array.isArray(data) ? data : [])),
+      fetch('/api/v1/marathons/readiness')
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
       fetch('/api/v1/reviews').then((r) => (r.ok ? r.json() : [])),
     ])
-      .then(([marathonData, langs, reviewsData]) => {
+      .then(([marathonData, langs, readinessData, reviewsData]) => {
         setMarathon(marathonData || {
           id: 'fallback',
           languageCode: langSlug,
           title: `${langSlug.toUpperCase()} language`,
         });
         setLanguages(langs);
+        setReadiness(readinessData);
         setReviews(Array.isArray(reviewsData) ? reviewsData : []);
       })
       .catch(() => {
@@ -83,6 +92,7 @@ export default function Landing() {
           title: `${langSlug.toUpperCase()} language`,
         });
         setLanguages([]);
+        setReadiness(null);
         setReviews([]);
       })
       .finally(() => setLoading(false));
@@ -145,13 +155,14 @@ export default function Landing() {
   const languageName = formatLanguageName(marathon);
   const activeLanguage = languages.find((language) => language.code === marathon.languageCode);
   const hasActiveMarathon = marathon.id !== 'fallback';
-  const registrationStatusId = hasActiveMarathon ? undefined : 'registration-status-note';
-  const startCtaLabel = hasActiveMarathon ? 'Start my marathon' : 'Registration opens soon';
-  const heroCtaLabel = hasActiveMarathon ? 'Start for free' : 'View registration status';
-  const heroSecondary = hasActiveMarathon
+  const registrationOpen = hasActiveMarathon && readiness?.registrationOpen === true;
+  const registrationStatusId = registrationOpen ? undefined : 'registration-status-note';
+  const startCtaLabel = registrationOpen ? 'Start my marathon' : 'Registration opens soon';
+  const heroCtaLabel = registrationOpen ? 'Start for free' : 'View registration status';
+  const heroSecondary = registrationOpen
     ? { to: '/profile', label: 'Open my marathon' }
     : { to: '/support', label: 'Contact support' };
-  const pricingIntro = hasActiveMarathon
+  const pricingIntro = registrationOpen
     ? 'Start now. Upgrade when the marathon gate opens and you are ready to continue.'
     : 'Registration opens after production catalog data is configured for this language.';
 
@@ -192,7 +203,7 @@ export default function Landing() {
           <Link to="/profile" className="ml-secondary-action">My marathon</Link>
           <button
             type="button"
-            className={`ml-primary-action${hasActiveMarathon ? '' : ' is-closed'}`}
+            className={`ml-primary-action${registrationOpen ? '' : ' is-closed'}`}
             onClick={scrollToForm}
             aria-describedby={registrationStatusId}
           >
@@ -212,7 +223,7 @@ export default function Landing() {
             <div className="ml-hero-actions">
               <button
                 type="button"
-                className={`ml-primary-action large${hasActiveMarathon ? '' : ' is-closed'}`}
+                className={`ml-primary-action large${registrationOpen ? '' : ' is-closed'}`}
                 onClick={scrollToForm}
                 aria-describedby={registrationStatusId}
               >
@@ -220,9 +231,9 @@ export default function Landing() {
               </button>
               <Link to={heroSecondary.to} className="ml-outline-action">{heroSecondary.label}</Link>
             </div>
-            {!hasActiveMarathon && (
+            {!registrationOpen && (
               <p className="ml-availability-note" id="registration-status-note">
-                Registration is closed until an active marathon and course catalog are configured in production.
+                Registration is closed until the active marathon, assignments, VIP product, and gift codes are configured in production.
               </p>
             )}
             <dl className="ml-hero-points" aria-label="Marathon highlights">
@@ -290,7 +301,7 @@ export default function Landing() {
                 <li>Community access</li>
               </ul>
               <button type="button" className="ml-outline-action" onClick={scrollToForm}>
-                {hasActiveMarathon ? 'Start for free' : 'View registration status'}
+                {registrationOpen ? 'Start for free' : 'View registration status'}
               </button>
             </article>
             <article className="ml-plan vip">
@@ -304,7 +315,7 @@ export default function Landing() {
                 <li>Detailed corrections and support</li>
                 <li>Certificate path</li>
               </ul>
-              {hasActiveMarathon ? (
+              {registrationOpen ? (
                 <Link to="/profile" className="ml-primary-action">Upgrade from profile</Link>
               ) : (
                 <button type="button" className="ml-primary-action is-closed" onClick={scrollToForm}>
@@ -315,11 +326,11 @@ export default function Landing() {
             <aside className="ml-payment-panel">
               <h3>VIP access</h3>
               <p>
-                {hasActiveMarathon
-                  ? 'Payments are routed through the shared payments service. Gift-code redemption and checkout are tracked in the current implementation plan.'
+                {registrationOpen
+                  ? 'Payments are routed through the shared payments service. Checkout and gift-code redemption unlock VIP access from the marathon profile.'
                   : 'VIP checkout and gift-code redemption will open after an active marathon catalog is configured.'}
               </p>
-              {hasActiveMarathon ? (
+              {registrationOpen ? (
                 <Link to="/gift" className="ml-outline-action">Gift code</Link>
               ) : (
                 <button type="button" className="ml-outline-action" onClick={scrollToForm}>
@@ -396,16 +407,16 @@ export default function Landing() {
           <div className="ml-register-copy">
             <h2>Start your {languageName} Marathon</h2>
             <p>
-              {hasActiveMarathon
+              {registrationOpen
                 ? 'Register with your email. The platform creates your participant record and sends a confirmation.'
-                : 'Registration will open once an active marathon is configured for this language.'}
+                : 'Registration will open once the production catalog is ready for this language.'}
             </p>
             {registeredId && (
               <p className="ml-success">Registration received. Participant ID: {registeredId}</p>
             )}
             {formError && <p className="ml-error">{formError}</p>}
           </div>
-          {hasActiveMarathon ? (
+          {registrationOpen ? (
             <RegistrationForm
               languageCode={marathon.languageCode}
               marathonTitle={marathon.title}
@@ -415,7 +426,7 @@ export default function Landing() {
           ) : (
             <div className="ml-registration-unavailable">
               <h3>Registration is not open yet</h3>
-              <p>No active marathon is configured in production for this language.</p>
+              <p>The production catalog must include an active marathon, approved assignment content, VIP product, and gift codes before registration opens.</p>
               <Link to="/support" className="ml-outline-action">Contact support</Link>
             </div>
           )}

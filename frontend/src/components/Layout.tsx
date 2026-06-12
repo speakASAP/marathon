@@ -19,7 +19,7 @@ export default function Layout() {
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const location = useLocation();
   const bare = isLandingPath(location.pathname);
-  const registrationClosed = readiness?.registrationOpen === false;
+  const registrationClosed = readiness?.registrationOpen !== true;
 
   useEffect(() => {
     fetch('/api/v1/marathons/readiness')

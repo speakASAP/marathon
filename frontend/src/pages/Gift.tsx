@@ -74,7 +74,7 @@ export default function Gift() {
   };
 
   const giftUnavailable = !readinessLoading && readiness?.giftReady === false;
-  const registrationClosed = !readinessLoading && readiness?.registrationOpen === false;
+  const registrationClosed = !readinessLoading && readiness?.registrationOpen !== true;
 
   return (
     <div className="container page-static gift-page">

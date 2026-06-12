@@ -22,7 +22,7 @@ Standalone marathon product (NestJS + TypeScript).
 
 ## Catalog Data
 
-Registration and VIP verification require approved catalog rows in `Marathon`, `MarathonStep`, `MarathonProduct`, and optionally `MarathonGift`. Every `MarathonStep` must include approved plain-text `assignmentContent`; the app will not treat placeholder or missing assignment instructions as launch-ready.
+Registration and VIP verification require approved catalog rows in `Marathon`, `MarathonStep`, `MarathonProduct`, and optionally `MarathonGift`. Every `MarathonStep` must include approved plain-text `assignmentContent`; the app will not treat placeholder or missing assignment instructions as launch-ready. The registration API rejects participant creation until the selected language has a launch-ready active catalog.
 
 Use the safe catalog-only loader for human-approved source data:
 

@@ -24,6 +24,10 @@ interface CatalogReadiness {
   registrationOpen: boolean;
   counts: {
     activeMarathons: number;
+    steps: number;
+    stepsWithContent: number;
+    products: number;
+    unusedGifts: number;
   };
 }
 
@@ -57,7 +61,7 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, []);
 
-  const registrationOpen = readiness?.registrationOpen ?? languages.length > 0;
+  const registrationOpen = readiness?.registrationOpen === true;
   const catalogClosed = !loading && !registrationOpen;
   const heroSub = catalogClosed
     ? 'Регистрация откроется после загрузки утвержденного каталога марафона.'
@@ -84,19 +88,25 @@ export default function Home() {
         <div className="container">
           <h2 className="home-section-title">Выберите язык</h2>
           {loading && <p className="text-center">Загрузка…</p>}
-          {!loading && languages.length === 0 && (
+          {catalogClosed && (
             <div className="home-empty-catalog">
               <h3>Регистрация скоро откроется</h3>
               <p>
-                Сейчас нет активных языковых марафонов. Каталог production ожидает загрузки
-                утвержденных данных.
+                Production каталог ожидает утвержденных марафонов, заданий, VIP продукта и подарочных кодов.
               </p>
-              {readiness && <small>Активные марафоны: {readiness.counts.activeMarathons}</small>}
+              {readiness && (
+                <small>
+                  Активные марафоны: {readiness.counts.activeMarathons};
+                  {' '}этапы с заданиями: {readiness.counts.stepsWithContent}/{readiness.counts.steps};
+                  {' '}VIP продукты: {readiness.counts.products};
+                  {' '}подарочные коды: {readiness.counts.unusedGifts}
+                </small>
+              )}
               <Link to="/support">Поддержка</Link>
             </div>
           )}
           <ul className="home-lang-list">
-            {languages.map((lang) => (
+            {!catalogClosed && languages.map((lang) => (
               <li key={lang.code}>
                 <Link to={`/${lang.code}/`} className="home-lang-card">
                   {lang.name}

@@ -30,11 +30,31 @@ export class RegistrationsService {
     if (!payload.email && !payload.phone) {
       throw new BadRequestException('Email or phone is required');
     }
+    const languageCode = payload.languageCode?.trim();
+    if (!languageCode) {
+      throw new BadRequestException('languageCode is required');
+    }
 
     const marathon = await this.prisma.marathon.findFirst({
       where: {
-        languageCode: payload.languageCode,
+        languageCode,
         active: true,
+      },
+      include: {
+        product: true,
+        gifts: {
+          where: { usedAt: null },
+          select: { id: true },
+        },
+        steps: {
+          orderBy: { sequence: 'asc' },
+          select: {
+            assignmentContent: true,
+            isTrialStep: true,
+            sequence: true,
+            title: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -42,6 +62,7 @@ export class RegistrationsService {
     if (!marathon) {
       throw new BadRequestException('No active marathon found');
     }
+    this.assertRegistrationReady(marathon);
 
     const reportHour = new Date();
     reportHour.setMinutes(0, 0, 0);
@@ -78,5 +99,30 @@ export class RegistrationsService {
     }
 
     return { marathonerId: participant.id, redirectUrl };
+  }
+
+  private assertRegistrationReady(marathon: {
+    product: unknown | null;
+    gifts: { id: string }[];
+    steps: { assignmentContent: string | null; isTrialStep: boolean; sequence: number; title: string }[];
+  }): void {
+    if (!marathon.product) {
+      throw new BadRequestException('Registration is not open: VIP product is not configured');
+    }
+    if (marathon.gifts.length === 0) {
+      throw new BadRequestException('Registration is not open: gift-code inventory is not configured');
+    }
+    if (marathon.steps.length === 0) {
+      throw new BadRequestException('Registration is not open: marathon steps are not configured');
+    }
+    if (!marathon.steps.some((step) => !step.isTrialStep)) {
+      throw new BadRequestException('Registration is not open: post-gate assignment path is not configured');
+    }
+    const missingContent = marathon.steps.find((step) => !step.assignmentContent?.trim());
+    if (missingContent) {
+      throw new BadRequestException(
+        `Registration is not open: assignment content is missing for step ${missingContent.sequence} (${missingContent.title})`,
+      );
+    }
   }
 }

@@ -208,13 +208,13 @@ export class MarathonsService {
     if (!allActiveHaveProducts) missing.push('product');
     if (!allActiveHaveGifts) missing.push('gift');
 
-    const registrationOpen = activeMarathons > 0;
-    const paymentReady = registrationOpen && allActiveHaveProducts;
-    const giftReady = registrationOpen && allActiveHaveGifts;
-    const assignmentReady = registrationOpen && allActiveHaveSteps && allActiveHaveGatedSteps && allActiveStepsHaveContent;
+    const paymentReady = activeCatalog.length > 0 && allActiveHaveProducts;
+    const giftReady = activeCatalog.length > 0 && allActiveHaveGifts;
+    const assignmentReady = activeCatalog.length > 0 && allActiveHaveSteps && allActiveHaveGatedSteps && allActiveStepsHaveContent;
+    const registrationOpen = paymentReady && giftReady && assignmentReady;
 
     return {
-      ready: registrationOpen && paymentReady && giftReady && assignmentReady,
+      ready: registrationOpen,
       registrationOpen,
       paymentReady,
       giftReady,
