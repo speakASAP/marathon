@@ -155,7 +155,16 @@ a:hover {
 }
 
 @media (max-width: 768px) {
+  .navbar-brand {
+    order: 1;
+  }
+
+  .navbar-toggle {
+    order: 2;
+  }
+
   .main-nav-links {
+    order: 3;
     display: none;
     width: 100%;
     flex-direction: column;
