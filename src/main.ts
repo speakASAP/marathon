@@ -31,7 +31,7 @@ async function bootstrap(): Promise<void> {
     app.enableShutdownHooks();
     app.setGlobalPrefix('api/v1', { exclude: ['health', 'info'] });
     const expressApp = app.getHttpAdapter().getInstance();
-    expressApp.get(/^\/(?!api\/v1(?:\/|$)|health$|info$|assets\/|static\/|img\/|favicon\.ico$).*/, (_req: any, res: any) => {
+    expressApp.get(/^\/(?!api\/v1(?:\/|$)|health$|info$|assets\/|catalog\/|static\/|img\/|favicon\.ico$).*/, (_req: any, res: any) => {
       res.sendFile(join(__dirname, '..', 'public', 'index.html'));
     });
     const port = Number(process.env.PORT);
