@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-009
-status: active
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -29,8 +29,7 @@ Turn the support dashboard's closed-catalog warning into an operator-facing laun
 
 ## Acceptance Criteria
 
-- [ ] `/support` shows a launch gate panel when catalog readiness is false.
-- [ ] The panel lists the missing catalog classes from analytics.
-- [ ] The panel displays the safe loader command sequence.
-- [ ] Browser QA verifies the rendered panel and console health.
-
+- [x] `/support` shows a launch gate panel when catalog readiness is false.
+- [x] The panel lists the missing catalog classes from analytics.
+- [x] The panel displays the safe loader command sequence.
+- [x] Browser QA verifies the rendered panel and console health.
