@@ -242,6 +242,61 @@ async function assertPublicCatalogContract(report) {
   addCheck(report, 'pass', 'catalog-contract-example', 'Public catalog example is placeholder-only JSON.');
 }
 
+async function assertClosedCatalogLanguageFallback(report, options) {
+  const language = options.language || 'en';
+  const landingPath = `/${encodeURIComponent(language)}/`;
+  await assertFrontendShell(
+    report,
+    landingPath,
+    'frontend-language-fallback-shell',
+    `${landingPath} language landing route serves the frontend shell before catalog readiness.`,
+  );
+
+  const marathonResponse = await request(report, `/api/v1/marathons/by-language/${encodeURIComponent(language)}`);
+  if (marathonResponse.status === 404) {
+    addCheck(
+      report,
+      'pass',
+      'language-marathon-api-no-active',
+      `No active marathon API response for ${language} is represented as HTTP 404.`,
+    );
+    return;
+  }
+
+  assertOk(marathonResponse, `/api/v1/marathons/by-language/${language}`);
+  const body = await marathonResponse.text();
+  if (!body.trim()) {
+    addCheck(
+      report,
+      'pass',
+      'language-marathon-api-empty-safe',
+      `No active marathon API response for ${language} is represented as an empty HTTP 200 body.`,
+    );
+    return;
+  }
+
+  let marathon = null;
+  try {
+    marathon = JSON.parse(body);
+  } catch (error) {
+    throw new Error(`/api/v1/marathons/by-language/${language} returned malformed JSON.`);
+  }
+
+  if (marathon && typeof marathon === 'object' && !Array.isArray(marathon)) {
+    addCheck(
+      report,
+      'pass',
+      marathon.id ? 'language-marathon-api-active' : 'language-marathon-api-empty-object-safe',
+      marathon.id
+        ? `Active marathon API returned configured marathon data for ${language}.`
+        : `No active marathon API response for ${language} is represented as an empty JSON object.`,
+    );
+    return;
+  }
+
+  throw new Error(`/api/v1/marathons/by-language/${language} returned an unexpected response shape.`);
+}
+
 async function assertFrontendHandoffSource(report, rootHtml) {
   const assetMatch = rootHtml.match(/<script[^>]+src="([^"]*\/assets\/[^"]+\.js)"/);
   if (!assetMatch) {
@@ -326,6 +381,7 @@ async function checkPublicRoutes(report, options) {
   addCheck(report, 'pass', 'frontend-root', 'Root frontend shell is served with built assets.');
 
   await assertPublicCatalogContract(report);
+  await assertClosedCatalogLanguageFallback(report, options);
 
   const register = await request(report, '/register');
   assertOk(register, '/register');
