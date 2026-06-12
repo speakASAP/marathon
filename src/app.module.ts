@@ -12,6 +12,7 @@ import { StepsModule } from './steps/steps.module';
 import { MeModule } from './me/me.module';
 import { VipModule } from './vip/vip.module';
 import { SubmissionsModule } from './submissions/submissions.module';
+import { RunlayerModule } from './runlayer/runlayer.module';
 import { RequestContextMiddleware } from './shared/request-context.middleware';
 import { NotificationsService } from './shared/notifications.service';
 import { PrismaService } from './shared/prisma.service';
@@ -32,6 +33,7 @@ import { PrismaService } from './shared/prisma.service';
     MeModule,
     VipModule,
     SubmissionsModule,
+    RunlayerModule,
   ],
   controllers: [AppController],
   providers: [AppService, NotificationsService, PrismaService],

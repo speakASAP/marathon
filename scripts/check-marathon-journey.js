@@ -298,6 +298,44 @@ async function checkPublicRoutes(report, options) {
   }
   addCheck(report, 'pass', 'analytics-dashboard', 'Marathon analytics endpoint returns aggregate registration, assignment, payment, and NPS metrics.');
 
+  const runlayerReadiness = await requestJson(report, '/api/v1/tasks/execute', {
+    method: 'POST',
+    body: JSON.stringify({
+      task_id: 'smoke-runlayer-readiness',
+      type: 'marathon:readiness_report',
+      payload_ref: { smoke: true },
+      acceptance_criteria: ['returns output_ref'],
+    }),
+  });
+  assertOk(runlayerReadiness.response, '/api/v1/tasks/execute marathon:readiness_report');
+  if (
+    runlayerReadiness.json?.output_ref?.source !== 'marathon' ||
+    runlayerReadiness.json?.output_ref?.task_type !== 'marathon:readiness_report' ||
+    !runlayerReadiness.json?.output_ref?.readiness
+  ) {
+    throw new Error('Marathon RunLayer readiness task did not return the expected output_ref shape.');
+  }
+  addCheck(report, 'pass', 'runlayer-readiness-task', 'Marathon RunLayer readiness task returns safe output_ref readiness data.');
+
+  const runlayerEngagement = await requestJson(report, '/api/v1/tasks/execute', {
+    method: 'POST',
+    body: JSON.stringify({
+      task_id: 'smoke-runlayer-engagement',
+      type: 'marathon:participant_engagement_plan',
+      payload_ref: { smoke: true },
+      acceptance_criteria: ['returns aggregate-only plan'],
+    }),
+  });
+  assertOk(runlayerEngagement.response, '/api/v1/tasks/execute marathon:participant_engagement_plan');
+  if (
+    runlayerEngagement.json?.output_ref?.source !== 'marathon' ||
+    !Array.isArray(runlayerEngagement.json?.output_ref?.available_task_types) ||
+    !String(runlayerEngagement.json?.output_ref?.privacy || '').includes('participant identifiers')
+  ) {
+    throw new Error('Marathon RunLayer engagement task did not return the expected aggregate-only output_ref shape.');
+  }
+  addCheck(report, 'pass', 'runlayer-engagement-task', 'Marathon RunLayer engagement task returns aggregate-only task planning data.');
+
   await assertFrontendShell(
     report,
     '/profile/smoke-participant?marathon_token=smoke-token',
