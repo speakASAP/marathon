@@ -73,3 +73,4 @@
 - [x] 2026-06-12 Winners empty state deployed: `/winners` now explains the no-finalists state after an empty winners response and links visitors to registration status/support
 - [x] 2026-06-12 Assignment empty/error states hardened: the peer-report tab now explains no-example states and the report form blocks submission when saved-report status cannot be verified
 - [x] 2026-06-12 VIP checkout redirect validation hardened: profile checkout now rejects malformed payment redirects, journey smoke requires valid checkout redirect URLs, and payment return states are covered
+- [x] 2026-06-12 Authenticated registration binding deployed: registration now validates optional Marathon bearer tokens, binds participants to `userId` at creation, and smoke checks require `userBound=true`

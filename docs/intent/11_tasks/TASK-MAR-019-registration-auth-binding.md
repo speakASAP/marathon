@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-019
-status: active
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -31,8 +31,8 @@ Make registration bind a new participant to the authenticated portal user whenev
 
 ## Acceptance Criteria
 
-- [ ] Authenticated registration requests create participants with `userId` set.
-- [ ] Invalid registration bearer tokens return 401 instead of silently creating an unbound participant.
-- [ ] Frontend registration handles expired sessions by sending the participant through portal login.
-- [ ] Mutating journey smoke verifies `userBound=true` before profile/payment/assignment checks.
-- [ ] Build, deploy, Browser/API QA, and validation evidence are recorded.
+- [x] Authenticated registration requests create participants with `userId` set.
+- [x] Invalid registration bearer tokens return 401 instead of silently creating an unbound participant.
+- [x] Frontend registration handles expired sessions by sending the participant through portal login.
+- [x] Mutating journey smoke verifies `userBound=true` before profile/payment/assignment checks.
+- [x] Build, deploy, Browser/API QA, and validation evidence are recorded.
