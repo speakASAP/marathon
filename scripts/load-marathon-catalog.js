@@ -2,8 +2,8 @@
 /**
  * Load human-approved Marathon catalog data only.
  *
- * This intentionally rejects participant/progress data. Use the historical
- * load-marathon-export scripts only for explicitly approved full migrations.
+ * This intentionally rejects participant/progress data. Legacy full-export
+ * loaders are disabled because historical exports include user progress.
  */
 
 const fs = require('fs');

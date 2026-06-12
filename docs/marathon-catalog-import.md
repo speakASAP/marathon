@@ -13,6 +13,8 @@ The catalog file may contain only:
 
 The loader rejects user/progress keys such as `marathoners`, `participants`, `answers`, `submissions`, `stepSubmissions`, `penaltyReports`, `users`, and `winners`.
 
+Legacy full-export loaders are intentionally disabled. Do not use `scripts/load-marathon-export.js` or `scripts/load_marathon_export.py` for launch data; historical exports include participant progress and winner data.
+
 ## Runbook
 
 1. Place the approved JSON file on the Alphares server.
