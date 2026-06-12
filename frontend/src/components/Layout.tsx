@@ -1,5 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
+
+interface CatalogReadiness {
+  registrationOpen: boolean;
+}
 
 /** True when path is a language landing e.g. /de/, /en/ (nav and footer are inside Landing). */
 function isLandingPath(pathname: string): boolean {
@@ -12,8 +16,17 @@ function isLandingPath(pathname: string): boolean {
  */
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const location = useLocation();
   const bare = isLandingPath(location.pathname);
+  const registrationClosed = readiness?.registrationOpen === false;
+
+  useEffect(() => {
+    fetch('/api/v1/marathons/readiness')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: CatalogReadiness | null) => setReadiness(data))
+      .catch(() => setReadiness(null));
+  }, []);
 
   return (
     <div className="layout-wrap">
@@ -33,8 +46,11 @@ export default function Layout() {
             <Link to="/register">Регистрация</Link>
             <Link to="/awards">Награды</Link>
             <Link to="/support">Поддержка</Link>
-            <Link to="/register" className="btn btn-landing btn-green navbar-cta">
-              Начать
+            <Link
+              to="/register"
+              className={`btn btn-landing navbar-cta ${registrationClosed ? 'navbar-cta-closed' : 'btn-green'}`}
+            >
+              {registrationClosed ? 'Скоро' : 'Регистрация'}
             </Link>
           </nav>
           <button

@@ -57,15 +57,24 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, []);
 
+  const registrationOpen = readiness?.registrationOpen ?? languages.length > 0;
+  const catalogClosed = !loading && !registrationOpen;
+  const heroSub = catalogClosed
+    ? 'Регистрация откроется после загрузки утвержденного каталога марафона.'
+    : 'Изучи любой язык быстро на уровень А1 за 30 дней. Елена Шипилова®.';
+
   return (
     <div className="page-home">
       {/* Legacy-aligned hero (stripe blue like legacy hub) */}
       <section className="section-marathon section-marathon-promo page-home-hero">
         <div className="container">
           <h1 className="home-hero-title">Языковые марафоны SpeakASAP®</h1>
-          <p className="home-hero-sub">Изучи любой язык быстро на уровень А1 за 30 дней. Елена Шипилова®.</p>
-          <Link to="/register" className="btn btn-landing btn-green home-hero-cta">
-            Начать марафон
+          <p className="home-hero-sub">{heroSub}</p>
+          <Link
+            to="/register"
+            className={`btn btn-landing home-hero-cta ${catalogClosed ? 'is-closed' : 'btn-green'}`}
+          >
+            {catalogClosed ? 'Статус регистрации' : 'Начать марафон'}
           </Link>
         </div>
       </section>

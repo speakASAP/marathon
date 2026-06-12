@@ -120,6 +120,19 @@ a:hover {
   color: var(--marathon-text-on-dark);
 }
 
+.navbar-cta.navbar-cta-closed,
+.home-hero-cta.is-closed {
+  background: #566987;
+  color: var(--marathon-text-on-dark);
+  box-shadow: 0 1px 2px 0 rgba(16, 24, 50, 0.16);
+}
+
+.navbar-cta.navbar-cta-closed:hover,
+.home-hero-cta.is-closed:hover {
+  background: #42536e;
+  color: var(--marathon-text-on-dark);
+}
+
 .navbar-toggle {
   display: none;
   background: none;

@@ -25,3 +25,4 @@
 - [x] 2026-06-12 Deploy readiness visibility added: `scripts/deploy.sh` runs the journey readiness preflight after rollout as a non-blocking warning phase
 - [x] 2026-06-12 Public catalog readiness surfaced: `/api/v1/marathons/readiness` exposes safe catalog counts/missing classes and home/register UI now explains registration-closed state when production catalog data is absent
 - [x] 2026-06-12 Landing closed-catalog CTAs corrected: language landing pages now show registration-status actions instead of start/upgrade promises when no active marathon is configured
+- [x] 2026-06-12 Root and global navigation closed-catalog CTAs corrected: home hero and shared nav now show registration/status wording when production readiness reports registration closed
