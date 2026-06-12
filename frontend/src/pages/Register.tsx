@@ -19,6 +19,13 @@ interface CatalogReadiness {
   missing: string[];
 }
 
+function formatMissingGate(value: string): string {
+  return value
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 /**
  * Standalone registration: choose language and go to landing with registration form.
  */
@@ -95,6 +102,16 @@ export default function Register() {
               <div><dt>Подарочные коды</dt><dd>{readiness.counts.unusedGifts}</dd></div>
             </dl>
           )}
+          {readiness?.missing?.length ? (
+            <div className="registration-missing-gates" aria-label="Missing launch gates">
+              <strong>Недостающие условия запуска</strong>
+              <div>
+                {readiness.missing.map((item) => (
+                  <span key={item}>{formatMissingGate(item)}</span>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
         </section>
       )}

@@ -433,6 +433,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Registration status is temporarily unavailable') || !js.includes('Registration status could not be loaded')) {
     throw new Error('Built frontend bundle does not include registration readiness load-error state.');
   }
+  if (!js.includes('Недостающие условия запуска') || !js.includes('Missing launch gates')) {
+    throw new Error('Built frontend bundle does not include registration missing-launch-gates readiness detail.');
+  }
   if (!js.includes('npm run load:catalog:pod -- /path/to/catalog.json') || !js.includes('removes the staged catalog copy')) {
     throw new Error('Built frontend bundle does not include the pod-safe catalog load runbook.');
   }
@@ -470,6 +473,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'home-teaser-empty-state', 'Home finalists and reviews teasers include post-load empty states.');
   addCheck(report, 'pass', 'winners-empty-state-ui', 'Winners frontend includes a post-load empty state.');
   addCheck(report, 'pass', 'register-error-state', 'Registration page distinguishes readiness API load failures from closed-catalog state.');
+  addCheck(report, 'pass', 'register-missing-gates-ui', 'Registration page includes exact missing launch gates from readiness data.');
   addCheck(report, 'pass', 'catalog-pod-runbook-ui', 'Support runbook includes pod-safe catalog dry-run/apply commands.');
   addCheck(report, 'pass', 'catalog-approval-packet-ui', 'Support runbook includes the redacted catalog approval-packet command.');
   addCheck(report, 'pass', 'catalog-approval-checklist-ui', 'Support runbook links the public source-owner catalog approval checklist.');

@@ -78,3 +78,4 @@
 - [x] 2026-06-12 Catalog source-owner approval checklist deployed: `/catalog/marathon-catalog.approval-checklist.md` documents approval gates, no-sensitive-data rules, dry-run/apply commands, and `/support` links it from the launch gate
 - [x] 2026-06-12 Redacted catalog approval packet added: `--approval-packet` prints source-owner sign-off Markdown with launch readiness, product price/currency, assignment-content readiness, and gift-code counts only
 - [x] 2026-06-12 Legacy landing asset references resolved: built CSS now uses existing public landing icons/backgrounds instead of missing `adv_*` and `support.png` URLs
+- [x] 2026-06-12 Registration missing launch gates surfaced: `/register` now lists the exact readiness classes blocking registration and journey smoke protects the bundle state
