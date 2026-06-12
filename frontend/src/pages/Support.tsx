@@ -95,6 +95,33 @@ const CATALOG_RUNBOOK_STEPS = [
   },
 ];
 
+const POST_LOAD_VERIFICATION_STEPS = [
+  {
+    title: 'Read-only journey smoke',
+    detail: 'npm run check:journey',
+  },
+  {
+    title: 'Registration smoke',
+    detail: 'npm run check:journey -- --mutating --email smoke+marathon-launch@example.com',
+  },
+  {
+    title: 'Authenticated VIP checkout smoke',
+    detail: 'npm run check:journey -- --mutating --email smoke+marathon-launch@example.com --auth-token <portal-jwt> --checkout',
+  },
+  {
+    title: 'Gift redemption smoke',
+    detail: 'npm run check:journey -- --mutating --email smoke+marathon-launch@example.com --auth-token <portal-jwt> --gift-code <approved-smoke-gift-code>',
+  },
+  {
+    title: 'Saved assignment readback',
+    detail: 'npm run check:journey -- --auth-token <portal-jwt> --marathoner-id <participant-id> --step-id <step-id>',
+  },
+  {
+    title: 'Assignment submission smoke',
+    detail: 'npm run check:journey -- --mutating --email smoke+marathon-launch@example.com --auth-token <portal-jwt> --submit',
+  },
+];
+
 const CATALOG_CONTRACT_LINKS = [
   { href: '/catalog/marathon-catalog.schema.json', label: 'JSON Schema' },
   { href: '/catalog/marathon-catalog.example.json', label: 'Example JSON' },
@@ -210,6 +237,21 @@ export default function Support() {
                     </li>
                   ))}
                 </ol>
+                <div className="support-post-load-verification">
+                  <strong>Post-load journey verification</strong>
+                  <p>
+                    Run these only after readiness is green and use throwaway smoke data. Keep JWTs,
+                    approved smoke gift codes, participant IDs, and step IDs out of screenshots and notes.
+                  </p>
+                  <ol className="support-verification-list">
+                    {POST_LOAD_VERIFICATION_STEPS.map((step) => (
+                      <li key={step.title}>
+                        <strong>{step.title}</strong>
+                        <code>{step.detail}</code>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
                 <p className="support-runbook-note">
                   The pod helper removes the staged catalog copy after each run. Do not paste gift-code inventories, participant exports, JWTs, payment keys, or assignment reports into validation notes.
                 </p>

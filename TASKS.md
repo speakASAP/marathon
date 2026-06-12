@@ -84,3 +84,4 @@
 - [x] 2026-06-12 Landing missing launch gates deployed: language landing registration-status panel lists exact readiness blockers and journey smoke protects the bundle state
 - [x] 2026-06-12 Gift missing launch gates deployed: gift redemption closed-catalog panel lists exact readiness blockers and journey smoke protects the bundle state
 - [x] 2026-06-12 Home missing launch gates deployed: root closed-catalog panel lists exact readiness blockers and journey smoke protects the bundle state
+- [ ] 2026-06-12 Post-load journey verification runbook: `/support` should list placeholder-only registration, VIP, gift, and assignment smoke commands for the first approved catalog launch

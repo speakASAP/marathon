@@ -462,6 +462,13 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('npm run load:catalog:pod -- /path/to/catalog.json --approval-packet')) {
     throw new Error('Built frontend bundle does not include the catalog approval-packet command.');
   }
+  if (
+    !js.includes('Post-load journey verification') ||
+    !js.includes('approved-smoke-gift-code') ||
+    !js.includes('--marathoner-id <participant-id> --step-id <step-id>')
+  ) {
+    throw new Error('Built frontend bundle does not include the post-load journey verification checklist.');
+  }
   if (!js.includes('/catalog/marathon-catalog.approval-checklist.md') || !js.includes('Approval Checklist')) {
     throw new Error('Built frontend bundle does not link the source-owner catalog approval checklist.');
   }
@@ -503,6 +510,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'register-missing-gates-ui', 'Registration page includes exact missing launch gates from readiness data.');
   addCheck(report, 'pass', 'catalog-pod-runbook-ui', 'Support runbook includes pod-safe catalog dry-run/apply commands.');
   addCheck(report, 'pass', 'catalog-approval-packet-ui', 'Support runbook includes the redacted catalog approval-packet command.');
+  addCheck(report, 'pass', 'post-load-verification-ui', 'Support runbook includes post-catalog-load read-only, registration, VIP, gift, and assignment smoke commands.');
   addCheck(report, 'pass', 'catalog-approval-checklist-ui', 'Support runbook links the public source-owner catalog approval checklist.');
   addCheck(report, 'pass', 'landing-assets-resolved', 'Built frontend CSS references existing legacy landing assets instead of missing adv/support images.');
   addCheck(report, 'pass', 'gift-readiness-error-state', 'Gift redemption blocks redemption when readiness status cannot be loaded.');
