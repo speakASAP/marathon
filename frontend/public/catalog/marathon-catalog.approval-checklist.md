@@ -41,7 +41,7 @@ npm run load:catalog:pod -- /path/to/marathon-catalog.json --approval-packet
 
 This command prints a Markdown approval packet with readiness flags and gift-code counts only.
 
-Generate the redacted approval packet:
+Apply only after the approval packet is reviewed:
 
 ```bash
 npm run load:catalog:pod -- /path/to/marathon-catalog.json --apply
