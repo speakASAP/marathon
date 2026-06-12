@@ -26,6 +26,70 @@ interface MyMarathon {
   answers: Answer[];
 }
 
+interface ProgressReport {
+  generatedAt: string;
+  participant: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    active: boolean;
+    registeredAt: string;
+    finishedAt: string | null;
+  };
+  marathon: {
+    id: string;
+    title: string;
+    languageCode: string;
+    slug: string;
+  };
+  access: {
+    type: string;
+    needsPayment: boolean;
+    vipRequired: boolean;
+    paymentReported: boolean;
+    bonusDaysLeft: number;
+    bonusDaysTotal: number;
+  };
+  summary: {
+    totalSteps: number;
+    completedSteps: number;
+    checkedSteps: number;
+    activeSteps: number;
+    lockedSteps: number;
+    lateSteps: number;
+    trialSteps: number;
+    gatedSteps: number;
+    completionPercent: number;
+    penaltyReports: number;
+    paymentAttempts: number;
+  };
+  currentStep: {
+    title: string;
+    state: string;
+    isLate: boolean;
+    blockReason?: string | null;
+  } | null;
+  steps: Array<{
+    stepId: string;
+    sequence: number;
+    title: string;
+    state: string;
+    isTrialStep: boolean;
+    isLate: boolean;
+    submittedAt: string | null;
+    blockReason?: string | null;
+  }>;
+  paymentAttempts: Array<{
+    orderId: string;
+    status: string;
+    amount: string;
+    currency: string;
+    paymentMethod: string;
+    createdAt: string;
+    confirmedAt: string | null;
+  }>;
+}
+
 type PaymentReturnState = 'success' | 'cancelled' | null;
 
 function formatDateTime(value: string) {
@@ -73,6 +137,9 @@ export default function ProfileDetail() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
   const [paymentReturn, setPaymentReturn] = useState<PaymentReturnState>(null);
+  const [report, setReport] = useState<ProgressReport | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState('');
 
   useEffect(() => {
     const payment = new URLSearchParams(window.location.search).get('payment');
@@ -202,6 +269,39 @@ export default function ProfileDetail() {
     }
   };
 
+  const loadProgressReport = async () => {
+    if (!data) return;
+    setReportLoading(true);
+    setReportError('');
+    try {
+      const res = await authFetch(`/api/v1/me/marathons/${encodeURIComponent(data.id)}/progress-report`);
+      if (res.status === 401) {
+        redirectToLogin(`/profile/${data.id}`);
+        return;
+      }
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.message || body.error || `Progress report failed (${res.status})`);
+      }
+      setReport(body);
+    } catch (error) {
+      setReportError(error instanceof Error ? error.message : 'Progress report could not be generated');
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const downloadProgressReport = () => {
+    if (!report) return;
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `marathon-progress-${report.participant.id}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="container page-static profile-dashboard">
       <nav className="page-nav">
@@ -266,6 +366,41 @@ export default function ProfileDetail() {
           </Link>
         </section>
       )}
+      <section className="profile-report-panel">
+        <div className="profile-report-heading">
+          <div>
+            <h2>Progress report</h2>
+            <p>Assignment, VIP, bonus-day, and payment-attempt summary for this marathon.</p>
+          </div>
+          <div className="profile-payment-actions">
+            <button type="button" className="btn-profile-open" onClick={loadProgressReport} disabled={reportLoading}>
+              {reportLoading ? 'Generating...' : 'Generate report'}
+            </button>
+            {report && (
+              <button type="button" className="btn-profile-login" onClick={downloadProgressReport}>
+                Download JSON
+              </button>
+            )}
+          </div>
+        </div>
+        {reportError && <p className="ml-error">{reportError}</p>}
+        {report && (
+          <div className="profile-report-summary" aria-live="polite">
+            <div><span>Completed</span><strong>{report.summary.completedSteps}/{report.summary.totalSteps}</strong></div>
+            <div><span>Checked</span><strong>{report.summary.checkedSteps}</strong></div>
+            <div><span>Late</span><strong>{report.summary.lateSteps}</strong></div>
+            <div><span>Bonus left</span><strong>{report.access.bonusDaysLeft}/{report.access.bonusDaysTotal}</strong></div>
+            <div><span>VIP</span><strong>{report.access.needsPayment ? 'Required' : report.access.type.toUpperCase()}</strong></div>
+            <div><span>Payments</span><strong>{report.summary.paymentAttempts}</strong></div>
+            {report.currentStep && (
+              <div className="profile-report-current">
+                <span>Current step</span>
+                <strong>{report.currentStep.title}</strong>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
       <section className="profile-steps">
         <h2>Этапы</h2>
         <ul className="profile-answers">

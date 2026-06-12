@@ -1207,6 +1207,68 @@ a:hover {
   line-height: 1.55;
 }
 
+.profile-report-panel {
+  margin-bottom: 22px;
+  padding: 24px 28px;
+  border: 1px solid #dce6f2;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 16px 42px rgba(32, 52, 88, 0.08);
+}
+
+.profile-report-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.profile-report-heading h2 {
+  margin: 0 0 6px;
+  color: #101832;
+}
+
+.profile-report-heading p {
+  margin: 0;
+  color: #5e6a80;
+  line-height: 1.55;
+}
+
+.profile-report-summary {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.profile-report-summary div {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e4ebf4;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.profile-report-summary span {
+  display: block;
+  color: #5e6a80;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.profile-report-summary strong {
+  display: block;
+  margin-top: 5px;
+  color: #101832;
+  font-size: 1.08rem;
+  overflow-wrap: anywhere;
+}
+
+.profile-report-current {
+  grid-column: span 2;
+}
+
 .profile-payment-panel h2,
 .gift-next-steps h2 {
   margin: 0 0 8px;
@@ -1374,6 +1436,15 @@ a:hover {
     flex-direction: column;
   }
 
+  .profile-report-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .profile-report-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .profile-answers li {
     grid-template-columns: 1fr;
     align-items: stretch;
@@ -1397,6 +1468,16 @@ a:hover {
   .gift-hero,
   .gift-next-steps {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .profile-report-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-report-current {
+    grid-column: span 1;
   }
 }
 

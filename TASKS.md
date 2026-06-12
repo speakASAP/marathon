@@ -7,7 +7,7 @@
 - [x] T3: Implement gift code redemption endpoint (goal_id: vip-payment, priority: 2)
 - [ ] T4: Verify end-to-end VIP upgrade flow (goal_id: vip-payment, priority: 2)
 - [ ] Review course step content for upcoming marathon (priority: 3)
-- [ ] Generate participant progress report (priority: 3)
+- [x] Generate participant progress report (priority: 3)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
@@ -54,3 +54,4 @@
 - [x] 2026-06-12 Registration and gift readiness error states added: `/register` and `/gift` now separate readiness API load failures from closed-catalog/gift-unavailable states, and gift redemption stays blocked until readiness is verified
 - [x] 2026-06-12 Global registration CTA readiness state added: shared navigation now separates readiness API load failures from normal closed-catalog `Скоро` state and points users to registration status details
 - [x] 2026-06-12 Catalog loader launch-ready validation tightened: default catalog dry runs now require an active marathon, trial step, gated step, VIP product, and gift code before approved data can be treated as registration/payment/assignment ready
+- [x] 2026-06-12 Participant progress report added: authenticated profile detail can generate a read-only assignment/VIP/bonus/payment-attempt report with JSON download, and journey smoke verifies the auth guard plus frontend report UI

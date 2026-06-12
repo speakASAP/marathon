@@ -1,7 +1,7 @@
 import { Controller, Get, Logger, NotFoundException, Param, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthGuard } from '../shared/auth.guard';
-import { MeService, MyMarathon } from './me.service';
+import { MeService, MyMarathon, MyMarathonProgressReport } from './me.service';
 
 type RequestWithUser = Request & { user?: { id: string } };
 
@@ -32,6 +32,37 @@ export class MeController {
     } catch (error) {
       this.logger.error(
         `My marathons list failed: userId=${userId}, error=${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
+  }
+
+  @Get(':marathonerId/progress-report')
+  async getProgressReport(
+    @Req() req: RequestWithUser,
+    @Param('marathonerId') marathonerId: string,
+  ): Promise<MyMarathonProgressReport> {
+    const userId = req.user!.id;
+
+    this.logger.log(`My marathon progress report request received: userId=${userId}, marathonerId=${marathonerId}`);
+
+    try {
+      const report = await this.meService.getProgressReport(userId, marathonerId);
+      if (!report) {
+        this.logger.warn(`My marathon progress report not found: userId=${userId}, marathonerId=${marathonerId}`);
+        throw new NotFoundException('Marathon not found');
+      }
+      this.logger.log(
+        `My marathon progress report response: userId=${userId}, marathonerId=${marathonerId}, completed=${report.summary.completedSteps}/${report.summary.totalSteps}`,
+      );
+      return report;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        `My marathon progress report failed: userId=${userId}, marathonerId=${marathonerId}, error=${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
       throw error;

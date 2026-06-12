@@ -235,6 +235,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Registration status unavailable. Open registration status page for details.') || !js.includes('registration-status-unavailable')) {
     throw new Error('Built frontend bundle does not include global navigation readiness-unavailable state.');
   }
+  if (!js.includes('/progress-report') || !js.includes('Progress report') || !js.includes('Download JSON')) {
+    throw new Error('Built frontend bundle does not include participant progress report UI.');
+  }
   addCheck(report, 'pass', 'registration-login-handoff', 'Registration frontend bundle routes new participants through token-aware profile login handoff.');
   addCheck(report, 'pass', 'assignment-login-guard', 'Assignment report UI requires profile context and token-aware login before submission.');
   addCheck(report, 'pass', 'gift-login-guard', 'Gift redemption UI requires profile context and token-aware login before redemption.');
@@ -247,6 +250,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'register-error-state', 'Registration page distinguishes readiness API load failures from closed-catalog state.');
   addCheck(report, 'pass', 'gift-readiness-error-state', 'Gift redemption blocks redemption when readiness status cannot be loaded.');
   addCheck(report, 'pass', 'nav-readiness-error-state', 'Global registration CTA distinguishes readiness load failures from closed-catalog state.');
+  addCheck(report, 'pass', 'progress-report-ui', 'Profile detail frontend includes authenticated participant progress report generation and JSON download UI.');
 }
 
 async function checkPublicRoutes(report, options) {
@@ -287,6 +291,11 @@ async function checkPublicRoutes(report, options) {
     'frontend-gift-return',
     'Direct gift-code login return route serves the frontend shell.',
   );
+
+  const unauthenticatedReport = await request(report, '/api/v1/me/marathons/smoke-participant/progress-report');
+  assertResponse(unauthenticatedReport, 401, 'unauthenticated progress report');
+  addCheck(report, 'pass', 'progress-report-auth-guard', 'Participant progress report endpoint requires authentication.');
+
   await assertFrontendHandoffSource(report, rootHtml);
 
   const readiness = await requestJson(report, '/api/v1/marathons/readiness');

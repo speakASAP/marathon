@@ -26,6 +26,70 @@ export type MyMarathon = {
   answers: Answer[];
 };
 
+export type ProgressReportStep = {
+  stepId: string;
+  sequence: number;
+  title: string;
+  state: string;
+  isTrialStep: boolean;
+  isLate: boolean;
+  start: string;
+  stop: string;
+  submittedAt: string | null;
+  rating: number | null;
+  blockReason?: string | null;
+};
+
+export type MyMarathonProgressReport = {
+  generatedAt: string;
+  participant: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    active: boolean;
+    registeredAt: string;
+    finishedAt: string | null;
+  };
+  marathon: {
+    id: string;
+    title: string;
+    languageCode: string;
+    slug: string;
+  };
+  access: {
+    type: 'trial' | 'free' | 'vip';
+    needsPayment: boolean;
+    vipRequired: boolean;
+    paymentReported: boolean;
+    bonusDaysLeft: number;
+    bonusDaysTotal: number;
+  };
+  summary: {
+    totalSteps: number;
+    completedSteps: number;
+    checkedSteps: number;
+    activeSteps: number;
+    lockedSteps: number;
+    lateSteps: number;
+    trialSteps: number;
+    gatedSteps: number;
+    completionPercent: number;
+    penaltyReports: number;
+    paymentAttempts: number;
+  };
+  currentStep: ProgressReportStep | null;
+  steps: ProgressReportStep[];
+  paymentAttempts: Array<{
+    orderId: string;
+    status: string;
+    amount: string;
+    currency: string;
+    paymentMethod: string;
+    createdAt: string;
+    confirmedAt: string | null;
+  }>;
+};
+
 const BONUS_DAYS = 7;
 
 @Injectable()
@@ -119,6 +183,84 @@ export class MeService {
     return this.mapToMyMarathon(participant);
   }
 
+  async getProgressReport(userId: string, marathonerId: string): Promise<MyMarathonProgressReport | null> {
+    this.logger.debug(`My marathon progress report requested (userId=${userId}, marathonerId=${marathonerId})`);
+
+    let participant = await this.prisma.marathonParticipant.findFirst({
+      where: {
+        id: marathonerId,
+        OR: [{ userId }, { userId: null }],
+      },
+      include: {
+        marathon: {
+          include: {
+            steps: {
+              orderBy: { sequence: 'asc' },
+            },
+          },
+        },
+        submissions: {
+          include: {
+            step: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+        penaltyReports: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+        paymentAttempts: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+
+    if (!participant) {
+      return null;
+    }
+
+    if (!participant.userId) {
+      participant = await this.prisma.marathonParticipant.update({
+        where: { id: participant.id },
+        data: { userId },
+        include: {
+          marathon: {
+            include: {
+              steps: {
+                orderBy: { sequence: 'asc' },
+              },
+            },
+          },
+          submissions: {
+            include: {
+              step: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+          penaltyReports: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+          paymentAttempts: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+        },
+      });
+    }
+
+    return this.mapToProgressReport(participant);
+  }
+
   private mapToMyMarathon(participant: any): MyMarathon {
     const marathon = participant.marathon;
     const steps = marathon.steps;
@@ -151,6 +293,72 @@ export class MeService {
       report_time: latestSubmission ? latestSubmission.endAt.toISOString() : null,
       current_step: currentStep,
       answers,
+    };
+  }
+
+  private mapToProgressReport(participant: any): MyMarathonProgressReport {
+    const marathon = participant.marathon;
+    const needsPayment = this.calculateNeedsPayment(participant, this.latestStep(participant.submissions), marathon);
+    const type = this.getMarathonType(participant);
+    const schedule = this.buildSchedule(participant, marathon.steps, participant.submissions, needsPayment);
+    const steps = this.mapProgressReportSteps(schedule, marathon.steps, participant.submissions);
+    const totalSteps = steps.length;
+    const completedSteps = steps.filter((step) => step.state === 'completed' || step.state === 'done').length;
+    const checkedSteps = steps.filter((step) => step.state === 'checked').length;
+    const activeSteps = steps.filter((step) => step.state === 'active').length;
+    const lockedSteps = steps.filter((step) => step.state === 'inactive').length;
+    const lateSteps = steps.filter((step) => step.isLate).length;
+    const trialSteps = steps.filter((step) => step.isTrialStep).length;
+    const currentStep = steps.find((step) => step.state === 'active') || null;
+
+    return {
+      generatedAt: new Date().toISOString(),
+      participant: {
+        id: participant.id,
+        name: participant.name,
+        email: participant.email,
+        active: participant.active,
+        registeredAt: participant.createdAt.toISOString(),
+        finishedAt: participant.finishedAt ? participant.finishedAt.toISOString() : null,
+      },
+      marathon: {
+        id: marathon.id,
+        title: marathon.title,
+        languageCode: marathon.languageCode,
+        slug: marathon.slug,
+      },
+      access: {
+        type,
+        needsPayment,
+        vipRequired: participant.vipRequired,
+        paymentReported: participant.paymentReported,
+        bonusDaysLeft: participant.bonusDaysLeft,
+        bonusDaysTotal: BONUS_DAYS,
+      },
+      summary: {
+        totalSteps,
+        completedSteps,
+        checkedSteps,
+        activeSteps,
+        lockedSteps,
+        lateSteps,
+        trialSteps,
+        gatedSteps: totalSteps - trialSteps,
+        completionPercent: totalSteps ? Math.round((completedSteps / totalSteps) * 100) : 0,
+        penaltyReports: participant.penaltyReports.length,
+        paymentAttempts: participant.paymentAttempts.length,
+      },
+      currentStep,
+      steps,
+      paymentAttempts: participant.paymentAttempts.map((attempt: any) => ({
+        orderId: attempt.orderId,
+        status: attempt.status,
+        amount: attempt.amount.toString(),
+        currency: attempt.currency,
+        paymentMethod: attempt.paymentMethod,
+        createdAt: attempt.createdAt.toISOString(),
+        confirmedAt: attempt.confirmedAt ? attempt.confirmedAt.toISOString() : null,
+      })),
     };
   }
 
@@ -219,6 +427,39 @@ export class MeService {
     }
 
     return schedule;
+  }
+
+  private mapProgressReportSteps(schedule: Answer[], steps: any[], submissions: any[]): ProgressReportStep[] {
+    const stepById = new Map(steps.map((step) => [step.id, step]));
+    const submissionByStepId = new Map();
+    for (const submission of submissions) {
+      if (!submissionByStepId.has(submission.stepId)) {
+        submissionByStepId.set(submission.stepId, submission);
+      }
+    }
+
+    return schedule.map((answer) => {
+      const step = stepById.get(answer.stepId);
+      const submission = submissionByStepId.get(answer.stepId);
+      return {
+        stepId: answer.stepId,
+        sequence: step?.sequence ?? 0,
+        title: answer.title,
+        state: answer.state,
+        isTrialStep: Boolean(step?.isTrialStep),
+        isLate: answer.is_late,
+        start: answer.start,
+        stop: answer.stop,
+        submittedAt: submission ? submission.updatedAt.toISOString() : null,
+        rating: submission ? submission.rating : null,
+        blockReason: answer.block_reason ?? null,
+      };
+    });
+  }
+
+  private latestStep(submissions: any[]): any | null {
+    const latestSubmission = submissions.length > 0 ? submissions[0] : null;
+    return latestSubmission ? latestSubmission.step : null;
   }
 
   private isWinner(participant: any, steps: any[]): boolean {
