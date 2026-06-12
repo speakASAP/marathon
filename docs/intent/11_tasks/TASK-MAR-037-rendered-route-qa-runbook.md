@@ -2,11 +2,11 @@
 
 ```yaml
 id: TASK-MAR-037
-status: in_progress
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
-completeness_level: draft
+completeness_level: complete
 upstream:
   - docs/intent/11_tasks/TASK-MAR-004-verify-end-to-end-vip-flow.md
 validation:
@@ -36,11 +36,19 @@ This advances production readiness by documenting and protecting the exact catal
 
 ## Acceptance Criteria
 
-- [ ] `/support` renders `Rendered route QA checklist`.
-- [ ] Checklist covers `/`, `/en/`, `/register`, `/gift`, `/profile`, and `/steps/<step-id>?marathonerId=<participant-id>`.
-- [ ] Journey smoke reports `rendered-route-qa-ui` before the expected catalog-readiness gate.
-- [ ] Browser QA validates production `/support` checklist plus representative closed-catalog/guarded routes.
-- [ ] Validation evidence avoids JWTs, gift-code values, participant private data, payment secrets, and assignment report payloads.
+- [x] `/support` renders `Rendered route QA checklist`.
+- [x] Checklist covers `/`, `/en/`, `/register`, `/gift`, `/profile`, and `/steps/<step-id>?marathonerId=<participant-id>`.
+- [x] Journey smoke reports `rendered-route-qa-ui` before the expected catalog-readiness gate.
+- [x] Browser QA validates production `/support` checklist plus representative closed-catalog/guarded routes.
+- [x] Validation evidence avoids JWTs, gift-code values, participant private data, payment secrets, and assignment report payloads.
+
+## Validation Summary
+
+- `npm run build:frontend` passed and emitted the production asset bundle.
+- Production deployed `localhost:5000/marathon:0a3c0d5`.
+- In-pod read-only journey smoke reported `[PASS] rendered-route-qa-ui` before the expected `[FAIL] catalog-readiness` gate.
+- Browser QA on `/support?qa=rendered-0a3c0d5-checklist` confirmed the checklist and all six route targets render.
+- Browser QA covered `/`, `/en/`, `/register`, `/gift`, `/profile`, and `/steps/smoke-step?marathonerId=smoke-participant` visible states without a framework overlay.
 
 ## Sensitive-Data Classification
 

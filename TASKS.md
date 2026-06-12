@@ -11,7 +11,7 @@
 - [x] TASK-MAR-035: Hide gift redemption until readiness loads and align nav status label (goal_id: vip-payment, priority: 2)
 - [x] TASK-MAR-034: Harden payment webhook fail-closed auth guard before catalog load (goal_id: vip-payment, priority: 1)
 - [x] TASK-MAR-036: Reconcile NPS and RunLayer intent statuses with verified/blocker evidence (goal_id: intent-preservation, priority: 2)
-- [ ] TASK-MAR-037: Add rendered-route QA checklist to support runbook (goal_id: frontend-readiness, priority: 2)
+- [x] TASK-MAR-037: Add rendered-route QA checklist to support runbook (goal_id: frontend-readiness, priority: 2)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
@@ -94,3 +94,4 @@
 - [x] 2026-06-12 Payment webhook fail-closed guard verified: callbacks now reject missing webhook secret configuration and journey smoke checks unauthenticated callback rejection before catalog readiness
 - [x] 2026-06-12 Gift readiness loading and nav status consistency deployed: `/gift` hides redemption entry until readiness is known and global registration nav uses the same closed-catalog status label as the CTA
 - [x] 2026-06-12 Intent status reconciliation completed: RunLayer read-only integration docs are verified, while NPS docs explicitly remain partial/blocked for live finished-participant mutation proof
+- [x] 2026-06-12 Rendered route QA runbook deployed: `/support` now lists Browser-rendered checks for home, language landing, registration, gift, profile, and assignment guard routes, with smoke coverage before catalog readiness
