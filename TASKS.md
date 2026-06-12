@@ -19,3 +19,4 @@
 - [x] 2026-06-12 payments-microservice registered Marathon integration: Kubernetes override secret supplies `marathon` callback API key mapping without exposing secret values
 - [x] 2026-06-12 Production data source checked: no `marathon_export.json` or non-empty seed found under `/home/ssf/Documents`; active Marathon/Product/Gift/Step data still requires approved export or human-provided course data
 - [x] 2026-06-12 Legacy portal exporter audited: current `speakasap-portal` exporter is a stub because the legacy DB was archived; historical exporter included participants/answers/winners and is not safe to run as-is under no-bulk-progress-export rules
+- [x] 2026-06-12 Safe catalog-only loader added: `scripts/load-marathon-catalog.js` dry-runs by default, rejects user/progress keys, and creates only approved Marathon/Product/Gift/Step rows when run with `--apply`

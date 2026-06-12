@@ -1,0 +1,32 @@
+{
+  "marathons": [
+    {
+      "languageCode": "APPROVED_LANGUAGE_CODE",
+      "title": "APPROVED_MARATHON_TITLE",
+      "slug": "approved-marathon-slug",
+      "active": true,
+      "vipGateDate": "2026-07-01T00:00:00.000Z",
+      "product": {
+        "title": "APPROVED_VIP_PRODUCT_TITLE",
+        "price": "29.00",
+        "currency": "EUR",
+        "totalHours": 50
+      },
+      "steps": [
+        {
+          "sequence": 1,
+          "title": "APPROVED_STEP_TITLE_1",
+          "isPenalized": true,
+          "isTrialStep": true,
+          "formKey": "APPROVED_FORM_KEY_1",
+          "socialLink": "https://speakasap.com/marathon"
+        }
+      ],
+      "gifts": [
+        {
+          "code": "APPROVEDGIFT1"
+        }
+      ]
+    }
+  ]
+}

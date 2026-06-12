@@ -9,7 +9,7 @@
   "tasks_failed_last_cycle": 0,
   "open_task_ids": ["T4", "production-data-active-marathon", "assignment-live-verification", "winner-automation"],
   "last_milestone": "payments-marathon-callback-registration-2026-06-12",
-  "next_focus": "Obtain human-approved catalog-only Marathon/Product/Gift/Step data from a source of truth, load it without participants/answers/winners, then verify registration -> assignment submission -> gate -> payment/gift -> VIP access",
+  "next_focus": "Obtain human-approved catalog-only Marathon/Product/Gift/Step JSON from a source of truth, validate it with npm run load:catalog -- <file>, apply it with --apply, then verify registration -> assignment submission -> gate -> payment/gift -> VIP access",
   "blockers": [
     "P0: Production has no active Marathon rows/languages, so public registration is not open",
     "P0: Production has no MarathonProduct/Gift/Step data for live VIP and assignment verification",

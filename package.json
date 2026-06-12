@@ -9,7 +9,8 @@
     "prisma:generate": "prisma generate",
     "postinstall": "npm run prisma:generate",
     "build:frontend": "cd frontend && npm ci && npm run build",
-    "dev:frontend": "cd frontend && npm run dev"
+    "dev:frontend": "cd frontend && npm run dev",
+    "load:catalog": "node scripts/load-marathon-catalog.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
