@@ -314,6 +314,9 @@ async function checkMutatingJourney(report, options, publicContext) {
     if (!checkout.json?.status) {
       throw new Error('Checkout response did not include status.');
     }
+    if (!checkout.json?.orderId) {
+      throw new Error('Checkout response did not include orderId for payment callback reconciliation.');
+    }
     addCheck(report, 'pass', 'checkout', `VIP checkout returned status ${checkout.json.status}.`);
   }
 

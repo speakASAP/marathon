@@ -33,3 +33,4 @@
 - [x] 2026-06-12 Readiness preflight operator output hardened: database connection failures now show the in-pod Kubernetes command and HTTP journey fallback instead of a raw Prisma error
 - [x] 2026-06-12 Assignment content readiness added: MarathonStep catalog rows now require approved `assignmentContent`, step/support pages render it as plain text, peer reports no longer inject HTML, and readiness/journey checks fail missing assignment content
 - [x] 2026-06-12 Registration launch gate tightened: direct registration now requires a launch-ready language catalog and public CTAs/forms use the same `registrationOpen` readiness contract
+- [x] 2026-06-12 VIP payment settlement guardrail added: checkout creates a `MarathonPaymentAttempt` ledger row and payment callbacks must match the issued order before unlocking VIP

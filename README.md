@@ -24,6 +24,8 @@ Standalone marathon product (NestJS + TypeScript).
 
 Registration and VIP verification require approved catalog rows in `Marathon`, `MarathonStep`, `MarathonProduct`, and optionally `MarathonGift`. Every `MarathonStep` must include approved plain-text `assignmentContent`; the app will not treat placeholder or missing assignment instructions as launch-ready. The registration API rejects participant creation until the selected language has a launch-ready active catalog.
 
+VIP checkout creates a `MarathonPaymentAttempt` ledger row before calling payments-microservice. Payment callbacks must match that issued `orderId`, participant, product, amount, and currency before VIP access is unlocked.
+
 Use the safe catalog-only loader for human-approved source data:
 
 ```bash

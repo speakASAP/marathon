@@ -104,6 +104,7 @@ async function buildReport() {
       steps,
       stepsWithContent,
       participants,
+      paymentAttempts,
     ] = await Promise.all([
       prisma.marathon.count({ where: { active: true } }),
       prisma.marathon.count(),
@@ -113,6 +114,7 @@ async function buildReport() {
       prisma.marathonStep.count(),
       prisma.marathonStep.count({ where: { assignmentContent: { not: null } } }),
       prisma.marathonParticipant.count(),
+      prisma.marathonPaymentAttempt.count(),
     ]);
 
     const activeCatalog = await prisma.marathon.findMany({
@@ -146,6 +148,7 @@ async function buildReport() {
       steps,
       stepsWithContent,
       participants,
+      paymentAttempts,
     };
 
     if (activeCatalog.length === 0) {
@@ -222,6 +225,8 @@ async function buildReport() {
         addCheck(checks, 'fail', `env-${key}`, `${key} is not configured in this runtime.`);
       }
     }
+
+    addCheck(checks, 'pass', 'payment-attempt-ledger', 'MarathonPaymentAttempt ledger is queryable.');
 
     if (process.env.PAYMENT_APPLICATION_ID && process.env.PAYMENT_APPLICATION_ID !== 'marathon') {
       addCheck(checks, 'fail', 'env-PAYMENT_APPLICATION_ID', 'PAYMENT_APPLICATION_ID is configured but is not "marathon".');

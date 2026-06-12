@@ -65,6 +65,7 @@ model MarathonParticipant {
   marathon         Marathon @relation(fields: [marathonId], references: [id])
   submissions      StepSubmission[]
   penaltyReports   PenaltyReport[]
+  paymentAttempts  MarathonPaymentAttempt[]
 }
 
 model StepSubmission {
@@ -122,4 +123,27 @@ model MarathonProduct {
   currency    String
   totalHours  Int      @default(50)
   marathon    Marathon @relation(fields: [marathonId], references: [id])
+  paymentAttempts MarathonPaymentAttempt[]
+}
+
+model MarathonPaymentAttempt {
+  id                String              @id @default(uuid())
+  orderId           String              @unique
+  participantId     String
+  productId         String
+  amount            Decimal
+  currency          String
+  paymentMethod     String
+  status            String              @default("checkout_requested")
+  providerPaymentId String?
+  checkoutResponse  Json?
+  callbackPayload   Json?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  confirmedAt       DateTime?
+  participant       MarathonParticipant @relation(fields: [participantId], references: [id])
+  product           MarathonProduct     @relation(fields: [productId], references: [id])
+
+  @@index([participantId])
+  @@index([status])
 }

@@ -15,6 +15,8 @@ type CheckoutRequest = {
 };
 
 type PaymentCallback = {
+  amount?: number | string;
+  currency?: string;
   paymentId?: string;
   orderId?: string;
   status?: string;
@@ -65,12 +67,13 @@ export class VipService {
     const callbackUrl = process.env.PAYMENT_CALLBACK_URL || `${publicBase}/api/v1/payments/webhook`;
     const orderId = `marathon:${participant.id}:${Date.now()}`;
     const amount = Number(product.price.toString());
+    const currency = product.currency || 'EUR';
 
     const requestBody = {
       orderId,
       applicationId: process.env.PAYMENT_APPLICATION_ID || 'marathon',
       amount,
-      currency: product.currency || 'EUR',
+      currency,
       paymentMethod,
       callbackUrl,
       successUrl: process.env.PAYMENT_SUCCESS_URL || `${publicBase}/profile/${participant.id}?payment=success`,
@@ -90,27 +93,68 @@ export class VipService {
       },
     };
 
+    await this.prisma.marathonPaymentAttempt.create({
+      data: {
+        amount: product.price,
+        currency,
+        orderId,
+        participantId: participant.id,
+        paymentMethod,
+        productId: product.id,
+        status: 'checkout_requested',
+      },
+    });
+
     const endpoint = `${this.paymentServiceUrl()}/payments/create`;
     this.logger.log(`Creating VIP checkout: marathonerId=${participant.id}, orderId=${orderId}, method=${paymentMethod}`);
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': apiKey,
-      },
-      body: JSON.stringify(requestBody),
-    });
+    let response: Response;
+    let responseBody: any = {};
+    try {
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+        },
+        body: JSON.stringify(requestBody),
+      });
+      responseBody = await response.json().catch(() => ({}));
+    } catch (error) {
+      await this.prisma.marathonPaymentAttempt.update({
+        where: { orderId },
+        data: {
+          checkoutResponse: { error: error instanceof Error ? error.message : String(error) },
+          status: 'checkout_failed',
+        },
+      });
+      throw new InternalServerErrorException('Payment service checkout request failed');
+    }
 
-    const responseBody = await response.json().catch(() => ({}));
     if (!response.ok) {
       this.logger.error(`Payment service rejected checkout: status=${response.status}, orderId=${orderId}`);
+      await this.prisma.marathonPaymentAttempt.update({
+        where: { orderId },
+        data: {
+          checkoutResponse: responseBody,
+          status: 'checkout_rejected',
+        },
+      });
       throw new InternalServerErrorException({
         message: 'Payment service rejected checkout creation',
         paymentStatus: response.status,
         paymentResponse: responseBody,
       });
     }
+
+    await this.prisma.marathonPaymentAttempt.update({
+      where: { orderId },
+      data: {
+        checkoutResponse: responseBody,
+        providerPaymentId: this.extractProviderPaymentId(responseBody),
+        status: 'checkout_created',
+      },
+    });
 
     return {
       status: 'checkout_created',
@@ -181,37 +225,84 @@ export class VipService {
 
     const status = String(payload.status || '').toLowerCase();
     const event = String(payload.event || '').toLowerCase();
-    const marathonerId = this.extractMarathonerId(payload);
-    if (!marathonerId) {
-      throw new BadRequestException('marathonerId metadata is required');
+    const orderId = payload.orderId?.trim();
+    if (!orderId) {
+      throw new BadRequestException('orderId is required');
     }
+
+    const attempt = await this.prisma.marathonPaymentAttempt.findUnique({
+      where: { orderId },
+      include: {
+        participant: true,
+        product: true,
+      },
+    });
+    if (!attempt) {
+      throw new NotFoundException('Payment attempt not found');
+    }
+
+    const marathonerId = this.extractMarathonerId(payload);
+    if (marathonerId && marathonerId !== attempt.participantId) {
+      throw new BadRequestException('Payment callback participant does not match checkout order');
+    }
+    this.validateCallbackProduct(payload, attempt.productId);
+    this.validateCallbackAmount(payload, Number(attempt.amount.toString()), attempt.currency);
+    const providerPaymentId = this.extractProviderPaymentId(payload);
 
     if (!SUCCESS_STATUSES.has(status) && !SUCCESS_STATUSES.has(event)) {
+      await this.prisma.marathonPaymentAttempt.update({
+        where: { orderId },
+        data: {
+          callbackPayload: payload as any,
+          providerPaymentId: providerPaymentId || attempt.providerPaymentId,
+          status: status || event || 'callback_ignored',
+        },
+      });
       this.logger.log(
-        `Ignoring non-success payment callback: marathonerId=${marathonerId}, status=${status}, event=${event}`,
+        `Ignoring non-success payment callback: marathonerId=${attempt.participantId}, orderId=${orderId}, status=${status}, event=${event}`,
       );
-      return { status: 'ignored', marathonerId };
+      return { status: 'ignored', marathonerId: attempt.participantId, orderId };
     }
 
-    const participant = await this.prisma.marathonParticipant.findUnique({
-      where: { id: marathonerId },
-    });
-    if (!participant) {
-      throw new NotFoundException('Participant not found');
+    if (attempt.status === 'confirmed') {
+      if (
+        providerPaymentId &&
+        attempt.providerPaymentId &&
+        providerPaymentId !== attempt.providerPaymentId
+      ) {
+        throw new BadRequestException('Payment callback provider payment ID does not match confirmed checkout order');
+      }
+      return { status: 'vip_unlocked', marathonerId: attempt.participantId, orderId, idempotent: true };
     }
 
-    await this.prisma.marathonParticipant.update({
-      where: { id: participant.id },
-      data: {
-        isFree: false,
-        paymentReported: true,
-      },
+    if (!attempt.participant.active) {
+      throw new BadRequestException('Participant is not active');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.marathonPaymentAttempt.update({
+        where: { orderId },
+        data: {
+          callbackPayload: payload as any,
+          confirmedAt: new Date(),
+          providerPaymentId: providerPaymentId || attempt.providerPaymentId,
+          status: 'confirmed',
+        },
+      });
+
+      await tx.marathonParticipant.update({
+        where: { id: attempt.participantId },
+        data: {
+          isFree: false,
+          paymentReported: true,
+        },
+      });
     });
 
     this.logger.log(
-      `VIP payment confirmed: marathonerId=${participant.id}, paymentId=${payload.paymentId || ''}, orderId=${payload.orderId || ''}`,
+      `VIP payment confirmed: marathonerId=${attempt.participantId}, paymentId=${providerPaymentId || ''}, orderId=${orderId}`,
     );
-    return { status: 'vip_unlocked', marathonerId: participant.id };
+    return { status: 'vip_unlocked', marathonerId: attempt.participantId, orderId };
   }
 
   private async findAndClaimParticipant(marathonerId: string, userId: string) {
@@ -285,6 +376,40 @@ export class VipService {
     const orderId = payload.orderId || '';
     const match = orderId.match(/^marathon:([^:]+):/);
     return match ? match[1] : null;
+  }
+
+  private extractProviderPaymentId(payload: unknown): string | null {
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+    const record = payload as Record<string, any>;
+    const value =
+      record.paymentId ||
+      record.payment_id ||
+      record.id ||
+      record.data?.paymentId ||
+      record.data?.payment_id ||
+      record.data?.id;
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  }
+
+  private validateCallbackProduct(payload: PaymentCallback, expectedProductId: string): void {
+    const productId = payload.metadata?.productId;
+    if (typeof productId === 'string' && productId.trim() && productId.trim() !== expectedProductId) {
+      throw new BadRequestException('Payment callback product does not match checkout order');
+    }
+  }
+
+  private validateCallbackAmount(payload: PaymentCallback, expectedAmount: number, expectedCurrency: string): void {
+    if (payload.amount != null) {
+      const amount = Number(payload.amount);
+      if (!Number.isFinite(amount) || amount !== expectedAmount) {
+        throw new BadRequestException('Payment callback amount does not match checkout order');
+      }
+    }
+    if (payload.currency && payload.currency.toUpperCase() !== expectedCurrency.toUpperCase()) {
+      throw new BadRequestException('Payment callback currency does not match checkout order');
+    }
   }
 
   private paymentServiceUrl(): string {
