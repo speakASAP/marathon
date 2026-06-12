@@ -9,7 +9,7 @@
   "tasks_failed_last_cycle": 0,
   "open_task_ids": ["T4", "production-data-active-marathon", "assignment-live-verification"],
   "last_milestone": "runlayer-readonly-bridge-2026-06-12",
-  "next_focus": "Deploy and verify the RunLayer read-only bridge, register the Marathon project idempotently in RunLayer, then continue toward final launch by obtaining human-approved launch-ready catalog-only Marathon/Product/Gift/Step JSON from a source of truth and running readiness plus registration -> assignment submission -> gate -> payment/gift -> VIP access verification",
+  "next_focus": "Continue toward final launch by obtaining human-approved launch-ready catalog-only Marathon/Product/Gift/Step JSON from a source of truth, loading it with the safe catalog loader, then running readiness plus registration -> assignment submission -> gate -> payment/gift -> VIP access verification",
   "blockers": [
     "P0: Production has no active Marathon rows/languages, so public registration is not open",
     "P0: Production has no MarathonProduct/Gift/Step data for live VIP and assignment verification",
