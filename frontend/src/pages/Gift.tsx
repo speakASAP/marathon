@@ -16,6 +16,7 @@ export default function Gift() {
   const [marathonerId, setMarathonerId] = useState('');
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [readinessLoading, setReadinessLoading] = useState(true);
+  const [readinessError, setReadinessError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -23,10 +24,17 @@ export default function Gift() {
   useEffect(() => {
     document.title = 'Gift code — SpeakASAP Marathon';
     setMarathonerId(new URLSearchParams(window.location.search).get('marathonerId') || '');
+    setReadinessError('');
     fetch('/api/v1/marathons/readiness')
-      .then((response) => (response.ok ? response.json() : null))
+      .then((response) => {
+        if (!response.ok) throw new Error(`readiness:${response.status}`);
+        return response.json();
+      })
       .then((data: CatalogReadiness | null) => setReadiness(data))
-      .catch(() => setReadiness(null))
+      .catch(() => {
+        setReadiness(null);
+        setReadinessError('Gift redemption status could not be loaded. Refresh this page, or contact support if the problem continues.');
+      })
       .finally(() => setReadinessLoading(false));
   }, []);
 
@@ -34,6 +42,10 @@ export default function Gift() {
     event.preventDefault();
     setMessage('');
     setError('');
+    if (readinessError) {
+      setError('Gift redemption status is temporarily unavailable. Refresh this page before trying again.');
+      return;
+    }
     if (readiness?.giftReady === false) {
       setError('Gift redemption is not available until an active marathon and unused gift codes are configured.');
       return;
@@ -77,15 +89,16 @@ export default function Gift() {
     }
   };
 
-  const giftUnavailable = !readinessLoading && readiness?.giftReady === false;
-  const registrationClosed = !readinessLoading && readiness?.registrationOpen !== true;
+  const giftStatusUnavailable = !readinessLoading && Boolean(readinessError);
+  const giftUnavailable = !readinessLoading && !readinessError && readiness?.giftReady === false;
+  const registrationClosed = !readinessLoading && !readinessError && readiness?.registrationOpen !== true;
   const hasParticipantContext = Boolean(marathonerId.trim());
   const needsLogin = hasParticipantContext && !getToken();
   const giftReturnPath = hasParticipantContext
     ? `/gift?marathonerId=${encodeURIComponent(marathonerId.trim())}`
     : '/profile';
   const openLogin = () => redirectToLogin(giftReturnPath);
-  const redeemDisabled = submitting || !hasParticipantContext || needsLogin;
+  const redeemDisabled = submitting || readinessLoading || giftStatusUnavailable || !hasParticipantContext || needsLogin;
 
   return (
     <div className="container page-static gift-page">
@@ -103,7 +116,20 @@ export default function Gift() {
               : 'Gift codes unlock VIP participation without a payment after the marathon gate.'}
           </p>
         </div>
-        {giftUnavailable ? (
+        {giftStatusUnavailable ? (
+          <div className="gift-card gift-card-readiness" role="alert">
+            <h2>Gift redemption status is temporarily unavailable</h2>
+            <p>{readinessError}</p>
+            <div className="profile-empty-actions">
+              <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
+                Refresh
+              </button>
+              <Link to="/support" className="btn-profile-login">
+                Contact support
+              </Link>
+            </div>
+          </div>
+        ) : giftUnavailable ? (
           <div className="gift-card gift-card-readiness" aria-live="polite">
             <h2>Gift redemption is not ready</h2>
             <p>No unused production gift codes are available for an active marathon.</p>

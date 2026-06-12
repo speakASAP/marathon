@@ -26,23 +26,32 @@ export default function Register() {
   const [languages, setLanguages] = useState<Lang[]>([]);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     document.title = 'Регистрация на марафон — Marathon';
+    setLoadError('');
     Promise.all([
       fetch('/api/v1/marathons/languages')
         .then((r) => (r.ok ? r.json() : []))
         .then((data) => (Array.isArray(data) ? data : [])),
       fetch('/api/v1/marathons/readiness')
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null),
+        .then((r) => {
+          if (!r.ok) throw new Error(`readiness:${r.status}`);
+          return r.json();
+        }),
     ])
       .then(([languageData, readinessData]) => {
         setLanguages(languageData);
         setReadiness(readinessData);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setLanguages([]);
+        setReadiness(null);
+        setLoadError('Registration status could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setLoading(false);
+      });
   }, []);
 
   const registrationClosed = !loading && readiness?.registrationOpen !== true;
@@ -56,7 +65,21 @@ export default function Register() {
       <h1>Регистрация на марафон</h1>
       <p>Выберите язык марафона и перейдите на страницу регистрации.</p>
       {loading && <p>Загрузка…</p>}
-      {registrationClosed && (
+      {loadError && (
+        <section className="profile-empty-panel" role="alert">
+          <h2>Registration status is temporarily unavailable</h2>
+          <p>{loadError}</p>
+          <div className="profile-empty-actions">
+            <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
+              Refresh
+            </button>
+            <Link to="/support" className="btn-profile-login">
+              Contact support
+            </Link>
+          </div>
+        </section>
+      )}
+      {!loadError && registrationClosed && (
         <section className="registration-closed-panel" aria-live="polite">
           <h2>Регистрация пока закрыта</h2>
           <p>
