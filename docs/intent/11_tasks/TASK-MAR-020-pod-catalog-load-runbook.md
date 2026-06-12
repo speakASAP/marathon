@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-020
-status: active
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -31,8 +31,8 @@ Make the approved catalog load path directly executable from the Alphares Marath
 
 ## Acceptance Criteria
 
-- [ ] `npm run load:catalog:pod -- <catalog.json>` stages a file into the running Marathon pod and runs the existing loader.
-- [ ] The helper supports `--apply` and `--allow-incomplete` only.
-- [ ] The staged pod copy is removed after the run.
-- [ ] `/support` shows pod-safe dry-run/apply commands.
-- [ ] Build, deploy, smoke, and validation evidence are recorded.
+- [x] `npm run load:catalog:pod -- <catalog.json>` stages a file into the running Marathon pod and runs the existing loader.
+- [x] The helper supports `--apply` and `--allow-incomplete` only.
+- [x] The staged pod copy is removed after the run.
+- [x] `/support` shows pod-safe dry-run/apply commands.
+- [x] Build, deploy, smoke, and validation evidence are recorded.
