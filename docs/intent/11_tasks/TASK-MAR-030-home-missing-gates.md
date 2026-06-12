@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-030
-status: pending-validation
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -30,8 +30,8 @@ Make the root Marathon home page show the exact readiness classes that keep regi
 
 ## Acceptance Criteria
 
-- [ ] Closed root home state lists missing launch gates from readiness data.
-- [ ] Frontend production build succeeds.
-- [ ] Backend build or syntax checks pass for touched verifier code.
-- [ ] Journey smoke reports `home-missing-gates-ui` before the expected catalog-readiness gate.
-- [ ] Deployment and validation evidence are recorded without sensitive data.
+- [x] Closed root home state lists missing launch gates from readiness data.
+- [x] Frontend production build succeeds.
+- [x] Backend build or syntax checks pass for touched verifier code.
+- [x] Journey smoke reports `home-missing-gates-ui` before the expected catalog-readiness gate.
+- [x] Deployment and validation evidence are recorded without sensitive data.

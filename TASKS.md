@@ -83,4 +83,4 @@
 - [x] 2026-06-12 Landing review empty state deployed: language landing pages now show a real-data empty state instead of invented fallback testimonial names
 - [x] 2026-06-12 Landing missing launch gates deployed: language landing registration-status panel lists exact readiness blockers and journey smoke protects the bundle state
 - [x] 2026-06-12 Gift missing launch gates deployed: gift redemption closed-catalog panel lists exact readiness blockers and journey smoke protects the bundle state
-- [ ] 2026-06-12 Home missing launch gates: root closed-catalog panel should list exact readiness blockers and journey smoke should protect the bundle state
+- [x] 2026-06-12 Home missing launch gates deployed: root closed-catalog panel lists exact readiness blockers and journey smoke protects the bundle state
