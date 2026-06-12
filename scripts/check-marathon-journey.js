@@ -190,6 +190,58 @@ async function assertFrontendShell(report, path, code, message) {
   addCheck(report, 'pass', code, message);
 }
 
+async function assertPublicCatalogContract(report) {
+  const schema = await requestJson(report, '/catalog/marathon-catalog.schema.json');
+  assertOk(schema.response, '/catalog/marathon-catalog.schema.json');
+  const schemaContentType = schema.response.headers.get('content-type') || '';
+  if (!schemaContentType.includes('application/json')) {
+    throw new Error('/catalog/marathon-catalog.schema.json did not return application/json.');
+  }
+  if (
+    schema.json?.title !== 'Marathon catalog-only launch data' ||
+    !Array.isArray(schema.json?.required) ||
+    !schema.json.required.includes('marathons') ||
+    !schema.json?.properties?.marathons ||
+    !schema.json?.properties?.steps ||
+    !schema.json?.properties?.products ||
+    !schema.json?.properties?.gifts
+  ) {
+    throw new Error('/catalog/marathon-catalog.schema.json did not return the expected catalog schema shape.');
+  }
+  addCheck(report, 'pass', 'catalog-contract-schema', 'Public catalog JSON Schema is served as JSON.');
+
+  const exampleResponse = await request(report, '/catalog/marathon-catalog.example.json');
+  assertOk(exampleResponse, '/catalog/marathon-catalog.example.json');
+  const exampleContentType = exampleResponse.headers.get('content-type') || '';
+  if (!exampleContentType.includes('application/json')) {
+    throw new Error('/catalog/marathon-catalog.example.json did not return application/json.');
+  }
+  const exampleBody = await exampleResponse.text();
+  if (exampleBody.includes('<div id="root"></div>') || exampleBody.includes('<!DOCTYPE html>')) {
+    throw new Error('/catalog/marathon-catalog.example.json returned the frontend shell instead of JSON.');
+  }
+  let example = null;
+  try {
+    example = JSON.parse(exampleBody);
+  } catch (error) {
+    throw new Error('/catalog/marathon-catalog.example.json did not return valid JSON.');
+  }
+  if (
+    !Array.isArray(example.marathons) ||
+    example.marathons.length !== 1 ||
+    example.marathons[0]?.slug !== 'approved-marathon-slug' ||
+    !exampleBody.includes('APPROVED_')
+  ) {
+    throw new Error('/catalog/marathon-catalog.example.json did not return the placeholder catalog example.');
+  }
+  for (const forbidden of ['marathoners', 'participants', 'answers', 'submissions', 'winners', 'test@example.com']) {
+    if (exampleBody.includes(forbidden)) {
+      throw new Error(`/catalog/marathon-catalog.example.json contains forbidden progress or participant marker: ${forbidden}`);
+    }
+  }
+  addCheck(report, 'pass', 'catalog-contract-example', 'Public catalog example is placeholder-only JSON.');
+}
+
 async function assertFrontendHandoffSource(report, rootHtml) {
   const assetMatch = rootHtml.match(/<script[^>]+src="([^"]*\/assets\/[^"]+\.js)"/);
   if (!assetMatch) {
@@ -272,6 +324,8 @@ async function checkPublicRoutes(report, options) {
     throw new Error('Root HTML does not reference built assets.');
   }
   addCheck(report, 'pass', 'frontend-root', 'Root frontend shell is served with built assets.');
+
+  await assertPublicCatalogContract(report);
 
   const register = await request(report, '/register');
   assertOk(register, '/register');
