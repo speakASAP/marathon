@@ -78,12 +78,12 @@ const CATALOG_RUNBOOK_STEPS = [
     detail: 'Use docs/schemas/marathon-catalog.schema.json and include only Marathon/Product/Gift/Step data.',
   },
   {
-    title: 'Dry-run inside the runtime pod',
-    detail: 'kubectl -n statex-apps exec deploy/marathon -- npm run load:catalog -- /path/to/catalog.json',
+    title: 'Dry-run through the runtime pod',
+    detail: 'npm run load:catalog:pod -- /path/to/catalog.json',
   },
   {
     title: 'Apply after approval',
-    detail: 'kubectl -n statex-apps exec deploy/marathon -- npm run load:catalog -- /path/to/catalog.json --apply',
+    detail: 'npm run load:catalog:pod -- /path/to/catalog.json --apply',
   },
   {
     title: 'Verify launch readiness',
@@ -206,7 +206,7 @@ export default function Support() {
                   ))}
                 </ol>
                 <p className="support-runbook-note">
-                  Do not paste gift-code inventories, participant exports, JWTs, payment keys, or assignment reports into validation notes.
+                  The pod helper removes the staged catalog copy after each run. Do not paste gift-code inventories, participant exports, JWTs, payment keys, or assignment reports into validation notes.
                 </p>
               </section>
             )}

@@ -11,6 +11,7 @@
     "build:frontend": "cd frontend && npm ci && npm run build",
     "dev:frontend": "cd frontend && npm run dev",
     "load:catalog": "node scripts/load-marathon-catalog.js",
+    "load:catalog:pod": "sh scripts/load-catalog-in-pod.sh",
     "check:readiness": "node scripts/check-marathon-readiness.js",
     "check:journey": "node scripts/check-marathon-journey.js"
   },

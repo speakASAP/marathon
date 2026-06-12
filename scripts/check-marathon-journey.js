@@ -371,6 +371,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Registration status is temporarily unavailable') || !js.includes('Registration status could not be loaded')) {
     throw new Error('Built frontend bundle does not include registration readiness load-error state.');
   }
+  if (!js.includes('npm run load:catalog:pod -- /path/to/catalog.json') || !js.includes('removes the staged catalog copy')) {
+    throw new Error('Built frontend bundle does not include the pod-safe catalog load runbook.');
+  }
   if (!js.includes('Gift redemption status is temporarily unavailable') || !js.includes('Gift redemption status could not be loaded')) {
     throw new Error('Built frontend bundle does not include gift readiness load-error state.');
   }
@@ -399,6 +402,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'home-teaser-empty-state', 'Home finalists and reviews teasers include post-load empty states.');
   addCheck(report, 'pass', 'winners-empty-state-ui', 'Winners frontend includes a post-load empty state.');
   addCheck(report, 'pass', 'register-error-state', 'Registration page distinguishes readiness API load failures from closed-catalog state.');
+  addCheck(report, 'pass', 'catalog-pod-runbook-ui', 'Support runbook includes pod-safe catalog dry-run/apply commands.');
   addCheck(report, 'pass', 'gift-readiness-error-state', 'Gift redemption blocks redemption when readiness status cannot be loaded.');
   addCheck(report, 'pass', 'nav-readiness-error-state', 'Global registration CTA distinguishes readiness load failures from closed-catalog state.');
   addCheck(report, 'pass', 'progress-report-ui', 'Profile detail frontend includes authenticated participant progress report generation and JSON download UI.');

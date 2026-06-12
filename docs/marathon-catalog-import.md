@@ -38,11 +38,13 @@ Human approval must confirm:
 ## Runbook
 
 1. Place the approved JSON file on the Alphares server.
-2. Validate without writing:
+2. Validate without writing from the Marathon repository:
 
 ```bash
-node scripts/load-marathon-catalog.js /path/to/marathon-catalog.json
+npm run load:catalog:pod -- /path/to/marathon-catalog.json
 ```
+
+The helper copies the approved JSON into the running Marathon pod, runs the existing loader there, and removes the pod copy afterward. This keeps database access in the runtime context and avoids leaving gift-code inventories in `/tmp`.
 
 Dry-run output includes `launchChecklist.marathons[]`, which reports one redacted checklist row per marathon:
 
@@ -55,13 +57,13 @@ Dry-run output includes `launchChecklist.marathons[]`, which reports one redacte
 For a staged non-launch import only:
 
 ```bash
-node scripts/load-marathon-catalog.js /path/to/marathon-catalog.json --allow-incomplete
+npm run load:catalog:pod -- /path/to/marathon-catalog.json --allow-incomplete
 ```
 
 3. Apply only after human approval and a passing launch-ready dry run:
 
 ```bash
-node scripts/load-marathon-catalog.js /path/to/marathon-catalog.json --apply
+npm run load:catalog:pod -- /path/to/marathon-catalog.json --apply
 ```
 
 The script is create-only. It aborts if a target marathon slug or gift code already exists, so it does not overwrite existing approved course rows.
