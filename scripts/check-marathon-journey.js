@@ -18,7 +18,9 @@ function parseArgs(argv) {
     giftCode: '',
     json: false,
     language: '',
+    marathonerId: process.env.MARATHON_SMOKE_MARATHONER_ID || '',
     mutating: false,
+    stepId: process.env.MARATHON_SMOKE_STEP_ID || '',
     submit: false,
   };
 
@@ -40,6 +42,10 @@ function parseArgs(argv) {
       options.language = requireValue(argv, ++index, arg);
     } else if (arg === '--auth-token') {
       options.authToken = requireValue(argv, ++index, arg);
+    } else if (arg === '--marathoner-id') {
+      options.marathonerId = requireValue(argv, ++index, arg);
+    } else if (arg === '--step-id') {
+      options.stepId = requireValue(argv, ++index, arg);
     } else if (arg === '--gift-code') {
       options.giftCode = requireValue(argv, ++index, arg);
     } else if (arg === '--help' || arg === '-h') {
@@ -86,6 +92,14 @@ function validateOptions(options) {
   if (requestedAuthenticatedChecks.length > 0 && !options.authToken) {
     throw new Error(`${requestedAuthenticatedChecks.join(', ')} require --auth-token <jwt>`);
   }
+
+  const requestedSavedSubmissionLookup = options.marathonerId || options.stepId;
+  if (requestedSavedSubmissionLookup && (!options.marathonerId || !options.stepId)) {
+    throw new Error('--marathoner-id and --step-id must be provided together');
+  }
+  if (requestedSavedSubmissionLookup && !options.authToken) {
+    throw new Error('--marathoner-id and --step-id require --auth-token <jwt>');
+  }
 }
 
 function usage(exitCode = 0) {
@@ -96,6 +110,9 @@ function usage(exitCode = 0) {
     'Read-only default checks:',
     '  --base-url <url>      Target Marathon base URL',
     '  --language <code>     Preferred language code',
+    '  --auth-token <jwt>    JWT for optional authenticated read-only checks',
+    '  --marathoner-id <id>  Read saved submission for this participant with --step-id',
+    '  --step-id <id>        Read saved submission for this step with --marathoner-id',
     '  --json                Print JSON report',
     '',
     'Mutating checks require --mutating:',
@@ -106,7 +123,7 @@ function usage(exitCode = 0) {
     '  --submit              Submit the current active assignment for the smoke participant',
     '',
     'Environment alternatives:',
-    '  MARATHON_BASE_URL, MARATHON_SMOKE_AUTH_TOKEN',
+    '  MARATHON_BASE_URL, MARATHON_SMOKE_AUTH_TOKEN, MARATHON_SMOKE_MARATHONER_ID, MARATHON_SMOKE_STEP_ID',
   ].join('\n');
   const stream = exitCode === 0 ? process.stdout : process.stderr;
   stream.write(`${message}\n`);
@@ -254,6 +271,42 @@ function requireMutating(options, field, message) {
   return true;
 }
 
+async function checkAuthenticatedReadOnly(report, options) {
+  if (!options.marathonerId && !options.stepId) {
+    return;
+  }
+
+  const savedSubmission = await requestJson(
+    report,
+    `/api/v1/me/marathons/${encodeURIComponent(options.marathonerId)}/submissions/${encodeURIComponent(options.stepId)}`,
+    { authToken: options.authToken },
+  );
+  assertOk(savedSubmission.response, 'GET /api/v1/me/marathons/:id/submissions/:stepId');
+  if (typeof savedSubmission.json?.exists !== 'boolean') {
+    throw new Error('Saved submission lookup did not return exists boolean.');
+  }
+  if (savedSubmission.json.marathonerId !== options.marathonerId) {
+    throw new Error('Saved submission lookup returned a different marathonerId.');
+  }
+  if (savedSubmission.json.stepId !== options.stepId) {
+    throw new Error('Saved submission lookup returned a different stepId.');
+  }
+  report.context.savedSubmission = {
+    exists: savedSubmission.json.exists,
+    marathonerId: savedSubmission.json.marathonerId,
+    stepId: savedSubmission.json.stepId,
+    state: savedSubmission.json.state,
+  };
+  addCheck(
+    report,
+    'pass',
+    'saved-submission-read',
+    savedSubmission.json.exists
+      ? 'Authenticated saved submission lookup returned an existing report.'
+      : 'Authenticated saved submission lookup returned an empty state.',
+  );
+}
+
 async function checkMutatingJourney(report, options, publicContext) {
   if (!options.mutating) {
     addCheck(report, 'pass', 'mutation-skipped', 'Mutating journey checks were skipped by default.');
@@ -325,12 +378,13 @@ async function checkMutatingJourney(report, options, publicContext) {
     if (!activeStep?.stepId) {
       throw new Error('No active step available for submission smoke test.');
     }
+    const reportText = `Smoke test submission ${new Date().toISOString()}`;
     const submission = await requestJson(report, `/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/submissions`, {
       method: 'POST',
       authToken: options.authToken,
       body: JSON.stringify({
         stepId: activeStep.stepId,
-        report: `Smoke test submission ${new Date().toISOString()}`,
+        report: reportText,
         completed: true,
       }),
     });
@@ -339,6 +393,20 @@ async function checkMutatingJourney(report, options, publicContext) {
       throw new Error('Submission did not return id.');
     }
     addCheck(report, 'pass', 'submission', 'Assignment submission returned a saved submission.');
+
+    const savedSubmission = await requestJson(
+      report,
+      `/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/submissions/${encodeURIComponent(activeStep.stepId)}`,
+      { authToken: options.authToken },
+    );
+    assertOk(savedSubmission.response, 'GET /api/v1/me/marathons/:id/submissions/:stepId');
+    if (!savedSubmission.json?.exists || savedSubmission.json.id !== submission.json.id) {
+      throw new Error('Saved submission lookup did not return the submitted report.');
+    }
+    if (savedSubmission.json.report !== reportText) {
+      throw new Error('Saved submission lookup did not return the submitted report text.');
+    }
+    addCheck(report, 'pass', 'saved-submission-after-submit', 'Saved submission lookup returned the smoke submission.');
   }
 }
 
@@ -357,6 +425,7 @@ async function main() {
   const report = createReport(options);
   try {
     const publicContext = await checkPublicRoutes(report, options);
+    await checkAuthenticatedReadOnly(report, options);
     await checkMutatingJourney(report, options, publicContext);
   } catch (error) {
     addCheck(report, 'fail', 'journey-error', error.message || String(error));

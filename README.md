@@ -48,7 +48,7 @@ Run the HTTP-level journey smoke verifier after readiness passes:
 npm run check:journey -- --base-url https://marathon.alfares.cz
 ```
 
-The journey verifier is read-only by default. Registration, profile, VIP checkout, gift redemption, and assignment submission checks require explicit `--mutating` options; mutating-only flags fail without it. See `npm run check:journey -- --help`.
+The journey verifier is read-only by default. Existing saved assignment reports can be checked with `--auth-token '<jwt>' --marathoner-id '<participant-id>' --step-id '<step-id>'`. Registration, profile, VIP checkout, gift redemption, and assignment submission checks require explicit `--mutating` options; mutating-only flags fail without it. See `npm run check:journey -- --help`.
 
 ## Notes
 

@@ -49,6 +49,12 @@ npm run check:journey -- --base-url https://marathon.alfares.cz
 This verifier is read-only by default. Mutating-only flags such as `--checkout`, `--gift-code`, and `--submit` fail unless `--mutating` is present. To create a real smoke participant or verify authenticated checkout/gift/submission paths, pass `--mutating` plus the required explicit inputs:
 
 ```bash
+npm run check:journey -- --auth-token '<jwt>' --marathoner-id '<participant-id>' --step-id '<step-id>'
+```
+
+The command above verifies that the saved assignment report endpoint is readable for an existing authenticated participant without creating registration, payment, gift, or submission data.
+
+```bash
 npm run check:journey -- --mutating --email smoke@example.com --auth-token '<jwt>' --submit
 npm run check:journey -- --mutating --email smoke@example.com --auth-token '<jwt>' --gift-code '<approved-code>'
 npm run check:journey -- --mutating --email smoke@example.com --auth-token '<jwt>' --checkout

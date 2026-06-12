@@ -36,3 +36,4 @@
 - [x] 2026-06-12 VIP payment settlement guardrail added: checkout creates a `MarathonPaymentAttempt` ledger row and payment callbacks must match the issued order before unlocking VIP
 - [x] 2026-06-12 VIP payment return UX added: profile detail now explains `payment=success` callback-settlement delay, confirmed VIP state, and cancelled checkout returns
 - [x] 2026-06-12 Saved assignment report UX added: authenticated step pages now load the participant's existing submission/report and show saved state, late status, and bonus-day metadata before resubmission
+- [x] 2026-06-12 Saved assignment report verification added: `npm run check:journey` can read an existing participant submission with explicit auth/IDs and verifies saved-report readback after mutating submission smoke checks
