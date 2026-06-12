@@ -2,11 +2,11 @@
 
 ```yaml
 id: TASK-MAR-040
-status: in_progress
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
-completeness_level: draft
+completeness_level: production-verified
 upstream:
   - docs/intent/10_features/FEAT-001-launch-ready-catalog-flow.md
 validation:
@@ -38,11 +38,20 @@ The public navigation links directly to `/support`. Participants need registrati
 
 ## Acceptance Criteria
 
-- [ ] `/support` renders participant-safe help and readiness status.
-- [ ] `/support` does not render operator dashboard metrics, catalog load commands, smoke-test commands, JWT placeholders, or QA runbook copy.
-- [ ] Journey smoke reports public support safety before the expected catalog-readiness gate.
-- [ ] Browser QA verifies the public support page as an unauthenticated visitor.
-- [ ] Validation evidence avoids JWTs, participant private data, payment secrets, gift-code values, and assignment report payloads.
+- [x] `/support` renders participant-safe help and readiness status.
+- [x] `/support` does not render operator dashboard metrics, catalog load commands, smoke-test commands, JWT placeholders, or QA runbook copy.
+- [x] Journey smoke reports public support safety before the expected catalog-readiness gate.
+- [x] Browser QA verifies the public support page as an unauthenticated visitor.
+- [x] Validation evidence avoids JWTs, participant private data, payment secrets, gift-code values, and assignment report payloads.
+
+## Verification
+
+- Implemented in commits `5509e77` and `cca3224`; deployed as image `localhost:5000/marathon:cca3224`.
+- `npm run build:frontend` passed and generated `/assets/index-DU1plsmi.js` plus `/assets/index-CdVG7hqy.css`.
+- Generated JS includes `Marathon support`, `support-public-status`, `Profile and login`, `VIP access`, and `Assignments`.
+- Generated JS does not include `Operational dashboard`, `Post-load journey verification`, `npm run load:catalog:pod`, `--auth-token <portal-jwt>`, `approved-smoke-gift-code`, or `support-runbook-command`.
+- In-pod `npm run check:journey` reports `[PASS] support-public-participant-ui` and `[PASS] support-operator-markers-hidden` before the expected `[FAIL] catalog-readiness` gate.
+- Browser QA on `https://marathon.alfares.cz/support?qa=cca3224` verified participant support content, closed-registration readiness status, no forbidden operator markers, no framework overlay, and no current-route console errors. Screenshot: `/private/tmp/marathon-support-public-cca3224.png`.
 
 ## Sensitive-Data Classification
 
