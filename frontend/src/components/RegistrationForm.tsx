@@ -80,7 +80,7 @@ export default function RegistrationForm({
 
   return (
     <form onSubmit={handleSubmit} className="landing-form">
-      <h4>Register for SpeakASAP Marathon</h4>
+      <h4>Register for Marathon</h4>
       <p className="landing-form-marathon">{marathonTitle}</p>
       <div>
         <label htmlFor="reg-email">Email *</label>
@@ -116,7 +116,7 @@ export default function RegistrationForm({
       <button type="submit" disabled={submitting}>
         {submitting ? 'Sending...' : 'Start my marathon'}
       </button>
-      <p className="landing-form-note">Secure registration. No payment is required to start.</p>
+      <p className="landing-form-note">Secure Marathon registration. No payment is required to start.</p>
     </form>
   );
 }

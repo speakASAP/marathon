@@ -51,7 +51,7 @@ export default function Home() {
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    document.title = 'Языковые марафоны SpeakASAP® — Marathon';
+    document.title = 'Marathon — языковые марафоны SpeakASAP®';
   }, []);
 
   useEffect(() => {
@@ -93,7 +93,7 @@ export default function Home() {
   const catalogClosed = !loading && !registrationOpen;
   const heroSub = catalogClosed
     ? 'Регистрация откроется после загрузки утвержденного каталога марафона.'
-    : 'Изучи любой язык быстро на уровень А1 за 30 дней. Елена Шипилова®.';
+    : 'Выберите язык, зарегистрируйтесь и проходите ежедневные задания в личном профиле Marathon.';
   const missingLaunchGates = readiness?.missing ?? [];
 
   if (loadError) {
@@ -123,7 +123,7 @@ export default function Home() {
       {/* Legacy-aligned hero (stripe blue like legacy hub) */}
       <section className="section-marathon section-marathon-promo page-home-hero">
         <div className="container">
-          <h1 className="home-hero-title">Языковые марафоны SpeakASAP®</h1>
+          <h1 className="home-hero-title">Marathon: языковая практика до результата</h1>
           <p className="home-hero-sub">{heroSub}</p>
           <Link
             to="/register"

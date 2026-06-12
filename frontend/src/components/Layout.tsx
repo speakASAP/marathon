@@ -48,8 +48,9 @@ export default function Layout() {
       {!bare && (
       <header className="main-header" id="main-nav">
         <div className="container header-inner">
-          <Link to="/" className="navbar-brand">
-            Speak<span>ASAP®</span>
+          <Link to="/" className="navbar-brand" aria-label="Marathon home">
+            Marathon
+            <span className="navbar-brand-provider">by SpeakASAP®</span>
           </Link>
           <nav className={`main-nav-links ${menuOpen ? 'main-nav-links--open' : ''}`}>
             <Link to="/winners">Финалисты</Link>

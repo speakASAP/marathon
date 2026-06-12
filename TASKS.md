@@ -15,6 +15,7 @@
 - [x] TASK-MAR-038: Make empty profile dashboard readiness-aware (goal_id: frontend-readiness, priority: 2)
 - [x] TASK-MAR-039: Align readiness step-content counts with launch gate (goal_id: frontend-readiness, priority: 2)
 - [x] TASK-MAR-040: Make public support page participant-safe (goal_id: frontend-readiness, priority: 1)
+- [ ] TASK-MAR-041: Make public shell Marathon-first (goal_id: frontend-readiness, priority: 2)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->

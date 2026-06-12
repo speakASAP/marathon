@@ -61,8 +61,12 @@ a:hover {
 }
 
 .navbar-brand {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
   font-size: 20px;
-  font-weight: 400;
+  font-weight: 700;
+  line-height: 1.05;
   color: var(--marathon-text-on-dark);
   text-decoration: none;
   text-transform: uppercase;
@@ -73,8 +77,12 @@ a:hover {
   color: var(--marathon-nav-accent);
 }
 
-.navbar-brand span {
-  font-weight: 700;
+.navbar-brand .navbar-brand-provider {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  opacity: 0.86;
+  text-transform: none;
 }
 
 .main-header {
