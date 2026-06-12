@@ -64,3 +64,4 @@
 - [x] 2026-06-12 Catalog handoff contract added: catalog-only JSON Schema, source-owner approval checklist, redacted per-marathon loader dry-run checklist, and runtime-packaged schema/example/runbook are deployed for the next approved data load
 - [x] 2026-06-12 Closed-catalog landing polish deployed: language fallback pages now use natural language labels, honest preparation copy, and non-wrapping mobile landing nav while preserving registration-closed readiness gates
 - [x] 2026-06-12 Support launch runbook deployed: `/support` now shows missing catalog classes plus the safe catalog dry-run/apply/readiness command sequence when launch readiness is false
+- [x] 2026-06-12 Public catalog contract artifacts deployed: `/catalog/marathon-catalog.schema.json` and `/catalog/marathon-catalog.example.json` are served as JSON and linked from `/support`

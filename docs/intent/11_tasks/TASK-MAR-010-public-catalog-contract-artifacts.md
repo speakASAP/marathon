@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-010
-status: active
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -29,8 +29,7 @@ Make the catalog-only schema and example accessible from the deployed Marathon s
 
 ## Acceptance Criteria
 
-- [ ] `/catalog/marathon-catalog.schema.json` is served by production.
-- [ ] `/catalog/marathon-catalog.example.json` is served by production and contains placeholder-only values.
-- [ ] `/support` links to schema, example, and readiness API from the launch runbook panel.
-- [ ] Browser QA and static curl checks pass after deploy.
-
+- [x] `/catalog/marathon-catalog.schema.json` is served by production.
+- [x] `/catalog/marathon-catalog.example.json` is served by production and contains placeholder-only values.
+- [x] `/support` links to schema, example, and readiness API from the launch runbook panel.
+- [x] Browser QA and static curl checks pass after deploy.
