@@ -102,7 +102,7 @@ async function buildReport() {
       gifts,
       unusedGifts,
       steps,
-      stepsWithContent,
+      allStepContentRows,
       participants,
       paymentAttempts,
     ] = await Promise.all([
@@ -112,10 +112,11 @@ async function buildReport() {
       prisma.marathonGift.count(),
       prisma.marathonGift.count({ where: { usedAt: null } }),
       prisma.marathonStep.count(),
-      prisma.marathonStep.count({ where: { assignmentContent: { not: null } } }),
+      prisma.marathonStep.findMany({ select: { assignmentContent: true } }),
       prisma.marathonParticipant.count(),
       prisma.marathonPaymentAttempt.count(),
     ]);
+    const stepsWithContent = allStepContentRows.filter((step) => step.assignmentContent?.trim()).length;
 
     const activeCatalog = await prisma.marathon.findMany({
       where: { active: true },

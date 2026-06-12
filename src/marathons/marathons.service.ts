@@ -215,7 +215,7 @@ export class MarathonsService {
       gifts,
       unusedGifts,
       steps,
-      stepsWithContent,
+      allStepContentRows,
     ] = await Promise.all([
       this.prisma.marathon.count({ where: { active: true } }),
       this.prisma.marathon.count(),
@@ -223,8 +223,9 @@ export class MarathonsService {
       this.prisma.marathonGift.count(),
       this.prisma.marathonGift.count({ where: { usedAt: null } }),
       this.prisma.marathonStep.count(),
-      this.prisma.marathonStep.count({ where: { assignmentContent: { not: null } } }),
+      this.prisma.marathonStep.findMany({ select: { assignmentContent: true } }),
     ]);
+    const stepsWithContent = allStepContentRows.filter((step) => step.assignmentContent?.trim()).length;
 
     const activeCatalog = await this.prisma.marathon.findMany({
       where: { active: true },
