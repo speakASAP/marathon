@@ -46,7 +46,7 @@ The preflight must pass before the production journey can be considered ready fo
 npm run check:journey -- --base-url https://marathon.alfares.cz
 ```
 
-This verifier is read-only by default. To create a real smoke participant or verify authenticated checkout/gift/submission paths, pass `--mutating` plus the required explicit inputs:
+This verifier is read-only by default. Mutating-only flags such as `--checkout`, `--gift-code`, and `--submit` fail unless `--mutating` is present. To create a real smoke participant or verify authenticated checkout/gift/submission paths, pass `--mutating` plus the required explicit inputs:
 
 ```bash
 npm run check:journey -- --mutating --email smoke@example.com --auth-token '<jwt>' --submit

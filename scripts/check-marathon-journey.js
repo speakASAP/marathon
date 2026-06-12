@@ -15,7 +15,7 @@ function parseArgs(argv) {
     baseUrl: DEFAULT_BASE_URL,
     checkout: false,
     email: '',
-    giftCode: process.env.MARATHON_SMOKE_GIFT_CODE || '',
+    giftCode: '',
     json: false,
     language: '',
     mutating: false,
@@ -50,6 +50,7 @@ function parseArgs(argv) {
   }
 
   options.baseUrl = options.baseUrl.replace(/\/$/, '');
+  validateOptions(options);
   return options;
 }
 
@@ -59,6 +60,32 @@ function requireValue(argv, index, flag) {
     throw new Error(`${flag} requires a value`);
   }
   return value;
+}
+
+function validateOptions(options) {
+  const requestedMutatingChecks = [
+    options.checkout ? '--checkout' : '',
+    options.giftCode ? '--gift-code' : '',
+    options.submit ? '--submit' : '',
+  ].filter(Boolean);
+
+  if (!options.mutating && requestedMutatingChecks.length > 0) {
+    throw new Error(`${requestedMutatingChecks.join(', ')} require --mutating`);
+  }
+
+  if (options.mutating && !options.email) {
+    throw new Error('--mutating requires --email <email>');
+  }
+
+  const requestedAuthenticatedChecks = [
+    options.checkout ? '--checkout' : '',
+    options.giftCode ? '--gift-code' : '',
+    options.submit ? '--submit' : '',
+  ].filter(Boolean);
+
+  if (requestedAuthenticatedChecks.length > 0 && !options.authToken) {
+    throw new Error(`${requestedAuthenticatedChecks.join(', ')} require --auth-token <jwt>`);
+  }
 }
 
 function usage(exitCode = 0) {
@@ -79,7 +106,7 @@ function usage(exitCode = 0) {
     '  --submit              Submit the current active assignment for the smoke participant',
     '',
     'Environment alternatives:',
-    '  MARATHON_BASE_URL, MARATHON_SMOKE_AUTH_TOKEN, MARATHON_SMOKE_GIFT_CODE',
+    '  MARATHON_BASE_URL, MARATHON_SMOKE_AUTH_TOKEN',
   ].join('\n');
   const stream = exitCode === 0 ? process.stdout : process.stderr;
   stream.write(`${message}\n`);

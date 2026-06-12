@@ -28,3 +28,4 @@
 - [x] 2026-06-12 Root and global navigation closed-catalog CTAs corrected: home hero and shared nav now show registration/status wording when production readiness reports registration closed
 - [x] 2026-06-12 Legacy full-export loaders disabled: direct Node/Python marathon_export import paths now refuse to run because historical exports include participant progress and winners
 - [x] 2026-06-12 Journey smoke verifier added: `npm run check:journey` checks public Marathon routes read-only by default and supports explicit guarded mutating registration/profile/VIP/gift/submission verification after catalog load
+- [x] 2026-06-12 Journey smoke verifier guardrails tightened: checkout/gift/submission flags now fail without `--mutating` and authenticated smoke inputs instead of being silently skipped
