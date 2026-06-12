@@ -441,6 +441,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Marathon home is temporarily unavailable') || !js.includes('Marathon home could not be loaded')) {
     throw new Error('Built frontend bundle does not include home load-error state.');
   }
+  if (!js.includes('home-missing-gates') || !js.includes('Недостающие условия запуска')) {
+    throw new Error('Built frontend bundle does not include home missing-launch-gates readiness detail.');
+  }
   if (!js.includes('Финалисты появятся после завершения первых марафонов') || !js.includes('Отзывы появятся после запуска марафона')) {
     throw new Error('Built frontend bundle does not include root finalist/review empty states.');
   }
@@ -493,6 +496,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'landing-review-empty-state', 'Language landing uses a real-data empty state instead of invented testimonials.');
   addCheck(report, 'pass', 'landing-missing-gates-ui', 'Language landing closed-registration panel includes exact missing launch gates from readiness data.');
   addCheck(report, 'pass', 'home-error-state', 'Home page distinguishes readiness API load failures from closed-catalog state.');
+  addCheck(report, 'pass', 'home-missing-gates-ui', 'Home closed-catalog panel includes exact missing launch gates from readiness data.');
   addCheck(report, 'pass', 'home-teaser-empty-state', 'Home finalists and reviews teasers include post-load empty states.');
   addCheck(report, 'pass', 'winners-empty-state-ui', 'Winners frontend includes a post-load empty state.');
   addCheck(report, 'pass', 'register-error-state', 'Registration page distinguishes readiness API load failures from closed-catalog state.');

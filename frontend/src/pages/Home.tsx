@@ -29,6 +29,14 @@ interface CatalogReadiness {
     products: number;
     unusedGifts: number;
   };
+  missing?: string[];
+}
+
+function formatMissingGate(value: string): string {
+  return value
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 /**
@@ -86,6 +94,7 @@ export default function Home() {
   const heroSub = catalogClosed
     ? 'Регистрация откроется после загрузки утвержденного каталога марафона.'
     : 'Изучи любой язык быстро на уровень А1 за 30 дней. Елена Шипилова®.';
+  const missingLaunchGates = readiness?.missing ?? [];
 
   if (loadError) {
     return (
@@ -144,6 +153,16 @@ export default function Home() {
                   {' '}подарочные коды: {readiness.counts.unusedGifts}
                 </small>
               )}
+              {missingLaunchGates.length ? (
+                <div className="home-missing-gates" aria-label="Missing launch gates">
+                  <strong>Недостающие условия запуска</strong>
+                  <div>
+                    {missingLaunchGates.map((item) => (
+                      <span key={item}>{formatMissingGate(item)}</span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <Link to="/support">Поддержка</Link>
             </div>
           )}
