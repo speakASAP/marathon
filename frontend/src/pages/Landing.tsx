@@ -314,8 +314,18 @@ export default function Landing() {
             </article>
             <aside className="ml-payment-panel">
               <h3>VIP access</h3>
-              <p>Payments are routed through the shared payments service. Gift-code redemption and checkout are tracked in the current implementation plan.</p>
-              <Link to="/gift" className="ml-outline-action">Gift code</Link>
+              <p>
+                {hasActiveMarathon
+                  ? 'Payments are routed through the shared payments service. Gift-code redemption and checkout are tracked in the current implementation plan.'
+                  : 'VIP checkout and gift-code redemption will open after an active marathon catalog is configured.'}
+              </p>
+              {hasActiveMarathon ? (
+                <Link to="/gift" className="ml-outline-action">Gift code</Link>
+              ) : (
+                <button type="button" className="ml-outline-action" onClick={scrollToForm}>
+                  View registration status
+                </button>
+              )}
               <Link to="/support" className="ml-secondary-action">Need help?</Link>
             </aside>
           </div>
