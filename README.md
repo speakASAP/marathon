@@ -33,6 +33,13 @@ npm run load:catalog -- /path/to/marathon-catalog.json --apply
 
 The loader is dry-run by default, rejects user/progress data, and does not overwrite existing catalog rows. See `docs/marathon-catalog-import.md`.
 
+Run the read-only production preflight from the Marathon runtime after loading catalog data:
+
+```bash
+npm run check:readiness
+npm run check:readiness -- --json
+```
+
 ## Notes
 
 - Production-only workflow

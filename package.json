@@ -10,7 +10,8 @@
     "postinstall": "npm run prisma:generate",
     "build:frontend": "cd frontend && npm ci && npm run build",
     "dev:frontend": "cd frontend && npm run dev",
-    "load:catalog": "node scripts/load-marathon-catalog.js"
+    "load:catalog": "node scripts/load-marathon-catalog.js",
+    "check:readiness": "node scripts/check-marathon-readiness.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

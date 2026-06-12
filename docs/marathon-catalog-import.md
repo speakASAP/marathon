@@ -30,6 +30,14 @@ node scripts/load-marathon-catalog.js /path/to/marathon-catalog.json --apply
 
 The script is create-only. It aborts if a target marathon slug or gift code already exists, so it does not overwrite existing approved course rows.
 
+4. Run the read-only production preflight from the Marathon runtime:
+
+```bash
+npm run check:readiness
+```
+
+The preflight must pass before the production journey can be considered ready for registration, VIP checkout, gift redemption, and assignment submission verification.
+
 ## Minimal Fields
 
 `Marathon` requires `languageCode`, `title`, `slug`, and `active`.
