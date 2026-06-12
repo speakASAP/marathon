@@ -2,11 +2,11 @@
 
 ```yaml
 id: TASK-MAR-041
-status: in_progress
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
-completeness_level: partial
+completeness_level: complete
 upstream:
   - docs/intent/01_vision/VISION.md
   - docs/intent/10_features/FEAT-001-launch-ready-catalog-flow.md
@@ -32,12 +32,21 @@ Make the public first viewport and registration entry point present Marathon as 
 
 ## Acceptance Criteria
 
-- [ ] Production root first viewport shows Marathon as the primary product brand.
-- [ ] Registration form copy says Marathon first.
-- [ ] SpeakASAP remains only as provider/legal context on changed surfaces.
-- [ ] Read-only journey smoke includes a public Marathon branding check.
-- [ ] Production validation is recorded in `docs/intent/12_validation/VAL-TASK-MAR-041.md`.
+- [x] Production root first viewport shows Marathon as the primary product brand.
+- [x] Registration form copy says Marathon first.
+- [x] SpeakASAP remains only as provider/legal context on changed surfaces.
+- [x] Read-only journey smoke includes a public Marathon branding check.
+- [x] Production validation is recorded in `docs/intent/12_validation/VAL-TASK-MAR-041.md`.
 
 ## Current Blocker
 
 Approved catalog rows are still absent, so this task can improve public brand readiness but cannot complete the full register/payment/assignment journey.
+
+## Verification Summary
+
+- Commit: `f9fe3c6`.
+- Deployed image: `localhost:5000/marathon:f9fe3c6`.
+- `npm run check:journey` passes `public-marathon-branding` and all existing frontend/read-only checks before stopping at the known `catalog-readiness` gate.
+- Browser QA verified `/` and CTA navigation to `/register`; screenshots:
+  - `/private/tmp/marathon-brand-root-f9fe3c6.png`
+  - `/private/tmp/marathon-brand-register-f9fe3c6.png`
