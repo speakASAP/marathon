@@ -67,3 +67,4 @@
 - [x] 2026-06-12 Public catalog contract artifacts deployed: `/catalog/marathon-catalog.schema.json` and `/catalog/marathon-catalog.example.json` are served as JSON and linked from `/support`
 - [x] 2026-06-12 Public catalog contract smoke coverage added: `npm run check:journey` now verifies the schema/example URLs serve JSON and remain placeholder-only before the catalog readiness gate
 - [x] 2026-06-12 Language fallback smoke coverage added: `npm run check:journey` now verifies `/en/` serves the frontend shell and the empty no-active-marathon API response is handled before the catalog readiness gate
+- [x] 2026-06-12 Mobile landing navigation polish deployed: narrow language landing nav now wraps section links into non-clipped controls and preserves the registration-status scroll action

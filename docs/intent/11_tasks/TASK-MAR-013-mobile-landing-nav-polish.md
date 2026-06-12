@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-013
-status: active
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -28,7 +28,7 @@ Make the public language landing navigation readable and non-clipped on narrow m
 
 ## Acceptance Criteria
 
-- [ ] Mobile `/en/` landing nav renders all section links without clipped labels.
-- [ ] Hero registration-status action still scrolls to the closed-registration panel.
-- [ ] Backend and frontend builds pass.
-- [ ] Deployment and Browser QA evidence are recorded.
+- [x] Mobile `/en/` landing nav renders all section links without clipped labels.
+- [x] Hero registration-status action still scrolls to the closed-registration panel.
+- [x] Backend and frontend builds pass.
+- [x] Deployment and Browser QA evidence are recorded.
