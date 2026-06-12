@@ -159,7 +159,7 @@ export default function ProfileDetail() {
           <h2>Текущий этап</h2>
           <p><strong>{current.title}</strong></p>
           <p>До: {new Date(current.stop).toLocaleString('ru-RU')}</p>
-          <Link to={`/steps/${current.stepId}`} className="btn-profile-open">
+          <Link to={`/steps/${current.stepId}?marathonerId=${encodeURIComponent(data.id)}`} className="btn-profile-open">
             Открыть задание
           </Link>
         </section>
@@ -172,7 +172,7 @@ export default function ProfileDetail() {
               <span className="answer-title">{a.title}</span>
               <span className="answer-state">{a.state}</span>
               {a.state !== 'inactive' && (
-                <Link to={`/steps/${a.stepId}`}>Открыть</Link>
+                <Link to={`/steps/${a.stepId}?marathonerId=${encodeURIComponent(data.id)}`}>Открыть</Link>
               )}
             </li>
           ))}

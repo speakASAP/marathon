@@ -1,0 +1,216 @@
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from '../shared/prisma.service';
+
+export type SubmissionRequest = {
+  stepId?: string;
+  report?: string;
+  payload?: Record<string, unknown>;
+  rating?: number;
+  completed?: boolean;
+};
+
+export type SubmissionResponse = {
+  id: string;
+  marathonerId: string;
+  stepId: string;
+  state: 'completed' | 'active';
+  is_late: boolean;
+  bonus_left: number;
+  penalty_reported: boolean;
+  updated_at: string;
+};
+
+@Injectable()
+export class SubmissionsService {
+  private readonly logger = new Logger(SubmissionsService.name);
+
+  constructor(private readonly prisma: PrismaService) {}
+
+  async submit(userId: string, marathonerId: string, payload: SubmissionRequest): Promise<SubmissionResponse> {
+    const normalizedStepId = payload.stepId?.trim();
+    if (!normalizedStepId) {
+      throw new BadRequestException('stepId is required');
+    }
+
+    const report = payload.report?.trim();
+    const extraPayload = payload.payload && typeof payload.payload === 'object' ? payload.payload : {};
+    if (!report && Object.keys(extraPayload).length === 0) {
+      throw new BadRequestException('report or payload is required');
+    }
+
+    const participant = await this.findAndClaimParticipant(userId, marathonerId);
+    if (!participant.active) {
+      throw new ConflictException('Participant is not active');
+    }
+
+    const step = await this.prisma.marathonStep.findFirst({
+      where: {
+        id: normalizedStepId,
+        marathonId: participant.marathonId,
+      },
+    });
+    if (!step) {
+      throw new NotFoundException('Step not found for this marathon');
+    }
+
+    if (this.needsPayment(participant) && !step.isTrialStep) {
+      throw new ForbiddenException('VIP access is required before submitting this step');
+    }
+
+    const completed = payload.completed !== false;
+    const now = new Date();
+    const existing = await this.prisma.stepSubmission.findFirst({
+      where: {
+        participantId: participant.id,
+        stepId: step.id,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const startAt = existing?.startAt || this.resolveStartAt(participant.reportHour, step.sequence);
+    const endAt = now;
+    const isLate = step.isPenalized && endAt > this.resolveDueAt(participant.reportHour, step.sequence);
+    const payloadJson = {
+      ...(existing?.payloadJson && typeof existing.payloadJson === 'object' ? existing.payloadJson as Record<string, unknown> : {}),
+      ...extraPayload,
+      ...(report ? { report } : {}),
+    };
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const submission = existing
+        ? await tx.stepSubmission.update({
+            where: { id: existing.id },
+            data: {
+              endAt,
+              isCompleted: completed,
+              rating: this.normalizeRating(payload.rating, existing.rating),
+              payloadJson,
+            },
+          })
+        : await tx.stepSubmission.create({
+            data: {
+              participantId: participant.id,
+              stepId: step.id,
+              startAt,
+              endAt,
+              isCompleted: completed,
+              isChecked: false,
+              rating: this.normalizeRating(payload.rating),
+              payloadJson,
+            },
+          });
+
+      let penaltyReported = false;
+      let bonusDaysLeft = participant.bonusDaysLeft;
+      if (completed && isLate) {
+        const existingPenalty = await tx.penaltyReport.findFirst({
+          where: {
+            participantId: participant.id,
+            value: {
+              path: ['submissionId'],
+              equals: submission.id,
+            },
+          },
+        });
+
+        if (!existingPenalty) {
+          await tx.penaltyReport.create({
+            data: {
+              participantId: participant.id,
+              completed: true,
+              completeTime: endAt,
+              value: {
+                stepId: step.id,
+                submissionId: submission.id,
+                reason: 'late_submission',
+              },
+            },
+          });
+          penaltyReported = true;
+          bonusDaysLeft = Math.max(0, participant.bonusDaysLeft - 1);
+          await tx.marathonParticipant.update({
+            where: { id: participant.id },
+            data: { bonusDaysLeft },
+          });
+        }
+      }
+
+      return { submission, bonusDaysLeft, penaltyReported };
+    });
+
+    this.logger.log(
+      `Step submission saved: participantId=${participant.id}, stepId=${step.id}, submissionId=${result.submission.id}, completed=${completed}, late=${isLate}`,
+    );
+
+    return {
+      id: result.submission.id,
+      marathonerId: participant.id,
+      stepId: step.id,
+      state: result.submission.isCompleted ? 'completed' : 'active',
+      is_late: isLate,
+      bonus_left: result.bonusDaysLeft,
+      penalty_reported: result.penaltyReported,
+      updated_at: result.submission.updatedAt.toISOString(),
+    };
+  }
+
+  private async findAndClaimParticipant(userId: string, marathonerId: string) {
+    const participant = await this.prisma.marathonParticipant.findFirst({
+      where: {
+        id: marathonerId,
+        OR: [{ userId }, { userId: null }],
+      },
+      include: {
+        marathon: true,
+      },
+    });
+
+    if (!participant) {
+      throw new NotFoundException('Participant not found');
+    }
+    if (participant.userId && participant.userId !== userId) {
+      throw new ForbiddenException('Participant belongs to another user');
+    }
+    if (!participant.userId) {
+      return this.prisma.marathonParticipant.update({
+        where: { id: participant.id },
+        data: { userId },
+        include: { marathon: true },
+      });
+    }
+    return participant;
+  }
+
+  private normalizeRating(value?: number, fallback = 0): number {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+      return fallback;
+    }
+    return Math.max(0, Math.min(5, Math.round(value)));
+  }
+
+  private resolveStartAt(reportHour: Date, sequence: number): Date {
+    const startAt = new Date(reportHour);
+    startAt.setDate(startAt.getDate() + Math.max(sequence - 1, 0));
+    return startAt;
+  }
+
+  private resolveDueAt(reportHour: Date, sequence: number): Date {
+    const dueAt = this.resolveStartAt(reportHour, sequence);
+    dueAt.setDate(dueAt.getDate() + 1);
+    return dueAt;
+  }
+
+  private needsPayment(participant: any): boolean {
+    if (!participant.vipRequired || !participant.isFree || !participant.marathon.vipGateDate) {
+      return false;
+    }
+    return new Date() >= participant.marathon.vipGateDate;
+  }
+}

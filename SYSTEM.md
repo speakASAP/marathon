@@ -4,7 +4,7 @@
 
 NestJS + Prisma + PostgreSQL + Redis. Deployed on Kubernetes (`statex-apps` namespace).
 
-- **Modules:** marathons, registrations, steps, answers, me (authenticated), VIP payments/gifts, winners, reviews
+- **Modules:** marathons, registrations, steps, answers, me (authenticated), submissions, VIP payments/gifts, winners, reviews
 - **Frontend:** Vite + React + TypeScript in `frontend/`; production build output is `public/` and is served by NestJS
 - **Port:** 3000
 - **Domain:** marathon.alfares.cz
@@ -35,6 +35,7 @@ NestJS + Prisma + PostgreSQL + Redis. Deployed on Kubernetes (`statex-apps` name
 | GET | `/api/v1/answers/random?stepId=` | None | Random peer answer for a step |
 | GET | `/api/v1/me/marathons` | JWT | Authenticated user's marathons |
 | GET | `/api/v1/me/marathons/:marathonerId` | JWT | Participant detail |
+| POST | `/api/v1/me/marathons/:marathonerId/submissions` | JWT | Create/update participant step submission; tracks late penalty and bonus days |
 | POST | `/api/v1/vip/checkout` | JWT | Create VIP checkout via payments-microservice |
 | POST | `/api/v1/vip/gift-redemptions` | JWT | Redeem gift code and unlock VIP |
 | POST | `/api/v1/payments/webhook` | X-API-Key | Payment callback from payments-microservice |
@@ -44,14 +45,13 @@ NestJS + Prisma + PostgreSQL + Redis. Deployed on Kubernetes (`statex-apps` name
 
 ## Current State
 <!-- AI-maintained -->
-Stage: active — core marathon, registration, steps, answers, me, VIP checkout/gift redemption, winners, and reviews modules operational. Frontend landing/profile surfaces were modernized and deployed on 2026-06-12 around the real registration, profile, VIP gate, gift-code, and assignment-read APIs. VIP checkout now calls payments-microservice with server-side product pricing, payment callbacks validate `PAYMENT_WEBHOOK_API_KEY`, and gift redemption marks `MarathonGift.usedAt` while setting `MarathonParticipant.isFree=false` and `paymentReported=true`. Authenticated profile detail can claim a newly registered participant when `userId` is still null. Production currently has no active marathon rows/languages, so the landing renders a registration-not-open state until data is configured; live VIP flow verification still requires active Marathon/Product/Gift data and payments backend registration.
+Stage: active — core marathon, registration, steps, answers, me, submissions, VIP checkout/gift redemption, winners, and reviews modules operational. Frontend landing/profile surfaces were modernized and deployed on 2026-06-12 around the real registration, profile, VIP gate, gift-code, and assignment APIs. VIP checkout now calls payments-microservice with server-side product pricing, payment callbacks validate `PAYMENT_WEBHOOK_API_KEY`, and gift redemption marks `MarathonGift.usedAt` while setting `MarathonParticipant.isFree=false` and `paymentReported=true`. Authenticated profile detail can claim a newly registered participant when `userId` is still null. Profile schedule exposes the next active assignment, and the Step page can submit the participant's own report through `StepSubmission`, including late penalty report creation and bonus-day decrement. Production currently has no active marathon rows/languages, so the landing renders a registration-not-open state until data is configured; live registration/VIP/assignment flow verification still requires active Marathon/Product/Gift/Step data and payments backend callback-key registration.
 
 ## Known Issues
 <!-- AI-maintained -->
 - P0: Production has no active Marathon rows/languages; public registration cannot open until an active `Marathon` is configured
-- P0: Production has no active `MarathonProduct`/`MarathonGift` data to verify VIP checkout or gift redemption end-to-end
-- P0: Confirm payments-microservice has Marathon's `PAYMENT_API_KEY` in `API_KEYS` and `marathon:PAYMENT_WEBHOOK_API_KEY` in `PAYMENT_CALLBACK_API_KEYS`
-- P1: Step/assignment pages are read-oriented; there is no submission create/update API yet (GOALS.md Phase 2)
+- P0: Production has no active `MarathonProduct`/`MarathonGift`/`MarathonStep` data to verify VIP checkout, gift redemption, or assignment submission end-to-end
+- P0: payments-microservice currently has no `PAYMENT_CALLBACK_API_KEYS` entry for `marathon`, so successful provider callbacks will not include Marathon's expected webhook key
 - Winner records appear to be manually managed — no auto-detection on step completion
 
 ## Ops

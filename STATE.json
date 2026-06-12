@@ -7,14 +7,13 @@
   "last_cycle_at": "2026-04-29T00:00:00Z",
   "tasks_active": 0,
   "tasks_failed_last_cycle": 0,
-  "open_task_ids": ["T4", "production-data-active-marathon", "payment-backend-registration", "submission-api"],
-  "last_milestone": "vip-checkout-gift-webhook-implemented-2026-06-12",
-  "next_focus": "Configure active production Marathon/Product/Gift data, confirm payments-microservice key registration, then verify registration -> gate -> payment/gift -> VIP access",
+  "open_task_ids": ["T4", "production-data-active-marathon", "payment-backend-registration", "assignment-live-verification", "winner-automation"],
+  "last_milestone": "submission-api-and-step-report-ui-implemented-2026-06-12",
+  "next_focus": "Configure active production Marathon/Product/Gift/Step data, register marathon callback key in payments-microservice, then verify registration -> assignment submission -> gate -> payment/gift -> VIP access",
   "blockers": [
     "P0: Production has no active Marathon rows/languages, so public registration is not open",
-    "P0: Production has no MarathonProduct/Gift data for live VIP verification",
-    "P0: Confirm payments-microservice API_KEYS and PAYMENT_CALLBACK_API_KEYS include Marathon credentials",
-    "P1: Assignment submission/write API not implemented"
+    "P0: Production has no MarathonProduct/Gift/Step data for live VIP and assignment verification",
+    "P0: payments-microservice PAYMENT_CALLBACK_API_KEYS does not include marathon, so payment callbacks will not include Marathon's expected webhook key"
   ],
   "budget_units_used": 0,
   "metrics": { "custom": {} }

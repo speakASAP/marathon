@@ -520,6 +520,48 @@ a:hover {
   margin: 0.5rem 0;
 }
 
+.step-submit {
+  display: grid;
+  gap: 1rem;
+}
+
+.step-submit h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.step-submit-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.step-submit-form label {
+  font-weight: 700;
+  color: var(--marathon-heading);
+}
+
+.step-submit-form textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  border: 1px solid var(--marathon-border);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  font: inherit;
+  line-height: 1.5;
+  background: #fff;
+  color: var(--marathon-text);
+}
+
+.step-submit-success {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #e8f5e9;
+  color: #256b2a;
+  font-weight: 600;
+}
+
 .btn-show-more {
   margin-top: 1rem;
   padding: 0.5rem 1rem;

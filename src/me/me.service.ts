@@ -127,16 +127,17 @@ export class MeService {
     const latestSubmission = submissions.length > 0 ? submissions[0] : null;
     const latestStep = latestSubmission ? latestSubmission.step : null;
 
+    const needsPayment = this.calculateNeedsPayment(participant, latestStep, marathon);
     const type = this.getMarathonType(participant);
-    const currentStep = latestSubmission ? this.mapToAnswer(latestSubmission, latestStep) : null;
-    const answers = this.buildSchedule(participant, steps, submissions);
+    const answers = this.buildSchedule(participant, steps, submissions, needsPayment);
+    const currentStep =
+      answers.find((answer) => answer.state === 'active') ||
+      (latestSubmission ? this.mapToAnswer(latestSubmission, latestStep) : null);
 
     const canChangeReportTime =
       participant.active &&
       !this.isWinner(participant, steps) &&
       (!latestStep || !latestStep.isPenalized);
-
-    const needsPayment = this.calculateNeedsPayment(participant, latestStep, marathon);
 
     return {
       title: marathon.title,
@@ -176,18 +177,33 @@ export class MeService {
     };
   }
 
-  private buildSchedule(participant: any, steps: any[], submissions: any[]): Answer[] {
+  private buildSchedule(participant: any, steps: any[], submissions: any[], needsPayment: boolean): Answer[] {
     const schedule: Answer[] = [];
-    const submissionMap = new Map(submissions.map((s) => [s.stepId, s]));
+    const submissionMap = new Map();
+    for (const submission of submissions) {
+      if (!submissionMap.has(submission.stepId)) {
+        submissionMap.set(submission.stepId, submission);
+      }
+    }
+    let hasOpenStep = false;
 
     for (const step of steps) {
       const submission = submissionMap.get(step.id);
       if (submission) {
-        schedule.push(this.mapToAnswer(submission, step));
+        const mapped = this.mapToAnswer(submission, step);
+        if (mapped.state === 'active') {
+          hasOpenStep = true;
+        }
+        schedule.push(mapped);
       } else {
         const prevStop = schedule.length > 0 ? new Date(schedule[schedule.length - 1].stop) : new Date();
         const nextStop = new Date(prevStop);
         nextStop.setDate(nextStop.getDate() + 1);
+        const blockedByPayment = needsPayment && !step.isTrialStep;
+        const state = !hasOpenStep && !blockedByPayment ? 'active' : 'inactive';
+        if (state === 'active') {
+          hasOpenStep = true;
+        }
 
         schedule.push({
           id: 0,
@@ -195,9 +211,9 @@ export class MeService {
           title: step.title,
           start: prevStop.toISOString(),
           stop: nextStop.toISOString(),
-          state: 'inactive',
+          state,
           is_late: false,
-          block_reason: null,
+          block_reason: blockedByPayment ? 'payment_required' : null,
         });
       }
     }

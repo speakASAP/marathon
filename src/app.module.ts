@@ -11,6 +11,7 @@ import { AnswersModule } from './answers/answers.module';
 import { StepsModule } from './steps/steps.module';
 import { MeModule } from './me/me.module';
 import { VipModule } from './vip/vip.module';
+import { SubmissionsModule } from './submissions/submissions.module';
 import { RequestContextMiddleware } from './shared/request-context.middleware';
 import { NotificationsService } from './shared/notifications.service';
 import { PrismaService } from './shared/prisma.service';
@@ -30,6 +31,7 @@ import { PrismaService } from './shared/prisma.service';
     StepsModule,
     MeModule,
     VipModule,
+    SubmissionsModule,
   ],
   controllers: [AppController],
   providers: [AppService, NotificationsService, PrismaService],
