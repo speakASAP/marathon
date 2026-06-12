@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-016
-status: active
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
@@ -28,7 +28,7 @@ Make the public winners page explain the current no-winners state instead of ren
 
 ## Acceptance Criteria
 
-- [ ] `/winners` renders an empty-state explanation when `items=[]`.
-- [ ] Empty-state actions point to registration status and support.
-- [ ] `npm run check:journey` reports winners empty-state UI coverage.
-- [ ] Build, deploy, Browser QA, and validation evidence are recorded.
+- [x] `/winners` renders an empty-state explanation when `items=[]`.
+- [x] Empty-state actions point to registration status and support.
+- [x] `npm run check:journey` reports winners empty-state UI coverage.
+- [x] Build, deploy, Browser QA, and validation evidence are recorded.

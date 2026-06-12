@@ -70,3 +70,4 @@
 - [x] 2026-06-12 Mobile landing navigation polish deployed: narrow language landing nav now wraps section links into non-clipped controls and preserves the registration-status scroll action
 - [x] 2026-06-12 Root teaser empty states deployed: the home finalists/reviews teaser now distinguishes post-load empty state from loading and journey smoke protects the bundle strings
 - [x] 2026-06-12 Root mobile menu toggle anchored: the global mobile hamburger now stays in the first header row while expanded menu links open below it
+- [x] 2026-06-12 Winners empty state deployed: `/winners` now explains the no-finalists state after an empty winners response and links visitors to registration status/support
