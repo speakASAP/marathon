@@ -1255,6 +1255,7 @@ a:hover {
 }
 
 .support-public-status strong {
+  display: inline-block;
   color: #101832;
   font-size: 1.1rem;
 }
@@ -1356,6 +1357,11 @@ a:hover {
 
   .support-public-status > div:first-child {
     display: block;
+  }
+
+  .support-public-status > div:first-child strong {
+    display: block;
+    margin-top: 6px;
   }
 
   .support-public-counts,
