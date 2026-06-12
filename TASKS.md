@@ -17,7 +17,7 @@
 - [x] TASK-MAR-040: Make public support page participant-safe (goal_id: frontend-readiness, priority: 1)
 - [x] TASK-MAR-041: Make public shell Marathon-first (goal_id: frontend-readiness, priority: 2)
 - [x] TASK-MAR-042: Extend Marathon-first branding across public routes (goal_id: frontend-readiness, priority: 2)
-- [ ] TASK-MAR-043: Replace closed-catalog landing pricing offers with readiness gate (goal_id: frontend-readiness, priority: 1)
+- [x] TASK-MAR-043: Replace closed-catalog landing pricing offers with readiness gate (goal_id: frontend-readiness, priority: 1)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->

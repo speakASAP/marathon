@@ -2,11 +2,11 @@
 
 ```yaml
 id: TASK-MAR-043
-status: in_progress
+status: verified
 owner: Engineering
 created: 2026-06-12
 last_updated: 2026-06-12
-completeness_level: partial
+completeness_level: complete
 upstream:
   - docs/intent/10_features/FEAT-001-launch-ready-catalog-flow.md
   - docs/intent/11_tasks/TASK-MAR-033-closed-catalog-landing-real-data.md
@@ -32,12 +32,20 @@ Prevent language landing pages from showing fallback plan names, prices, VIP pla
 
 ## Acceptance Criteria
 
-- [ ] Closed-catalog language landing shows a pricing readiness gate, not plan cards.
-- [ ] Closed-catalog bundle does not contain fallback `EUR 0`/`€0`, `Everything in Free`, or `Most complete` offer markers.
-- [ ] Journey smoke covers the readiness-only pricing state.
-- [ ] Production Browser QA verifies `/en/#pricing` after deploy.
-- [ ] Validation is recorded in `docs/intent/12_validation/VAL-TASK-MAR-043.md`.
+- [x] Closed-catalog language landing shows a pricing readiness gate, not plan cards.
+- [x] Closed-catalog bundle does not contain fallback `EUR 0`/`€0`, `Everything in Free`, or `Most complete` offer markers.
+- [x] Journey smoke covers the readiness-only pricing state.
+- [x] Production Browser QA verifies `/en/#pricing` after deploy.
+- [x] Validation is recorded in `docs/intent/12_validation/VAL-TASK-MAR-043.md`.
 
 ## Current Blocker
 
 The full register/payment/assignment journey remains blocked by missing approved catalog rows. This task removes misleading offer presentation before that data is loaded.
+
+## Verification Summary
+
+- Commit: `ca125b7`.
+- Deployed image: `localhost:5000/marathon:ca125b7`.
+- `npm run check:journey` passes all frontend/read-only checks, including the closed-catalog landing pricing gate assertions, before the known `catalog-readiness` failure.
+- Browser QA verified `/en/?qa=ca125b7-browser#pricing`; screenshot:
+  - `/private/tmp/marathon-pricing-gate-section-ca125b7.png`
