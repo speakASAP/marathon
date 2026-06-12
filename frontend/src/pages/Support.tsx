@@ -122,6 +122,33 @@ const POST_LOAD_VERIFICATION_STEPS = [
   },
 ];
 
+const RENDERED_ROUTE_QA_STEPS = [
+  {
+    title: 'Home closed-catalog route',
+    detail: '/ renders registration-status copy, missing launch gates, and finalist/review empty states without a framework overlay.',
+  },
+  {
+    title: 'Language landing route',
+    detail: '/en/ renders registration status, readiness counts, no fake price/course sequence, and no invented testimonials.',
+  },
+  {
+    title: 'Registration route',
+    detail: '/register renders the closed-registration panel and exact missing launch gates instead of language choices.',
+  },
+  {
+    title: 'Gift route',
+    detail: '/gift renders gift readiness state with no redeem button until readiness and participant context are verified.',
+  },
+  {
+    title: 'Profile route',
+    detail: '/profile renders login-required or profile-error state without misreporting backend failures as missing marathons.',
+  },
+  {
+    title: 'Assignment route',
+    detail: '/steps/<step-id>?marathonerId=<participant-id> renders not-found/error/auth/content guards before report submission is possible.',
+  },
+];
+
 const CATALOG_CONTRACT_LINKS = [
   { href: '/catalog/marathon-catalog.schema.json', label: 'JSON Schema' },
   { href: '/catalog/marathon-catalog.example.json', label: 'Example JSON' },
@@ -146,6 +173,26 @@ function SupportPostLoadVerification() {
       </p>
       <ol className="support-verification-list">
         {POST_LOAD_VERIFICATION_STEPS.map((step) => (
+          <li key={step.title}>
+            <strong>{step.title}</strong>
+            <code className="support-runbook-command">{step.detail}</code>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function SupportRenderedRouteQa() {
+  return (
+    <div className="support-rendered-route-qa">
+      <strong>Rendered route QA checklist</strong>
+      <p>
+        Use Browser QA after every frontend release and before opening registration.
+        These checks prove the user-visible route state, not just built-bundle string presence.
+      </p>
+      <ol className="support-verification-list">
+        {RENDERED_ROUTE_QA_STEPS.map((step) => (
           <li key={step.title}>
             <strong>{step.title}</strong>
             <code className="support-runbook-command">{step.detail}</code>
@@ -263,6 +310,7 @@ export default function Support() {
               </section>
             )}
             <SupportPostLoadVerification />
+            <SupportRenderedRouteQa />
           </>
         ) : !analyticsError ? (
           <p>Loading operational analytics...</p>

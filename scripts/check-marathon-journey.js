@@ -490,6 +490,13 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   ) {
     throw new Error('Built frontend bundle does not include the post-load journey verification checklist with command styling.');
   }
+  if (
+    !js.includes('Rendered route QA checklist') ||
+    !js.includes('These checks prove the user-visible route state') ||
+    !js.includes('/steps/<step-id>?marathonerId=<participant-id>')
+  ) {
+    throw new Error('Built frontend bundle does not include the rendered-route QA checklist.');
+  }
   if (!js.includes('/catalog/marathon-catalog.approval-checklist.md') || !js.includes('Approval Checklist')) {
     throw new Error('Built frontend bundle does not link the source-owner catalog approval checklist.');
   }
@@ -542,6 +549,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'catalog-pod-runbook-ui', 'Support runbook includes pod-safe catalog dry-run/apply commands.');
   addCheck(report, 'pass', 'catalog-approval-packet-ui', 'Support runbook includes the redacted catalog approval-packet command.');
   addCheck(report, 'pass', 'post-load-verification-ui', 'Support runbook includes post-catalog-load read-only, registration, VIP, gift, and assignment smoke commands.');
+  addCheck(report, 'pass', 'rendered-route-qa-ui', 'Support runbook includes rendered route QA checks for catalog-independent frontend states.');
   addCheck(report, 'pass', 'support-runbook-mobile-layout', 'Support runbook command lists use mobile-safe counter columns and command styling.');
   addCheck(report, 'pass', 'catalog-approval-checklist-ui', 'Support runbook links the public source-owner catalog approval checklist.');
   addCheck(report, 'pass', 'landing-assets-resolved', 'Built frontend CSS references existing legacy landing assets instead of missing adv/support images.');
