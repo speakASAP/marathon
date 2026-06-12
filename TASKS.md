@@ -52,3 +52,4 @@
 - [x] 2026-06-12 Empty language marathon response handled: `/:langSlug/` treats the current 200 empty by-language response as no active catalog instead of a landing outage
 - [x] 2026-06-12 Home readiness error state added: `/` now separates readiness API load failures from closed-catalog state while keeping winners/reviews teasers optional
 - [x] 2026-06-12 Registration and gift readiness error states added: `/register` and `/gift` now separate readiness API load failures from closed-catalog/gift-unavailable states, and gift redemption stays blocked until readiness is verified
+- [x] 2026-06-12 Global registration CTA readiness state added: shared navigation now separates readiness API load failures from normal closed-catalog `Скоро` state and points users to registration status details

@@ -17,15 +17,30 @@ function isLandingPath(pathname: string): boolean {
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
+  const [readinessError, setReadinessError] = useState('');
   const location = useLocation();
   const bare = isLandingPath(location.pathname);
-  const registrationClosed = readiness?.registrationOpen !== true;
+  const registrationStatusUnavailable = Boolean(readinessError);
+  const registrationClosed = !registrationStatusUnavailable && readiness?.registrationOpen !== true;
+  const navRegistrationLabel = registrationStatusUnavailable
+    ? 'Статус'
+    : registrationClosed ? 'Скоро' : 'Регистрация';
+  const navRegistrationTitle = registrationStatusUnavailable
+    ? 'Registration status unavailable. Open registration status page for details.'
+    : undefined;
 
   useEffect(() => {
+    setReadinessError('');
     fetch('/api/v1/marathons/readiness')
-      .then((response) => (response.ok ? response.json() : null))
+      .then((response) => {
+        if (!response.ok) throw new Error(`readiness:${response.status}`);
+        return response.json();
+      })
       .then((data: CatalogReadiness | null) => setReadiness(data))
-      .catch(() => setReadiness(null));
+      .catch(() => {
+        setReadiness(null);
+        setReadinessError('registration-status-unavailable');
+      });
   }, []);
 
   return (
@@ -48,9 +63,10 @@ export default function Layout() {
             <Link to="/support">Поддержка</Link>
             <Link
               to="/register"
-              className={`btn btn-landing navbar-cta ${registrationClosed ? 'navbar-cta-closed' : 'btn-green'}`}
+              className={`btn btn-landing navbar-cta ${registrationClosed || registrationStatusUnavailable ? 'navbar-cta-closed' : 'btn-green'}`}
+              title={navRegistrationTitle}
             >
-              {registrationClosed ? 'Скоро' : 'Регистрация'}
+              {navRegistrationLabel}
             </Link>
           </nav>
           <button

@@ -232,6 +232,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Gift redemption status is temporarily unavailable') || !js.includes('Gift redemption status could not be loaded')) {
     throw new Error('Built frontend bundle does not include gift readiness load-error state.');
   }
+  if (!js.includes('Registration status unavailable. Open registration status page for details.') || !js.includes('registration-status-unavailable')) {
+    throw new Error('Built frontend bundle does not include global navigation readiness-unavailable state.');
+  }
   addCheck(report, 'pass', 'registration-login-handoff', 'Registration frontend bundle routes new participants through token-aware profile login handoff.');
   addCheck(report, 'pass', 'assignment-login-guard', 'Assignment report UI requires profile context and token-aware login before submission.');
   addCheck(report, 'pass', 'gift-login-guard', 'Gift redemption UI requires profile context and token-aware login before redemption.');
@@ -243,6 +246,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'home-error-state', 'Home page distinguishes readiness API load failures from closed-catalog state.');
   addCheck(report, 'pass', 'register-error-state', 'Registration page distinguishes readiness API load failures from closed-catalog state.');
   addCheck(report, 'pass', 'gift-readiness-error-state', 'Gift redemption blocks redemption when readiness status cannot be loaded.');
+  addCheck(report, 'pass', 'nav-readiness-error-state', 'Global registration CTA distinguishes readiness load failures from closed-catalog state.');
 }
 
 async function checkPublicRoutes(report, options) {
