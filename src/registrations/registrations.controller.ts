@@ -14,21 +14,16 @@ export class RegistrationsController {
     @Body() payload: RegistrationRequest,
     @Req() req?: Request,
   ): Promise<RegistrationResponse> {
-    // Mask sensitive data for logging
-    const payloadSafe = { ...payload };
-    if (payloadSafe.password) {
-      payloadSafe.password = '***';
-    }
-    if (payloadSafe.email) {
-      payloadSafe.email = payloadSafe.email.substring(0, 3) + '***';
-    }
-
-    this.logger.log(`Registration request received: email=${payloadSafe.email}`);
-    this.logger.debug(`Request details: ${JSON.stringify({
+    this.logger.log(
+      `marathon.registration.requested hasEmail=${Boolean(payload.email)} hasPhone=${Boolean(payload.phone)} languageCode=${payload.languageCode || ''}`,
+    );
+    this.logger.debug(`Registration request details: ${JSON.stringify({
       method: req?.method,
       path: req?.path,
-      payload_keys: Object.keys(payload),
-      payload_safe: payloadSafe,
+      payloadKeys: Object.keys(payload),
+      hasEmail: Boolean(payload.email),
+      hasPhone: Boolean(payload.phone),
+      languageCode: payload.languageCode,
       ip: req?.ip,
     })}`);
 
@@ -36,7 +31,7 @@ export class RegistrationsController {
       const userId = await this.getOptionalUserId(req);
       const result = await this.registrationsService.register(payload, userId);
       this.logger.log(
-        `Registration successful: marathonerId=${result.marathonerId}, hasRedirect=${!!result.redirectUrl}, userBound=${result.userBound}`,
+        `marathon.registration.created marathonerId=${result.marathonerId} hasRedirect=${!!result.redirectUrl} userBound=${result.userBound}`,
       );
       this.logger.debug(`Registration response: ${JSON.stringify({
         marathonerId: result.marathonerId,
@@ -46,7 +41,7 @@ export class RegistrationsController {
       return result;
     } catch (error) {
       this.logger.error(
-        `Registration failed: email=${payloadSafe.email}, error=${error instanceof Error ? error.message : String(error)}`,
+        `marathon.registration.failed hasEmail=${Boolean(payload.email)} hasPhone=${Boolean(payload.phone)} languageCode=${payload.languageCode || ''} error=${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
       throw error;

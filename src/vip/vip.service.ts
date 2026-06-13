@@ -105,7 +105,9 @@ export class VipService {
     });
 
     const endpoint = `${this.paymentServiceUrl()}/payments/create`;
-    this.logger.log(`Creating VIP checkout: marathonerId=${participant.id}, orderId=${orderId}, method=${paymentMethod}`);
+    this.logger.log(
+      `marathon.checkout.requested orderId=${orderId} marathonerId=${participant.id} method=${paymentMethod} amount=${amount} currency=${currency}`,
+    );
 
     let response: Response;
     let responseBody: any = {};
@@ -115,15 +117,18 @@ export class VipService {
         headers: {
           'Content-Type': 'application/json',
           'X-API-Key': apiKey,
+          'Idempotency-Key': orderId,
         },
         body: JSON.stringify(requestBody),
       });
       responseBody = await response.json().catch(() => ({}));
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`marathon.checkout.transport_failed orderId=${orderId} error=${message}`);
       await this.prisma.marathonPaymentAttempt.update({
         where: { orderId },
         data: {
-          checkoutResponse: { error: error instanceof Error ? error.message : String(error) },
+          checkoutResponse: { error: message },
           status: 'checkout_failed',
         },
       });
@@ -131,7 +136,10 @@ export class VipService {
     }
 
     if (!response.ok) {
-      this.logger.error(`Payment service rejected checkout: status=${response.status}, orderId=${orderId}`);
+      const paymentError = this.paymentErrorSummary(responseBody);
+      this.logger.error(
+        `marathon.checkout.rejected orderId=${orderId} paymentStatus=${response.status} paymentErrorCode=${paymentError.code || 'unknown'} paymentErrorMessage=${paymentError.message || 'unknown'}`,
+      );
       await this.prisma.marathonPaymentAttempt.update({
         where: { orderId },
         data: {
@@ -154,6 +162,8 @@ export class VipService {
         status: 'checkout_created',
       },
     });
+
+    this.logger.log(`marathon.checkout.created orderId=${orderId} marathonerId=${participant.id} hasRedirect=${Boolean(responseBody?.data?.redirectUrl || responseBody?.redirectUrl)}`);
 
     return {
       status: 'checkout_created',
@@ -361,6 +371,17 @@ export class VipService {
       ...(name ? { name } : {}),
       ...(phone ? { phone } : {}),
     };
+  }
+
+  private paymentErrorSummary(responseBody: unknown): { code?: string; message?: string } {
+    if (!responseBody || typeof responseBody !== 'object') {
+      return {};
+    }
+    const body = responseBody as Record<string, any>;
+    const error = body.error && typeof body.error === 'object' ? body.error : body;
+    const code = typeof error.code === 'string' ? error.code : undefined;
+    const message = typeof error.message === 'string' ? error.message : undefined;
+    return { code, message };
   }
 
   private normalizePaymentMethod(method?: string): string {
