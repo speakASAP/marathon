@@ -54,8 +54,16 @@ npm run draft:legacy-catalog -- --fixture /path/to/legacy/marathon.json --output
 
 The draft maps only Marathon and Step structure. It sets every marathon `active: false`, leaves every `assignmentContent` blank, creates no products, and creates no gift codes. The normal loader rejects the draft until a source owner fills the required launch fields.
 
-3. Replace the draft with source-owner approved catalog JSON and place that approved JSON file on the alfares server.
-4. Validate without writing from the Marathon repository:
+3. Review draft completeness while the source owner fills launch fields:
+
+```bash
+npm run review:catalog-draft -- /path/to/marathon-catalog-draft.json
+```
+
+The review prints only counts, missing-field classes, slugs, and readiness flags. It does not print assignment text or gift-code values.
+
+4. Replace the draft with source-owner approved catalog JSON and place that approved JSON file on the alfares server.
+5. Validate without writing from the Marathon repository:
 
 ```bash
 npm run load:catalog:pod -- /path/to/marathon-catalog.json
@@ -85,7 +93,7 @@ For a staged non-launch import only:
 npm run load:catalog:pod -- /path/to/marathon-catalog.json --allow-incomplete
 ```
 
-5. Apply only after human approval and a passing launch-ready dry run:
+6. Apply only after human approval and a passing launch-ready dry run:
 
 ```bash
 npm run load:catalog:pod -- /path/to/marathon-catalog.json --apply
@@ -93,7 +101,7 @@ npm run load:catalog:pod -- /path/to/marathon-catalog.json --apply
 
 The script is create-only. It aborts if a target marathon slug or gift code already exists, so it does not overwrite existing approved course rows.
 
-6. Run the read-only production preflight from the Marathon runtime:
+7. Run the read-only production preflight from the Marathon runtime:
 
 ```bash
 kubectl exec -n statex-apps deploy/marathon -- sh -lc 'cd /app && npm run check:readiness'
@@ -101,7 +109,7 @@ kubectl exec -n statex-apps deploy/marathon -- sh -lc 'cd /app && npm run check:
 
 The preflight must pass before the production journey can be considered ready for registration, VIP checkout, gift redemption, and assignment submission verification.
 
-7. Run the HTTP-level journey smoke verifier:
+8. Run the HTTP-level journey smoke verifier:
 
 ```bash
 npm run check:journey -- --base-url https://marathon.alfares.cz

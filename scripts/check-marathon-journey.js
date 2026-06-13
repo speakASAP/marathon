@@ -266,6 +266,7 @@ async function assertPublicCatalogContract(report) {
     'full gift-code values are not pasted',
     'npm run audit:legacy-catalog',
     'npm run draft:legacy-catalog',
+    'npm run review:catalog-draft',
     'launchReady: true',
     'npm run load:catalog:pod -- /path/to/marathon-catalog.json --apply',
   ]) {

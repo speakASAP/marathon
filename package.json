@@ -12,6 +12,7 @@
     "dev:frontend": "cd frontend && npm run dev",
     "audit:legacy-catalog": "node scripts/audit-legacy-marathon-catalog.js",
     "draft:legacy-catalog": "node scripts/draft-legacy-marathon-catalog.js",
+    "review:catalog-draft": "node scripts/review-marathon-catalog-draft.js",
     "load:catalog": "node scripts/load-marathon-catalog.js",
     "load:catalog:pod": "sh scripts/load-catalog-in-pod.sh",
     "check:readiness": "node scripts/check-marathon-readiness.js",

@@ -15,6 +15,7 @@ Confirm every item before an operator runs `npm run load:catalog:pod -- <catalog
 
 - [ ] If a legacy SpeakASAP fixture was used, `npm run audit:legacy-catalog` was run first and reviewed as source-discovery evidence only.
 - [ ] If a legacy draft was generated with `npm run draft:legacy-catalog`, the owner replaced every incomplete placeholder before dry run.
+- [ ] `npm run review:catalog-draft` reports no active blocked marathons before the strict loader dry run.
 - [ ] The file contains only `marathons`, `steps`, `products`, and `gifts`.
 - [ ] The file contains no participants, users, answers, submissions, winners, payment attempts, JWTs, API keys, or assignment reports.
 - [ ] Every active marathon has the intended `languageCode`, `title`, `slug`, and active state.
@@ -34,9 +35,10 @@ Legacy source discovery only:
 ```bash
 npm run audit:legacy-catalog -- --fixture /path/to/legacy/marathon.json --sql /path/to/legacy/marathon_de.sql
 npm run draft:legacy-catalog -- --fixture /path/to/legacy/marathon.json --output /path/to/marathon-catalog-draft.json
+npm run review:catalog-draft -- /path/to/marathon-catalog-draft.json
 ```
 
-These commands do not approve or import data. The draft remains incomplete until a source owner fills assignment content, VIP product price/currency, gift-code inventory, and launch activation.
+These commands do not approve or import data. The draft remains incomplete until a source owner fills assignment content, VIP product price/currency, gift-code inventory, and launch activation. The review prints counts and missing classes only.
 
 Dry-run first:
 

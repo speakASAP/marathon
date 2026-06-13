@@ -30,6 +30,7 @@
 - [x] TASK-MAR-053: Audit legacy Marathon catalog sources (goal_id: catalog-readiness, priority: 1)
 - [x] TASK-MAR-054: Generate safe legacy catalog drafts (goal_id: catalog-readiness, priority: 1)
 - [x] TASK-MAR-055: Publish legacy catalog handoff steps (goal_id: catalog-readiness, priority: 1)
+- [ ] TASK-MAR-056: Review in-progress catalog drafts (goal_id: catalog-readiness, priority: 1)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
