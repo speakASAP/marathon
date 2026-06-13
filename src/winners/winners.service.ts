@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
+import { excludeSmokeParticipants, smokeParticipantWhere } from "../shared/smoke-filter";
 
 export type WinnerSummary = {
   id: string;
@@ -82,10 +83,11 @@ export class WinnersService {
     this.logger.log(`Winners list service called: page=${pageNum}, limit=${pageSize}, skip=${skip}`);
 
     const dbStartTime = Date.now();
+    const visibleMedalFilter = await this.visibleWinnerWhere(medalFilter);
     const [total, winners] = await Promise.all([
-      this.prisma.marathonWinner.count({ where: medalFilter }),
+      this.prisma.marathonWinner.count({ where: visibleMedalFilter }),
       this.prisma.marathonWinner.findMany({
-        where: medalFilter,
+        where: visibleMedalFilter,
         orderBy: medalOrder,
         skip,
         take: pageSize,
@@ -148,6 +150,11 @@ export class WinnersService {
       winner.goldCount > 0 || winner.silverCount > 0 || winner.bronzeCount > 0;
     if (!hasMedal) {
       this.logger.warn(`Winner has no medals: winnerId=${winnerId}`);
+      return null;
+    }
+
+    if (await this.isSmokeWinnerUser(winner.userId)) {
+      this.logger.warn(`Winner is smoke-only and hidden from public detail: winnerId=${winnerId}`);
       return null;
     }
 
@@ -290,11 +297,11 @@ export class WinnersService {
 
   private async getWinnerReviews(userId: string): Promise<MarathonReview[]> {
     const participants = await this.prisma.marathonParticipant.findMany({
-      where: {
+      where: excludeSmokeParticipants({
         userId,
         active: false,
         finishedAt: { not: null },
-      },
+      }),
       include: {
         marathon: true,
         penaltyReports: true,
@@ -419,6 +426,40 @@ export class WinnersService {
         ...medals,
       },
     })) as WinnerRecord;
+  }
+
+  private async visibleWinnerWhere(where: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const smokeUserIds = await this.getSmokeWinnerUserIds();
+    return {
+      AND: [
+        where,
+        smokeUserIds.length > 0 ? { userId: { notIn: smokeUserIds } } : {},
+      ],
+    };
+  }
+
+  private async isSmokeWinnerUser(userId: string): Promise<boolean> {
+    const count = await this.prisma.marathonParticipant.count({
+      where: {
+        AND: [
+          smokeParticipantWhere,
+          { userId },
+        ],
+      },
+    });
+    return count > 0;
+  }
+
+  private async getSmokeWinnerUserIds(): Promise<string[]> {
+    const participants = await this.prisma.marathonParticipant.findMany({
+      where: smokeParticipantWhere,
+      select: { userId: true },
+    });
+    return Array.from(new Set(
+      participants
+        .map((participant) => participant.userId)
+        .filter((userId): userId is string => Boolean(userId)),
+    ));
   }
 
   private getWinnerState(participant: any): 'gold' | 'silver' | 'bronze' | null {

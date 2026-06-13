@@ -4,18 +4,18 @@
   "stage": "active",
   "health": "ok",
   "cycle": 0,
-  "last_cycle_at": "2026-04-29T00:00:00Z",
+  "last_cycle_at": "2026-06-13T00:00:00Z",
   "tasks_active": 0,
   "tasks_failed_last_cycle": 0,
-  "open_task_ids": ["T4", "production-data-active-marathon", "assignment-live-verification"],
-  "last_milestone": "legacy-landing-assets-resolved-2026-06-12",
-  "next_focus": "Continue production frontend hardening while awaiting approved catalog JSON; when the source owner provides catalog data, generate the redacted approval packet, complete the checklist, load launch-ready Marathon/Product/Gift/Step rows, then run readiness plus registration -> assignment submission -> gate -> payment/gift -> VIP access verification",
-  "blockers": [
-    "P0: Production has no active Marathon rows/languages, so public registration is not open",
-    "P0: Production has no MarathonProduct/Gift/Step data for live VIP and assignment verification",
-    "P0: No approved marathon_export.json or seed data was found under /home/ssf/Documents on 2026-06-12",
-    "P0: Current speakasap-portal exporter is intentionally disabled because the legacy DB is archived; historical exporter includes participant progress and is not safe to run as-is"
+  "open_task_ids": [],
+  "last_milestone": "production-smoke-data-isolation-deployed-2026-06-13",
+  "next_focus": "Production is technically available. Smoke data isolation is deployed: analytics and public winners exclude the synthetic production smoke participant, the guarded smoke:production-safe runner is available, catalog readiness remains green, and notification storage has no smoke outbound rows. Continue read-only readiness/journey monitoring before any further mutating smoke runs.",
+  "blockers": [],
+  "follow_ups": [
+    "Use a unique image tag or no-cache build when deploying uncommitted remote changes; reusing the git short SHA tag can leave Kubernetes on stale image content."
   ],
   "budget_units_used": 0,
-  "metrics": { "custom": {} }
+  "metrics": {
+    "custom": {}
+  }
 }

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
+import { SMOKE_GIFT_CODE_PREFIX, excludeSmokeParticipantRelation, excludeSmokeParticipants, smokeParticipantWhere } from "../shared/smoke-filter";
 
 export type MarathonSummary = {
   id: string;
@@ -282,8 +283,43 @@ export class MarathonsService {
   }
 
   async analytics(): Promise<MarathonAnalytics> {
-    this.logger.debug('Marathon analytics requested');
+    this.logger.debug("Marathon analytics requested");
     const catalog = await this.catalogReadiness();
+    const smokeParticipants = await this.prisma.marathonParticipant.findMany({
+      where: smokeParticipantWhere,
+      select: { userId: true },
+    });
+    const smokeUserIds = Array.from(new Set(
+      smokeParticipants
+        .map((participant) => participant.userId)
+        .filter((userId): userId is string => Boolean(userId)),
+    ));
+    const visibleWinnerWhere = {
+      AND: [
+        {
+          OR: [
+            { goldCount: { gt: 0 } },
+            { silverCount: { gt: 0 } },
+            { bronzeCount: { gt: 0 } },
+          ],
+        },
+        smokeUserIds.length > 0 ? { userId: { notIn: smokeUserIds } } : {},
+      ],
+    };
+    const visibleWinnerUserWhere = smokeUserIds.length > 0 ? { userId: { notIn: smokeUserIds } } : {};
+    const visibleGiftWhere = {
+      AND: [
+        { code: { not: { startsWith: SMOKE_GIFT_CODE_PREFIX } } },
+        smokeUserIds.length > 0
+          ? {
+              OR: [
+                { redeemedByUserId: null },
+                { redeemedByUserId: { notIn: smokeUserIds } },
+              ],
+            }
+          : {},
+      ],
+    };
     const [
       participants,
       activeParticipants,
@@ -310,44 +346,38 @@ export class MarathonsService {
       surveyDetractors,
       surveyScoreAverage,
     ] = await Promise.all([
-      this.prisma.marathonParticipant.count(),
-      this.prisma.marathonParticipant.count({ where: { active: true } }),
-      this.prisma.marathonParticipant.count({ where: { finishedAt: { not: null } } }),
-      this.prisma.marathonParticipant.count({ where: { isFree: true } }),
-      this.prisma.marathonParticipant.count({ where: { isFree: false } }),
-      this.prisma.marathonParticipant.count({ where: { vipRequired: true } }),
-      this.prisma.marathonParticipant.count({ where: { vipRequired: true, isFree: true } }),
-      this.prisma.stepSubmission.count(),
-      this.prisma.stepSubmission.count({ where: { isCompleted: true } }),
-      this.prisma.stepSubmission.count({ where: { isChecked: true } }),
-      this.prisma.penaltyReport.count(),
-      this.prisma.marathonPaymentAttempt.count(),
-      this.prisma.marathonPaymentAttempt.count({ where: { confirmedAt: { not: null } } }),
-      this.prisma.marathonPaymentAttempt.findMany({ select: { status: true } }),
-      this.prisma.marathonGift.count(),
-      this.prisma.marathonGift.count({ where: { usedAt: { not: null } } }),
-      this.prisma.marathonWinner.count(),
-      this.prisma.marathonWinner.count({
-        where: {
-          OR: [
-            { goldCount: { gt: 0 } },
-            { silverCount: { gt: 0 } },
-            { bronzeCount: { gt: 0 } },
-          ],
-        },
-      }),
+      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants() }),
+      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ active: true }) }),
+      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ finishedAt: { not: null } }) }),
+      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ isFree: true }) }),
+      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ isFree: false }) }),
+      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ vipRequired: true }) }),
+      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ vipRequired: true, isFree: true }) }),
+      this.prisma.stepSubmission.count({ where: excludeSmokeParticipantRelation() }),
+      this.prisma.stepSubmission.count({ where: excludeSmokeParticipantRelation({ isCompleted: true }) }),
+      this.prisma.stepSubmission.count({ where: excludeSmokeParticipantRelation({ isChecked: true }) }),
+      this.prisma.penaltyReport.count({ where: excludeSmokeParticipantRelation() }),
+      this.prisma.marathonPaymentAttempt.count({ where: excludeSmokeParticipantRelation() }),
+      this.prisma.marathonPaymentAttempt.count({ where: excludeSmokeParticipantRelation({ confirmedAt: { not: null } }) }),
+      this.prisma.marathonPaymentAttempt.findMany({ where: excludeSmokeParticipantRelation(), select: { status: true } }),
+      this.prisma.marathonGift.count({ where: visibleGiftWhere }),
+      this.prisma.marathonGift.count({ where: { AND: [visibleGiftWhere, { usedAt: { not: null } }] } }),
+      this.prisma.marathonWinner.count({ where: visibleWinnerUserWhere }),
+      this.prisma.marathonWinner.count({ where: visibleWinnerWhere }),
       this.prisma.marathonWinner.aggregate({
+        where: visibleWinnerUserWhere,
         _sum: {
           goldCount: true,
           silverCount: true,
           bronzeCount: true,
         },
       }),
-      this.prisma.marathonSurveyResponse.count(),
-      this.prisma.marathonSurveyResponse.count({ where: { score: { gte: 9 } } }),
-      this.prisma.marathonSurveyResponse.count({ where: { score: { gte: 7, lte: 8 } } }),
-      this.prisma.marathonSurveyResponse.count({ where: { score: { lte: 6 } } }),
+      this.prisma.marathonSurveyResponse.count({ where: excludeSmokeParticipantRelation() }),
+      this.prisma.marathonSurveyResponse.count({ where: excludeSmokeParticipantRelation({ score: { gte: 9 } }) }),
+      this.prisma.marathonSurveyResponse.count({ where: excludeSmokeParticipantRelation({ score: { gte: 7, lte: 8 } }) }),
+      this.prisma.marathonSurveyResponse.count({ where: excludeSmokeParticipantRelation({ score: { lte: 6 } }) }),
       this.prisma.marathonSurveyResponse.aggregate({
+        where: excludeSmokeParticipantRelation(),
         _avg: {
           score: true,
         },
