@@ -26,6 +26,7 @@
 - [x] TASK-MAR-049: Centralize profile dashboard API access (goal_id: frontend-readiness, priority: 2)
 - [x] TASK-MAR-050: Centralize registration and gift action API access (goal_id: frontend-readiness, priority: 2)
 - [x] TASK-MAR-051: Centralize winners and support-step API access (goal_id: frontend-readiness, priority: 2)
+- [x] TASK-MAR-052: Add public winners and support-step load-error states (goal_id: frontend-readiness, priority: 2)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->

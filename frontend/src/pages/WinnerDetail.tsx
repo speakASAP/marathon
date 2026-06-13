@@ -9,16 +9,21 @@ export default function WinnerDetail() {
   const { winnerId } = useParams<{ winnerId: string }>();
   const [winner, setWinner] = useState<WinnerDetailData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     if (!winnerId) return;
     setLoading(true);
+    setLoadError('');
     fetchWinnerDetail(winnerId)
       .then((data) => {
         setWinner(data);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setLoadError('Winner profile could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setLoading(false);
+      });
   }, [winnerId]);
 
   useEffect(() => {
@@ -28,6 +33,25 @@ export default function WinnerDetail() {
   }, [winner]);
 
   if (loading) return <div className="container"><p>Загрузка…</p></div>;
+  if (loadError) {
+    return (
+      <div className="container">
+        <section className="profile-empty-panel" role="alert">
+          <h1>Winner profile is temporarily unavailable</h1>
+          <p>{loadError}</p>
+          <div className="profile-empty-actions">
+            <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
+              Refresh
+            </button>
+            <Link to="/support" className="btn-profile-login">
+              Contact support
+            </Link>
+          </div>
+        </section>
+        <Link to="/winners">← К списку финалистов</Link>
+      </div>
+    );
+  }
   if (!winner) {
     return (
       <div className="container">

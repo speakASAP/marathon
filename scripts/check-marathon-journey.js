@@ -501,6 +501,13 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Финалисты появятся после запуска марафона') || !js.includes('победители и медали пока не сформированы')) {
     throw new Error('Built frontend bundle does not include winners page empty state.');
   }
+  if (
+    !js.includes('Winner results are temporarily unavailable') ||
+    !js.includes('Winner profile is temporarily unavailable') ||
+    !js.includes('Support step is temporarily unavailable')
+  ) {
+    throw new Error('Built frontend bundle does not include public winners/support-step load-error states.');
+  }
   if (!js.includes('Registration status is temporarily unavailable') || !js.includes('Registration status could not be loaded')) {
     throw new Error('Built frontend bundle does not include registration readiness load-error state.');
   }
@@ -575,6 +582,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'home-missing-gates-ui', 'Home closed-catalog panel includes exact missing launch gates from readiness data.');
   addCheck(report, 'pass', 'home-teaser-empty-state', 'Home finalists and reviews teasers include post-load empty states.');
   addCheck(report, 'pass', 'winners-empty-state-ui', 'Winners frontend includes a post-load empty state.');
+  addCheck(report, 'pass', 'public-detail-error-states', 'Winners and support-step public detail pages distinguish load failures from empty/not-found states.');
   addCheck(report, 'pass', 'register-error-state', 'Registration page distinguishes readiness API load failures from closed-catalog state.');
   addCheck(report, 'pass', 'register-missing-gates-ui', 'Registration page includes exact missing launch gates from readiness data.');
   addCheck(report, 'pass', 'support-public-participant-ui', 'Public support page contains participant-safe status and help content.');

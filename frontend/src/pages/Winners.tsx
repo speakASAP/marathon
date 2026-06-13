@@ -9,6 +9,7 @@ export default function Winners() {
   const [data, setData] = useState<WinnerPage | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     document.title = 'Финалисты Marathon — языковые марафоны SpeakASAP®';
@@ -16,6 +17,7 @@ export default function Winners() {
 
   useEffect(() => {
     setLoading(true);
+    setLoadError('');
     fetchWinnerPage(page, 24)
       .then((d) => {
         setData((prev) => ({
@@ -24,16 +26,34 @@ export default function Winners() {
         }));
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setLoadError('Winner results could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setLoading(false);
+      });
   }, [page]);
 
   const items = data?.items || [];
-  const hasLoadedEmptyState = !loading && items.length === 0;
+  const hasLoadError = !loading && Boolean(loadError);
+  const hasLoadedEmptyState = !loading && !loadError && items.length === 0;
 
   return (
     <div className="container page-winners">
       <h1>Финалисты Marathon</h1>
       {loading && items.length === 0 && <p>Загрузка…</p>}
+      {hasLoadError && items.length === 0 && (
+        <section className="profile-empty-panel" role="alert">
+          <h2>Winner results are temporarily unavailable</h2>
+          <p>{loadError}</p>
+          <div className="profile-empty-actions">
+            <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
+              Refresh
+            </button>
+            <Link to="/support" className="btn-profile-login">
+              Contact support
+            </Link>
+          </div>
+        </section>
+      )}
       {hasLoadedEmptyState && (
         <section className="winners-empty-state">
           <h2>Финалисты появятся после запуска марафона</h2>
@@ -77,6 +97,12 @@ export default function Winners() {
           </article>
         ))}
       </div>
+      {hasLoadError && items.length > 0 && (
+        <section className="profile-empty-panel" role="alert">
+          <h2>More winner results could not be loaded</h2>
+          <p>{loadError}</p>
+        </section>
+      )}
       {data?.nextPage && (
         <div className="winners-load-more">
           <button
