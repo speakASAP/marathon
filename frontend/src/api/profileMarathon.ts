@@ -162,11 +162,13 @@ export async function fetchMyMarathons(): Promise<MyMarathonSummary[]> {
   return Array.isArray(body) ? body as MyMarathonSummary[] : [];
 }
 
-export async function createVipCheckout(marathonerId: string): Promise<string> {
+export type VipPaymentMethod = 'paypal' | 'card' | 'fiobanka';
+
+export async function createVipCheckout(marathonerId: string, paymentMethod: VipPaymentMethod): Promise<string> {
   const response = await authFetch('/api/v1/vip/checkout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ marathonerId }),
+    body: JSON.stringify({ marathonerId, paymentMethod }),
   });
 
   if (response.status === 401) throw new MarathonAuthRequiredError();

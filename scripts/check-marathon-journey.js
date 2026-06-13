@@ -470,7 +470,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
     throw new Error('Built frontend bundle does not include recognizable landing how-it-works state.');
   }
   const hasClosedCatalogMissingGates = js.includes('Launch blockers') && js.includes('ml-missing-gates');
-  const hasOpenCatalogRegistration = js.includes('Start your') && js.includes('Register for Marathon');
+  const hasOpenCatalogRegistration = (js.includes('Start your') || js.includes('Start my marathon')) && js.includes('Register for Marathon');
   if (!hasClosedCatalogMissingGates && !hasOpenCatalogRegistration) {
     throw new Error('Built frontend bundle does not include recognizable language landing registration state.');
   }
@@ -506,6 +506,8 @@ async function assertFrontendHandoffSource(report, rootHtml) {
     js.includes('Финалисты появятся после завершения первых марафонов') ||
     js.includes('Marathon: языковая практика до результата') ||
     js.includes('Start your language marathon today') ||
+    js.includes('Run the') ||
+    js.includes('30-day route') ||
     js.includes('home-language-band');
   if (!hasHomeLoadErrorState && !hasHomeOperationalState) {
     throw new Error('Built frontend bundle does not include recognizable Marathon home state markers.');

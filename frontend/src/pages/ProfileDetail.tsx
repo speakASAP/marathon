@@ -10,11 +10,18 @@ import {
   fetchProgressReport,
   saveNpsSurvey,
   type Answer,
+  type VipPaymentMethod,
   type MyMarathon,
   type ProgressReport,
 } from '../api/profileMarathon';
 
 type PaymentReturnState = 'success' | 'cancelled' | null;
+
+const PAYMENT_METHOD_OPTIONS: Array<{ value: VipPaymentMethod; label: string; detail: string }> = [
+  { value: 'paypal', label: 'PayPal', detail: 'Pay with your PayPal wallet.' },
+  { value: 'card', label: 'Mastercard', detail: 'Pay by Mastercard or another supported card.' },
+  { value: 'fiobanka', label: 'Bank transfer', detail: 'Pay by bank transfer through the payment provider.' },
+];
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString('ru-RU', {
@@ -60,6 +67,7 @@ export default function ProfileDetail() {
   const [loadError, setLoadError] = useState('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<VipPaymentMethod>('paypal');
   const [paymentReturn, setPaymentReturn] = useState<PaymentReturnState>(null);
   const [report, setReport] = useState<ProgressReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
@@ -171,7 +179,7 @@ export default function ProfileDetail() {
     setCheckoutLoading(true);
     setCheckoutError('');
     try {
-      const redirectUrl = await createVipCheckout(data.id);
+      const redirectUrl = await createVipCheckout(data.id, paymentMethod);
       if (redirectUrl) {
         window.location.href = redirectUrl;
         return;
@@ -281,9 +289,27 @@ export default function ProfileDetail() {
             <p>The VIP gate is active for this marathon. Pay securely or redeem a gift code to unlock the next assignments.</p>
             {checkoutError && <p className="ml-error">{checkoutError}</p>}
           </div>
+          <div className="profile-payment-methods" role="radiogroup" aria-label="Payment method">
+            {PAYMENT_METHOD_OPTIONS.map((option) => (
+              <label key={option.value} className={paymentMethod === option.value ? 'profile-payment-method selected' : 'profile-payment-method'}>
+                <input
+                  type="radio"
+                  name="payment-method"
+                  value={option.value}
+                  checked={paymentMethod === option.value}
+                  onChange={() => setPaymentMethod(option.value)}
+                  disabled={checkoutLoading}
+                />
+                <span>
+                  <strong>{option.label}</strong>
+                  <small>{option.detail}</small>
+                </span>
+              </label>
+            ))}
+          </div>
           <div className="profile-payment-actions">
             <button type="button" className="btn-profile-open" onClick={startCheckout} disabled={checkoutLoading}>
-              {checkoutLoading ? 'Opening checkout...' : 'Pay for VIP'}
+              {checkoutLoading ? 'Opening checkout...' : `Pay with ${PAYMENT_METHOD_OPTIONS.find((option) => option.value === paymentMethod)?.label || 'selected method'}`}
             </button>
             <Link to={`/gift?marathonerId=${encodeURIComponent(data.id)}`} className="btn-profile-open">Gift code</Link>
             <Link to="/support" className="btn-profile-login">Contact support</Link>

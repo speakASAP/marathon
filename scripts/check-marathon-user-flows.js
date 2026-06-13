@@ -221,10 +221,10 @@ async function checkVisitorTraversal(report, options) {
   const bundle = await getFrontendBundle(report);
   const markerGroups = [
     ['Start my marathon', 'Start your language marathon today', 'Начать марафон'],
-    ['Start for free', 'Start your language marathon today', 'Register. Practice. Finish.'],
+    ['Start my marathon', 'Run the', '30-day route'],
     ['View registration status', 'Registration status', 'Статус регистрации'],
     ['My marathon', 'Open my marathon', '/profile'],
-    ['Pay for VIP', 'VIP checkout', 'VIP unlock'],
+    ['Pay with PayPal', 'Mastercard', 'Bank transfer', 'VIP checkout', 'VIP unlock'],
     ['Gift code', '/gift'],
     ['Contact support', '/support'],
     ['/register'],

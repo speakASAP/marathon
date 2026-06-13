@@ -2374,3 +2374,41 @@ a:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.profile-payment-methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.profile-payment-method {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid #d8e0ef;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.profile-payment-method.selected {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.profile-payment-method input {
+  margin-top: 3px;
+}
+
+.profile-payment-method strong,
+.profile-payment-method small {
+  display: block;
+}
+
+.profile-payment-method small {
+  margin-top: 3px;
+  color: #5e6a80;
+  line-height: 1.35;
+}
