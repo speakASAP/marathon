@@ -4,7 +4,7 @@ import { fetchCatalogReadiness, type CatalogReadiness } from '../api/publicMarat
 
 /** True when path is a language landing e.g. /de/, /en/ (nav and footer are inside Landing). */
 function isLandingPath(pathname: string): boolean {
-  return /^\/[a-z]{2}\/$/.test(pathname);
+  return pathname === '/landing' || /^\/[a-z]{2}\/$/.test(pathname);
 }
 
 /**
