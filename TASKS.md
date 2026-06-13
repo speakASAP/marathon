@@ -37,6 +37,7 @@
 - [x] TASK-MAR-060: Verify mutating production registration, VIP payment unlock, and assignment readback (goal_id: launch-verification, priority: 1)
 - [x] TASK-MAR-062: Resolve VIP checkout customer identity for phone-only Marathon registration (goal_id: vip-payment, priority: 1)
 - [x] TASK-MAR-063: Rebuild root Marathon landing for production registration journey (goal_id: frontend-readiness, priority: 1)
+- [x] TASK-MAR-064: Add read-only legacy data hygiene audit (goal_id: data-hygiene, priority: 2)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
@@ -138,6 +139,7 @@
 - [x] 2026-06-13 Full legacy import aggregate completion recorded: user-approved SpeakASAP migration completed with 13 marathons, 377 steps, 13 products, 13 gifts, 53,469 participants, 238,674 submissions, and 18,603 winners, with validation notes limited to aggregate counts and no participant rows, gift-code values, answer payloads, JWTs, payment secrets, or full assignment content
 - [x] 2026-06-13 Mutating production journey verified: a synthetic Auth user registered for Marathon, checkout created a payment attempt, Marathon webhook settlement unlocked VIP access, profile state changed to VIP, and assignment submit/readback passed; evidence is masked and excludes JWTs, webhook key, full IDs, gift codes, checkout URL, email, and report text
 - [x] 2026-06-13 Kubernetes Marathon data source accepted: live `statex-apps/db-server-postgres` database `marathon` is the only operational source of truth for continued Marathon work
+- [x] 2026-06-13 Legacy data hygiene audit implemented: `npm run audit:data-hygiene` reports duplicate participant/step submissions, finished-active participants, and negative ratings with aggregate counts and masked samples only
 - [x] 2026-06-13 Imported course/content data accepted as sufficient for continuation: in-pod readiness reports 13 active marathons, 377 steps with approved assignment content, 13 VIP products, 15 gifts with 13 unused, 53,472 registered participants, and a queryable payment ledger; read-only public journey smoke passes
 - [x] 2026-06-13 Launch data sufficiency verified: Kubernetes readiness and public journey smoke pass, rollout is healthy, registration is open, and read-only consistency audit found no launch-blocking data gaps; remaining legacy data hygiene is limited to 8 duplicate participant/step submission groups, 4,410 finished-active legacy participants with 29/29 completed steps, and 415 negative historical ratings
 - [x] 2026-06-13 VIP checkout customer identity fixed: phone-only Marathon participants now use validated Auth token email/name/phone for checkout customer data, production-safe payment smoke confirms webhook VIP unlock and confirmed payment ledger, and smoke isolation also filters synthetic `@example.invalid` participant emails
