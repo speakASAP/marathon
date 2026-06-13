@@ -1,6 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
-import Home from './pages/Home';
 import Landing from './pages/Landing';
 import Winners from './pages/Winners';
 import WinnerDetail from './pages/WinnerDetail';
@@ -22,7 +21,7 @@ function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Landing />} />
         <Route path="/register" element={<Register />} />
         <Route path="/awards" element={<Awards />} />
         <Route path="/gift" element={<Gift />} />

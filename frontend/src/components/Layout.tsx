@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { fetchCatalogReadiness, type CatalogReadiness } from '../api/publicMarathon';
 
-/** True when path is a language landing e.g. /de/, /en/ (nav and footer are inside Landing). */
+/** True when path renders Landing, whose nav and footer are inside the page. */
 function isLandingPath(pathname: string): boolean {
-  return pathname === '/landing' || /^\/[a-z]{2}\/$/.test(pathname);
+  return pathname === '/' || pathname === '/landing' || /^\/[a-z]{2}\/$/.test(pathname);
 }
 
 /**
  * Global shell: legacy-aligned header and footer for all pages.
- * On landing (/:langSlug/) only Outlet is rendered; landing has its own nav and footer.
+ * On landing routes only Outlet is rendered; Landing has its own nav and footer.
  */
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
