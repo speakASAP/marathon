@@ -1407,7 +1407,7 @@
 }
 
 .ml-nav {
-  top: 118px;
+  top: 0;
 }
 
 .ml-how,
@@ -1416,7 +1416,7 @@
 .ml-proof,
 .ml-faq,
 .ml-register {
-  scroll-margin-top: 216px;
+  scroll-margin-top: 110px;
 }
 
 .ml-nav-links a[href="#program"]::after {
@@ -1426,7 +1426,7 @@
 .ml-hero {
   grid-template-columns: minmax(0, 0.76fr) minmax(520px, 1.24fr);
   align-items: stretch;
-  min-height: calc(100vh - 194px);
+  min-height: calc(100vh - 76px);
   padding-top: clamp(38px, 5vw, 66px);
 }
 
