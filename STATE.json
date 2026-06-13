@@ -9,11 +9,11 @@
   "tasks_failed_last_cycle": 0,
   "open_task_ids": [],
   "last_milestone": "vip-checkout-auth-customer-verified-2026-06-13",
-  "next_focus": "Production launch data is sufficient and VIP checkout customer identity is fixed: phone-only Marathon participants use validated Auth token contact data for checkout, production-safe payment/gift/winner/NPS smoke passes, readiness and public journey are green, and registration remains open. Continue product/front-end work and read-only monitoring; use TASK-MAR-064 audit:data-hygiene for non-blocking legacy duplicate submissions, finished-active participants, and negative historical ratings.",
+  "next_focus": "Production launch data is sufficient and VIP checkout customer identity is fixed: phone-only Marathon participants use validated Auth token contact data for checkout, production-safe payment/gift/winner/NPS smoke passes, readiness and public journey are green, registration remains open, and TASK-MAR-064 audit:data-hygiene is deployed for non-blocking legacy data hygiene review.",
   "blockers": [],
   "follow_ups": [
     "Use a unique image tag or no-cache build when deploying uncommitted remote changes; reusing the git short SHA tag can leave Kubernetes on stale image content.",
-    "Optional legacy data hygiene: run npm run audit:data-hygiene inside the Marathon pod and review aggregate/masked findings before planning any corrective migration."
+    "Optional legacy data hygiene: review the TASK-MAR-064 aggregate/masked audit findings before planning any corrective migration."
   ],
   "budget_units_used": 0,
   "metrics": {

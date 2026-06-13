@@ -2,12 +2,12 @@
 
 ```yaml
 id: EP-TASK-MAR-064
-status: implemented
+status: complete
 source_task: docs/intent/11_tasks/TASK-MAR-064-legacy-data-hygiene-audit.md
 owner: Engineering
 created: 2026-06-13
 last_updated: 2026-06-13
-completeness_level: partial
+completeness_level: complete
 ```
 
 ## Traceability
@@ -42,4 +42,4 @@ The audit is read-only. Re-running it against the same database state returns th
 
 ## Current Status
 
-Implemented. The script is intentionally non-mutating and treats findings as warnings unless `--fail-on-findings` is supplied. Production database output is pending because the SSH host cannot reach the Kubernetes database hostname; run inside the Marathon pod after deploy to close validation.
+Complete. The script is intentionally non-mutating and treats findings as warnings unless `--fail-on-findings` is supplied. Production database output was captured inside the deployed Marathon pod after the controlled deploy.
