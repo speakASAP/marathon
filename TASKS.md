@@ -118,3 +118,4 @@
 - [x] 2026-06-13 Profile dashboard API refactor verified: `/profile` now uses the typed profile helper for authenticated marathon-list loading while preserving login-required, load-error, and readiness-aware empty states
 - [x] 2026-06-13 Registration and gift API action refactor verified: registration and gift redemption now use a typed journey helper while preserving login handoffs, redirect normalization, and closed-catalog guards
 - [x] 2026-06-13 Winners and support-step API refactor verified: winners and support-step pages now use typed helper access while preserving empty, not-found, and content-missing public states
+- [x] 2026-06-13 Public detail error states verified: winners, winner detail, and support-step routes now distinguish temporary API load failures from empty/not-found states
