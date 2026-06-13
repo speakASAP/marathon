@@ -40,6 +40,31 @@ export interface WinnerSummary {
   gold?: number;
   silver?: number;
   bronze?: number;
+  avatar?: string;
+}
+
+export interface WinnerPage {
+  items: WinnerSummary[];
+  nextPage: number | null;
+  total?: number;
+}
+
+export interface MarathonWinnerReview {
+  marathon: string;
+  state: string;
+  completed: string;
+  review: string;
+  thanks: string;
+}
+
+export interface WinnerDetail {
+  id: string;
+  name: string;
+  gold: number;
+  silver: number;
+  bronze: number;
+  avatar: string;
+  reviews: MarathonWinnerReview[];
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -87,9 +112,27 @@ export async function fetchPublicReviews(): Promise<PublicReview[]> {
 
 export async function fetchWinnerSummaries(limit = 6): Promise<WinnerSummary[]> {
   try {
-    const page = await fetchJson<{ items?: WinnerSummary[] }>(`/api/v1/winners?page=1&limit=${limit}`);
+    const page = await fetchWinnerPage(1, limit);
     return asArray<WinnerSummary>(page.items);
   } catch {
     return [];
   }
+}
+
+export async function fetchWinnerPage(page = 1, limit = 24): Promise<WinnerPage> {
+  const body = await fetchJson<Partial<WinnerPage>>(`/api/v1/winners?page=${page}&limit=${limit}`);
+  return {
+    items: asArray<WinnerSummary>(body.items),
+    nextPage: typeof body.nextPage === 'number' ? body.nextPage : null,
+    total: typeof body.total === 'number' ? body.total : undefined,
+  };
+}
+
+export async function fetchWinnerDetail(winnerId: string): Promise<WinnerDetail | null> {
+  const response = await fetch(`/api/v1/winners/${encodeURIComponent(winnerId)}`);
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`winner:${response.status}`);
+  }
+  return response.json() as Promise<WinnerDetail>;
 }

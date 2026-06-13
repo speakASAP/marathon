@@ -1,37 +1,19 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-
-interface MarathonReview {
-  marathon: string;
-  state: string;
-  completed: string;
-  review: string;
-  thanks: string;
-}
-
-interface WinnerDetail {
-  id: string;
-  name: string;
-  gold: number;
-  silver: number;
-  bronze: number;
-  avatar: string;
-  reviews: MarathonReview[];
-}
+import { fetchWinnerDetail, type WinnerDetail as WinnerDetailData } from '../api/publicMarathon';
 
 /**
  * Winner detail: GET /api/v1/winners/:winnerId. Shows name, medals, reviews.
  */
 export default function WinnerDetail() {
   const { winnerId } = useParams<{ winnerId: string }>();
-  const [winner, setWinner] = useState<WinnerDetail | null>(null);
+  const [winner, setWinner] = useState<WinnerDetailData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!winnerId) return;
     setLoading(true);
-    fetch(`/api/v1/winners/${encodeURIComponent(winnerId)}`)
-      .then((r) => (r.ok ? r.json() : null))
+    fetchWinnerDetail(winnerId)
       .then((data) => {
         setWinner(data);
         setLoading(false);

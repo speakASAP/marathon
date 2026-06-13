@@ -1,27 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-
-/** Matches API WinnerSummary: id, name, gold, silver, bronze, avatar */
-interface Winner {
-  id: string;
-  name?: string;
-  gold?: number;
-  silver?: number;
-  bronze?: number;
-  avatar?: string;
-}
-
-interface WinnersResponse {
-  items: Winner[];
-  nextPage: number | null;
-  total?: number;
-}
+import { fetchWinnerPage, type WinnerPage } from '../api/publicMarathon';
 
 /**
  * Winners list (Phase 2a). Paginated via GET /api/v1/winners. Legacy card grid.
  */
 export default function Winners() {
-  const [data, setData] = useState<WinnersResponse | null>(null);
+  const [data, setData] = useState<WinnerPage | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
 
@@ -31,9 +16,8 @@ export default function Winners() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/v1/winners?page=${page}&limit=24`)
-      .then((r) => r.json())
-      .then((d: WinnersResponse) => {
+    fetchWinnerPage(page, 24)
+      .then((d) => {
         setData((prev) => ({
           ...d,
           items: prev && page > 1 ? [...(prev.items || []), ...(d.items || [])] : (d.items || []),

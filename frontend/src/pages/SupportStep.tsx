@@ -1,13 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-
-interface StepInfo {
-  id: string;
-  title: string;
-  sequence: number;
-  assignmentContent: string | null;
-  socialLink: string | null;
-}
+import { fetchStepInfo, type StepInfo } from '../api/assignmentMarathon';
 
 /**
  * Support view of one step: content only (no report tab, no other marathoners).
@@ -19,8 +12,7 @@ export default function SupportStep() {
 
   useEffect(() => {
     if (!stepId) return;
-    fetch(`/api/v1/steps/${encodeURIComponent(stepId)}`)
-      .then((r) => (r.ok ? r.json() : null))
+    fetchStepInfo(stepId)
       .then((data) => {
         setStep(data);
         setLoading(false);
