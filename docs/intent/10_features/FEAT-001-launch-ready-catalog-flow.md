@@ -2,10 +2,10 @@
 
 ```yaml
 id: FEAT-001
-status: reviewed
+status: verified
 owner: Product Owner
 created: 2026-06-12
-last_updated: 2026-06-12
+last_updated: 2026-06-13
 completeness_level: complete
 upstream:
   - docs/intent/05_subsystems/SUB-001-registration-catalog.md
@@ -43,11 +43,11 @@ Supports VG-001, VG-002, VG-003, VG-004, and VG-005.
 
 ## Acceptance Criteria
 
-- [ ] Approved catalog data exists for at least one active language.
-- [ ] Readiness preflight passes.
-- [ ] Read-only journey smoke passes.
-- [ ] Mutating registration/profile/VIP/gift/submission checks are run only with approved explicit inputs.
-- [ ] Validation report records evidence, gaps, and recommendation.
+- [x] Approved catalog data exists for active production languages.
+- [x] Readiness preflight passes against Kubernetes/shared PostgreSQL.
+- [x] Read-only journey smoke passes.
+- [x] Mutating registration/profile/VIP/gift/submission checks are run only with approved explicit inputs.
+- [x] Validation report records evidence, gaps, and recommendation.
 
 ## Dependencies
 
@@ -59,3 +59,7 @@ Supports VG-001, VG-002, VG-003, VG-004, and VG-005.
 ## Validation Strategy
 
 Run the commands documented in `21_execution_plans/EP-TASK-MAR-004.md` and record results in `12_validation/VAL-TASK-MAR-004.md`.
+
+## Verification Note
+
+As of 2026-06-13, the launch-ready catalog, VIP, gift, assignment, winner, and NPS baseline is verified on the Kubernetes production runtime. New frontend changes should not reopen this feature unless they alter the registration, payment, gift, assignment, or readiness contracts.

@@ -43,9 +43,9 @@ Constitution
   -> Audit / Readiness Evidence
 ```
 
-## Current Seeded Chain
+## Current Verified Chain
 
-The active seeded chain covers the current launch blocker: approved catalog data and end-to-end VIP/assignment verification.
+The verified launch chain covers approved Kubernetes/shared PostgreSQL catalog data and end-to-end VIP/assignment verification. It is no longer a current blocker; future frontend/product work should use this chain as the green baseline and create task-specific artifacts for new changes.
 
 | Layer | Artifact |
 |---|---|
@@ -61,6 +61,16 @@ The active seeded chain covers the current launch blocker: approved catalog data
 | Context package | `13_context_packages/CP-TASK-MAR-004.md` |
 | Coding prompt | `14_prompts/PROMPT-TASK-MAR-004.md` |
 | Validation template | `12_validation/VAL-TASK-MAR-004.md` |
+
+## Active Frontend Chain
+
+The current frontend/rebrand increment is tracked separately so it does not reopen the completed catalog/payment blocker.
+
+| Layer | Artifact |
+|---|---|
+| Task | `11_tasks/TASK-MAR-063-root-landing-production-journey.md` |
+| Execution plan | `21_execution_plans/EP-TASK-MAR-063.md` |
+| Validation report | `12_validation/VAL-TASK-MAR-063.md` |
 
 Reusable templates live under `18_templates/`.
 

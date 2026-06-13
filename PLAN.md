@@ -6,12 +6,12 @@
 
 | ID | Task | Status |
 |----|------|--------|
-| T1 | Implement VIP checkout endpoint calling payments-microservice:3468 | implemented; pending live payment verification |
-| T2 | Implement payment webhook handler — set `isFree=false`, `paymentReported=true` on confirmation | implemented; pending live payment verification |
-| T3 | Implement gift code redemption endpoint — validate code, mark used, upgrade participant to VIP | implemented; pending gift-code data verification |
-| T4 | Verify end-to-end VIP flow: registration → gate → payment/gift → VIP access | blocked by missing approved active Marathon/Product/Gift/Step catalog data; legacy exporter was removed and historical full export includes user progress |
+| T1 | Implement VIP checkout endpoint calling payments-microservice:3468 | verified complete in production-safe smoke |
+| T2 | Implement payment webhook handler — set `isFree=false`, `paymentReported=true` on confirmation | verified complete in production-safe smoke |
+| T3 | Implement gift code redemption endpoint — validate code, mark used, upgrade participant to VIP | verified complete in production-safe smoke |
+| T4 | Verify end-to-end VIP flow: registration → gate → payment/gift → VIP access | verified complete against Kubernetes/shared PostgreSQL production data |
 
-**Completion criterion:** At least one participant completes VIP upgrade (payment or gift code) with `isFree = false` and confirmed post-gate step access.
+**Completion criterion:** Complete. Guarded production-safe smoke verified registration, checkout creation, Marathon webhook settlement, VIP profile state, confirmed payment ledger, gift redemption, full assignment completion, winner reconciliation, and NPS create/update without exposing secrets or participant private content.
 
 ---
 

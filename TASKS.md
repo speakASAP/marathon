@@ -36,6 +36,7 @@
 - [x] TASK-MAR-059: Record full legacy import aggregate completion evidence (goal_id: launch-verification, priority: 1)
 - [x] TASK-MAR-060: Verify mutating production registration, VIP payment unlock, and assignment readback (goal_id: launch-verification, priority: 1)
 - [x] TASK-MAR-062: Resolve VIP checkout customer identity for phone-only Marathon registration (goal_id: vip-payment, priority: 1)
+- [ ] TASK-MAR-063: Rebuild root Marathon landing for production registration journey (goal_id: frontend-readiness, priority: 1)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->

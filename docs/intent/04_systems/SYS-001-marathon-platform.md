@@ -5,7 +5,7 @@ id: SYS-001
 status: reviewed
 owner: Engineering
 created: 2026-06-12
-last_updated: 2026-06-12
+last_updated: 2026-06-13
 completeness_level: complete
 upstream:
   - docs/intent/01_vision/VISION.md
@@ -81,7 +81,13 @@ Subsystems, feature specs, task docs, execution plans, context packages, coding 
 - Mutating journey verification passes only with explicit approved inputs.
 - IPS pre-coding checklist passes before future source edits.
 
+## Current Production Baseline
+
+- Kubernetes/shared PostgreSQL `marathon` is the only operational source of truth for launch and follow-up product work.
+- Approved active catalog data exists for the current production launch baseline.
+- Guarded production-safe smoke verified registration, checkout creation, Marathon webhook settlement, VIP profile state, confirmed payment ledger, gift redemption, full assignment completion, winner reconciliation, and NPS create/update.
+- Public journey smoke passes against `https://marathon.alfares.cz`.
+
 ## Open Questions
 
-- [MISSING: provide approved production catalog JSON source and owner.]
-- [MISSING: confirm first live VIP payment or gift-code verification participant.]
+- None currently blocking Marathon continuation.

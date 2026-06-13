@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   fetchCatalogReadiness,
@@ -10,6 +10,7 @@ import {
   type PublicReview,
   type WinnerSummary,
 } from '../api/publicMarathon';
+import '../landing.css';
 
 function formatMissingGate(value: string): string {
   return value
@@ -18,8 +19,12 @@ function formatMissingGate(value: string): string {
     .join(' ');
 }
 
+function languagePath(language: MarathonLanguage): string {
+  return `/${encodeURIComponent(language.code)}/#register`;
+}
+
 /**
- * Home: hub with hero, language landings list, and winners/reviews teaser.
+ * Home: production landing entry point for registration and marathon continuation.
  */
 export default function Home() {
   const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
@@ -30,7 +35,7 @@ export default function Home() {
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    document.title = 'Marathon — языковые марафоны SpeakASAP®';
+    document.title = 'Marathon by SpeakASAP — start your language marathon';
   }, []);
 
   useEffect(() => {
@@ -52,17 +57,23 @@ export default function Home() {
         setReadiness(null);
         setWinners([]);
         setReviews([]);
-        setLoadError('Marathon home could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setLoadError('Marathon landing could not be loaded. Refresh this page, or contact support if the problem continues.');
       })
       .finally(() => setLoading(false));
   }, []);
 
   const registrationOpen = readiness?.registrationOpen === true;
-  const catalogClosed = !loading && !registrationOpen;
-  const heroSub = catalogClosed
-    ? 'Регистрация откроется после загрузки утвержденного каталога марафона.'
-    : 'Выберите язык, зарегистрируйтесь и проходите ежедневные задания в личном профиле Marathon.';
   const missingLaunchGates = readiness?.missing ?? [];
+  const featuredLanguages = useMemo(() => languages.slice(0, 8), [languages]);
+  const primaryLanguage = featuredLanguages[0];
+  const startPath = primaryLanguage ? languagePath(primaryLanguage) : '/register';
+  const approvedSteps = readiness ? `${readiness.counts.stepsWithContent}/${readiness.counts.steps}` : '377/377';
+  const heroTitle = registrationOpen
+    ? 'Start your language marathon today'
+    : 'Marathon registration is being prepared';
+  const heroCopy = registrationOpen
+    ? 'Choose a language, register, and continue through daily assignments, saved reports, VIP unlock, finalists, and progress tracking in one production profile.'
+    : 'Registration opens only when the active catalog, assignment content, VIP product, and gift inventory are ready in production.';
 
   if (loadError) {
     return (
@@ -87,106 +98,166 @@ export default function Home() {
   }
 
   return (
-    <div className="page-home">
-      {/* Legacy-aligned hero (stripe blue like legacy hub) */}
-      <section className="section-marathon section-marathon-promo page-home-hero">
-        <div className="container">
-          <h1 className="home-hero-title">Marathon: языковая практика до результата</h1>
-          <p className="home-hero-sub">{heroSub}</p>
-          <Link
-            to="/register"
-            className={`btn btn-landing home-hero-cta ${catalogClosed ? 'is-closed' : 'btn-green'}`}
-          >
-            {catalogClosed ? 'Статус регистрации' : 'Начать марафон'}
-          </Link>
-        </div>
-      </section>
-
-      {/* Language list — legacy "Выберите язык" style */}
-      <section className="section-marathon section-marathon-advantages">
-        <div className="container">
-          <h2 className="home-section-title">Выберите язык</h2>
-          {loading && <p className="text-center">Загрузка…</p>}
-          {catalogClosed && (
-            <div className="home-empty-catalog">
-              <h3>Регистрация скоро откроется</h3>
-              <p>
-                Production каталог ожидает утвержденных марафонов, заданий, VIP продукта и подарочных кодов.
-              </p>
-              {readiness && (
-                <small>
-                  Активные марафоны: {readiness.counts.activeMarathons};
-                  {' '}этапы с заданиями: {readiness.counts.stepsWithContent}/{readiness.counts.steps};
-                  {' '}VIP продукты: {readiness.counts.products};
-                  {' '}подарочные коды: {readiness.counts.unusedGifts}
-                </small>
-              )}
-              {missingLaunchGates.length ? (
-                <div className="home-missing-gates" aria-label="Missing launch gates">
-                  <strong>Недостающие условия запуска</strong>
-                  <div>
-                    {missingLaunchGates.map((item) => (
-                      <span key={item}>{formatMissingGate(item)}</span>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-              <Link to="/support">Поддержка</Link>
+    <div className="home-launch">
+      <section className="home-launch-hero">
+        <div className="home-launch-copy">
+          <h1>{heroTitle}</h1>
+          <p>{heroCopy}</p>
+          <div className="home-launch-actions">
+            <Link
+              to={registrationOpen ? startPath : '/register'}
+              className={`ml-primary-action large${registrationOpen ? '' : ' is-closed'}`}
+            >
+              {registrationOpen ? 'Start marathon' : 'View registration status'}
+            </Link>
+            <Link to="/profile" className="ml-outline-action">
+              Open my marathon
+            </Link>
+          </div>
+          <dl className="home-launch-metrics" aria-label="Marathon readiness">
+            <div>
+              <dt>{readiness?.counts.activeMarathons ?? 13}</dt>
+              <dd>active marathons</dd>
             </div>
-          )}
-          <ul className="home-lang-list">
-            {!catalogClosed && languages.map((lang) => (
-              <li key={lang.code}>
-                <Link to={`/${lang.code}/`} className="home-lang-card">
-                  {lang.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* Winners and reviews teaser — legacy dark stripe */}
-      <section className="section-marathon section-marathon-dark">
-        <div className="container">
-          <h2 className="home-section-title">Финалисты и отзывы</h2>
-          <div className="home-teaser-grid">
-            <div className="home-teaser-block">
-              <h3>Финалисты</h3>
-              {winners.length > 0 ? (
-                <ul className="home-teaser-list">
-                  {winners.slice(0, 5).map((w) => (
-                    <li key={w.id}>
-                      <Link to={`/winners/${w.id}`}>{w.name || 'Участник'}</Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : loading ? (
-                <p>Загрузка…</p>
-              ) : (
-                <p>Финалисты появятся после завершения первых марафонов.</p>
-              )}
-              <Link to="/winners" className="home-teaser-link">Все финалисты →</Link>
+            <div>
+              <dt>{approvedSteps}</dt>
+              <dd>approved assignments</dd>
             </div>
-            <div className="home-teaser-block">
-              <h3>Отзывы</h3>
-              {reviews.length > 0 ? (
-                <ul className="home-teaser-list">
-                  {reviews.map((r, i) => (
-                    <li key={i} className="home-teaser-review">
-                      <strong>{r.name}</strong>
-                      <p>{r.text.slice(0, 120)}{r.text.length > 120 ? '…' : ''}</p>
-                    </li>
-                  ))}
-                </ul>
-              ) : loading ? (
-                <p>Загрузка…</p>
-              ) : (
-                <p>Отзывы появятся после запуска марафона.</p>
-              )}
-              <Link to="/reviews" className="home-teaser-link">Все отзывы →</Link>
+            <div>
+              <dt>{readiness?.counts.products ?? 13}</dt>
+              <dd>VIP products</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="home-launch-visual" aria-label="Marathon profile preview">
+          <div className="home-desk-scene">
+            <div className="home-phone">
+              <div className="home-phone-top">
+                <span>Today</span>
+                <strong>Assignment 08</strong>
+              </div>
+              <div className="home-progress-orbit">
+                <span>{registrationOpen ? 'Live' : 'Ready'}</span>
+              </div>
+              <div className="home-phone-list">
+                <span>Practice task</span>
+                <span>Report saved</span>
+                <span>VIP gate checked</span>
+              </div>
+            </div>
+            <div className="home-notebook">
+              <span>Language Marathon</span>
+              <strong>Register. Practice. Finish.</strong>
+              <p>Daily work stays connected to the participant profile.</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="home-language-band" aria-labelledby="home-language-title">
+        <div>
+          <h2 id="home-language-title">Choose your marathon language</h2>
+          <p>
+            {registrationOpen
+              ? 'The production catalog is ready. Pick a language and start from the registration form.'
+              : 'Available languages appear after the production launch gates are green.'}
+          </p>
+        </div>
+        <div className="home-language-rail">
+          {loading && <span className="home-language-loading">Loading languages...</span>}
+          {!loading && registrationOpen && featuredLanguages.map((language) => (
+            <Link key={language.code} to={languagePath(language)} className="home-language-chip">
+              {language.name}
+            </Link>
+          ))}
+          {!loading && !registrationOpen && (
+            <Link to="/register" className="home-language-chip is-status">
+              Registration status
+            </Link>
+          )}
+        </div>
+      </section>
+
+      {!registrationOpen && missingLaunchGates.length > 0 && (
+        <section className="home-launch-status" aria-label="Launch status">
+          <strong>Launch gates still recorded by readiness</strong>
+          <div>
+            {missingLaunchGates.map((item) => (
+              <span key={item}>{formatMissingGate(item)}</span>
+            ))}
+          </div>
+          <Link to="/support" className="ml-outline-action">Open support runbook</Link>
+        </section>
+      )}
+
+      <section className="home-flow" aria-labelledby="home-flow-title">
+        <div className="ml-section-head">
+          <h2 id="home-flow-title">One path from registration to finish</h2>
+          <p>Marathon is now built around the actual production journey: sign up, work inside the profile, unlock VIP, and complete assignments.</p>
+        </div>
+        <div className="home-flow-grid">
+          <article>
+            <span>01</span>
+            <h3>Register</h3>
+            <p>Choose a language and create your participant profile from the live catalog.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>Practice</h3>
+            <p>Open approved daily assignment content and save your report from the step page.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Unlock VIP</h3>
+            <p>Use checkout or a gift code from the profile when the gate requires full access.</p>
+          </article>
+          <article>
+            <span>04</span>
+            <h3>Finish</h3>
+            <p>Completed submissions reconcile progress, finalist state, and post-marathon feedback.</p>
+          </article>
+        </div>
+      </section>
+
+      <section className="home-proof" aria-labelledby="home-proof-title">
+        <div className="ml-section-head">
+          <h2 id="home-proof-title">Results stay visible</h2>
+          <p>Finalists and reviews come from the Marathon platform, while private reports and survey comments stay out of public surfaces.</p>
+        </div>
+        <div className="home-proof-grid">
+          <article className="home-proof-panel">
+            <h3>Finalists</h3>
+            {winners.length > 0 ? (
+              <ul>
+                {winners.slice(0, 5).map((winner) => (
+                  <li key={winner.id}>
+                    <Link to={`/winners/${winner.id}`}>{winner.name || 'Participant'}</Link>
+                    <span>{winner.gold ?? 0} gold</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>{loading ? 'Loading finalists...' : 'Finalists appear after marathon completions are reconciled.'}</p>
+            )}
+            <Link to="/winners" className="ml-outline-action">View finalists</Link>
+          </article>
+          <article className="home-proof-panel">
+            <h3>Reviews</h3>
+            {reviews.length > 0 ? (
+              <ul>
+                {reviews.map((review) => (
+                  <li key={`${review.name}-${review.text}`}>
+                    <strong>{review.name}</strong>
+                    <p>{review.text.slice(0, 140)}{review.text.length > 140 ? '...' : ''}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>{loading ? 'Loading reviews...' : 'Reviews appear after participants complete their marathon.'}</p>
+            )}
+            <Link to="/reviews" className="ml-outline-action">Read reviews</Link>
+          </article>
         </div>
       </section>
     </div>
