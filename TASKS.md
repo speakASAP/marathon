@@ -28,6 +28,7 @@
 - [x] TASK-MAR-051: Centralize winners and support-step API access (goal_id: frontend-readiness, priority: 2)
 - [x] TASK-MAR-052: Add public winners and support-step load-error states (goal_id: frontend-readiness, priority: 2)
 - [x] TASK-MAR-053: Audit legacy Marathon catalog sources (goal_id: catalog-readiness, priority: 1)
+- [x] TASK-MAR-054: Generate safe legacy catalog drafts (goal_id: catalog-readiness, priority: 1)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
@@ -120,4 +121,5 @@
 - [x] 2026-06-13 Registration and gift API action refactor verified: registration and gift redemption now use a typed journey helper while preserving login handoffs, redirect normalization, and closed-catalog guards
 - [x] 2026-06-13 Winners and support-step API refactor verified: winners and support-step pages now use typed helper access while preserving empty, not-found, and content-missing public states
 - [x] 2026-06-13 Legacy Marathon catalog audit verified: found SpeakASAP fixture candidates are repeatably audited as 11 marathons and 319 steps, but remain not launch-ready because approved assignment content, VIP products, gift codes, and source-owner approval are missing
+- [x] 2026-06-13 Legacy Marathon catalog draft generator verified: source-owner handoff drafts map 11 legacy marathons and 319 steps while keeping active marathons, products, gifts, and assignment content at zero so the approved loader rejects them before completion
 - [x] 2026-06-13 Public detail error states verified: winners, winner detail, and support-step routes now distinguish temporary API load failures from empty/not-found states
