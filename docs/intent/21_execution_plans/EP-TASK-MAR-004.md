@@ -2,18 +2,18 @@
 
 ```yaml
 id: EP-TASK-MAR-004
-status: blocked
+status: in_progress
 source_task: docs/intent/11_tasks/TASK-MAR-004-verify-end-to-end-vip-flow.md
 owner: Engineering
 created: 2026-06-12
-last_updated: 2026-06-12
+last_updated: 2026-06-13
 completeness_level: complete
 ```
 
 ## Metadata
 
 - Target environment: production `https://marathon.alfares.cz`.
-- Current blocker: approved active Marathon/Product/Gift/Step catalog data is missing or not yet confirmed.
+- Current blocker: mutating production registration/payment/gift/assignment verification is still pending approved smoke inputs.
 - Execution type: verification first; code changes only through a new task.
 
 ## Upstream Traceability
@@ -65,19 +65,19 @@ If any contract is missing, stop and create a new feature/task/ADR chain before 
 
 ## Scope
 
-1. Locate approved catalog source.
-2. Dry-run catalog load.
-3. Apply catalog only after human approval.
-4. Run readiness preflight.
-5. Run read-only journey smoke.
-6. Run mutating journey verification with approved test data.
-7. Complete validation report.
+1. Locate approved catalog source. Completed on 2026-06-13 from the user-approved SpeakASAP legacy export/import staging flow.
+2. Dry-run catalog load. Completed on 2026-06-13 with 13 active marathons, 377 steps with assignment content, 13 products, and 13 gift codes.
+3. Apply catalog only after human approval. Completed on 2026-06-13 as part of the approved migration flow; full legacy import also reconciled 53,469 participants, 238,674 submissions, and 18,603 winners as masked aggregate evidence.
+4. Run readiness preflight. Completed on 2026-06-13 from the Marathon pod.
+5. Run read-only journey smoke. Completed on 2026-06-13 against `https://marathon.alfares.cz`.
+6. Run mutating journey verification with approved test data. Pending.
+7. Complete validation report. In progress until mutating proof is recorded.
 
 ## Non-Goals
 
 - No source-code edits.
 - No direct database mutation outside approved loader or application APIs.
-- No archived progress import.
+- No additional archived progress import inside this verification plan; the completed user-approved full legacy migration reports only masked aggregate evidence back here.
 - No weakening readiness or smoke checks.
 
 ## Files to Inspect
@@ -106,7 +106,7 @@ If any contract is missing, stop and create a new feature/task/ADR chain before 
 - `docs/intent/00_constitution/CONSTITUTION.md`
 - `docs/intent/01_vision/VISION.md`
 - Production secrets or `.env` values.
-- Direct full-export loader behavior except through a new approved ADR/task.
+- Direct full-export loader behavior except through a new approved ADR/task or the separate user-approved migration task already in progress.
 
 ## Implementation Steps
 
@@ -153,7 +153,7 @@ npm run check:journey -- --base-url https://marathon.alfares.cz --mutating [appr
 
 ## Validation Plan
 
-Pass/fail is recorded in `docs/intent/12_validation/VAL-TASK-MAR-004.md`. The task remains blocked until approved catalog data and live verification evidence exist.
+Pass/fail is recorded in `docs/intent/12_validation/VAL-TASK-MAR-004.md`. The catalog and read-only launch gates now pass. The task remains open until live mutating registration, VIP payment or gift unlock, assignment submission/readback, and completion/winner proof are verified with approved inputs.
 
 ## Gate Commands
 
@@ -188,11 +188,11 @@ Read the context package at `docs/intent/13_context_packages/CP-TASK-MAR-004.md`
 
 ## Completion Checklist
 
-- [ ] Approved catalog source identified.
-- [ ] Catalog dry run completed.
-- [ ] Catalog apply approved and completed, if needed.
-- [ ] Readiness preflight passed.
-- [ ] Read-only journey smoke passed.
+- [x] Approved catalog source identified.
+- [x] Catalog dry run completed.
+- [x] Catalog apply approved and completed, if needed.
+- [x] Readiness preflight passed.
+- [x] Read-only journey smoke passed.
 - [ ] Mutating verification passed with approved inputs.
 - [ ] Validation report completed.
-- [ ] `TASKS.md` status updated.
+- [x] `TASKS.md` status updated.

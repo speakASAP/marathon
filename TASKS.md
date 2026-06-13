@@ -32,6 +32,8 @@
 - [x] TASK-MAR-055: Publish legacy catalog handoff steps (goal_id: catalog-readiness, priority: 1)
 - [x] TASK-MAR-056: Review in-progress catalog drafts (goal_id: catalog-readiness, priority: 1)
 - [x] TASK-MAR-057: Quarantine unsafe full legacy migration path (goal_id: catalog-readiness, priority: 1)
+- [x] TASK-MAR-058: Record post-catalog production readiness evidence (goal_id: launch-verification, priority: 1)
+- [x] TASK-MAR-059: Record full legacy import aggregate completion evidence (goal_id: launch-verification, priority: 1)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
@@ -129,3 +131,5 @@
 - [x] 2026-06-13 Catalog draft review deployed: source owners can run a redacted completion check for in-progress catalog JSON, and production checklist smoke protects the review command before the catalog-readiness gate
 - [x] 2026-06-13 Unsafe full legacy migration path quarantined: local `scripts/migrate-legacy-marathon-full.js` remains untouched but ignored, and ADR/runbook guardrails keep participant/progress migration outside the approved launch path
 - [x] 2026-06-13 Public detail error states verified: winners, winner detail, and support-step routes now distinguish temporary API load failures from empty/not-found states
+- [x] 2026-06-13 Production catalog readiness verified: deployed pod readiness now reports 13 active marathons, 377 steps with approved assignment content, 13 products, 13 gifts, 13 unused gifts, and 53,469 participants; read-only `npm run check:journey -- --base-url https://marathon.alfares.cz` passes through catalog, registration shell, checkout handoff, gift guard, step detail, assignment content, analytics, and RunLayer checks
+- [x] 2026-06-13 Full legacy import aggregate completion recorded: user-approved SpeakASAP migration completed with 13 marathons, 377 steps, 13 products, 13 gifts, 53,469 participants, 238,674 submissions, and 18,603 winners, with validation notes limited to aggregate counts and no participant rows, gift-code values, answer payloads, JWTs, payment secrets, or full assignment content
