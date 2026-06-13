@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Logger, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Headers, HttpException, Logger, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthGuard } from '../shared/auth.guard';
 import { AuthUser } from '../shared/auth-client';
@@ -19,7 +19,17 @@ export class VipController {
   async createCheckout(@Req() req: AuthenticatedRequest, @Body() body: { marathonerId?: string; paymentMethod?: string }) {
     const userId = req.user!.id;
     this.logger.log(`VIP checkout requested: userId=${userId}, marathonerId=${body.marathonerId || ''}`);
-    return this.vipService.createCheckout(req.user!, body);
+    try {
+      return await this.vipService.createCheckout(req.user!, body);
+    } catch (error) {
+      const status = error instanceof HttpException ? error.getStatus() : 500;
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        'marathon.checkout.failed hasMarathonerId=' + Boolean(body.marathonerId) + ' method=' + (body.paymentMethod || '') + ' status=' + status + ' reason=' + reason.replace(/\s+/g, '_'),
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   @Post('vip/gift-redemptions')
