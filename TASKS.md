@@ -5,7 +5,7 @@
 - [x] T1: Implement VIP checkout endpoint calling payments-microservice:3468 (goal_id: vip-payment, priority: 1)
 - [x] T2: Implement payment webhook handler — set isFree=false, paymentReported=true on confirmation (goal_id: vip-payment, priority: 1)
 - [x] T3: Implement gift code redemption endpoint (goal_id: vip-payment, priority: 2)
-- [ ] T4: Verify end-to-end VIP upgrade flow (goal_id: vip-payment, priority: 2)
+- [x] T4: Verify end-to-end VIP upgrade flow (goal_id: vip-payment, priority: 2)
 - [ ] Review course step content for upcoming marathon (priority: 3)
 - [x] Generate participant progress report (priority: 3)
 - [x] TASK-MAR-035: Hide gift redemption until readiness loads and align nav status label (goal_id: vip-payment, priority: 2)
@@ -34,6 +34,7 @@
 - [x] TASK-MAR-057: Quarantine unsafe full legacy migration path (goal_id: catalog-readiness, priority: 1)
 - [x] TASK-MAR-058: Record post-catalog production readiness evidence (goal_id: launch-verification, priority: 1)
 - [x] TASK-MAR-059: Record full legacy import aggregate completion evidence (goal_id: launch-verification, priority: 1)
+- [x] TASK-MAR-060: Verify mutating production registration, VIP payment unlock, and assignment readback (goal_id: launch-verification, priority: 1)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
@@ -133,3 +134,4 @@
 - [x] 2026-06-13 Public detail error states verified: winners, winner detail, and support-step routes now distinguish temporary API load failures from empty/not-found states
 - [x] 2026-06-13 Production catalog readiness verified: deployed pod readiness now reports 13 active marathons, 377 steps with approved assignment content, 13 products, 13 gifts, 13 unused gifts, and 53,469 participants; read-only `npm run check:journey -- --base-url https://marathon.alfares.cz` passes through catalog, registration shell, checkout handoff, gift guard, step detail, assignment content, analytics, and RunLayer checks
 - [x] 2026-06-13 Full legacy import aggregate completion recorded: user-approved SpeakASAP migration completed with 13 marathons, 377 steps, 13 products, 13 gifts, 53,469 participants, 238,674 submissions, and 18,603 winners, with validation notes limited to aggregate counts and no participant rows, gift-code values, answer payloads, JWTs, payment secrets, or full assignment content
+- [x] 2026-06-13 Mutating production journey verified: a synthetic Auth user registered for Marathon, checkout created a payment attempt, Marathon webhook settlement unlocked VIP access, profile state changed to VIP, and assignment submit/readback passed; evidence is masked and excludes JWTs, webhook key, full IDs, gift codes, checkout URL, email, and report text

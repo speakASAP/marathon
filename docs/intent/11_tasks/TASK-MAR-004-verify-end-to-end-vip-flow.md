@@ -2,10 +2,10 @@
 
 ```yaml
 id: TASK-MAR-004
-status: blocked
+status: complete
 owner: Engineering
 created: 2026-06-12
-last_updated: 2026-06-12
+last_updated: 2026-06-13
 completeness_level: complete
 upstream:
   - docs/intent/10_features/FEAT-001-launch-ready-catalog-flow.md
@@ -70,12 +70,12 @@ Readiness checks are deterministic. Mutating journey checks are not replay-safe 
 
 ## Acceptance Criteria
 
-- [ ] Approved catalog JSON source is identified or missing source is documented.
-- [ ] Readiness preflight passes for at least one active language.
-- [ ] Registration creates or identifies a participant in the active marathon.
-- [ ] VIP unlock succeeds through payment or gift code and post-gate access is visible.
-- [ ] Assignment submission can be saved and read back.
-- [ ] Validation report is completed with evidence and recommendation.
+- [x] Approved catalog source is identified and production catalog/import evidence is documented.
+- [x] Readiness preflight passes for at least one active language.
+- [x] Registration creates a participant in the active marathon.
+- [x] VIP unlock succeeds through checkout plus payment webhook settlement and post-gate access is visible.
+- [x] Assignment submission can be saved and read back.
+- [x] Validation report is completed with evidence and recommendation.
 
 ## Required Context
 

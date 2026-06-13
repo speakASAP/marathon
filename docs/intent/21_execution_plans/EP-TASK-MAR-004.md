@@ -2,7 +2,7 @@
 
 ```yaml
 id: EP-TASK-MAR-004
-status: in_progress
+status: complete
 source_task: docs/intent/11_tasks/TASK-MAR-004-verify-end-to-end-vip-flow.md
 owner: Engineering
 created: 2026-06-12
@@ -13,7 +13,7 @@ completeness_level: complete
 ## Metadata
 
 - Target environment: production `https://marathon.alfares.cz`.
-- Current blocker: mutating production registration/payment/gift/assignment verification is still pending approved smoke inputs.
+- Current blocker: none for registration, VIP payment unlock, and assignment submit/readback verification.
 - Execution type: verification first; code changes only through a new task.
 
 ## Upstream Traceability
@@ -70,8 +70,8 @@ If any contract is missing, stop and create a new feature/task/ADR chain before 
 3. Apply catalog only after human approval. Completed on 2026-06-13 as part of the approved migration flow; full legacy import also reconciled 53,469 participants, 238,674 submissions, and 18,603 winners as masked aggregate evidence.
 4. Run readiness preflight. Completed on 2026-06-13 from the Marathon pod.
 5. Run read-only journey smoke. Completed on 2026-06-13 against `https://marathon.alfares.cz`.
-6. Run mutating journey verification with approved test data. Pending.
-7. Complete validation report. In progress until mutating proof is recorded.
+6. Run mutating journey verification with approved test data. Completed on 2026-06-13 with a synthetic Auth user and masked evidence.
+7. Complete validation report. Completed on 2026-06-13.
 
 ## Non-Goals
 
@@ -153,7 +153,7 @@ npm run check:journey -- --base-url https://marathon.alfares.cz --mutating [appr
 
 ## Validation Plan
 
-Pass/fail is recorded in `docs/intent/12_validation/VAL-TASK-MAR-004.md`. The catalog and read-only launch gates now pass. The task remains open until live mutating registration, VIP payment or gift unlock, assignment submission/readback, and completion/winner proof are verified with approved inputs.
+Pass/fail is recorded in `docs/intent/12_validation/VAL-TASK-MAR-004.md`. The catalog, read-only launch gates, live registration, VIP payment unlock, and assignment submit/readback checks pass. New winner creation remains a follow-up verification item outside T4 acceptance criteria.
 
 ## Gate Commands
 
@@ -193,6 +193,6 @@ Read the context package at `docs/intent/13_context_packages/CP-TASK-MAR-004.md`
 - [x] Catalog apply approved and completed, if needed.
 - [x] Readiness preflight passed.
 - [x] Read-only journey smoke passed.
-- [ ] Mutating verification passed with approved inputs.
-- [ ] Validation report completed.
+- [x] Mutating verification passed with approved inputs.
+- [x] Validation report completed.
 - [x] `TASKS.md` status updated.
