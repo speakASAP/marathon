@@ -18,6 +18,9 @@ const authEmail = `marathon-prod-smoke-${stamp}@example.invalid`;
 const password = `Smoke-${crypto.randomBytes(12).toString("base64url")}1a!`;
 const smokeName = `Marathon Prod Smoke ${stamp}`;
 const smokePhone = `+420900${String(Date.now()).slice(-9)}`;
+const args = new Set(process.argv.slice(2));
+const smokeMode = process.env.MARATHON_SMOKE_MODE || (args.has("--gift-replenishment-only") ? "gift-replenishment" : "full");
+const giftReplenishmentOnly = smokeMode === "gift-replenishment";
 
 function mask(value) {
   const text = String(value || "");
@@ -67,6 +70,32 @@ function runCheck(command, args, label) {
     throw new Error(`${label} failed: ${result.stderr || result.stdout || `exit ${result.status}`}`.slice(0, 800));
   }
   return true;
+}
+
+async function redeemGiftAndReplenish(token, marathon, marathonerId) {
+  await ensureReplacementGift(marathon.id);
+  const beforeUnused = await prisma.marathonGift.count({ where: { marathonId: marathon.id, usedAt: null } });
+  const gift = await prisma.marathonGift.findFirst({
+    where: { marathonId: marathon.id, usedAt: null },
+    select: { id: true, code: true },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!gift?.code) throw new Error(`no unused gift code available for ${languageCode} marathon`);
+  const giftResponse = await jsonFetch("/api/v1/vip/gift-redemptions", {
+    method: "POST",
+    token,
+    label: "gift redemption",
+    body: JSON.stringify({ marathonerId, code: gift.code }),
+  });
+  if (giftResponse?.status !== "vip_unlocked") throw new Error(`gift redemption returned ${giftResponse?.status || "missing status"}`);
+  const postRedemptionReplacementGift = await ensureReplacementGift(marathon.id);
+  const afterUnused = await prisma.marathonGift.count({ where: { marathonId: marathon.id, usedAt: null } });
+  return {
+    giftResponse,
+    beforeUnused,
+    afterUnused,
+    postRedemptionReplacementGift,
+  };
 }
 
 async function registerSmokeParticipant(token, marathon, purpose) {
@@ -182,24 +211,52 @@ async function main() {
   if (!Array.isArray(steps) || steps.length === 0) throw new Error("no steps returned");
 
   await ensureReplacementGift(marathon.id);
-  const paymentUnlock = await verifyPaymentUnlock(token, marathon);
-  const marathonerId = await registerSmokeParticipant(token, marathon, "gift-winner-nps");
-  await ensureReplacementGift(marathon.id);
+  const paymentUnlock = giftReplenishmentOnly ? null : await verifyPaymentUnlock(token, marathon);
+  const marathonerId = await registerSmokeParticipant(token, marathon, giftReplenishmentOnly ? "gift-replenishment" : "gift-winner-nps");
+  const giftUnlock = await redeemGiftAndReplenish(token, marathon, marathonerId);
+  const postRedemptionReplacementGift = giftUnlock.postRedemptionReplacementGift;
 
-  const gift = await prisma.marathonGift.findFirst({
-    where: { marathonId: marathon.id, usedAt: null },
-    select: { id: true, code: true },
-    orderBy: { createdAt: "asc" },
-  });
-  if (!gift?.code) throw new Error(`no unused gift code available for ${languageCode} marathon`);
-  const giftResponse = await jsonFetch("/api/v1/vip/gift-redemptions", {
-    method: "POST",
-    token,
-    label: "gift redemption",
-    body: JSON.stringify({ marathonerId, code: gift.code }),
-  });
-  if (giftResponse?.status !== "vip_unlocked") throw new Error(`gift redemption returned ${giftResponse?.status || "missing status"}`);
-  const postRedemptionReplacementGift = await ensureReplacementGift(marathon.id);
+  if (giftReplenishmentOnly) {
+    runCheck("node", ["scripts/check-marathon-readiness.js"], "readiness");
+
+    const after = {
+      participants: await prisma.marathonParticipant.count(),
+      giftsUnused: await prisma.marathonGift.count({ where: { usedAt: null } }),
+      winners: await prisma.marathonWinner.count(),
+      surveys: await prisma.marathonSurveyResponse.count(),
+    };
+
+    console.log(JSON.stringify({
+      ok: true,
+      smoke: "production-safe-gift-replenishment",
+      language: languageCode,
+      userId: mask(userId),
+      marathonerId: mask(marathonerId),
+      vipUnlockedByGift: giftUnlock.giftResponse?.status === "vip_unlocked",
+      giftInventory: {
+        beforeUnused: giftUnlock.beforeUnused,
+        afterUnused: giftUnlock.afterUnused,
+        replacement: postRedemptionReplacementGift,
+      },
+      countDelta: {
+        participants: after.participants - before.participants,
+        giftsUnused: after.giftsUnused - before.giftsUnused,
+        winners: after.winners - before.winners,
+        surveys: after.surveys - before.surveys,
+      },
+      safety: {
+        marathonRegistrationUsedEmail: false,
+        notificationSendExpected: false,
+        submissionsCreated: false,
+        winnerExpected: false,
+        npsExpected: false,
+        fullIdsPrinted: false,
+        giftCodePrinted: false,
+        tokenPrinted: false,
+      },
+    }, null, 2));
+    return;
+  }
 
   let submitted = 0;
   for (const step of steps) {
