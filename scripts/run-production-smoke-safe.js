@@ -181,8 +181,10 @@ async function main() {
   const steps = await jsonFetch(`/api/v1/steps?marathonId=${encodeURIComponent(marathon.id)}`, { label: "steps" });
   if (!Array.isArray(steps) || steps.length === 0) throw new Error("no steps returned");
 
+  await ensureReplacementGift(marathon.id);
   const paymentUnlock = await verifyPaymentUnlock(token, marathon);
   const marathonerId = await registerSmokeParticipant(token, marathon, "gift-winner-nps");
+  await ensureReplacementGift(marathon.id);
 
   const gift = await prisma.marathonGift.findFirst({
     where: { marathonId: marathon.id, usedAt: null },
