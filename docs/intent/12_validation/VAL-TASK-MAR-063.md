@@ -27,6 +27,7 @@ last_updated: 2026-06-13
 - Post-deploy readiness passed in Kubernetes: 13 active marathons, 377/377 steps with assignment content, 13 products, 17 gifts / 13 unused gifts, and payment runtime configuration present.
 - Deployment status after rollout: image `localhost:5000/marathon:43cadbf`, one ready/available/updated pod.
 - `npm run check:journey -- --base-url https://marathon.alfares.cz` passed in read-only mode.
+- Guarded in-pod `npm run smoke:production-safe` passed on image `localhost:5000/marathon:43cadbf`: synthetic registration, checkout creation, Marathon webhook settlement, VIP profile state, confirmed payment ledger, gift redemption, 29 assignment submissions, winner reconciliation, and NPS create/update were verified with masked IDs and no token, gift code, checkout URL, webhook key, email, or private report output.
 - Rendered screenshot QA used Playwright fallback because the in-app Browser tool was unavailable in this session. Screenshots:
   - `/private/tmp/marathon-qa/home-desktop-1440-final.png`
   - `/private/tmp/marathon-qa/home-mobile-390-final.png`
