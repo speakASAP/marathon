@@ -25,6 +25,18 @@ export interface Answer {
   block_reason?: string | null;
 }
 
+export interface MyMarathonSummary {
+  id: string;
+  title: string;
+  type: string;
+  needs_payment: boolean;
+  registered: boolean;
+  bonus_left: number;
+  bonus_total: number;
+  current_step: Answer | null;
+  answers: Answer[];
+}
+
 export interface MyMarathon {
   id: string;
   title: string;
@@ -139,6 +151,15 @@ export async function fetchMyMarathon(marathonerId: string): Promise<MyMarathon>
   if (response.status === 404) throw new MarathonNotFoundError();
   if (!response.ok) throw new Error(`profile:${response.status}`);
   return response.json() as Promise<MyMarathon>;
+}
+
+export async function fetchMyMarathons(): Promise<MyMarathonSummary[]> {
+  const response = await authFetch('/api/v1/me/marathons');
+  if (response.status === 401) throw new MarathonAuthRequiredError();
+  if (!response.ok) throw new Error(`profile-list:${response.status}`);
+
+  const body = await response.json().catch(() => []);
+  return Array.isArray(body) ? body as MyMarathonSummary[] : [];
 }
 
 export async function createVipCheckout(marathonerId: string): Promise<string> {

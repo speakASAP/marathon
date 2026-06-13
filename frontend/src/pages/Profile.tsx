@@ -1,40 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { authFetch, redirectToLogin } from '../auth';
+import { redirectToLogin } from '../auth';
+import {
+  MarathonAuthRequiredError,
+  fetchMyMarathons,
+  type MyMarathonSummary,
+} from '../api/profileMarathon';
 import { fetchCatalogReadiness, type CatalogReadiness } from '../api/publicMarathon';
 
-interface MyMarathon {
-  id: string;
-  title: string;
-  type: string;
-  needs_payment: boolean;
-  registered: boolean;
-  bonus_left: number;
-  bonus_total: number;
-  current_step: Answer | null;
-  answers: Answer[];
-}
-
-interface Answer {
-  id: string | number;
-  stepId: string;
-  title: string;
-  start: string;
-  stop: string;
-  state: string;
-  is_late: boolean;
-  block_reason?: string | null;
-}
-
-function getCompletedCount(marathon: MyMarathon) {
+function getCompletedCount(marathon: MyMarathonSummary) {
   return marathon.answers.filter((answer) => answer.state === 'completed' || answer.state === 'done').length;
 }
 
-function getProgressPct(marathon: MyMarathon) {
+function getProgressPct(marathon: MyMarathonSummary) {
   return marathon.answers.length ? Math.round((getCompletedCount(marathon) / marathon.answers.length) * 100) : 0;
 }
 
-function getStatusLabel(marathon: MyMarathon) {
+function getStatusLabel(marathon: MyMarathonSummary) {
   if (marathon.needs_payment) return 'VIP required';
   if (marathon.type === 'vip') return 'VIP active';
   if (marathon.type === 'trial') return 'Trial';
@@ -46,7 +28,7 @@ function getStatusLabel(marathon: MyMarathon) {
  * Unauthenticated -> redirect to portal login.
  */
 export default function Profile() {
-  const [list, setList] = useState<MyMarathon[] | null>(null);
+  const [list, setList] = useState<MyMarathonSummary[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [unauth, setUnauth] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -62,23 +44,17 @@ export default function Profile() {
     setLoading(true);
     setLoadError('');
     setUnauth(false);
-    authFetch('/api/v1/me/marathons')
-      .then((r) => {
-        if (r.status === 401) {
-          setUnauth(true);
-          setLoading(false);
-          return [];
-        }
-        if (!r.ok) throw new Error(String(r.status));
-        return r.json();
-      })
+    fetchMyMarathons()
       .then((data) => {
-        if (Array.isArray(data)) {
-          setList(data);
-        }
+        setList(data);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((error) => {
+        if (error instanceof MarathonAuthRequiredError) {
+          setUnauth(true);
+          setLoading(false);
+          return;
+        }
         setLoadError('Profile could not be loaded. Refresh this page, or contact support if the problem continues.');
         setLoading(false);
       });

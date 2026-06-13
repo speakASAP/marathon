@@ -23,6 +23,7 @@
 - [x] TASK-MAR-046: Centralize public frontend readiness and teaser API access (goal_id: frontend-readiness, priority: 2)
 - [x] TASK-MAR-047: Extract typed assignment page API helper (goal_id: frontend-readiness, priority: 2)
 - [x] TASK-MAR-048: Extract typed profile/payment API helper (goal_id: frontend-readiness, priority: 2)
+- [x] TASK-MAR-049: Centralize profile dashboard API access (goal_id: frontend-readiness, priority: 2)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
