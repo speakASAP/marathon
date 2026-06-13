@@ -38,8 +38,24 @@ Human approval must confirm:
 
 ## Runbook
 
-1. Place the approved JSON file on the alfares server.
-2. Validate without writing from the Marathon repository:
+1. If the source is a legacy SpeakASAP fixture, audit it first without writing data:
+
+```bash
+npm run audit:legacy-catalog -- --fixture /path/to/legacy/marathon.json --sql /path/to/legacy/marathon_de.sql
+```
+
+The audit prints only counts, field names, table names, paths, redacted identifiers, and launch blockers. It is source-discovery evidence, not source-owner approval.
+
+2. Create an intentionally incomplete source-owner worksheet when a legacy fixture should be reviewed:
+
+```bash
+npm run draft:legacy-catalog -- --fixture /path/to/legacy/marathon.json --output /path/to/marathon-catalog-draft.json
+```
+
+The draft maps only Marathon and Step structure. It sets every marathon `active: false`, leaves every `assignmentContent` blank, creates no products, and creates no gift codes. The normal loader rejects the draft until a source owner fills the required launch fields.
+
+3. Replace the draft with source-owner approved catalog JSON and place that approved JSON file on the alfares server.
+4. Validate without writing from the Marathon repository:
 
 ```bash
 npm run load:catalog:pod -- /path/to/marathon-catalog.json
@@ -69,7 +85,7 @@ For a staged non-launch import only:
 npm run load:catalog:pod -- /path/to/marathon-catalog.json --allow-incomplete
 ```
 
-3. Apply only after human approval and a passing launch-ready dry run:
+5. Apply only after human approval and a passing launch-ready dry run:
 
 ```bash
 npm run load:catalog:pod -- /path/to/marathon-catalog.json --apply
@@ -77,7 +93,7 @@ npm run load:catalog:pod -- /path/to/marathon-catalog.json --apply
 
 The script is create-only. It aborts if a target marathon slug or gift code already exists, so it does not overwrite existing approved course rows.
 
-4. Run the read-only production preflight from the Marathon runtime:
+6. Run the read-only production preflight from the Marathon runtime:
 
 ```bash
 kubectl exec -n statex-apps deploy/marathon -- sh -lc 'cd /app && npm run check:readiness'
@@ -85,7 +101,7 @@ kubectl exec -n statex-apps deploy/marathon -- sh -lc 'cd /app && npm run check:
 
 The preflight must pass before the production journey can be considered ready for registration, VIP checkout, gift redemption, and assignment submission verification.
 
-5. Run the HTTP-level journey smoke verifier:
+7. Run the HTTP-level journey smoke verifier:
 
 ```bash
 npm run check:journey -- --base-url https://marathon.alfares.cz

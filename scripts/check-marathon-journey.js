@@ -264,6 +264,8 @@ async function assertPublicCatalogContract(report) {
     'Marathon Catalog Source-Owner Approval Checklist',
     'The file contains only `marathons`, `steps`, `products`, and `gifts`.',
     'full gift-code values are not pasted',
+    'npm run audit:legacy-catalog',
+    'npm run draft:legacy-catalog',
     'launchReady: true',
     'npm run load:catalog:pod -- /path/to/marathon-catalog.json --apply',
   ]) {

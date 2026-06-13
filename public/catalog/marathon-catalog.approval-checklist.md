@@ -13,6 +13,8 @@ Use this checklist before any launch catalog JSON is applied to production. The 
 
 Confirm every item before an operator runs `npm run load:catalog:pod -- <catalog.json> --apply`.
 
+- [ ] If a legacy SpeakASAP fixture was used, `npm run audit:legacy-catalog` was run first and reviewed as source-discovery evidence only.
+- [ ] If a legacy draft was generated with `npm run draft:legacy-catalog`, the owner replaced every incomplete placeholder before dry run.
 - [ ] The file contains only `marathons`, `steps`, `products`, and `gifts`.
 - [ ] The file contains no participants, users, answers, submissions, winners, payment attempts, JWTs, API keys, or assignment reports.
 - [ ] Every active marathon has the intended `languageCode`, `title`, `slug`, and active state.
@@ -26,6 +28,15 @@ Confirm every item before an operator runs `npm run load:catalog:pod -- <catalog
 - [ ] The dry-run `launchChecklist.marathons[]` shows `launchReady: true` for each active marathon.
 
 ## Operator Commands
+
+Legacy source discovery only:
+
+```bash
+npm run audit:legacy-catalog -- --fixture /path/to/legacy/marathon.json --sql /path/to/legacy/marathon_de.sql
+npm run draft:legacy-catalog -- --fixture /path/to/legacy/marathon.json --output /path/to/marathon-catalog-draft.json
+```
+
+These commands do not approve or import data. The draft remains incomplete until a source owner fills assignment content, VIP product price/currency, gift-code inventory, and launch activation.
 
 Dry-run first:
 
