@@ -35,6 +35,7 @@
 - [x] TASK-MAR-058: Record post-catalog production readiness evidence (goal_id: launch-verification, priority: 1)
 - [x] TASK-MAR-059: Record full legacy import aggregate completion evidence (goal_id: launch-verification, priority: 1)
 - [x] TASK-MAR-060: Verify mutating production registration, VIP payment unlock, and assignment readback (goal_id: launch-verification, priority: 1)
+- [x] TASK-MAR-062: Resolve VIP checkout customer identity for phone-only Marathon registration (goal_id: vip-payment, priority: 1)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
@@ -138,3 +139,4 @@
 - [x] 2026-06-13 Kubernetes Marathon data source accepted: live `statex-apps/db-server-postgres` database `marathon` is the only operational source of truth for continued Marathon work
 - [x] 2026-06-13 Imported course/content data accepted as sufficient for continuation: in-pod readiness reports 13 active marathons, 377 steps with approved assignment content, 13 VIP products, 15 gifts with 13 unused, 53,472 registered participants, and a queryable payment ledger; read-only public journey smoke passes
 - [x] 2026-06-13 Launch data sufficiency verified: Kubernetes readiness and public journey smoke pass, rollout is healthy, registration is open, and read-only consistency audit found no launch-blocking data gaps; remaining legacy data hygiene is limited to 8 duplicate participant/step submission groups, 4,410 finished-active legacy participants with 29/29 completed steps, and 415 negative historical ratings
+- [x] 2026-06-13 VIP checkout customer identity fixed: phone-only Marathon participants now use validated Auth token email/name/phone for checkout customer data, production-safe payment smoke confirms webhook VIP unlock and confirmed payment ledger, and smoke isolation also filters synthetic `@example.invalid` participant emails

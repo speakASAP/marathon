@@ -2,11 +2,11 @@
 
 ```yaml
 id: TASK-MAR-062
-status: in_progress
+status: complete
 owner: Engineering
 created: 2026-06-13
-completed:
-completeness_level: partial
+completed: 2026-06-13
+completeness_level: complete
 upstream:
   - docs/intent/01_vision/VISION.md
   - docs/intent/10_features/FEAT-001-launch-ready-catalog-flow.md
@@ -31,8 +31,12 @@ Phone-only Marathon registration is required for notification safety and smoke i
 
 ## Acceptance Criteria
 
-- `npm run build` passes.
-- `node --check scripts/run-production-smoke-safe.js` passes.
-- Deployed production-safe smoke verifies checkout creation and payment webhook VIP unlock for a phone-only Marathon participant.
-- Smoke output remains masked and does not include JWTs, webhook key, checkout URL, gift code, email, full IDs, or report text.
-- Public readiness and read-only journey remain green after smoke.
+- [x] `npm run build` passes.
+- [x] `node --check scripts/run-production-smoke-safe.js` passes.
+- [x] Deployed production-safe smoke verifies checkout creation and payment webhook VIP unlock for a phone-only Marathon participant.
+- [x] Smoke output remains masked and does not include JWTs, webhook key, checkout URL, gift code, email, full IDs, or report text.
+- [x] Public readiness and read-only journey remain green after smoke.
+
+## Result
+
+Complete. Deployed commit image `localhost:5000/marathon:953b05d`, then guarded production-safe smoke passed with masked payment unlock evidence: checkout order created, Marathon webhook returned `vip_unlocked`, profile type became `vip`, and the payment ledger status was `confirmed`. Smoke isolation was also hardened to exclude synthetic `@example.invalid` participant emails from analytics and public winner filtering.

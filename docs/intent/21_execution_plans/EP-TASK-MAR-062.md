@@ -2,7 +2,7 @@
 
 ```yaml
 id: EP-TASK-MAR-062
-status: in_progress
+status: complete
 source_task: docs/intent/11_tasks/TASK-MAR-062-vip-checkout-auth-customer.md
 validation: docs/intent/12_validation/VAL-TASK-MAR-062.md
 ```
@@ -22,3 +22,7 @@ validation: docs/intent/12_validation/VAL-TASK-MAR-062.md
 - Keep phone-only Marathon registration for smoke so notifications are not sent from Marathon registration.
 - Use synthetic Auth users and smoke-marked Marathon participants only.
 - Preserve payment callback ledger validation for order, participant, product, amount, and currency.
+
+## Result
+
+Complete on 2026-06-13. The first deployed dirty-image smoke proved the original problem by failing checkout with missing customer email. The committed fix passes validated Auth user contact data into checkout, was deployed as image `localhost:5000/marathon:953b05d`, and passed guarded production-safe payment/gift/winner/NPS smoke plus readiness and journey checks.

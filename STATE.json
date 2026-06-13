@@ -8,8 +8,8 @@
   "tasks_active": 0,
   "tasks_failed_last_cycle": 0,
   "open_task_ids": [],
-  "last_milestone": "launch-data-sufficiency-verified-2026-06-13",
-  "next_focus": "Production launch data is sufficient in the Kubernetes/shared PostgreSQL database `marathon`: readiness and public journey smoke pass, registration is open, rollout is healthy, and read-only consistency audit found no launch-blocking catalog, step, product, gift, payment, winner, or survey gap. Continue product/front-end work and read-only monitoring; treat legacy duplicate submissions, finished-active participants, and negative historical ratings as non-blocking data hygiene.",
+  "last_milestone": "vip-checkout-auth-customer-verified-2026-06-13",
+  "next_focus": "Production launch data is sufficient and VIP checkout customer identity is fixed: phone-only Marathon participants use validated Auth token contact data for checkout, production-safe payment/gift/winner/NPS smoke passes, readiness and public journey are green, and registration remains open. Continue product/front-end work and read-only monitoring; treat legacy duplicate submissions, finished-active participants, and negative historical ratings as non-blocking data hygiene.",
   "blockers": [],
   "follow_ups": [
     "Use a unique image tag or no-cache build when deploying uncommitted remote changes; reusing the git short SHA tag can leave Kubernetes on stale image content.",
