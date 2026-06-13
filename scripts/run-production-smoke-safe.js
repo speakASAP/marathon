@@ -152,13 +152,26 @@ async function main() {
   const winner = await prisma.marathonWinner.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } });
   if (!winner || winner.goldCount < 1) throw new Error('winner row was not created/recomputed with a gold medal');
 
-  const nps = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/nps`, {
-    method: 'POST',
+  const npsCreate = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/nps`, {
+    method: "POST",
     token,
-    label: 'finished participant NPS',
-    body: JSON.stringify({ score: 10, comment: `Synthetic production smoke NPS ${stamp}` }),
+    label: "finished participant NPS create",
+    body: JSON.stringify({ score: 10, comment: `Synthetic production smoke NPS create ${stamp}` }),
   });
-  if (nps?.score !== 10) throw new Error('NPS endpoint did not persist score 10');
+  if (npsCreate?.score !== 10) throw new Error("NPS endpoint did not persist score 10 on create");
+
+  const npsUpdate = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/nps`, {
+    method: "POST",
+    token,
+    label: "finished participant NPS update",
+    body: JSON.stringify({ score: 9, comment: `Synthetic production smoke NPS update ${stamp}` }),
+  });
+  if (npsUpdate?.score !== 9) throw new Error("NPS endpoint did not persist score 9 on update");
+
+  const surveyRowsForParticipant = await prisma.marathonSurveyResponse.count({ where: { participantId: marathonerId } });
+  if (surveyRowsForParticipant !== 1) {
+    throw new Error(`NPS endpoint created ${surveyRowsForParticipant} survey rows for one participant`);
+  }
 
   const replacementGift = await ensureReplacementGift(marathon.id);
   runCheck('node', ['scripts/check-marathon-readiness.js'], 'readiness');
@@ -181,7 +194,7 @@ async function main() {
     participantFinished: Boolean(participant.finishedAt),
     vipUnlockedByGift: participant.isFree === false && participant.paymentReported === true,
     winner: { id: mask(winner.id), gold: winner.goldCount, silver: winner.silverCount, bronze: winner.bronzeCount },
-    nps: { score: nps.score },
+    nps: { createScore: npsCreate.score, updateScore: npsUpdate.score, rowsForParticipant: surveyRowsForParticipant },
     replacementGift,
     countDelta: {
       participants: after.participants - before.participants,

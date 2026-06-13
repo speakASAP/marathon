@@ -2,18 +2,18 @@
 
 ```yaml
 id: GOAL-IMPACT-TASK-MAR-005
-status: blocked
+status: complete
 owner: Engineering
 created: 2026-06-12
-last_updated: 2026-06-12
-completeness_level: partial
+last_updated: 2026-06-13
+completeness_level: complete
 ```
 
 ## Impact
 
 TASK-MAR-005 advances Phase 4 analytics by making participant NPS measurable after marathon completion. It does not close the Phase 1 VIP verification goal because production catalog data and mutating journey evidence are still missing.
 
-Implementation and aggregate visibility are verified in `VAL-TASK-MAR-005`. Final task closure is blocked until a real finished participant exists for safe production create/update evidence.
+Implementation, aggregate visibility, and the production finished-participant create/update path are verified in `VAL-TASK-MAR-005` using synthetic smoke data isolated by TASK-MAR-061.
 
 ## Risk
 

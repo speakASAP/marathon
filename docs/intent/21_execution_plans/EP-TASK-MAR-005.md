@@ -2,12 +2,12 @@
 
 ```yaml
 id: EP-TASK-MAR-005
-status: blocked
+status: complete
 source_task: docs/intent/11_tasks/TASK-MAR-005-post-marathon-nps-survey.md
 owner: Engineering
 created: 2026-06-12
-last_updated: 2026-06-12
-completeness_level: partial
+last_updated: 2026-06-13
+completeness_level: complete
 ```
 
 ## Traceability
@@ -53,5 +53,4 @@ The submit endpoint is idempotent by participant: repeat submissions update the 
 
 ## Current Status
 
-Implemented and partially verified by `VAL-TASK-MAR-005`.
-Final plan closure is blocked until approved catalog data creates a safe production participant fixture that can finish a marathon and exercise NPS create/update without inventing participant records.
+Complete. The final create/update path was verified on 2026-06-13 by the guarded production-safe smoke runner after TASK-MAR-061 isolated synthetic smoke data from analytics and public winners.

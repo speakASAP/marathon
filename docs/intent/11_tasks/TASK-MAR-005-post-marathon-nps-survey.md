@@ -2,11 +2,11 @@
 
 ```yaml
 id: TASK-MAR-005
-status: blocked
+status: complete
 owner: Engineering
 created: 2026-06-12
-last_updated: 2026-06-12
-completeness_level: partial
+last_updated: 2026-06-13
+completeness_level: complete
 upstream:
   - docs/intent/10_features/FEAT-002-post-marathon-nps-flow.md
 goal_impact:
@@ -38,12 +38,11 @@ Implement a private post-marathon NPS survey and aggregate analytics without rel
 - [x] Schema and migration support one response per participant.
 - [x] Unauthenticated survey submission returns 401.
 - [x] Incomplete participant submissions are rejected by source guard.
-- [ ] Finished participant can create/update their own survey response in production.
+- [x] Finished participant can create/update their own survey response in production.
 - [x] `/api/v1/marathons/analytics` includes aggregate survey metrics only.
 - [x] `/support` renders aggregate NPS metrics.
 - [x] Documentation and validation evidence are updated.
 
 ## Current Status
 
-Implementation, aggregate analytics, auth guard, support UI, and journey-smoke coverage are verified in `VAL-TASK-MAR-005`.
-The task remains blocked for final closure because production has no approved catalog or finished participant fixture to prove the live create/update survey path without fabricating participant data.
+Complete. Production-safe synthetic smoke created a finished participant, submitted NPS score 10, updated the same participant response to score 9, and verified exactly one survey row for that participant. Smoke data remains excluded from public analytics and winners, and notification storage has no Marathon/smoke outbound rows. Evidence is recorded in `VAL-TASK-MAR-005`.
