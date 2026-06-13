@@ -30,7 +30,7 @@ export class MarathonLogger implements LoggerService {
   }
 
   verbose(message: unknown, context?: string): void {
-    this.emit('verbose', message, context);
+    this.emit('debug', message, context);
   }
 
   private emit(level: string, message: unknown, context?: string, meta?: LogMeta): void {
