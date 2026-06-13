@@ -15,6 +15,8 @@ The loader rejects user/progress keys such as `marathoners`, `participants`, `an
 
 Legacy full-export loaders are intentionally disabled. Do not use `scripts/load-marathon-export.js` or `scripts/load_marathon_export.py` for launch data; historical exports include participant progress and winner data.
 
+Do not use local full-migration experiments such as `scripts/migrate-legacy-marathon-full.js` for launch. Marathon launch approval covers catalog-only JSON through the documented loader; any future participant/progress migration requires a new ADR and migration-specific validation plan.
+
 Default validation is launch-ready validation. For every active marathon, the catalog must include at least one trial step, at least one non-trial gated step, one VIP product, and one gift code. Use `--allow-incomplete` only for staged non-launch imports that must not open registration yet.
 
 ## Contract

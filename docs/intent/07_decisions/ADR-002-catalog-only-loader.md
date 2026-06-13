@@ -24,12 +24,15 @@ The historical legacy exporter included participants, answers, and winners. Curr
 
 Use `scripts/load-marathon-catalog.js` as the only documented data-load path for launch catalog data. Keep direct full-export loaders disabled unless a future approved migration chain replaces this decision.
 
+Local or experimental full-migration scripts, including `scripts/migrate-legacy-marathon-full.js`, are not part of the accepted launch path. They must not be committed, documented as operator commands, or run against production without a replacement ADR, source-owner migration plan, rollback plan, and sensitive-data validation.
+
 ## Consequences
 
 - Approved catalog JSON must be provided by a human/source of truth.
 - Dry run is the default.
 - `--apply` creates only catalog entities.
 - User/progress keys are rejected.
+- Full legacy migrations that include participants, answers/submissions, winners, or payment state remain out of scope for launch.
 
 ## Validation
 

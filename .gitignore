@@ -28,6 +28,9 @@ Thumbs.db
 marathon_export.json
 marathon_id_mapping.json
 
+# Unsafe legacy full migrations are not part of the approved Marathon launch path.
+scripts/migrate-legacy-marathon-full.js
+
 node_modules/
 dist/
 .env

@@ -31,6 +31,7 @@
 - [x] TASK-MAR-054: Generate safe legacy catalog drafts (goal_id: catalog-readiness, priority: 1)
 - [x] TASK-MAR-055: Publish legacy catalog handoff steps (goal_id: catalog-readiness, priority: 1)
 - [x] TASK-MAR-056: Review in-progress catalog drafts (goal_id: catalog-readiness, priority: 1)
+- [x] TASK-MAR-057: Quarantine unsafe full legacy migration path (goal_id: catalog-readiness, priority: 1)
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
@@ -126,4 +127,5 @@
 - [x] 2026-06-13 Legacy Marathon catalog draft generator verified: source-owner handoff drafts map 11 legacy marathons and 319 steps while keeping active marathons, products, gifts, and assignment content at zero so the approved loader rejects them before completion
 - [x] 2026-06-13 Legacy catalog handoff checklist deployed: public source-owner checklist now includes the safe legacy audit/draft commands and journey smoke protects those markers before the catalog-readiness gate
 - [x] 2026-06-13 Catalog draft review deployed: source owners can run a redacted completion check for in-progress catalog JSON, and production checklist smoke protects the review command before the catalog-readiness gate
+- [x] 2026-06-13 Unsafe full legacy migration path quarantined: local `scripts/migrate-legacy-marathon-full.js` remains untouched but ignored, and ADR/runbook guardrails keep participant/progress migration outside the approved launch path
 - [x] 2026-06-13 Public detail error states verified: winners, winner detail, and support-step routes now distinguish temporary API load failures from empty/not-found states
