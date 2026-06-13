@@ -2,11 +2,11 @@
 
 ```yaml
 id: TASK-MAR-050
-status: implemented
+status: verified
 owner: Engineering
 created: 2026-06-13
 last_updated: 2026-06-13
-completeness_level: pending_validation
+completeness_level: complete
 upstream:
   - docs/intent/10_features/FEAT-001-launch-ready-catalog-flow.md
   - docs/intent/11_tasks/TASK-MAR-035-gift-readiness-loading-nav.md
@@ -34,14 +34,14 @@ Reduce registration and gift-redemption frontend complexity by moving the remain
 
 ## Acceptance Criteria
 
-- [ ] `RegistrationForm.tsx` no longer owns raw registration fetch/JSON/error parsing.
-- [ ] `Gift.tsx` no longer owns raw gift-redemption `authFetch`/JSON/error parsing.
-- [ ] Registration still clears expired Marathon tokens and sends users through the portal login return path.
-- [ ] Registration success still routes token-bound users to `/profile/:marathonerId` and unauthenticated users through login.
-- [ ] Gift redemption still preserves participant return path on auth-required responses.
-- [ ] `npm run build:frontend` passes.
-- [ ] `npm run check:journey` passes catalog-independent registration and gift assertions before the known `catalog-readiness` blocker.
-- [ ] Validation evidence is recorded in `docs/intent/12_validation/VAL-TASK-MAR-050.md`.
+- [x] `RegistrationForm.tsx` no longer owns raw registration fetch/JSON/error parsing.
+- [x] `Gift.tsx` no longer owns raw gift-redemption `authFetch`/JSON/error parsing.
+- [x] Registration still clears expired Marathon tokens and sends users through the portal login return path.
+- [x] Registration success still routes token-bound users to `/profile/:marathonerId` and unauthenticated users through login.
+- [x] Gift redemption still preserves participant return path on auth-required responses.
+- [x] `npm run build:frontend` passes.
+- [x] `npm run check:journey` passes catalog-independent registration and gift assertions before the known `catalog-readiness` blocker.
+- [x] Validation evidence is recorded in `docs/intent/12_validation/VAL-TASK-MAR-050.md`.
 
 ## Current Blocker
 

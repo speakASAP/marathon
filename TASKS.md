@@ -114,3 +114,4 @@
 - [x] 2026-06-12 Assignment page API refactor deployed: `Step.tsx` now uses a typed assignment helper for step loading, saved-report status, peer examples, and report submission while preserving auth/content guards
 - [x] 2026-06-12 Profile detail API refactor deployed: `ProfileDetail.tsx` now uses a typed profile helper for profile loading, VIP checkout, progress report, and NPS feedback while preserving login and payment-return guards
 - [x] 2026-06-13 Profile dashboard API refactor verified: `/profile` now uses the typed profile helper for authenticated marathon-list loading while preserving login-required, load-error, and readiness-aware empty states
+- [x] 2026-06-13 Registration and gift API action refactor verified: registration and gift redemption now use a typed journey helper while preserving login handoffs, redirect normalization, and closed-catalog guards
