@@ -3,7 +3,7 @@
 ```yaml
 id: EP-TASK-MAR-063
 task: docs/intent/11_tasks/TASK-MAR-063-root-landing-production-journey.md
-status: blocked
+status: completed
 created: 2026-06-13
 last_updated: 2026-06-13
 ```
@@ -33,4 +33,4 @@ If the landing build or production journey smoke fails, revert only the `Home.ts
 
 ## Current Blocker
 
-`localhost:5000/marathon:f354d9d` built and pushed, but Kubernetes rollout timed out while new pods stayed in `ContainerCreating`. The deployment spec was returned to `localhost:5000/marathon:6eb0ffb`, which rolled out successfully. Resume this plan after resolving the cluster image-pull/runtime cleanup issue.
+None. The follow-up image `localhost:5000/marathon:43cadbf` rolled out successfully after allowing sufficient pull/startup time, and validation is recorded in `VAL-TASK-MAR-063`.

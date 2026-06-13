@@ -3,7 +3,7 @@
 ```yaml
 id: VAL-TASK-MAR-063
 task: docs/intent/11_tasks/TASK-MAR-063-root-landing-production-journey.md
-status: blocked
+status: passed
 created: 2026-06-13
 last_updated: 2026-06-13
 ```
@@ -21,20 +21,22 @@ last_updated: 2026-06-13
 
 - `npm run build:frontend` passed on `alfares:/home/ssf/Documents/Github/marathon`.
 - `npm run build` passed on `alfares:/home/ssf/Documents/Github/marathon`.
-- Commit `f354d9d` contains the root landing rebuild, TASK-MAR-063 intent artifacts, and updated Phase 1 status docs.
-- `./scripts/deploy.sh` built and pushed image `localhost:5000/marathon:f354d9d`.
-- Kubernetes rollout did not complete: new pods for `localhost:5000/marathon:f354d9d` stayed in `ContainerCreating` / image-pull start state and timed out before readiness.
-- Deployment was returned to the last verified ready image `localhost:5000/marathon:6eb0ffb`; Kubernetes then reported rollout success with the existing ready pod.
-- Production traffic stayed on the previous ready pod during the failed rollout attempt.
+- Commit `f354d9d` rebuilt the root landing and added TASK-MAR-063 intent artifacts.
+- Commit `43cadbf` polished the root landing header, updated the journey verifier for the rebuilt Home contract, rebuilt public assets, and was pushed to `main`.
+- `./scripts/deploy.sh` completed successfully for image `localhost:5000/marathon:43cadbf`.
+- Post-deploy readiness passed in Kubernetes: 13 active marathons, 377/377 steps with assignment content, 13 products, 17 gifts / 13 unused gifts, and payment runtime configuration present.
+- Deployment status after rollout: image `localhost:5000/marathon:43cadbf`, one ready/available/updated pod.
+- `npm run check:journey -- --base-url https://marathon.alfares.cz` passed in read-only mode.
+- Rendered screenshot QA used Playwright fallback because the in-app Browser tool was unavailable in this session. Screenshots:
+  - `/private/tmp/marathon-qa/home-desktop-1440-final.png`
+  - `/private/tmp/marathon-qa/home-mobile-390-final.png`
+- Screenshot checks: root Home title is `Marathon by SpeakASAP — start your language marathon`, H1 is `Start your language marathon today`, `.home-launch-nav` is present, legacy `.main-header` is absent on `/`, 8 language chips render, and desktop/mobile horizontal overflow is false.
 
-## Blocker
+## Fidelity Notes
 
-TASK-MAR-063 code is built and committed, but production deployment is blocked by a Kubernetes/container runtime image-pull/start issue for the new image tag. Resolve cluster image-pull cleanup before re-running `./scripts/deploy.sh` for `f354d9d` or a follow-up landing commit.
-
-## Not Completed
-
-- Production root `/` has not been verified with the new landing because the rollout was rolled back to `6eb0ffb`.
-- Mobile visual verification and public journey smoke for the new landing remain pending until the new image is running.
+- Concept reference: `/Users/Sergej.Stasok/.codex/generated_images/019ebaa6-18fd-7cb0-9edc-75a0a58339f6/ig_0dbccad67f8e49da016a2d2711315481948516f2677ceb9c89.png`.
+- Implementation keeps the concept structure: white product header, navy/coral/green palette, large direct H1, primary Start CTA, profile CTA, language rail, register/practice/VIP/finish workflow, and proof section.
+- Intentional deviation: the hero visual is code-native phone/notebook UI instead of a raster desk photograph, so production avoids shipping generated image text artifacts while preserving the concept's product signal.
 
 ## Sensitive Data Review
 

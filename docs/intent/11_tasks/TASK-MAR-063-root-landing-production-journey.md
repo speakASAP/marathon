@@ -2,7 +2,7 @@
 
 ```yaml
 id: TASK-MAR-063
-status: blocked
+status: completed
 owner: Engineering
 created: 2026-06-13
 last_updated: 2026-06-13
@@ -50,4 +50,4 @@ Rebuild the root Marathon landing page so a visitor can understand the current p
 
 ## Current Blocker
 
-Frontend code is committed in `f354d9d`, and local/remote builds passed. Production rollout is blocked by Kubernetes/container runtime image-pull/start behavior for the new image tag; deployment was returned to the last verified ready image `localhost:5000/marathon:6eb0ffb`.
+None. Production image `localhost:5000/marathon:43cadbf` is deployed, readiness passed, read-only journey smoke passed, and desktop/mobile rendered QA passed without horizontal overflow.
