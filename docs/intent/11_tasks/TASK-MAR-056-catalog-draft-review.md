@@ -2,11 +2,11 @@
 
 ```yaml
 id: TASK-MAR-056
-status: in_progress
+status: verified
 owner: Engineering
 created: 2026-06-13
 last_updated: 2026-06-13
-completeness_level: partial
+completeness_level: complete
 upstream:
   - docs/intent/11_tasks/TASK-MAR-054-legacy-catalog-draft.md
   - docs/intent/11_tasks/TASK-MAR-055-public-catalog-handoff-docs.md
@@ -32,12 +32,12 @@ Give source owners a redacted completion check for in-progress Marathon catalog 
 
 ## Acceptance Criteria
 
-- [ ] `npm run review:catalog-draft -- <draft>` prints a redacted review.
-- [ ] The legacy generated draft reports zero active marathons, zero products, zero gifts, and missing assignment content.
-- [ ] A minimal complete fixture reports approval-dry-run readiness without printing gift-code values.
-- [ ] Public checklist includes `npm run review:catalog-draft`.
-- [ ] `npm run check:journey` protects the public checklist marker before the known catalog-readiness blocker.
-- [ ] Validation evidence is recorded in `docs/intent/12_validation/VAL-TASK-MAR-056.md`.
+- [x] `npm run review:catalog-draft -- <draft>` prints a redacted review.
+- [x] The legacy generated draft reports zero active marathons, zero products, zero gifts, and missing assignment content.
+- [x] A minimal complete fixture reports approval-dry-run readiness without printing gift-code values.
+- [x] Public checklist includes `npm run review:catalog-draft`.
+- [x] `npm run check:journey` protects the public checklist marker before the known catalog-readiness blocker.
+- [x] Validation evidence is recorded in `docs/intent/12_validation/VAL-TASK-MAR-056.md`.
 
 ## Current Blocker
 
