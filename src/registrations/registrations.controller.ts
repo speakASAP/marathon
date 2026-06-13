@@ -1,4 +1,4 @@
-import { Body, Controller, Logger, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, HttpException, Logger, Post, Req, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 import { RegistrationsService, RegistrationRequest, RegistrationResponse } from './registrations.service';
 import { validatePortalToken, validateToken } from '../shared/auth-client';
@@ -40,8 +40,10 @@ export class RegistrationsController {
       })}`);
       return result;
     } catch (error) {
+      const status = error instanceof HttpException ? error.getStatus() : 500;
+      const reason = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        `marathon.registration.failed hasEmail=${Boolean(payload.email)} hasPhone=${Boolean(payload.phone)} languageCode=${payload.languageCode || ''} error=${error instanceof Error ? error.message : String(error)}`,
+        'marathon.registration.failed hasEmail=' + Boolean(payload.email) + ' hasPhone=' + Boolean(payload.phone) + ' languageCode=' + (payload.languageCode || '') + ' status=' + status + ' reason=' + reason.replace(/\s+/g, '_'),
         error instanceof Error ? error.stack : undefined,
       );
       throw error;
