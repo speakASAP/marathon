@@ -199,6 +199,7 @@ async function main() {
     body: JSON.stringify({ marathonerId, code: gift.code }),
   });
   if (giftResponse?.status !== "vip_unlocked") throw new Error(`gift redemption returned ${giftResponse?.status || "missing status"}`);
+  const postRedemptionReplacementGift = await ensureReplacementGift(marathon.id);
 
   let submitted = 0;
   for (const step of steps) {
@@ -273,6 +274,7 @@ async function main() {
     winner: { id: mask(winner.id), gold: winner.goldCount, silver: winner.silverCount, bronze: winner.bronzeCount },
     nps: { createScore: npsCreate.score, updateScore: npsUpdate.score, rowsForParticipant: surveyRowsForParticipant },
     replacementGift,
+    postRedemptionReplacementGift,
     countDelta: {
       participants: after.participants - before.participants,
       giftsUnused: after.giftsUnused - before.giftsUnused,
