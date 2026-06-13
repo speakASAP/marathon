@@ -43,9 +43,9 @@ export class MarathonLogger implements LoggerService {
         service: this.serviceName,
         level,
         message: String(message),
-        context,
-        meta: {
+        metadata: {
           ...meta,
+          context,
           requestId: requestContext?.requestId,
           method: requestContext?.method,
           path: requestContext?.path,
