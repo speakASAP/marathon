@@ -226,6 +226,8 @@ async function main() {
       surveys: await prisma.marathonSurveyResponse.count(),
     };
 
+    const smokeUserParticipants = await prisma.marathonParticipant.count({ where: { userId } });
+
     console.log(JSON.stringify({
       ok: true,
       smoke: "production-safe-gift-replenishment",
@@ -233,6 +235,7 @@ async function main() {
       userId: mask(userId),
       marathonerId: mask(marathonerId),
       vipUnlockedByGift: giftUnlock.giftResponse?.status === "vip_unlocked",
+      smokeUserParticipants,
       giftInventory: {
         beforeUnused: giftUnlock.beforeUnused,
         afterUnused: giftUnlock.afterUnused,
