@@ -17,6 +17,10 @@ Post-deploy user-flow smoke coverage was added for public traversal, new-user re
 | Public route traversal | Pass | `check:user-flows` served 17 production routes without HTTP errors. |
 | Registration attempt | Pass | `check:user-flows` created a generated `example.invalid` registration and verified profile handoff. |
 | Checkout boundary | Pass | `check:user-flows` verified unauthenticated checkout returns HTTP 401; authenticated basket creation remains available when a smoke token is supplied. |
+| Remote deploy | Pass | `./scripts/deploy.sh 0cc1803` completed successfully on `alfares`, deploying `localhost:5000/marathon:0cc1803`. |
+| Post-deploy readiness | Pass | In-pod `npm run check:readiness` reported ready catalog, payment, gift, and assignment state. |
+| Post-deploy user flow | Pass | In-pod `npm run check:user-flows` used `MARATHON_BASE_URL=http://127.0.0.1:3000`, served 17 routes, registered a smoke user, and verified checkout auth gate. |
+| Post-deploy production smoke | Pass | In-pod `npm run check:production-smoke` completed payment unlock, gift unlock, 29 submissions, winner creation, and NPS create/update. |
 
 ## Sensitive Data Handling
 
