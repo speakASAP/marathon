@@ -116,3 +116,4 @@
 - [x] 2026-06-12 Profile detail API refactor deployed: `ProfileDetail.tsx` now uses a typed profile helper for profile loading, VIP checkout, progress report, and NPS feedback while preserving login and payment-return guards
 - [x] 2026-06-13 Profile dashboard API refactor verified: `/profile` now uses the typed profile helper for authenticated marathon-list loading while preserving login-required, load-error, and readiness-aware empty states
 - [x] 2026-06-13 Registration and gift API action refactor verified: registration and gift redemption now use a typed journey helper while preserving login handoffs, redirect normalization, and closed-catalog guards
+- [x] 2026-06-13 Winners and support-step API refactor verified: winners and support-step pages now use typed helper access while preserving empty, not-found, and content-missing public states

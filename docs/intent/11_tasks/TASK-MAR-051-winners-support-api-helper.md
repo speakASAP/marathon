@@ -2,11 +2,11 @@
 
 ```yaml
 id: TASK-MAR-051
-status: implemented
+status: verified
 owner: Engineering
 created: 2026-06-13
 last_updated: 2026-06-13
-completeness_level: pending_validation
+completeness_level: complete
 upstream:
   - docs/intent/10_features/FEAT-001-launch-ready-catalog-flow.md
   - docs/intent/11_tasks/TASK-MAR-046-public-api-helper-expansion.md
@@ -34,13 +34,13 @@ Remove the remaining raw public page-level fetches from winners and support-step
 
 ## Acceptance Criteria
 
-- [ ] `Winners.tsx` no longer owns raw winners-page fetch/JSON parsing.
-- [ ] `WinnerDetail.tsx` no longer owns raw winner-detail fetch/JSON parsing.
-- [ ] `SupportStep.tsx` no longer owns raw step fetch/JSON parsing.
-- [ ] Existing empty/not-found/content-missing public states remain visible.
-- [ ] `npm run build:frontend` passes.
-- [ ] `npm run check:journey` passes catalog-independent winners and support/step assertions before the known `catalog-readiness` blocker.
-- [ ] Validation evidence is recorded in `docs/intent/12_validation/VAL-TASK-MAR-051.md`.
+- [x] `Winners.tsx` no longer owns raw winners-page fetch/JSON parsing.
+- [x] `WinnerDetail.tsx` no longer owns raw winner-detail fetch/JSON parsing.
+- [x] `SupportStep.tsx` no longer owns raw step fetch/JSON parsing.
+- [x] Existing empty/not-found/content-missing public states remain visible.
+- [x] `npm run build:frontend` passes.
+- [x] `npm run check:journey` passes catalog-independent winners and support/step assertions before the known `catalog-readiness` blocker.
+- [x] Validation evidence is recorded in `docs/intent/12_validation/VAL-TASK-MAR-051.md`.
 
 ## Current Blocker
 
