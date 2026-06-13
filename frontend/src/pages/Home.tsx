@@ -99,6 +99,26 @@ export default function Home() {
 
   return (
     <div className="home-launch">
+      <header className="home-launch-nav">
+        <Link to="/" className="home-launch-brand" aria-label="Marathon home">
+          <span>Marathon</span>
+          <small>by SpeakASAP</small>
+        </Link>
+        <nav className="home-launch-links" aria-label="Marathon landing navigation">
+          <Link to="/winners">Winners</Link>
+          <Link to="/reviews">Reviews</Link>
+          <Link to="/rules">Rules</Link>
+          <Link to="/faq">FAQ</Link>
+          <Link to="/profile">Profile</Link>
+        </nav>
+        <Link
+          to={registrationOpen ? startPath : '/register'}
+          className={`ml-primary-action${registrationOpen ? '' : ' is-closed'}`}
+        >
+          {registrationOpen ? 'Start marathon' : 'Registration status'}
+        </Link>
+      </header>
+
       <section className="home-launch-hero">
         <div className="home-launch-copy">
           <h1>{heroTitle}</h1>

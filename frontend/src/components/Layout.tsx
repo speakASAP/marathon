@@ -17,6 +17,7 @@ export default function Layout() {
   const [readinessError, setReadinessError] = useState('');
   const location = useLocation();
   const bare = isLandingPath(location.pathname);
+  const hideGlobalHeader = bare || location.pathname === '/';
   const registrationStatusUnavailable = Boolean(readinessError);
   const registrationClosed = !registrationStatusUnavailable && readiness?.registrationOpen !== true;
   const navRegistrationLabel = registrationStatusUnavailable
@@ -38,7 +39,7 @@ export default function Layout() {
 
   return (
     <div className="layout-wrap">
-      {!bare && (
+      {!hideGlobalHeader && (
       <header className="main-header" id="main-nav">
         <div className="container header-inner">
           <Link to="/" className="navbar-brand" aria-label="Marathon home">

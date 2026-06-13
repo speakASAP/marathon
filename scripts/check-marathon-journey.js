@@ -479,12 +479,14 @@ async function assertFrontendHandoffSource(report, rootHtml) {
       throw new Error(`Built frontend bundle still includes invented landing review marker: ${fakeReviewMarker}`);
     }
   }
-  if (!js.includes('Marathon home is temporarily unavailable') || !js.includes('Marathon home could not be loaded')) {
+  if (!js.includes('Marathon home is temporarily unavailable') || !js.includes('Marathon landing could not be loaded')) {
     throw new Error('Built frontend bundle does not include home load-error state.');
   }
   if (
-    !js.includes('Marathon: языковая практика до результата') ||
-    !js.includes('Marathon — языковые марафоны SpeakASAP') ||
+    !js.includes('Start your language marathon today') ||
+    !js.includes('Marathon by SpeakASAP') ||
+    !js.includes('Choose your marathon language') ||
+    !js.includes('One path from registration to finish') ||
     !js.includes('Register for Marathon') ||
     !js.includes('Secure Marathon registration') ||
     !js.includes('Marathon language landing home') ||
@@ -495,11 +497,31 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   ) {
     throw new Error('Built frontend bundle does not keep Marathon as the primary public product brand across public routes.');
   }
-  if (!js.includes('home-missing-gates') || !js.includes('Недостающие условия запуска')) {
+  if (!js.includes('home-launch-status') || !js.includes('Launch gates still recorded by readiness')) {
     throw new Error('Built frontend bundle does not include home missing-launch-gates readiness detail.');
   }
-  if (!js.includes('Финалисты появятся после завершения первых марафонов') || !js.includes('Отзывы появятся после запуска марафона')) {
+  if (
+    !js.includes('Finalists appear after marathon completions are reconciled') ||
+    !js.includes('Reviews appear after participants complete their marathon')
+  ) {
     throw new Error('Built frontend bundle does not include root finalist/review empty states.');
+  }
+  if (
+    !js.includes('Use checkout or a gift code from the profile') ||
+    !js.includes('Open approved daily assignment content') ||
+    !js.includes('Completed submissions reconcile progress')
+  ) {
+    throw new Error('Built frontend bundle does not include the rebuilt root registration/payment/assignment journey copy.');
+  }
+  for (const legacyHomeMarker of [
+    'Marathon: языковая практика до результата',
+    'home-missing-gates',
+    'Финалисты появятся после завершения первых марафонов',
+    'Отзывы появятся после запуска марафона',
+  ]) {
+    if (js.includes(legacyHomeMarker)) {
+      throw new Error(`Built frontend bundle still includes legacy root home marker after rebuild: ${legacyHomeMarker}`);
+    }
   }
   if (!js.includes('Финалисты появятся после запуска марафона') || !js.includes('победители и медали пока не сформированы')) {
     throw new Error('Built frontend bundle does not include winners page empty state.');
