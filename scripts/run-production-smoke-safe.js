@@ -4,33 +4,33 @@
  * Run inside the Marathon pod so Prisma can reach the cluster DB.
  */
 
-const { PrismaClient } = require('@prisma/client');
-const crypto = require('crypto');
-const { spawnSync } = require('child_process');
+const { PrismaClient } = require("@prisma/client");
+const crypto = require("crypto");
+const { spawnSync } = require("child_process");
 
 const prisma = new PrismaClient();
-const baseUrl = (process.env.MARATHON_INTERNAL_BASE_URL || 'http://127.0.0.1:3000').replace(/\/$/, '');
-const authUrl = (process.env.AUTH_SERVICE_URL || 'http://auth-microservice:3370').replace(/\/$/, '');
-const publicBaseUrl = (process.env.MARATHON_PUBLIC_BASE_URL || process.env.PUBLIC_BASE_URL || 'https://marathon.alfares.cz').replace(/\/$/, '');
-const languageCode = process.env.MARATHON_SMOKE_LANGUAGE || 'en';
-const stamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14) + '-' + crypto.randomBytes(3).toString('hex');
+const baseUrl = (process.env.MARATHON_INTERNAL_BASE_URL || "http://127.0.0.1:3000").replace(/\/$/, "");
+const authUrl = (process.env.AUTH_SERVICE_URL || "http://auth-microservice:3370").replace(/\/$/, "");
+const publicBaseUrl = (process.env.MARATHON_PUBLIC_BASE_URL || process.env.PUBLIC_BASE_URL || "https://marathon.alfares.cz").replace(/\/$/, "");
+const languageCode = process.env.MARATHON_SMOKE_LANGUAGE || "en";
+const stamp = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14) + "-" + crypto.randomBytes(3).toString("hex");
 const authEmail = `marathon-prod-smoke-${stamp}@example.invalid`;
-const password = `Smoke-${crypto.randomBytes(12).toString('base64url')}1a!`;
+const password = `Smoke-${crypto.randomBytes(12).toString("base64url")}1a!`;
 const smokeName = `Marathon Prod Smoke ${stamp}`;
 const smokePhone = `+420900${String(Date.now()).slice(-9)}`;
 
 function mask(value) {
-  const text = String(value || '');
-  if (text.length <= 8) return '***';
+  const text = String(value || "");
+  if (text.length <= 8) return "***";
   return `${text.slice(0, 4)}***${text.slice(-6)}`;
 }
 
 async function jsonFetch(path, options = {}) {
-  const url = path.startsWith('http') ? path : `${baseUrl}${path}`;
+  const url = path.startsWith("http") ? path : `${baseUrl}${path}`;
   const response = await fetch(url, {
     ...options,
     headers: {
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
       ...(options.headers || {}),
     },
@@ -55,23 +55,103 @@ async function ensureReplacementGift(marathonId) {
   const unused = await prisma.marathonGift.count({ where: { marathonId, usedAt: null } });
   if (unused > 0) return { created: false, unused };
 
-  const code = `SMOKE-${languageCode.toUpperCase()}-${Date.now()}-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
+  const code = `SMOKE-${languageCode.toUpperCase()}-${Date.now()}-${crypto.randomBytes(8).toString("hex").toUpperCase()}`;
   const gift = await prisma.marathonGift.create({ data: { marathonId, code }, select: { id: true } });
   const after = await prisma.marathonGift.count({ where: { marathonId, usedAt: null } });
   return { created: true, unused: after, giftId: mask(gift.id) };
 }
 
 function runCheck(command, args, label) {
-  const result = spawnSync(command, args, { cwd: process.cwd(), encoding: 'utf8' });
+  const result = spawnSync(command, args, { cwd: process.cwd(), encoding: "utf8" });
   if (result.status !== 0) {
     throw new Error(`${label} failed: ${result.stderr || result.stdout || `exit ${result.status}`}`.slice(0, 800));
   }
   return true;
 }
 
+async function registerSmokeParticipant(token, marathon, purpose) {
+  const registration = await jsonFetch("/api/v1/registrations", {
+    method: "POST",
+    token,
+    label: `${purpose} phone-only marathon registration`,
+    body: JSON.stringify({
+      phone: smokePhone,
+      name: `${smokeName} ${purpose}`,
+      languageCode: marathon.languageCode,
+    }),
+  });
+  if (!registration?.marathonerId || registration.userBound !== true) {
+    throw new Error(`${purpose} registration did not create a bound participant`);
+  }
+  return registration.marathonerId;
+}
+
+async function verifyPaymentUnlock(token, marathon) {
+  if (!process.env.PAYMENT_WEBHOOK_API_KEY) {
+    throw new Error("PAYMENT_WEBHOOK_API_KEY is required for payment unlock proof");
+  }
+
+  const marathonerId = await registerSmokeParticipant(token, marathon, "payment");
+  const beforeProfile = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}`, {
+    token,
+    label: "payment profile before checkout",
+  });
+  if (beforeProfile?.needs_payment !== true || beforeProfile?.type !== "trial") {
+    throw new Error("payment participant was not payment-gated before checkout");
+  }
+
+  const checkout = await jsonFetch("/api/v1/vip/checkout", {
+    method: "POST",
+    token,
+    label: "VIP checkout",
+    body: JSON.stringify({ marathonerId }),
+  });
+  if (checkout?.status !== "checkout_created" || !checkout?.orderId) {
+    throw new Error("VIP checkout did not create a payment order");
+  }
+
+  const callback = await jsonFetch("/api/v1/payments/webhook", {
+    method: "POST",
+    label: "payment webhook settlement",
+    headers: { "x-api-key": process.env.PAYMENT_WEBHOOK_API_KEY },
+    body: JSON.stringify({
+      orderId: checkout.orderId,
+      status: "completed",
+      metadata: { marathonerId, participantId: marathonerId },
+    }),
+  });
+  if (callback?.status !== "vip_unlocked") {
+    throw new Error(`payment webhook did not unlock VIP: ${callback?.status || "missing status"}`);
+  }
+
+  const afterProfile = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}`, {
+    token,
+    label: "payment profile after webhook",
+  });
+  if (afterProfile?.needs_payment !== false || afterProfile?.type !== "vip") {
+    throw new Error("payment participant did not become VIP after webhook");
+  }
+
+  const attempt = await prisma.marathonPaymentAttempt.findUnique({
+    where: { orderId: checkout.orderId },
+    select: { status: true, confirmedAt: true },
+  });
+  if (attempt?.status !== "confirmed" || !attempt?.confirmedAt) {
+    throw new Error("payment attempt ledger was not confirmed");
+  }
+
+  return {
+    marathonerId: mask(marathonerId),
+    orderId: mask(checkout.orderId),
+    status: callback.status,
+    profileType: afterProfile.type,
+    ledgerStatus: attempt.status,
+  };
+}
+
 async function main() {
   if (process.env.MARATHON_SMOKE_EMAIL) {
-    throw new Error('MARATHON_SMOKE_EMAIL is forbidden; this runner uses phone-only Marathon registration.');
+    throw new Error("MARATHON_SMOKE_EMAIL is forbidden; this runner uses phone-only Marathon registration.");
   }
 
   const before = {
@@ -82,52 +162,46 @@ async function main() {
   };
 
   const auth = await jsonFetch(`${authUrl}/auth/register`, {
-    method: 'POST',
-    label: 'auth register',
+    method: "POST",
+    label: "auth register",
     body: JSON.stringify({
       email: authEmail,
       password,
-      firstName: 'Marathon',
-      lastName: 'Smoke',
+      firstName: "Marathon",
+      lastName: "Smoke",
       phone: smokePhone,
     }),
   });
-  if (!auth?.accessToken || !auth?.user?.id) throw new Error('auth register did not return accessToken/user.id');
+  if (!auth?.accessToken || !auth?.user?.id) throw new Error("auth register did not return accessToken/user.id");
   const token = auth.accessToken;
   const userId = auth.user.id;
 
-  const marathon = await jsonFetch(`/api/v1/marathons/by-language/${encodeURIComponent(languageCode)}`, { label: 'active marathon' });
+  const marathon = await jsonFetch(`/api/v1/marathons/by-language/${encodeURIComponent(languageCode)}`, { label: "active marathon" });
   if (!marathon?.id || marathon.languageCode !== languageCode) throw new Error(`active ${languageCode} marathon not found`);
-  const steps = await jsonFetch(`/api/v1/steps?marathonId=${encodeURIComponent(marathon.id)}`, { label: 'steps' });
-  if (!Array.isArray(steps) || steps.length === 0) throw new Error('no steps returned');
+  const steps = await jsonFetch(`/api/v1/steps?marathonId=${encodeURIComponent(marathon.id)}`, { label: "steps" });
+  if (!Array.isArray(steps) || steps.length === 0) throw new Error("no steps returned");
 
-  const registration = await jsonFetch('/api/v1/registrations', {
-    method: 'POST',
-    token,
-    label: 'phone-only marathon registration',
-    body: JSON.stringify({ phone: smokePhone, name: smokeName, languageCode }),
-  });
-  if (!registration?.marathonerId || registration.userBound !== true) throw new Error('registration did not create a bound participant');
-  const marathonerId = registration.marathonerId;
+  const paymentUnlock = await verifyPaymentUnlock(token, marathon);
+  const marathonerId = await registerSmokeParticipant(token, marathon, "gift-winner-nps");
 
   const gift = await prisma.marathonGift.findFirst({
     where: { marathonId: marathon.id, usedAt: null },
     select: { id: true, code: true },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: "asc" },
   });
   if (!gift?.code) throw new Error(`no unused gift code available for ${languageCode} marathon`);
-  const giftResponse = await jsonFetch('/api/v1/vip/gift-redemptions', {
-    method: 'POST',
+  const giftResponse = await jsonFetch("/api/v1/vip/gift-redemptions", {
+    method: "POST",
     token,
-    label: 'gift redemption',
+    label: "gift redemption",
     body: JSON.stringify({ marathonerId, code: gift.code }),
   });
-  if (giftResponse?.status !== 'vip_unlocked') throw new Error(`gift redemption returned ${giftResponse?.status || 'missing status'}`);
+  if (giftResponse?.status !== "vip_unlocked") throw new Error(`gift redemption returned ${giftResponse?.status || "missing status"}`);
 
   let submitted = 0;
   for (const step of steps) {
     const submission = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/submissions`, {
-      method: 'POST',
+      method: "POST",
       token,
       label: `submission ${step.sequence}`,
       body: JSON.stringify({
@@ -138,7 +212,7 @@ async function main() {
         rating: 10,
       }),
     });
-    if (!submission?.id || submission.state !== 'completed') throw new Error(`submission failed for step ${step.sequence}`);
+    if (!submission?.id || submission.state !== "completed") throw new Error(`submission failed for step ${step.sequence}`);
     submitted += 1;
   }
 
@@ -146,11 +220,11 @@ async function main() {
     where: { id: marathonerId },
     select: { active: true, finishedAt: true, isFree: true, paymentReported: true },
   });
-  if (!participant?.finishedAt || participant.active !== false) throw new Error('participant did not finish after all submissions');
-  if (participant.isFree !== false || participant.paymentReported !== true) throw new Error('gift redemption did not unlock VIP state');
+  if (!participant?.finishedAt || participant.active !== false) throw new Error("participant did not finish after all submissions");
+  if (participant.isFree !== false || participant.paymentReported !== true) throw new Error("gift redemption did not unlock VIP state");
 
-  const winner = await prisma.marathonWinner.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } });
-  if (!winner || winner.goldCount < 1) throw new Error('winner row was not created/recomputed with a gold medal');
+  const winner = await prisma.marathonWinner.findFirst({ where: { userId }, orderBy: { createdAt: "desc" } });
+  if (!winner || winner.goldCount < 1) throw new Error("winner row was not created/recomputed with a gold medal");
 
   const npsCreate = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/nps`, {
     method: "POST",
@@ -174,8 +248,8 @@ async function main() {
   }
 
   const replacementGift = await ensureReplacementGift(marathon.id);
-  runCheck('node', ['scripts/check-marathon-readiness.js'], 'readiness');
-  runCheck('node', ['scripts/check-marathon-journey.js', '--base-url', publicBaseUrl], 'journey');
+  runCheck("node", ["scripts/check-marathon-readiness.js"], "readiness");
+  runCheck("node", ["scripts/check-marathon-journey.js", "--base-url", publicBaseUrl], "journey");
 
   const after = {
     participants: await prisma.marathonParticipant.count(),
@@ -186,9 +260,10 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    smoke: 'production-safe-gift-winner-finished-nps',
+    smoke: "production-safe-payment-gift-winner-finished-nps",
     language: languageCode,
     userId: mask(userId),
+    paymentUnlock,
     marathonerId: mask(marathonerId),
     stepsSubmitted: submitted,
     participantFinished: Boolean(participant.finishedAt),
@@ -208,6 +283,7 @@ async function main() {
       fullIdsPrinted: false,
       giftCodePrinted: false,
       tokenPrinted: false,
+      paymentWebhookKeyPrinted: false,
     },
   }, null, 2));
 }

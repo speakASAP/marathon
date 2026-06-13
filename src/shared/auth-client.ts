@@ -7,7 +7,7 @@ const baseUrl = process.env.AUTH_SERVICE_URL;
 const timeoutMs = Math.max(Number(process.env.AUTH_SERVICE_TIMEOUT) || 5000, 1000);
 const portalJwtSecret = process.env.MARATHON_PORTAL_JWT_SECRET;
 
-export type AuthUser = { id: string };
+export type AuthUser = { id: string; email?: string; firstName?: string; lastName?: string; phone?: string; name?: string };
 
 /**
  * Validates portal-issued JWT (Phase B: session user from speakasap-portal).
@@ -53,11 +53,18 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
       logger.debug(`Auth validate failed: ${res.status}`);
       return null;
     }
-    const data = (await res.json()) as { valid?: boolean; user?: { id?: string } };
+    const data = (await res.json()) as { valid?: boolean; user?: AuthUser };
     if (!data?.valid || !data?.user?.id) {
       return null;
     }
-    return { id: String(data.user.id) };
+    return {
+      id: String(data.user.id),
+      email: typeof data.user.email === "string" ? data.user.email : undefined,
+      firstName: typeof data.user.firstName === "string" ? data.user.firstName : undefined,
+      lastName: typeof data.user.lastName === "string" ? data.user.lastName : undefined,
+      phone: typeof data.user.phone === "string" ? data.user.phone : undefined,
+      name: typeof data.user.name === "string" ? data.user.name : undefined,
+    };
   } catch (e) {
     clearTimeout(t);
     logger.debug(`Auth validate error: ${(e as Error).message}`);

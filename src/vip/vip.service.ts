@@ -8,6 +8,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
+import { AuthUser } from '../shared/auth-client';
 
 type CheckoutRequest = {
   marathonerId?: string;
@@ -34,7 +35,8 @@ export class VipService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async createCheckout(userId: string, payload: CheckoutRequest) {
+  async createCheckout(user: AuthUser, payload: CheckoutRequest) {
+    const userId = user.id;
     const marathonerId = payload.marathonerId?.trim();
     if (!marathonerId) {
       throw new BadRequestException('marathonerId is required');
@@ -69,6 +71,7 @@ export class VipService {
     const amount = Number(product.price.toString());
     const currency = product.currency || 'EUR';
 
+    const customer = this.getCheckoutCustomer(participant, user);
     const requestBody = {
       orderId,
       applicationId: process.env.PAYMENT_APPLICATION_ID || 'marathon',
@@ -79,11 +82,7 @@ export class VipService {
       successUrl: process.env.PAYMENT_SUCCESS_URL || `${publicBase}/profile/${participant.id}?payment=success`,
       cancelUrl: process.env.PAYMENT_CANCEL_URL || `${publicBase}/profile/${participant.id}?payment=cancelled`,
       description: product.title || participant.marathon.title,
-      customer: {
-        email: participant.email || '',
-        name: participant.name || undefined,
-        phone: participant.phone || undefined,
-      },
+      customer,
       metadata: {
         marathonerId: participant.id,
         participantId: participant.id,
@@ -343,6 +342,25 @@ export class VipService {
     }
 
     return participant;
+  }
+
+  private getCheckoutCustomer(
+    participant: { email: string | null; name: string | null; phone: string | null },
+    user: AuthUser,
+  ): { email: string; name?: string; phone?: string } {
+    const email = participant.email?.trim() || user.email?.trim() || '';
+    const name = participant.name?.trim() || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.name?.trim() || '';
+    const phone = participant.phone?.trim() || user.phone?.trim() || '';
+
+    if (!email) {
+      throw new BadRequestException('Checkout requires an email address for the authenticated user');
+    }
+
+    return {
+      email,
+      ...(name ? { name } : {}),
+      ...(phone ? { phone } : {}),
+    };
   }
 
   private normalizePaymentMethod(method?: string): string {

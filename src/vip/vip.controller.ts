@@ -1,12 +1,11 @@
 import { Body, Controller, Headers, Logger, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthGuard } from '../shared/auth.guard';
+import { AuthUser } from '../shared/auth-client';
 import { VipService } from './vip.service';
 
 type AuthenticatedRequest = Request & {
-  user?: {
-    id: string;
-  };
+  user?: AuthUser;
 };
 
 @Controller()
@@ -20,7 +19,7 @@ export class VipController {
   async createCheckout(@Req() req: AuthenticatedRequest, @Body() body: { marathonerId?: string; paymentMethod?: string }) {
     const userId = req.user!.id;
     this.logger.log(`VIP checkout requested: userId=${userId}, marathonerId=${body.marathonerId || ''}`);
-    return this.vipService.createCheckout(userId, body);
+    return this.vipService.createCheckout(req.user!, body);
   }
 
   @Post('vip/gift-redemptions')
