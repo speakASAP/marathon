@@ -2,11 +2,11 @@
 
 ```yaml
 id: TASK-MAR-055
-status: in_progress
+status: verified
 owner: Engineering
 created: 2026-06-13
 last_updated: 2026-06-13
-completeness_level: partial
+completeness_level: complete
 upstream:
   - docs/intent/11_tasks/TASK-MAR-053-legacy-catalog-audit.md
   - docs/intent/11_tasks/TASK-MAR-054-legacy-catalog-draft.md
@@ -31,11 +31,11 @@ Make the newly verified legacy audit and draft commands part of the public catal
 
 ## Acceptance Criteria
 
-- [ ] Public checklist includes `npm run audit:legacy-catalog`.
-- [ ] Public checklist includes `npm run draft:legacy-catalog`.
-- [ ] Catalog import docs explain that legacy audit/draft evidence is not approval.
-- [ ] `npm run check:journey` protects the public checklist markers before the known catalog-readiness blocker.
-- [ ] Validation evidence is recorded in `docs/intent/12_validation/VAL-TASK-MAR-055.md`.
+- [x] Public checklist includes `npm run audit:legacy-catalog`.
+- [x] Public checklist includes `npm run draft:legacy-catalog`.
+- [x] Catalog import docs explain that legacy audit/draft evidence is not approval.
+- [x] `npm run check:journey` protects the public checklist markers before the known catalog-readiness blocker.
+- [x] Validation evidence is recorded in `docs/intent/12_validation/VAL-TASK-MAR-055.md`.
 
 ## Current Blocker
 
