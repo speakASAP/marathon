@@ -111,7 +111,7 @@ If any contract is missing, stop and create a new feature/task/ADR chain before 
 ## Implementation Steps
 
 1. Confirm no source edit is required for the verification task.
-2. Confirm approved catalog source and owner.
+2. Confirm approved catalog source and owner. If only legacy SpeakASAP fixture candidates are available, run `npm run audit:legacy-catalog` first and treat the output as redacted source-discovery evidence, not approval.
 3. Run catalog dry run locally or in the runtime context:
 
 ```bash

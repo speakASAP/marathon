@@ -28,7 +28,7 @@ VG-001 through VG-005 in `docs/intent/01_vision/VISION.md`.
 
 | Criterion | Result | Evidence |
 |---|---|---|
-| Approved active catalog source identified | Blocked | [MISSING: provide approved catalog JSON source and owner.] |
+| Approved active catalog source identified | Blocked | 2026-06-13 separate Alphares read-only data audit found legacy SpeakASAP catalog candidates, not a second live Marathon DB. TASK-MAR-053 adds redacted legacy fixture audit tooling; source-owner approved catalog JSON is still missing. |
 | Catalog dry run passes | Not run | [MISSING: run after approved catalog source exists.] |
 | Readiness preflight passes | Failed | 2026-06-12 deploy of `716fff5` ran runtime readiness and reported no active marathons, products, gifts, or steps. |
 | Read-only journey smoke passes | Partial | 2026-06-12 `kubectl -n statex-apps exec deploy/marathon -- npm run check:journey` passed public shell, winners, analytics, login-return, guarded auth, and error-state checks; it failed only `catalog-readiness`. |
@@ -58,7 +58,7 @@ Read-only checks are replay-safe. Mutating checks are pending approved test inpu
 
 ## Issues Found
 
-- Approved active production catalog data source is not documented.
+- Approved active production catalog JSON and owner approval are not documented; only legacy catalog candidates have been found.
 - Live VIP/gift/assignment verification is blocked until catalog and approved test inputs exist.
 - Intent-preservation files were present in the local scratch mirror but missing from the remote Marathon repository before this restoration slice, while `SYSTEM.md` already referenced them.
 
