@@ -73,7 +73,8 @@ Root landing refactor addendum, 2026-06-13: `TASK-MAR-063` starts the next front
 
 ## Known Issues
 <!-- AI-maintained -->
-- None currently blocking Marathon continuation. Use Kubernetes/shared PostgreSQL `marathon` as the source of truth; continue with product/front-end work and read-only readiness/journey monitoring unless a specific launch-risk proof requires another controlled mutating smoke.
+- TASK-MAR-063 root landing code is committed in `f354d9d`, but production rollout is blocked by a Kubernetes/container runtime image-pull/start issue: new pods for `localhost:5000/marathon:f354d9d` stayed in `ContainerCreating` and rollout timed out. Deployment was returned to the last verified ready image `localhost:5000/marathon:6eb0ffb`; production remains healthy on that image.
+- Use Kubernetes/shared PostgreSQL `marathon` as the source of truth; do not reopen the old catalog/payment data blocker. Continue with cluster image-pull cleanup before re-running the landing deploy.
 
 ## Ops
 
