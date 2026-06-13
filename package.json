@@ -17,6 +17,8 @@
     "load:catalog:pod": "sh scripts/load-catalog-in-pod.sh",
     "check:readiness": "node scripts/check-marathon-readiness.js",
     "check:journey": "node scripts/check-marathon-journey.js",
+    "check:user-flows": "node scripts/check-marathon-user-flows.js",
+    "check:production-smoke": "node scripts/run-production-smoke-safe.js",
     "smoke:production-safe": "node scripts/run-production-smoke-safe.js"
   },
   "prisma": {

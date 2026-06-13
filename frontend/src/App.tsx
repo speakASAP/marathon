@@ -38,6 +38,7 @@ function App() {
         <Route path="/steps/:stepId" element={<Step />} />
         <Route path="/support" element={<Support />} />
         <Route path="/support/step/:stepId" element={<SupportStep />} />
+        <Route path="/landing" element={<Landing />} />
         <Route path="/marathon/:langSlug" element={<Landing />} />
         <Route path="/:langSlug/" element={<Landing />} />
       </Route>

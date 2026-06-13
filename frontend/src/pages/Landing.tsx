@@ -22,6 +22,12 @@ const LANGUAGE_LABELS: Record<string, string> = {
   ru: 'Russian',
 };
 
+const MARATHON_IMAGES = {
+  hero: '/img/marathon/runners-start-finish.png',
+  dailyTask: '/img/marathon/runners-daily-task.png',
+  finish: '/img/marathon/runners-finish-day30.png',
+};
+
 function formatLanguageName(marathon: MarathonSummary): string {
   return marathon.title || LANGUAGE_LABELS[marathon.languageCode.toLowerCase()] || 'this language';
 }
@@ -35,6 +41,7 @@ function formatMissingGate(value: string): string {
 
 export default function Landing() {
   const { langSlug } = useParams<{ langSlug: string }>();
+  const effectiveLangSlug = langSlug && langSlug !== 'landing' ? langSlug : 'de';
   const [marathon, setMarathon] = useState<MarathonSummary | null>(null);
   const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
@@ -46,11 +53,10 @@ export default function Landing() {
   const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!langSlug) return;
     setLoading(true);
     setLoadError('');
     Promise.all([
-      fetchMarathonByLanguage(langSlug),
+      fetchMarathonByLanguage(effectiveLangSlug),
       fetchMarathonLanguages(),
       fetchCatalogReadiness(),
       fetchPublicReviews(),
@@ -58,7 +64,7 @@ export default function Landing() {
       .then(([marathonData, langs, readinessData, reviewsData]) => {
         setMarathon(marathonData || {
           id: 'fallback',
-          languageCode: langSlug,
+          languageCode: effectiveLangSlug,
           title: '',
         });
         setLanguages(langs);
@@ -73,7 +79,7 @@ export default function Landing() {
         setLoadError('Marathon landing could not be loaded. Refresh this page, or contact support if the problem continues.');
       })
       .finally(() => setLoading(false));
-  }, [langSlug]);
+  }, [effectiveLangSlug]);
 
   useEffect(() => {
     if (!marathon) return;
@@ -157,29 +163,24 @@ export default function Landing() {
 
   const languageName = formatLanguageName(marathon);
   const activeLanguage = languages.find((language) => language.code === marathon.languageCode);
+  const raceLanguageName = LANGUAGE_LABELS[marathon.languageCode.toLowerCase()] || activeLanguage?.name || languageName;
   const hasActiveMarathon = marathon.id !== 'fallback';
   const registrationOpen = hasActiveMarathon && readiness?.registrationOpen === true;
   const registrationStatusId = registrationOpen ? undefined : 'registration-status-note';
   const startCtaLabel = registrationOpen ? 'Start my marathon' : 'Registration opens soon';
-  const heroCtaLabel = registrationOpen ? 'Start for free' : 'View registration status';
+  const heroCtaLabel = registrationOpen ? 'Start my 30-day run' : 'See the 30-day route';
   const heroSecondary = registrationOpen
     ? { to: '/profile', label: 'Open my marathon' }
     : { to: '/support', label: 'Contact support' };
-  const pricingIntro = registrationOpen
-    ? 'Start now. Upgrade when the marathon gate opens and you are ready to continue.'
-    : 'Plan names, prices, checkout, and gift-code entry appear only after approved catalog and product data are loaded.';
+  const pricingIntro = 'The marathon is built like a race: begin at the start line, keep moving through one daily assignment, and finish the full route on day 30.';
   const heroTitle = registrationOpen
-    ? `${languageName} progress with approved daily practice.`
-    : `${languageName} Marathon is being prepared.`;
+    ? `Run the ${raceLanguageName} Marathon for 30 days.`
+    : `The ${raceLanguageName} Marathon starts with momentum.`;
   const heroIntro = registrationOpen
-    ? 'Join a focused language marathon with daily assignments, report windows, progress tracking, and a clear path from free start to full VIP access.'
-    : 'Registration will open after the approved marathon catalog, assignments, VIP product, and gift codes are loaded in production.';
-  const registerTitle = registrationOpen ? `Start your ${languageName} Marathon` : 'Registration status';
+    ? 'Start at day 1, complete one focused language task every day, keep your pace in the profile, and cross the finish line after 30 days.'
+    : 'A visual 30-day race from start to finish: every day you run one step, complete one assignment, and keep moving until the final result.';
+  const registerTitle = registrationOpen ? `Start your ${raceLanguageName} Marathon` : 'Registration opens soon';
   const missingLaunchGates = readiness?.missing ?? [];
-  const readinessCounts = readiness?.counts;
-  const approvedStepsLabel = readinessCounts
-    ? `${readinessCounts.stepsWithContent}/${readinessCounts.steps}`
-    : '0/0';
   const faqItems = registrationOpen
     ? [
       ['How much time do I need each day?', 'Use the assignment instructions shown in your profile for the current approved step.'],
@@ -188,10 +189,10 @@ export default function Landing() {
       ['How do assignments work?', 'Each approved task has instructions, report status, and progress state in your marathon profile.'],
     ]
     : [
-      ['When will registration open?', 'Registration opens after the approved active marathon, assignments, VIP product, and gift inventory are loaded.'],
-      ['Why is there no price?', 'The landing page does not show a fallback price. VIP checkout uses the approved product configured in production.'],
-      ['Why is there no course preview?', 'Course tasks and assignment text are shown only after approved catalog data exists.'],
-      ['Where can I see launch status?', 'Open Support for the catalog runbook, readiness API, and post-load journey smoke commands.'],
+      ['What is the marathon format?', 'You move through a 30-day route: start, daily assignment, progress check, VIP gate when required, and finish.'],
+      ['What happens every day?', 'Each day has one focused language task. You complete it, report progress, and continue to the next day.'],
+      ['Why is registration closed?', 'Registration opens after the approved active marathon, assignments, VIP product, and gift inventory are loaded.'],
+      ['Where can I see launch status?', 'Open Support for the operational runbook and readiness checks.'],
     ];
 
   return (
@@ -258,238 +259,106 @@ export default function Landing() {
             </div>
             {!registrationOpen && (
               <p className="ml-availability-note" id="registration-status-note">
-                Registration is closed until the active marathon, assignments, VIP product, and gift codes are configured in production.
+                Registration is not open yet, but the route is ready to preview: start, daily task, progress checkpoint, and finish.
               </p>
             )}
-            <dl className="ml-hero-points" aria-label={registrationOpen ? 'Marathon highlights' : 'Catalog readiness summary'}>
-              {registrationOpen ? (
-                <>
-                  <div><dt>Free</dt><dd>starter access</dd></div>
-                  <div><dt>VIP</dt><dd>checkout from profile</dd></div>
-                  <div><dt>Daily</dt><dd>approved assignments</dd></div>
-                </>
-              ) : (
-                <>
-                  <div><dt>{readinessCounts?.activeMarathons ?? 0}</dt><dd>active marathons</dd></div>
-                  <div><dt>{approvedStepsLabel}</dt><dd>approved steps</dd></div>
-                  <div><dt>{readinessCounts?.products ?? 0}</dt><dd>VIP products</dd></div>
-                </>
-              )}
+            <dl className="ml-hero-points" aria-label="30-day Marathon highlights">
+              <div><dt>Day 1</dt><dd>start line</dd></div>
+              <div><dt>30</dt><dd>daily tasks</dd></div>
+              <div><dt>Finish</dt><dd>visible result</dd></div>
             </dl>
           </div>
 
-          <div className="ml-product-preview" aria-label={registrationOpen ? 'Marathon profile preview' : 'Marathon launch readiness preview'}>
-            <div className="ml-preview-sidebar">
-              <strong>Marathon</strong>
-              <span className="active">{registrationOpen ? 'Overview' : 'Readiness'}</span>
-              <span>{registrationOpen ? 'Assignments' : 'Catalog'}</span>
-              <span>{registrationOpen ? 'Reports' : 'VIP'}</span>
-              <span>{registrationOpen ? 'Progress' : 'Launch gate'}</span>
+          <div className="ml-race-hero" aria-label="Runners moving from start to finish">
+            <img src={MARATHON_IMAGES.hero} alt="Runners starting a marathon route with day markers from day 1 to day 30" />
+            <div className="ml-race-card">
+              <strong>30-day route</strong>
+              <span>Start</span>
+              <span>Daily task</span>
+              <span>Checkpoint</span>
+              <span>Finish</span>
             </div>
-            <div className="ml-preview-main">
-              {registrationOpen ? (
-                <>
-                  <div className="ml-preview-head">
-                    <div>
-                      <span>Profile dashboard</span>
-                      <strong>Your approved marathon path opens here.</strong>
-                    </div>
-                    <div className="ml-progress-ring">Live</div>
-                  </div>
-                  <article className="ml-assignment-card featured">
-                    <span>Current assignment</span>
-                    <h3>Open the next approved task from your profile.</h3>
-                    <p>Your saved report, VIP gate, due state, and completion status are loaded from the live Marathon APIs.</p>
-                    <Link to="/profile" className="ml-primary-action">Open profile</Link>
-                  </article>
-                  <article className="ml-feedback-card">
-                    <strong>Progress stays attached to your account</strong>
-                    <p>Portal login returns to the exact profile, gift, checkout, or assignment route you opened.</p>
-                  </article>
-                </>
-              ) : (
-                <>
-                  <div className="ml-preview-head">
-                    <div>
-                      <span>Launch status</span>
-                      <strong>Waiting for approved catalog data.</strong>
-                    </div>
-                    <div className="ml-progress-ring">Closed</div>
-                  </div>
-                  <article className="ml-assignment-card featured">
-                    <span>Catalog readiness</span>
-                    <h3>No course preview is shown before approval.</h3>
-                    <p>Assignments, pricing, VIP checkout, gift redemption, and registration stay hidden until production readiness is green.</p>
-                    <dl className="ml-readiness-list">
-                      <div><dt>Active marathons</dt><dd>{readinessCounts?.activeMarathons ?? 0}</dd></div>
-                      <div><dt>Approved steps</dt><dd>{approvedStepsLabel}</dd></div>
-                      <div><dt>VIP products</dt><dd>{readinessCounts?.products ?? 0}</dd></div>
-                      <div><dt>Gift codes</dt><dd>{readinessCounts?.unusedGifts ?? 0}</dd></div>
-                    </dl>
-                  </article>
-                  <article className="ml-feedback-card">
-                    <strong>Next operational action</strong>
-                    <p>Load a source-owner approved catalog packet, then run readiness and post-load journey smoke checks from Support.</p>
-                    <Link to="/support" className="ml-outline-action">Open support runbook</Link>
-                  </article>
-                </>
-              )}
+            <div className="ml-race-status">
+              <span>{registrationOpen ? 'Registration open' : 'Registration opens soon'}</span>
+              <strong>{registrationOpen ? 'Run today' : 'Route preview'}</strong>
             </div>
           </div>
         </section>
 
         <section className="ml-how" id="how">
           <div className="ml-section-head">
-            <h2>{registrationOpen ? 'How the Marathon works' : 'How launch opens'}</h2>
+            <h2>How the 30-day Marathon works</h2>
             <p>
-              {registrationOpen
-                ? 'Short tasks, a visible daily rhythm, and enough pressure to keep momentum without overload.'
-                : 'Participant workflow cards are shown only after approved catalog data is loaded.'}
+              It is not just a page with lessons. It is a race rhythm: start strong, complete one language task every day, and finish the full route in 30 days.
             </p>
           </div>
           <div className="ml-how-grid">
-            {registrationOpen ? (
-              <>
-                <article><span>01</span><h3>Daily assignment</h3><p>Open one focused task with exact timing and a clear report window.</p></article>
-                <article><span>02</span><h3>Personal feedback</h3><p>Use corrections, examples, and peer answers to improve the next day.</p></article>
-                <article><span>03</span><h3>Track progress</h3><p>See completed days, locked steps, VIP access, and final certificate path.</p></article>
-              </>
-            ) : (
-              <>
-                <article><span>01</span><h3>Approve catalog</h3><p>Source-owner approved marathon, step, product, and gift rows must be loaded first.</p></article>
-                <article><span>02</span><h3>Verify readiness</h3><p>Production readiness must pass before public registration, checkout, gift, or assignment entry opens.</p></article>
-                <article><span>03</span><h3>Run journey smoke</h3><p>Registration, profile, VIP, gift, and assignment checks run after approved catalog data exists.</p></article>
-              </>
-            )}
+            <article><span>01</span><h3>Start the run</h3><p>Choose the language marathon and enter the route from day 1 with one clear action.</p></article>
+            <article><span>02</span><h3>Do one task daily</h3><p>Every day you open the next assignment, complete the language work, and submit your report.</p></article>
+            <article><span>03</span><h3>Finish day 30</h3><p>The finish line is the completed route: 30 days of visible progress, not a vague promise.</p></article>
           </div>
         </section>
 
         <section className="ml-pricing" id="pricing">
           <div className="ml-section-head">
-            <h2>{registrationOpen ? 'Choose your plan' : 'Pricing opens after catalog approval'}</h2>
+            <h2>From start line to finish line</h2>
             <p>{pricingIntro}</p>
           </div>
-          {registrationOpen ? (
-            <div className="ml-pricing-grid">
-              <article className="ml-plan">
-                <h3>Starter</h3>
-                <strong>Included</strong>
-                <p>Start your marathon and test the daily rhythm.</p>
-                <ul>
-                  <li>Daily assignments</li>
-                  <li>Basic progress tracking</li>
-                  <li>Community access</li>
-                </ul>
-                <button type="button" className="ml-outline-action" onClick={scrollToForm}>
-                  Start from registration
-                </button>
-              </article>
-              <article className="ml-plan vip">
-                <div className="ml-plan-ribbon">Full access</div>
-                <h3>VIP</h3>
-                <strong>Checkout</strong>
-                <p>Unlock the full marathon from your profile after the VIP gate.</p>
-                <ul>
-                  <li>Starter access included</li>
-                  <li>Approved post-gate assignments</li>
-                  <li>Detailed corrections and support</li>
-                  <li>Certificate path</li>
-                </ul>
-                <Link to="/profile" className="ml-primary-action">Upgrade from profile</Link>
-              </article>
-              <aside className="ml-payment-panel">
-                <h3>VIP access</h3>
-                <p>Payments are routed through the shared payments service. Checkout and gift-code redemption unlock VIP access from the marathon profile.</p>
-                <Link to="/gift" className="ml-outline-action">Gift code</Link>
-                <Link to="/support" className="ml-secondary-action">Need help?</Link>
-              </aside>
+          <div className="ml-race-route">
+            <div className="ml-route-line" aria-hidden="true">
+              <span>1</span>
+              <span>10</span>
+              <span>20</span>
+              <span>30</span>
             </div>
-          ) : (
-            <div className="ml-pricing-readiness" aria-label="Pricing readiness">
-              <article>
-                <span>Catalog gate</span>
-                <h3>No public offer is shown before approval.</h3>
-                <p>The page does not publish fallback plan names, free prices, VIP prices, checkout links, or gift redemption until production readiness is green.</p>
-                <dl className="ml-readiness-list">
-                  <div><dt>Active marathons</dt><dd>{readinessCounts?.activeMarathons ?? 0}</dd></div>
-                  <div><dt>Approved steps</dt><dd>{approvedStepsLabel}</dd></div>
-                  <div><dt>VIP products</dt><dd>{readinessCounts?.products ?? 0}</dd></div>
-                  <div><dt>Gift codes</dt><dd>{readinessCounts?.unusedGifts ?? 0}</dd></div>
-                </dl>
-              </article>
-              <aside>
-                <h3>Next action</h3>
-                <p>Load the source-owner approved catalog packet, then run readiness and post-load journey smoke before opening registration.</p>
-                <div className="ml-pricing-readiness-actions">
-                  <button type="button" className="ml-outline-action" onClick={scrollToForm}>
-                    View registration status
-                  </button>
-                  <Link to="/support" className="ml-secondary-action">Support runbook</Link>
-                </div>
-              </aside>
-            </div>
-          )}
+            <article>
+              <h3>Start</h3>
+              <p>Registration puts you on the route. Your profile becomes the place where the next step opens.</p>
+            </article>
+            <article>
+              <h3>Daily pace</h3>
+              <p>One assignment per day keeps the work concrete: read, speak, write, report, continue.</p>
+            </article>
+            <article>
+              <h3>Checkpoint</h3>
+              <p>Progress, VIP access, reports, and locked steps are handled from the live profile.</p>
+            </article>
+            <article>
+              <h3>Finish</h3>
+              <p>On day 30 the marathon has a clear end state: you completed the route and can see the result.</p>
+            </article>
+          </div>
         </section>
 
         <section className="ml-workflow" id="program">
           <div className="ml-section-head">
-            <h2>{registrationOpen ? 'Your daily workflow' : 'Launch readiness workflow'}</h2>
+            <h2>Your daily race plan</h2>
             <p>
-              {registrationOpen
-                ? 'Open approved assignments from your profile, submit reports, and continue through the VIP gate when it appears.'
-                : 'No sample course sequence is shown while the production catalog is empty. These are the gates that must pass before registration opens.'}
+              The page should feel like movement because the product is movement: every day has a task, every task moves you closer to day 30.
             </p>
           </div>
-          <div className="ml-day-row">
-            {registrationOpen ? (
-              <>
-                <article className="ml-day-card state-done">
-                  <span>Profile</span>
-                  <h3>Open your participant dashboard</h3>
-                  <small>Account-bound</small>
-                  <p>Progress, payment state, and saved reports stay linked to your Marathon login.</p>
-                  <Link to="/profile" className="ml-outline-action">Open</Link>
-                </article>
-                <article className="ml-day-card state-start">
-                  <span>Assignment</span>
-                  <h3>Continue the current approved step</h3>
-                  <small>Live catalog</small>
-                  <p>The active task, due state, VIP gate, and saved-report readback come from production APIs.</p>
-                  <Link to="/profile" className="ml-primary-action">Continue</Link>
-                </article>
-                <article className="ml-day-card state-locked">
-                  <span>VIP</span>
-                  <h3>Unlock post-gate access from profile</h3>
-                  <small>Payment or gift</small>
-                  <p>Checkout and gift redemption use the server-side product and gift inventory.</p>
-                  <button type="button" disabled>Profile gated</button>
-                </article>
-              </>
-            ) : (
-              <>
-                <article className="ml-day-card state-locked">
-                  <span>Gate 1</span>
-                  <h3>Approved active marathon</h3>
-                  <small>{readinessCounts?.activeMarathons ?? 0} configured</small>
-                  <p>Registration stays closed until an active language catalog exists.</p>
-                  <Link to="/support" className="ml-outline-action">Runbook</Link>
-                </article>
-                <article className="ml-day-card state-locked">
-                  <span>Gate 2</span>
-                  <h3>Approved assignment content</h3>
-                  <small>{approvedStepsLabel} ready</small>
-                  <p>Every step needs approved plain-text assignment content before launch.</p>
-                  <Link to="/support" className="ml-outline-action">Runbook</Link>
-                </article>
-                <article className="ml-day-card state-locked">
-                  <span>Gate 3</span>
-                  <h3>VIP product and gift inventory</h3>
-                  <small>{readinessCounts?.products ?? 0} products / {readinessCounts?.unusedGifts ?? 0} gifts</small>
-                  <p>Payment and gift checks wait for source-owner approved product and gift rows.</p>
-                  <Link to="/support" className="ml-outline-action">Runbook</Link>
-                </article>
-              </>
-            )}
+          <div className="ml-training-split">
+            <img src={MARATHON_IMAGES.dailyTask} alt="Marathon participants completing a daily task beside a running track" loading="lazy" />
+            <div className="ml-day-row">
+              <article className="ml-day-card state-done">
+                <span>Warm-up</span>
+                <h3>Open the day</h3>
+                <small>5 minutes</small>
+                <p>Enter your profile, check today&apos;s assignment, and see what must be finished before the next checkpoint.</p>
+              </article>
+              <article className="ml-day-card state-start">
+                <span>Main run</span>
+                <h3>Complete one task</h3>
+                <small>Daily assignment</small>
+                <p>Do the focused language practice: speak, write, listen, or answer according to the current step.</p>
+              </article>
+              <article className="ml-day-card state-finish">
+                <span>Cooldown</span>
+                <h3>Submit and continue</h3>
+                <small>Progress saved</small>
+                <p>Your report keeps the route moving. Tomorrow you return for the next day until the finish.</p>
+              </article>
+            </div>
           </div>
           {!registrationOpen && missingLaunchGates.length ? (
             <div className="ml-missing-gates ml-workflow-gates" aria-label="Missing launch gates">
@@ -505,8 +374,16 @@ export default function Landing() {
 
         <section className="ml-proof" id="winners">
           <div className="ml-section-head">
-            <h2>Real people. Real results.</h2>
-            <p>Winner records and reviews are loaded from the Marathon platform.</p>
+            <h2>Day 30 feels like a finish line</h2>
+            <p>The marathon is built around visible completion: people start together, keep pace, and finish stronger.</p>
+          </div>
+          <div className="ml-finish-visual">
+            <img src={MARATHON_IMAGES.finish} alt="Runners celebrating at the day 30 finish line" loading="lazy" />
+            <div>
+              <h3>Start. Run. Finish.</h3>
+              <p>Daily assignments make the route measurable. The finish is not abstract: after 30 days, the participant can see the path they completed.</p>
+              <Link to="/winners" className="ml-primary-action">See winners</Link>
+            </div>
           </div>
           <div className="ml-review-grid">
             {featuredReviews.length ? featuredReviews.map((review) => (
@@ -553,8 +430,8 @@ export default function Landing() {
             <h2>{registerTitle}</h2>
             <p>
               {registrationOpen
-                ? 'Register with your email. The platform creates your participant record and sends a confirmation.'
-                : 'Registration will open once the production catalog is ready for this language.'}
+                ? 'Register with your email. The platform creates your participant record and opens your day-1 route.'
+                : 'Registration will open when this language route is ready. The 30-day marathon structure is already visible above.'}
             </p>
             {registeredId && (
               <p className="ml-success">Registration received. Participant ID: {registeredId}</p>
@@ -571,7 +448,7 @@ export default function Landing() {
           ) : (
             <div className="ml-registration-unavailable">
               <h3>Registration is not open yet</h3>
-              <p>The production catalog must include an active marathon, approved assignment content, VIP product, and gift codes before registration opens.</p>
+              <p>The start button will open after the approved route, daily assignments, VIP product, and gift codes are ready in production.</p>
               {missingLaunchGates.length ? (
                 <div className="ml-missing-gates" aria-label="Missing launch gates">
                   <strong>Launch blockers</strong>

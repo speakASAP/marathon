@@ -1390,6 +1390,395 @@
   }
 }
 
+/* Marathon race landing refresh */
+.marathon-landing {
+  --ml-ink: #081126;
+  --ml-muted: #59667a;
+  --ml-soft: #eef6ff;
+  --ml-line: #d8e3ef;
+  --ml-coral: #ef3f34;
+  --ml-coral-dark: #cf2f26;
+  --ml-blue: #1257b8;
+  --ml-mint: #21a67a;
+  --ml-mint-soft: #e6f8ef;
+  background:
+    linear-gradient(180deg, #f7fbff 0, #ffffff 520px),
+    #ffffff;
+}
+
+.ml-nav {
+  top: 118px;
+}
+
+.ml-how,
+.ml-pricing,
+.ml-workflow,
+.ml-proof,
+.ml-faq,
+.ml-register {
+  scroll-margin-top: 216px;
+}
+
+.ml-nav-links a[href="#program"]::after {
+  content: "";
+}
+
+.ml-hero {
+  grid-template-columns: minmax(0, 0.76fr) minmax(520px, 1.24fr);
+  align-items: stretch;
+  min-height: calc(100vh - 194px);
+  padding-top: clamp(38px, 5vw, 66px);
+}
+
+.ml-hero-copy {
+  align-self: center;
+}
+
+.ml-hero h1 {
+  max-width: 820px;
+  font-size: clamp(3.5rem, 6.6vw, 7rem);
+  line-height: 0.92;
+}
+
+.ml-hero-copy > p {
+  color: #2e3d55;
+  font-size: clamp(1.08rem, 1.35vw, 1.34rem);
+}
+
+.ml-primary-action,
+.landing-form button[type="submit"],
+.ml-product-preview button {
+  background: var(--ml-coral);
+  box-shadow: 0 14px 30px rgba(239, 63, 52, 0.24);
+}
+
+.ml-primary-action:hover,
+.landing-form button[type="submit"]:hover:not(:disabled),
+.ml-product-preview button:hover {
+  background: var(--ml-coral-dark);
+}
+
+.ml-hero-points {
+  border-color: rgba(216, 227, 239, 0.95);
+}
+
+.ml-hero-points dt {
+  color: var(--ml-coral-dark);
+}
+
+.ml-race-hero {
+  position: relative;
+  min-height: 610px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(8, 17, 38, 0.18);
+  isolation: isolate;
+}
+
+.ml-race-hero img {
+  width: 100%;
+  height: 100%;
+  min-height: 610px;
+  display: block;
+  object-fit: cover;
+  object-position: 58% center;
+}
+
+.ml-race-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(8, 17, 38, 0.18), rgba(8, 17, 38, 0.02) 44%, rgba(8, 17, 38, 0.16)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(8, 17, 38, 0.2));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ml-race-card,
+.ml-race-status {
+  position: absolute;
+  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 20px 50px rgba(8, 17, 38, 0.18);
+  backdrop-filter: blur(14px);
+}
+
+.ml-race-card {
+  left: 24px;
+  bottom: 24px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  width: min(620px, calc(100% - 48px));
+  padding: 14px;
+}
+
+.ml-race-card strong {
+  grid-column: 1 / -1;
+  color: var(--ml-ink);
+  font-size: 1.02rem;
+}
+
+.ml-race-card span {
+  display: grid;
+  min-height: 42px;
+  place-items: center;
+  border-radius: 6px;
+  background: #f4f8fc;
+  color: #192846;
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.ml-race-card span:first-of-type,
+.ml-race-card span:last-of-type {
+  color: #fff;
+  background: var(--ml-coral);
+}
+
+.ml-race-status {
+  top: 24px;
+  right: 24px;
+  display: grid;
+  gap: 4px;
+  min-width: 190px;
+  padding: 16px 18px;
+}
+
+.ml-race-status span {
+  color: var(--ml-muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.ml-race-status strong {
+  color: var(--ml-ink);
+  font-size: 1.45rem;
+}
+
+.ml-how-grid article {
+  min-height: 250px;
+  position: relative;
+  overflow: hidden;
+}
+
+.ml-how-grid article::after {
+  content: "";
+  position: absolute;
+  right: -28px;
+  bottom: -28px;
+  width: 128px;
+  height: 128px;
+  border: 14px solid rgba(18, 87, 184, 0.08);
+  border-radius: 50%;
+}
+
+.ml-race-route {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  position: relative;
+  padding-top: 78px;
+}
+
+.ml-race-route article {
+  min-height: 220px;
+  padding: 28px;
+  border: 1px solid var(--ml-line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 46px rgba(32, 52, 88, 0.08);
+}
+
+.ml-race-route h3 {
+  margin: 0 0 10px;
+  color: var(--ml-ink);
+  font-size: 1.35rem;
+}
+
+.ml-race-route p {
+  margin: 0;
+  color: var(--ml-muted);
+  line-height: 1.58;
+}
+
+.ml-route-line {
+  position: absolute;
+  top: 0;
+  left: 2%;
+  right: 2%;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ml-route-line::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 50%;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--ml-coral), var(--ml-blue), var(--ml-mint));
+  transform: translateY(-50%);
+}
+
+.ml-route-line span {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ml-ink);
+  color: #fff;
+  font-weight: 950;
+  box-shadow: 0 10px 24px rgba(8, 17, 38, 0.2);
+}
+
+.ml-training-split {
+  display: grid;
+  grid-template-columns: minmax(420px, 0.9fr) minmax(0, 1.1fr);
+  gap: 28px;
+  align-items: stretch;
+}
+
+.ml-training-split > img,
+.ml-finish-visual > img {
+  width: 100%;
+  height: 100%;
+  min-height: 430px;
+  display: block;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 24px 70px rgba(8, 17, 38, 0.14);
+}
+
+.ml-training-split .ml-day-row {
+  grid-template-columns: 1fr;
+  overflow: visible;
+  padding-bottom: 0;
+}
+
+.ml-training-split .ml-day-card {
+  min-height: 0;
+}
+
+.ml-day-card.state-finish {
+  border-color: rgba(33, 166, 122, 0.5);
+  box-shadow: 0 0 0 2px rgba(33, 166, 122, 0.08);
+}
+
+.ml-finish-visual {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 28px;
+  align-items: stretch;
+  margin-bottom: 28px;
+}
+
+.ml-finish-visual > div {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 16px;
+  padding: 34px;
+  border: 1px solid var(--ml-line);
+  border-radius: 8px;
+  background:
+    linear-gradient(160deg, rgba(18, 87, 184, 0.08), rgba(33, 166, 122, 0.1)),
+    #fff;
+  box-shadow: 0 18px 46px rgba(32, 52, 88, 0.08);
+}
+
+.ml-finish-visual h3 {
+  margin: 0;
+  color: var(--ml-ink);
+  font-size: clamp(2rem, 3vw, 3.3rem);
+  line-height: 1;
+}
+
+.ml-finish-visual p {
+  margin: 0;
+  color: var(--ml-muted);
+  line-height: 1.62;
+}
+
+@media (max-width: 1050px) {
+  .ml-nav {
+    top: 0;
+  }
+
+  .ml-how,
+  .ml-pricing,
+  .ml-workflow,
+  .ml-proof,
+  .ml-faq,
+  .ml-register {
+    scroll-margin-top: 110px;
+  }
+
+  .ml-hero,
+  .ml-race-route,
+  .ml-training-split,
+  .ml-finish-visual {
+    grid-template-columns: 1fr;
+  }
+
+  .ml-race-hero img,
+  .ml-race-hero,
+  .ml-training-split > img,
+  .ml-finish-visual > img {
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 720px) {
+  .ml-hero h1 {
+    font-size: clamp(2.7rem, 13vw, 3.5rem);
+  }
+
+  .ml-race-hero,
+  .ml-race-hero img {
+    min-height: 360px;
+  }
+
+  .ml-race-card {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ml-race-status {
+    top: 12px;
+    right: 12px;
+    min-width: 0;
+  }
+
+  .ml-race-route {
+    padding-top: 62px;
+  }
+
+  .ml-race-route article,
+  .ml-finish-visual > div {
+    padding: 22px;
+  }
+
+  .ml-training-split > img,
+  .ml-finish-visual > img {
+    min-height: 280px;
+  }
+}
+
 @media (max-width: 720px) {
   .home-launch-nav {
     position: static;

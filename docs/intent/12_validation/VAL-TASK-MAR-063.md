@@ -1,44 +1,27 @@
-# VAL-TASK-MAR-063: Root Landing Production Journey
+# VAL-TASK-MAR-063: Post-Deploy User Flow Smoke Validation
 
-```yaml
-id: VAL-TASK-MAR-063
-task: docs/intent/11_tasks/TASK-MAR-063-root-landing-production-journey.md
-status: passed
-created: 2026-06-13
-last_updated: 2026-06-13
-```
+## Validation Summary
 
-## Validation Plan
-
-- Run `npm run build:frontend`.
-- Run `npm run build`.
-- Deploy with `./scripts/deploy.sh`.
-- Verify `/` renders the new landing and links to language registration/profile.
-- Verify mobile viewport has no clipped hero, language rail, or proof content.
-- Run `npm run check:journey -- --base-url https://marathon.alfares.cz`.
+Post-deploy user-flow smoke coverage was added for public traversal, new-user registration, and VIP checkout entry protection.
 
 ## Evidence
 
-- `npm run build:frontend` passed on `alfares:/home/ssf/Documents/Github/marathon`.
-- `npm run build` passed on `alfares:/home/ssf/Documents/Github/marathon`.
-- Commit `f354d9d` rebuilt the root landing and added TASK-MAR-063 intent artifacts.
-- Commit `43cadbf` polished the root landing header, updated the journey verifier for the rebuilt Home contract, rebuilt public assets, and was pushed to `main`.
-- `./scripts/deploy.sh` completed successfully for image `localhost:5000/marathon:43cadbf`.
-- Post-deploy readiness passed in Kubernetes: 13 active marathons, 377/377 steps with assignment content, 13 products, 17 gifts / 13 unused gifts, and payment runtime configuration present.
-- Deployment status after rollout: image `localhost:5000/marathon:43cadbf`, one ready/available/updated pod.
-- `npm run check:journey -- --base-url https://marathon.alfares.cz` passed in read-only mode.
-- Guarded in-pod `npm run smoke:production-safe` passed on image `localhost:5000/marathon:43cadbf`: synthetic registration, checkout creation, Marathon webhook settlement, VIP profile state, confirmed payment ledger, gift redemption, 29 assignment submissions, winner reconciliation, and NPS create/update were verified with masked IDs and no token, gift code, checkout URL, webhook key, email, or private report output.
-- Rendered screenshot QA used Playwright fallback because the in-app Browser tool was unavailable in this session. Screenshots:
-  - `/private/tmp/marathon-qa/home-desktop-1440-final.png`
-  - `/private/tmp/marathon-qa/home-mobile-390-final.png`
-- Screenshot checks: root Home title is `Marathon by SpeakASAP — start your language marathon`, H1 is `Start your language marathon today`, `.home-launch-nav` is present, legacy `.main-header` is absent on `/`, 8 language chips render, and desktop/mobile horizontal overflow is false.
+| Check | Result | Evidence |
+| --- | --- | --- |
+| User-flow script syntax | Pass | `node --check scripts/check-marathon-user-flows.js` completed successfully. |
+| Existing journey script syntax | Pass | `node --check scripts/check-marathon-journey.js` completed successfully. |
+| Production smoke script syntax | Pass | `node --check scripts/run-production-smoke-safe.js` completed successfully. |
+| Deploy script syntax | Pass | `bash -n scripts/deploy.sh` completed successfully. |
+| Package script wiring | Pass | `npm run check:user-flows -- --base-url https://marathon.alfares.cz --json` completed successfully with network access. |
+| Existing journey smoke | Pass | `npm run check:journey -- --base-url https://marathon.alfares.cz --json` completed successfully after relaxing stale closed-catalog bundle marker checks for the live open-catalog production state. |
+| Public route traversal | Pass | `check:user-flows` served 17 production routes without HTTP errors. |
+| Registration attempt | Pass | `check:user-flows` created a generated `example.invalid` registration and verified profile handoff. |
+| Checkout boundary | Pass | `check:user-flows` verified unauthenticated checkout returns HTTP 401; authenticated basket creation remains available when a smoke token is supplied. |
 
-## Fidelity Notes
+## Sensitive Data Handling
 
-- Concept reference: `/Users/Sergej.Stasok/.codex/generated_images/019ebaa6-18fd-7cb0-9edc-75a0a58339f6/ig_0dbccad67f8e49da016a2d2711315481948516f2677ceb9c89.png`.
-- Implementation keeps the concept structure: white product header, navy/coral/green palette, large direct H1, primary Start CTA, profile CTA, language rail, register/practice/VIP/finish workflow, and proof section.
-- Intentional deviation: the hero visual is code-native phone/notebook UI instead of a raster desk photograph, so production avoids shipping generated image text artifacts while preserving the concept's product signal.
+The validation evidence records only masked smoke email, masked participant ID, route count, and check names. No JWTs, payment keys, gift-code values, card data, or full participant identifiers are recorded.
 
-## Sensitive Data Review
+## Residual Risk
 
-Validation must not include JWTs, webhook keys, checkout URLs, gift codes, full participant IDs, emails, private reports, or survey comments.
+The strict post-deploy smoke is dependency-light and validates SPA routes, user-flow APIs, and frontend action markers rather than executing a real browser click session. Full browser click automation can be added later if the deployment runtime receives an approved headless browser dependency.

@@ -1,36 +1,35 @@
-# EP-TASK-MAR-063: Root Landing Production Journey
+# EP-TASK-MAR-063: Post-Deploy User Flow Smoke
 
-```yaml
-id: EP-TASK-MAR-063
-task: docs/intent/11_tasks/TASK-MAR-063-root-landing-production-journey.md
-status: completed
-created: 2026-06-13
-last_updated: 2026-06-13
-```
+## Scope
 
-## Plan
+Implement a Node-based smoke verifier that runs without additional browser/runtime dependencies and validates user-visible Marathon journeys through HTTP, SPA route serving, API calls, and frontend bundle action markers.
 
-1. Read current frontend routes, public API helpers, readiness docs, and refactor status.
-2. Replace root `Home.tsx` with a production landing entry point that uses existing readiness/language/winner/review APIs.
-3. Extend existing `landing.css` tokens and component styles instead of creating a second visual system.
-4. Reconcile stale `PLAN.md` Phase 1 blocker wording with verified production-safe evidence.
-5. Build the frontend and full application.
-6. Deploy through the standard Marathon deploy script.
-7. Verify production root landing, readiness, and public journey smoke.
-8. Record validation evidence in `VAL-TASK-MAR-063` and close the task.
+## Files
 
-## Contract Checks
+- `scripts/check-marathon-user-flows.js`
+- `scripts/deploy.sh`
+- `package.json`
+- `docs/intent/11_tasks/TASK-MAR-063-post-deploy-user-flow-smoke.md`
+- `docs/intent/12_validation/VAL-TASK-MAR-063.md`
 
-- API contract: read-only public endpoints only on root landing.
-- Payment contract: no direct provider integration; VIP checkout stays profile-owned.
-- Data contract: Kubernetes/shared PostgreSQL is the only operational source of truth.
-- Security contract: no secrets or private participant content in docs, logs, or UI.
-- Assignment contract: no raw HTML rendering changes.
+## Implementation Steps
 
-## Rollback
+1. Add a user-flow smoke script with route traversal, registration attempt, and checkout boundary checks.
+2. Add npm scripts for `check:user-flows` and `check:production-smoke`.
+3. Run `check:user-flows` as a strict post-deploy phase.
+4. Run `check:production-smoke` as a guarded post-deploy phase because it depends on production secrets and approved catalog/payment state.
 
-If the landing build or production journey smoke fails, revert only the `Home.tsx`, `landing.css`, and TASK-MAR-063 documentation changes from this task, then redeploy the last known good image.
+## Safety
 
-## Current Blocker
+- Smoke registration uses generated `example.invalid` email by default.
+- Reported email, participant ID, and order ID values are masked.
+- No payment card data is submitted.
+- Authenticated checkout requires an explicit smoke token.
 
-None. The follow-up image `localhost:5000/marathon:43cadbf` rolled out successfully after allowing sufficient pull/startup time, and validation is recorded in `VAL-TASK-MAR-063`.
+## Validation
+
+- `node --check scripts/check-marathon-user-flows.js`
+- `node --check scripts/check-marathon-journey.js`
+- `node --check scripts/run-production-smoke-safe.js`
+- `bash -n scripts/deploy.sh`
+- Production URL smoke: `node scripts/check-marathon-user-flows.js --base-url https://marathon.alfares.cz --json`

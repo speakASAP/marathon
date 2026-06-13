@@ -21,10 +21,34 @@ IMAGE_TAG="${1:-$DEFAULT_TAG}"
 IMAGE="${REGISTRY}/${SERVICE_NAME}:${IMAGE_TAG}"
 IMAGE_LATEST="${REGISTRY}/${SERVICE_NAME}:latest"
 
-# shellcheck disable=SC1091
-source "$(dirname "$PROJECT_ROOT")/shared/scripts/load-deploy-phase-timing.sh" "$PROJECT_ROOT" 2>/dev/null \
-  || source "$HOME/Documents/Github/shared/scripts/load-deploy-phase-timing.sh" "$PROJECT_ROOT" \
-  || { echo "Error: deploy timing library not found" >&2; exit 1; }
+DEPLOY_TIMING_LOCAL="$(dirname "$PROJECT_ROOT")/shared/scripts/load-deploy-phase-timing.sh"
+DEPLOY_TIMING_HOME="$HOME/Documents/Github/shared/scripts/load-deploy-phase-timing.sh"
+if [ -f "$DEPLOY_TIMING_LOCAL" ]; then
+  # shellcheck disable=SC1090
+  source "$DEPLOY_TIMING_LOCAL" "$PROJECT_ROOT"
+elif [ -f "$DEPLOY_TIMING_HOME" ]; then
+  # shellcheck disable=SC1090
+  source "$DEPLOY_TIMING_HOME" "$PROJECT_ROOT"
+else
+  echo -e "${YELLOW}WARN deploy timing library not found; using local fallback timing.${NC}"
+  deploy_timing_init() { :; }
+  deploy_timing_phase_start() { echo -e "${YELLOW}$1...${NC}"; }
+  deploy_timing_phase_end() { echo -e "${GREEN}OK $1${NC}"; }
+  deploy_timing_run_phase() {
+    local phase_name="$1"
+    local phase_func="$2"
+    deploy_timing_phase_start "$phase_name"
+    "$phase_func"
+    deploy_timing_phase_end "$phase_name"
+  }
+  deploy_timing_k8s_rollout_wait() {
+    local kubectl_bin="$1"
+    local deployment_name="$2"
+    local deployment_namespace="$3"
+    "$kubectl_bin" rollout status "deployment/${deployment_name}" -n "$deployment_namespace" --timeout=180s
+  }
+  deploy_timing_finish_success() { echo -e "${GREEN}OK $1 deployment finished${NC}"; }
+fi
 deploy_timing_init "$SERVICE_NAME"
 
 preflight_cluster() {
@@ -64,6 +88,29 @@ post_deploy_journey_readiness() {
 
   echo -e "${YELLOW}WARN production journey readiness is not complete yet.${NC}"
   echo -e "${YELLOW}WARN Deploy remains successful because this usually means catalog data is still awaiting approval/load.${NC}"
+  return 0
+}
+
+post_deploy_user_flow_smoke() {
+  echo -e "${YELLOW}Checking public user flows...${NC}"
+
+  if ! kubectl exec "deployment/${SERVICE_NAME}" -n "$NAMESPACE" -- sh -lc 'cd /app && MARATHON_BASE_URL="${MARATHON_INTERNAL_BASE_URL:-http://127.0.0.1:3000}" npm run check:user-flows'; then
+    echo -e "${RED}User flow smoke failed${NC}"
+    exit 1
+  fi
+  echo -e "${GREEN}OK public user flow smoke passed${NC}"
+}
+
+post_deploy_production_smoke() {
+  echo -e "${YELLOW}Checking production registration/payment/assignment smoke...${NC}"
+
+  if kubectl exec "deployment/${SERVICE_NAME}" -n "$NAMESPACE" -- sh -lc 'test -n "$PAYMENT_WEBHOOK_API_KEY" && cd /app && npm run check:production-smoke'; then
+    echo -e "${GREEN}OK production registration/payment/assignment smoke passed${NC}"
+    return 0
+  fi
+
+  echo -e "${YELLOW}WARN production mutating smoke did not run or did not pass.${NC}"
+  echo -e "${YELLOW}WARN Run manually after payment webhook credentials and approved catalog data are available: npm run check:production-smoke${NC}"
   return 0
 }
 
@@ -129,6 +176,8 @@ kubectl get pods -n "$NAMESPACE" -l app="$SERVICE_NAME"
 deploy_timing_phase_end "Post-deploy status"
 
 deploy_timing_run_phase "Journey readiness" post_deploy_journey_readiness
+deploy_timing_run_phase "User flow smoke" post_deploy_user_flow_smoke
+deploy_timing_run_phase "Production smoke" post_deploy_production_smoke
 
 deploy_timing_finish_success "Marathon"
 echo "Image:    ${IMAGE}"
