@@ -1,11 +1,13 @@
 export const SMOKE_PARTICIPANT_NAME_PREFIX = "Marathon Prod Smoke";
 export const SMOKE_PARTICIPANT_EMAIL_SUFFIX = "@example.invalid";
+export const LEGACY_SMOKE_PARTICIPANT_NAME = "Marathon Smoke Test";
 export const SMOKE_GIFT_CODE_PREFIX = "SMOKE-";
 
 export const smokeParticipantWhere = {
   OR: [
     { name: { startsWith: SMOKE_PARTICIPANT_NAME_PREFIX } },
     { email: { endsWith: SMOKE_PARTICIPANT_EMAIL_SUFFIX } },
+    { name: LEGACY_SMOKE_PARTICIPANT_NAME },
   ],
 };
 
@@ -14,7 +16,12 @@ const nonSmokeParticipantWhere = {
     {
       OR: [
         { name: null },
-        { name: { not: { startsWith: SMOKE_PARTICIPANT_NAME_PREFIX } } },
+        {
+          AND: [
+            { name: { not: { startsWith: SMOKE_PARTICIPANT_NAME_PREFIX } } },
+            { name: { not: LEGACY_SMOKE_PARTICIPANT_NAME } },
+          ],
+        },
       ],
     },
     {

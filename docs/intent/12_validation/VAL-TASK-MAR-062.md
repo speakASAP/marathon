@@ -24,7 +24,7 @@ upstream:
 | Gift, winner, NPS smoke | Pass | The same smoke completed 29 submissions, finished the synthetic participant, created/recomputed a winner row, created then updated one NPS response, and preserved gift readiness by creating a replacement unused gift when needed. |
 | Readiness after smoke | Pass | In-pod `npm run check:readiness -- --json` returned `ok=true` with 13 active marathons, 377 steps, 377 steps with content, 13 unused gifts, 53,480 participants, and 5 payment attempts. |
 | Public journey after smoke | Pass | `npm run check:journey -- --base-url https://marathon.alfares.cz` returned `Marathon journey smoke: ready` in read-only mode. |
-| Smoke analytics isolation hardening | Pass | `src/shared/smoke-filter.ts` now excludes both `Marathon Prod Smoke` names and `@example.invalid` participant emails from public analytics and winner surfaces. |
+| Smoke analytics isolation hardening | Pass | `src/shared/smoke-filter.ts` now excludes `Marathon Prod Smoke` names, legacy `Marathon Smoke Test` names, and `@example.invalid` participant emails from public analytics and winner surfaces. |
 
 ## Sensitive Data Handling
 
