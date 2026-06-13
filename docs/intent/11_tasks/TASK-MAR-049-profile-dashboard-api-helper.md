@@ -2,11 +2,11 @@
 
 ```yaml
 id: TASK-MAR-049
-status: implemented
+status: verified
 owner: Engineering
 created: 2026-06-12
-last_updated: 2026-06-12
-completeness_level: pending_validation
+last_updated: 2026-06-13
+completeness_level: complete
 upstream:
   - docs/intent/10_features/FEAT-001-launch-ready-catalog-flow.md
   - docs/intent/11_tasks/TASK-MAR-038-profile-empty-readiness.md
@@ -33,13 +33,13 @@ Reduce profile-dashboard complexity by moving the authenticated `/api/v1/me/mara
 
 ## Acceptance Criteria
 
-- [ ] `Profile.tsx` no longer owns raw authenticated marathon-list endpoint parsing.
-- [ ] Auth-required state still shows the profile login handoff.
-- [ ] Profile load failures still render the support/refresh error state.
-- [ ] Empty dashboard still uses catalog readiness before showing registration actions.
-- [ ] `npm run build:frontend` passes.
-- [ ] `npm run check:journey` passes catalog-independent profile dashboard assertions before the known `catalog-readiness` blocker.
-- [ ] Validation evidence is recorded in `docs/intent/12_validation/VAL-TASK-MAR-049.md`.
+- [x] `Profile.tsx` no longer owns raw authenticated marathon-list endpoint parsing.
+- [x] Auth-required state still shows the profile login handoff.
+- [x] Profile load failures still render the support/refresh error state.
+- [x] Empty dashboard still uses catalog readiness before showing registration actions.
+- [x] `npm run build:frontend` passes.
+- [x] `npm run check:journey` passes catalog-independent profile dashboard assertions before the known `catalog-readiness` blocker.
+- [x] Validation evidence is recorded in `docs/intent/12_validation/VAL-TASK-MAR-049.md`.
 
 ## Current Blocker
 
