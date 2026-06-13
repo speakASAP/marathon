@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { authFetch, getToken, redirectToLogin } from '../auth';
+import { getToken, redirectToLogin } from '../auth';
+import { MarathonAuthRequiredError, redeemGiftCode } from '../api/journeyMarathon';
 import { fetchCatalogReadiness, type CatalogReadiness } from '../api/publicMarathon';
 
 function formatMissingGate(value: string): string {
@@ -60,24 +61,16 @@ export default function Gift() {
 
     setSubmitting(true);
     try {
-      const res = await authFetch('/api/v1/vip/gift-redemptions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ marathonerId: marathonerId.trim(), code: code.trim() }),
-      });
-      if (res.status === 401) {
-        redirectToLogin(`/gift?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
-        return;
-      }
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(body.message || body.error || `Gift redemption failed (${res.status})`);
-      }
+      const body = await redeemGiftCode(marathonerId.trim(), code.trim());
       setMessage('VIP access unlocked. Returning to your marathon profile...');
       window.setTimeout(() => {
         window.location.href = body.redirectUrl || `/profile/${encodeURIComponent(marathonerId.trim())}`;
       }, 800);
     } catch (err) {
+      if (err instanceof MarathonAuthRequiredError) {
+        redirectToLogin(`/gift?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Gift redemption failed');
     } finally {
       setSubmitting(false);

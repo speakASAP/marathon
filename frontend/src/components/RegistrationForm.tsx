@@ -1,5 +1,10 @@
 import { useState, FormEvent } from 'react';
-import { clearToken, getToken, redirectToLogin } from '../auth';
+import { clearToken, redirectToLogin } from '../auth';
+import {
+  MarathonRegistrationAuthExpiredError,
+  normalizeRegistrationRedirectUrl,
+  submitMarathonRegistration,
+} from '../api/journeyMarathon';
 
 export interface RegistrationFormProps {
   languageCode: string;
@@ -31,47 +36,31 @@ export default function RegistrationForm({
     setSubmitting(true);
     onError?.('');
     try {
-      const token = getToken();
-      const headers = new Headers({ 'Content-Type': 'application/json' });
-      if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
-      }
-      const res = await fetch('/api/v1/registrations', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          email: email.trim(),
-          name: name.trim() || undefined,
-          phone: phone.trim() || undefined,
-          languageCode,
-        }),
+      const data = await submitMarathonRegistration({
+        email: email.trim(),
+        name: name.trim() || undefined,
+        phone: phone.trim() || undefined,
+        languageCode,
       });
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 401 && token) {
-        clearToken();
-        onError?.('Registration session expired. Sign in again to bind this marathon to your profile.');
-        redirectToLogin(`/${languageCode}/#register`);
-        return;
-      }
-      if (!res.ok) {
-        onError?.(data.message || data.detail || `Ошибка ${res.status}`);
-        setSubmitting(false);
-        return;
-      }
-      const marathonerId = typeof data.marathonerId === 'string' ? data.marathonerId : '';
+      const { marathonerId } = data;
       onSuccess?.(marathonerId, data.redirectUrl);
       if (marathonerId) {
         const profilePath = `/profile/${encodeURIComponent(marathonerId)}`;
-        if (token && data.userBound === true) {
+        if (data.tokenUsed && data.userBound === true) {
           window.location.href = profilePath;
         } else {
           redirectToLogin(profilePath);
         }
       } else if (data.redirectUrl) {
-        const normalizedRedirect = String(data.redirectUrl).replace(/^(https?:\/\/[^/]+)?\/marathon\/([a-z]{2})\/?$/i, '$1/$2/');
-        window.location.href = normalizedRedirect;
+        window.location.href = normalizeRegistrationRedirectUrl(data.redirectUrl);
       }
     } catch (err) {
+      if (err instanceof MarathonRegistrationAuthExpiredError) {
+        clearToken();
+        onError?.('Registration session expired. Sign in again to bind this marathon to your profile.');
+        redirectToLogin(`/${languageCode}/#register`);
+        return;
+      }
       onError?.(err instanceof Error ? err.message : 'Ошибка отправки');
     } finally {
       setSubmitting(false);
