@@ -6,7 +6,7 @@
 - [x] T2: Implement payment webhook handler — set isFree=false, paymentReported=true on confirmation (goal_id: vip-payment, priority: 1)
 - [x] T3: Implement gift code redemption endpoint (goal_id: vip-payment, priority: 2)
 - [x] T4: Verify end-to-end VIP upgrade flow (goal_id: vip-payment, priority: 2)
-- [ ] Review course step content for upcoming marathon (priority: 3)
+- [x] Review course step content for upcoming marathon (priority: 3)
 - [x] Generate participant progress report (priority: 3)
 - [x] TASK-MAR-035: Hide gift redemption until readiness loads and align nav status label (goal_id: vip-payment, priority: 2)
 - [x] TASK-MAR-034: Harden payment webhook fail-closed auth guard before catalog load (goal_id: vip-payment, priority: 1)
@@ -135,3 +135,5 @@
 - [x] 2026-06-13 Production catalog readiness verified: deployed pod readiness now reports 13 active marathons, 377 steps with approved assignment content, 13 products, 13 gifts, 13 unused gifts, and 53,469 participants; read-only `npm run check:journey -- --base-url https://marathon.alfares.cz` passes through catalog, registration shell, checkout handoff, gift guard, step detail, assignment content, analytics, and RunLayer checks
 - [x] 2026-06-13 Full legacy import aggregate completion recorded: user-approved SpeakASAP migration completed with 13 marathons, 377 steps, 13 products, 13 gifts, 53,469 participants, 238,674 submissions, and 18,603 winners, with validation notes limited to aggregate counts and no participant rows, gift-code values, answer payloads, JWTs, payment secrets, or full assignment content
 - [x] 2026-06-13 Mutating production journey verified: a synthetic Auth user registered for Marathon, checkout created a payment attempt, Marathon webhook settlement unlocked VIP access, profile state changed to VIP, and assignment submit/readback passed; evidence is masked and excludes JWTs, webhook key, full IDs, gift codes, checkout URL, email, and report text
+- [x] 2026-06-13 Kubernetes Marathon data source accepted: live `statex-apps/db-server-postgres` database `marathon` is the only operational source of truth for continued Marathon work
+- [x] 2026-06-13 Imported course/content data accepted as sufficient for continuation: in-pod readiness reports 13 active marathons, 377 steps with approved assignment content, 13 VIP products, 15 gifts with 13 unused, 53,472 registered participants, and a queryable payment ledger; read-only public journey smoke passes

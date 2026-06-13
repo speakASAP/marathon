@@ -9,7 +9,7 @@
   "tasks_failed_last_cycle": 0,
   "open_task_ids": [],
   "last_milestone": "post-marathon-nps-production-create-update-verified-2026-06-13",
-  "next_focus": "Production is technically available. TASK-MAR-005 is complete: the guarded smoke runner verified finished-participant NPS create and update on one synthetic participant while analytics, public winners, and notifications remained clean. Continue read-only readiness/journey monitoring and avoid mutating smoke unless a specific launch-risk proof is needed.",
+  "next_focus": "Production is technically available. Kubernetes/shared PostgreSQL database `marathon` is the operational source of truth; imported Marathon catalog, steps, participants, submissions, winners, payments, and NPS evidence are sufficient to continue product work. Continue read-only readiness/journey monitoring and avoid mutating smoke unless a specific launch-risk proof is needed.",
   "blockers": [],
   "follow_ups": [
     "Use a unique image tag or no-cache build when deploying uncommitted remote changes; reusing the git short SHA tag can leave Kubernetes on stale image content."

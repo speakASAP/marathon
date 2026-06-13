@@ -65,9 +65,11 @@ Catalog approval packet addendum, 2026-06-12: `scripts/load-marathon-catalog.js`
 
 Landing asset addendum, 2026-06-12: legacy landing section CSS no longer points at missing `/img/landing/adv_1.png` through `/img/landing/adv_6.png` or `/img/landing/support.png`. It reuses existing public assets (`talk`, `grammar`, `materials`, `result`, `start`, `finish`, and `mail`) and journey smoke checks the built CSS for those resolved references.
 
+Production data source addendum, 2026-06-13: the Kubernetes/shared PostgreSQL database `marathon` behind `statex-apps/db-server-postgres` is the only operational Marathon data source for launch and follow-up work. Current in-pod readiness and public journey smoke both pass against Kubernetes data: 13 active marathons, 377 imported steps with approved assignment content, 13 VIP products, 15 gifts with 13 unused, 53,472 registered participants, 238,675 step submissions, 18,603 winners, and payment/NPS smoke evidence. This is sufficient to continue Marathon product work from the live Kubernetes database.
+
 ## Known Issues
 <!-- AI-maintained -->
-- P2: New winner creation from a fresh participant remains a follow-up verification item if the owner wants a controlled finalist-creation smoke; current public winners endpoint and legacy winner aggregate import pass, and T4 registration/VIP/assignment flow is verified.
+- None currently blocking Marathon continuation. Use Kubernetes/shared PostgreSQL `marathon` as the source of truth; continue with product/front-end work and read-only readiness/journey monitoring unless a specific launch-risk proof requires another controlled mutating smoke.
 
 ## Ops
 
