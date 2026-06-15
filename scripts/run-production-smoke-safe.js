@@ -138,15 +138,34 @@ async function verifyPaymentUnlock(token, marathon) {
   if (checkout?.status !== "checkout_created" || !checkout?.orderId) {
     throw new Error("VIP checkout did not create a payment order");
   }
+  const paymentId = checkout?.payment?.data?.paymentId || checkout?.payment?.paymentId;
+  if (!paymentId) {
+    throw new Error("VIP checkout did not return paymentId for callback reconciliation");
+  }
+  const checkoutAttempt = await prisma.marathonPaymentAttempt.findUnique({
+    where: { orderId: checkout.orderId },
+    select: { paymentMethod: true, productId: true },
+  });
+  if (!checkoutAttempt?.productId) {
+    throw new Error("payment attempt ledger did not include productId for callback reconciliation");
+  }
 
   const callback = await jsonFetch("/api/v1/payments/webhook", {
     method: "POST",
     label: "payment webhook settlement",
     headers: { "x-api-key": process.env.PAYMENT_WEBHOOK_API_KEY },
     body: JSON.stringify({
+      paymentId,
       orderId: checkout.orderId,
       status: "completed",
-      metadata: { marathonerId, participantId: marathonerId },
+      paymentMethod: checkoutAttempt.paymentMethod,
+      event: "completed",
+      metadata: {
+        marathonerId,
+        participantId: marathonerId,
+        marathonId: marathon.id,
+        productId: checkoutAttempt.productId,
+      },
     }),
   });
   if (callback?.status !== "vip_unlocked") {

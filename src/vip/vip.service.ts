@@ -23,7 +23,14 @@ type PaymentCallback = {
   status?: string;
   event?: string;
   paymentMethod?: string;
+  timestamp?: string;
   metadata?: Record<string, unknown>;
+};
+
+type CallbackAmountCurrency = {
+  amount: number;
+  currency: string;
+  source: 'callback' | 'payment_status';
 };
 
 const SUCCESS_STATUSES = new Set(['completed', 'complete', 'success', 'succeeded', 'paid']);
@@ -105,9 +112,7 @@ export class VipService {
     });
 
     const endpoint = `${this.paymentServiceUrl()}/payments/create`;
-    this.logger.log(
-      `marathon.checkout.requested orderId=${orderId} marathonerId=${participant.id} method=${paymentMethod} amount=${amount} currency=${currency}`,
-    );
+    this.logger.log(`Creating VIP checkout: marathonerId=${participant.id}, orderId=${orderId}, method=${paymentMethod}`);
 
     let response: Response;
     let responseBody: any = {};
@@ -123,12 +128,13 @@ export class VipService {
       });
       responseBody = await response.json().catch(() => ({}));
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`marathon.checkout.transport_failed orderId=${orderId} error=${message}`);
       await this.prisma.marathonPaymentAttempt.update({
         where: { orderId },
         data: {
-          checkoutResponse: { error: message },
+          checkoutResponse: {
+            status: 'request_failed',
+            errorType: error instanceof Error ? error.name : 'Error',
+          },
           status: 'checkout_failed',
         },
       });
@@ -136,14 +142,11 @@ export class VipService {
     }
 
     if (!response.ok) {
-      const paymentError = this.paymentErrorSummary(responseBody);
-      this.logger.error(
-        `marathon.checkout.rejected orderId=${orderId} paymentStatus=${response.status} paymentErrorCode=${paymentError.code || 'unknown'} paymentErrorMessage=${paymentError.message || 'unknown'}`,
-      );
+      this.logger.error(`Payment service rejected checkout: status=${response.status}, orderId=${orderId}`);
       await this.prisma.marathonPaymentAttempt.update({
         where: { orderId },
         data: {
-          checkoutResponse: responseBody,
+          checkoutResponse: this.summarizeCheckoutResponse(responseBody, response.status) as any,
           status: 'checkout_rejected',
         },
       });
@@ -157,13 +160,11 @@ export class VipService {
     await this.prisma.marathonPaymentAttempt.update({
       where: { orderId },
       data: {
-        checkoutResponse: responseBody,
+        checkoutResponse: this.summarizeCheckoutResponse(responseBody, response.status) as any,
         providerPaymentId: this.extractProviderPaymentId(responseBody),
         status: 'checkout_created',
       },
     });
-
-    this.logger.log(`marathon.checkout.created orderId=${orderId} marathonerId=${participant.id} hasRedirect=${Boolean(responseBody?.data?.redirectUrl || responseBody?.redirectUrl)}`);
 
     return {
       status: 'checkout_created',
@@ -185,6 +186,10 @@ export class VipService {
     }
 
     const participant = await this.findAndClaimParticipant(normalizedMarathonerId, userId);
+    if (!participant.active) {
+      throw new BadRequestException('Participant is not active');
+    }
+
     const gift = await this.prisma.marathonGift.findUnique({
       where: { code },
     });
@@ -250,20 +255,15 @@ export class VipService {
       throw new NotFoundException('Payment attempt not found');
     }
 
-    const marathonerId = this.extractMarathonerId(payload);
-    if (marathonerId && marathonerId !== attempt.participantId) {
-      throw new BadRequestException('Payment callback participant does not match checkout order');
-    }
-    this.validateCallbackProduct(payload, attempt.productId);
-    this.validateCallbackAmount(payload, Number(attempt.amount.toString()), attempt.currency);
     const providerPaymentId = this.extractProviderPaymentId(payload);
+    const callbackSummary = this.summarizeCallbackPayload(payload);
 
     if (!SUCCESS_STATUSES.has(status) && !SUCCESS_STATUSES.has(event)) {
       await this.prisma.marathonPaymentAttempt.update({
         where: { orderId },
         data: {
-          callbackPayload: payload as any,
-          providerPaymentId: providerPaymentId || attempt.providerPaymentId,
+          callbackPayload: callbackSummary as any,
+          providerPaymentId: attempt.providerPaymentId || providerPaymentId,
           status: status || event || 'callback_ignored',
         },
       });
@@ -273,14 +273,25 @@ export class VipService {
       return { status: 'ignored', marathonerId: attempt.participantId, orderId };
     }
 
+    const marathonerId = this.requireCallbackMarathonerId(payload);
+    if (marathonerId !== attempt.participantId) {
+      throw new BadRequestException('Payment callback participant does not match checkout order');
+    }
+    this.validateRequiredCallbackProduct(payload, attempt.productId);
+    if (!providerPaymentId) {
+      throw new BadRequestException('Payment callback provider payment ID is required');
+    }
+    this.validateCallbackProviderPaymentId(providerPaymentId, attempt.providerPaymentId);
+    const callbackAmountCurrency = await this.resolveCallbackAmountCurrency(payload, providerPaymentId);
+    this.validateCallbackAmount(
+      callbackAmountCurrency.amount,
+      callbackAmountCurrency.currency,
+      Number(attempt.amount.toString()),
+      attempt.currency,
+    );
+    const confirmedCallbackSummary = this.summarizeCallbackPayload(payload, callbackAmountCurrency);
+
     if (attempt.status === 'confirmed') {
-      if (
-        providerPaymentId &&
-        attempt.providerPaymentId &&
-        providerPaymentId !== attempt.providerPaymentId
-      ) {
-        throw new BadRequestException('Payment callback provider payment ID does not match confirmed checkout order');
-      }
       return { status: 'vip_unlocked', marathonerId: attempt.participantId, orderId, idempotent: true };
     }
 
@@ -292,9 +303,9 @@ export class VipService {
       await tx.marathonPaymentAttempt.update({
         where: { orderId },
         data: {
-          callbackPayload: payload as any,
+          callbackPayload: confirmedCallbackSummary as any,
           confirmedAt: new Date(),
-          providerPaymentId: providerPaymentId || attempt.providerPaymentId,
+          providerPaymentId,
           status: 'confirmed',
         },
       });
@@ -373,17 +384,6 @@ export class VipService {
     };
   }
 
-  private paymentErrorSummary(responseBody: unknown): { code?: string; message?: string } {
-    if (!responseBody || typeof responseBody !== 'object') {
-      return {};
-    }
-    const body = responseBody as Record<string, any>;
-    const error = body.error && typeof body.error === 'object' ? body.error : body;
-    const code = typeof error.code === 'string' ? error.code : undefined;
-    const message = typeof error.message === 'string' ? error.message : undefined;
-    return { code, message };
-  }
-
   private normalizePaymentMethod(method?: string): string {
     const value = (method || process.env.PAYMENT_DEFAULT_METHOD || 'stripe').toLowerCase();
     if (!PAYMENT_METHODS.has(value)) {
@@ -418,6 +418,17 @@ export class VipService {
     return match ? match[1] : null;
   }
 
+  private requireCallbackMarathonerId(payload: PaymentCallback): string {
+    const metadataId =
+      payload.metadata?.marathonerId ||
+      payload.metadata?.participantId ||
+      payload.metadata?.marathonParticipantId;
+    if (typeof metadataId === 'string' && metadataId.trim()) {
+      return metadataId.trim();
+    }
+    throw new BadRequestException('Payment callback participant is required');
+  }
+
   private extractProviderPaymentId(payload: unknown): string | null {
     if (!payload || typeof payload !== 'object') {
       return null;
@@ -433,23 +444,150 @@ export class VipService {
     return typeof value === 'string' && value.trim() ? value.trim() : null;
   }
 
-  private validateCallbackProduct(payload: PaymentCallback, expectedProductId: string): void {
+  private validateRequiredCallbackProduct(payload: PaymentCallback, expectedProductId: string): void {
     const productId = payload.metadata?.productId;
-    if (typeof productId === 'string' && productId.trim() && productId.trim() !== expectedProductId) {
+    if (typeof productId !== 'string' || !productId.trim()) {
+      throw new BadRequestException('Payment callback product is required');
+    }
+    if (productId.trim() !== expectedProductId) {
       throw new BadRequestException('Payment callback product does not match checkout order');
     }
   }
 
-  private validateCallbackAmount(payload: PaymentCallback, expectedAmount: number, expectedCurrency: string): void {
-    if (payload.amount != null) {
-      const amount = Number(payload.amount);
-      if (!Number.isFinite(amount) || amount !== expectedAmount) {
-        throw new BadRequestException('Payment callback amount does not match checkout order');
-      }
+  private validateCallbackProviderPaymentId(providerPaymentId: string, expectedProviderPaymentId: string | null): void {
+    if (expectedProviderPaymentId && providerPaymentId !== expectedProviderPaymentId) {
+      throw new BadRequestException('Payment callback provider payment ID does not match checkout order');
     }
-    if (payload.currency && payload.currency.toUpperCase() !== expectedCurrency.toUpperCase()) {
+  }
+
+  private validateCallbackAmount(
+    amount: number,
+    currency: string,
+    expectedAmount: number,
+    expectedCurrency: string,
+  ): void {
+    if (!Number.isFinite(amount) || amount !== expectedAmount) {
+      throw new BadRequestException('Payment callback amount does not match checkout order');
+    }
+    if (!currency || currency.toUpperCase() !== expectedCurrency.toUpperCase()) {
       throw new BadRequestException('Payment callback currency does not match checkout order');
     }
+  }
+
+  private async resolveCallbackAmountCurrency(
+    payload: PaymentCallback,
+    providerPaymentId: string,
+  ): Promise<CallbackAmountCurrency> {
+    if (payload.amount != null && payload.currency) {
+      return {
+        amount: Number(payload.amount),
+        currency: payload.currency,
+        source: 'callback',
+      };
+    }
+
+    const paymentStatus = await this.fetchPaymentStatus(providerPaymentId);
+    return {
+      amount: Number(paymentStatus.amount),
+      currency: paymentStatus.currency,
+      source: 'payment_status',
+    };
+  }
+
+  private async fetchPaymentStatus(paymentId: string): Promise<{ amount: number | string; currency: string }> {
+    const apiKey = process.env.PAYMENT_API_KEY;
+    if (!apiKey) {
+      throw new InternalServerErrorException('Payment API key is required for callback reconciliation');
+    }
+
+    const endpoint = `${this.paymentServiceUrl()}/payments/${encodeURIComponent(paymentId)}`;
+    let response: Response;
+    let body: any = {};
+    try {
+      response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'X-API-Key': apiKey,
+        },
+      });
+      body = await response.json().catch(() => ({}));
+    } catch (_error) {
+      throw new BadRequestException('Payment callback amount/currency could not be reconciled');
+    }
+
+    if (!response.ok) {
+      throw new BadRequestException('Payment callback amount/currency could not be reconciled');
+    }
+
+    const amount = body?.data?.amount;
+    const currency = body?.data?.currency;
+    if (amount == null || typeof currency !== 'string' || !currency.trim()) {
+      throw new BadRequestException('Payment status response is missing amount or currency');
+    }
+
+    return { amount, currency };
+  }
+
+  private summarizeCheckoutResponse(responseBody: unknown, httpStatus?: number): Record<string, unknown> {
+    const record = this.asRecord(responseBody);
+    const data = this.asRecord(record.data);
+    return this.compactRecord({
+      httpStatus,
+      success: typeof record.success === 'boolean' ? record.success : undefined,
+      paymentId: this.extractProviderPaymentId(responseBody),
+      status: this.stringField(data.status) || this.stringField(record.status),
+      hasRedirectUrl: Boolean(this.stringField(data.redirectUrl) || this.stringField(record.redirectUrl)),
+      expiresAt: this.stringField(data.expiresAt),
+      errorCode: this.stringField(this.asRecord(record.error).code),
+    });
+  }
+
+  private summarizeCallbackPayload(
+    payload: PaymentCallback,
+    amountCurrency?: CallbackAmountCurrency,
+  ): Record<string, unknown> {
+    const metadata = this.asRecord(payload.metadata);
+    return this.compactRecord({
+      orderId: payload.orderId?.trim(),
+      status: this.stringField(payload.status)?.toLowerCase(),
+      event: this.stringField(payload.event)?.toLowerCase(),
+      paymentMethod: this.stringField(payload.paymentMethod)?.toLowerCase(),
+      paymentId: this.extractProviderPaymentId(payload),
+      providerTransactionId: this.stringField(metadata.providerTransactionId),
+      timestamp: this.stringField(payload.timestamp),
+      amount: amountCurrency?.amount,
+      currency: amountCurrency?.currency,
+      amountCurrencySource: amountCurrency?.source,
+      metadata: this.compactRecord({
+        marathonerId: this.stringField(metadata.marathonerId),
+        participantId: this.stringField(metadata.participantId),
+        marathonParticipantId: this.stringField(metadata.marathonParticipantId),
+        marathonId: this.stringField(metadata.marathonId),
+        productId: this.stringField(metadata.productId),
+      }),
+    });
+  }
+
+  private asRecord(value: unknown): Record<string, any> {
+    return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
+  }
+
+  private stringField(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+  }
+
+  private compactRecord(record: Record<string, unknown>): Record<string, unknown> {
+    return Object.fromEntries(
+      Object.entries(record).filter(([, value]) => {
+        if (value == null) {
+          return false;
+        }
+        if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) {
+          return false;
+        }
+        return true;
+      }),
+    );
   }
 
   private paymentServiceUrl(): string {
