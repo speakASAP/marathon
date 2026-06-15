@@ -27,24 +27,23 @@ export class RunlayerService {
   async execute(request: RunlayerTaskRequest): Promise<RunlayerTaskResponse> {
     const type = request?.type || '';
     if (!SUPPORTED_TASK_TYPES.includes(type as (typeof SUPPORTED_TASK_TYPES)[number])) {
-      throw new BadRequestException(`Unsupported Marathon RunLayer task type: ${type || 'missing'}`);
+      throw new BadRequestException('Unsupported Marathon RunLayer task type');
     }
 
     if (type === 'marathon:readiness_report') {
-      return this.readinessReport(request);
+      return this.readinessReport();
     }
     if (type === 'marathon:analytics_summary') {
-      return this.analyticsSummary(request);
+      return this.analyticsSummary();
     }
-    return this.participantEngagementPlan(request);
+    return this.participantEngagementPlan();
   }
 
-  private async readinessReport(request: RunlayerTaskRequest): Promise<RunlayerTaskResponse> {
+  private async readinessReport(): Promise<RunlayerTaskResponse> {
     const readiness = await this.marathonsService.catalogReadiness();
     return {
       output_ref: {
         source: 'marathon',
-        task_id: request.task_id || null,
         task_type: 'marathon:readiness_report',
         generated_at: new Date().toISOString(),
         readiness,
@@ -55,12 +54,11 @@ export class RunlayerService {
     };
   }
 
-  private async analyticsSummary(request: RunlayerTaskRequest): Promise<RunlayerTaskResponse> {
+  private async analyticsSummary(): Promise<RunlayerTaskResponse> {
     const analytics = await this.marathonsService.analytics();
     return {
       output_ref: {
         source: 'marathon',
-        task_id: request.task_id || null,
         task_type: 'marathon:analytics_summary',
         generated_at: analytics.generatedAt,
         catalog: analytics.catalog,
@@ -75,7 +73,7 @@ export class RunlayerService {
     };
   }
 
-  private async participantEngagementPlan(request: RunlayerTaskRequest): Promise<RunlayerTaskResponse> {
+  private async participantEngagementPlan(): Promise<RunlayerTaskResponse> {
     const analytics = await this.marathonsService.analytics();
     const catalogReady = analytics.catalog.ready;
     this.logger.debug(`RunLayer engagement plan requested: catalogReady=${catalogReady}`);
@@ -83,7 +81,6 @@ export class RunlayerService {
     return {
       output_ref: {
         source: 'marathon',
-        task_id: request.task_id || null,
         task_type: 'marathon:participant_engagement_plan',
         generated_at: analytics.generatedAt,
         status: catalogReady ? 'ready_for_operator_review' : 'blocked_by_catalog_readiness',

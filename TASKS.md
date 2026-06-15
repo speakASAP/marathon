@@ -41,6 +41,7 @@
 
 ## Completed
 <!-- AI appends here. Never modifies previous entries. -->
+- [x] 2026-06-14 TASK-MAR-068 / PAR-006 closed: RunLayer task-id reflection hardening deployed to production image `localhost:5000/marathon:task-mar-068-runlayer-20260614`; read-only `npm run check:journey -- --base-url https://marathon.alfares.cz --json` passed health, frontend shell, catalog contract, aggregate analytics, RunLayer readiness/analytics/engagement output guards, auth guards, catalog readiness, language, step detail, assignment content, and confirmed mutating journey checks were skipped.
 - [x] 2026-06-12 Intent Preservation System documentation added: local constitution, vision, business case, domain glossary, system/subsystem docs, ADRs, feature/task chain, goal impact, execution plan, context package, coding prompt, validation report, invariants, audit checklist, and pre-coding/deployment gates
 - [x] 2026-04-05 Documentation standard applied
 - [x] 2026-04-29 Full documentation suite created: SPEC.md, PLAN.md, GOALS.md; SYSTEM.md and AGENTS.md enriched

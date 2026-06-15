@@ -181,6 +181,52 @@ function assertOk(response, label) {
   }
 }
 
+const AGGREGATE_ONLY_FORBIDDEN_FIELDS = new Set([
+  'answer',
+  'answers',
+  'authToken',
+  'authorization',
+  'card',
+  'checkoutUrl',
+  'checkout_url',
+  'comment',
+  'comments',
+  'email',
+  'giftCode',
+  'giftCodes',
+  'gift_code',
+  'gift_codes',
+  'jwt',
+  'password',
+  'paymentSecret',
+  'payment_secret',
+  'phone',
+  'reportText',
+  'report_text',
+  'submissionText',
+  'submission_text',
+  'token',
+]);
+
+function assertAggregateOnlyFields(value, label, path = '$') {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => assertAggregateOnlyFields(item, label, `${path}[${index}]`));
+    return;
+  }
+  if (!value || typeof value !== 'object') {
+    return;
+  }
+  for (const [key, nestedValue] of Object.entries(value)) {
+    if (AGGREGATE_ONLY_FORBIDDEN_FIELDS.has(key)) {
+      throw new Error(`${label} exposes participant-private or sensitive field ${path}.${key}.`);
+    }
+    if (path === '$.output_ref' && key === 'task_id') {
+      throw new Error(`${label} reflects request-controlled task_id in output_ref.`);
+    }
+    assertAggregateOnlyFields(nestedValue, label, `${path}.${key}`);
+  }
+}
+
 function getCheckoutRedirectUrl(body, baseUrl) {
   const rawUrl = body?.redirectUrl || body?.payment?.data?.redirectUrl || body?.payment?.redirectUrl;
   if (typeof rawUrl !== 'string' || !rawUrl.trim()) return '';
@@ -688,6 +734,7 @@ async function checkPublicRoutes(report, options) {
   ) {
     throw new Error('/api/v1/marathons/analytics did not return the expected aggregate dashboard shape.');
   }
+  assertAggregateOnlyFields(analytics.json, '/api/v1/marathons/analytics');
   addCheck(report, 'pass', 'analytics-dashboard', 'Marathon analytics endpoint returns aggregate registration, assignment, payment, and NPS metrics.');
 
   const runlayerReadiness = await requestJson(report, '/api/v1/tasks/execute', {
@@ -707,7 +754,29 @@ async function checkPublicRoutes(report, options) {
   ) {
     throw new Error('Marathon RunLayer readiness task did not return the expected output_ref shape.');
   }
+  assertAggregateOnlyFields(runlayerReadiness.json, 'marathon:readiness_report');
   addCheck(report, 'pass', 'runlayer-readiness-task', 'Marathon RunLayer readiness task returns safe output_ref readiness data.');
+
+  const runlayerAnalytics = await requestJson(report, '/api/v1/tasks/execute', {
+    method: 'POST',
+    body: JSON.stringify({
+      task_id: 'smoke-runlayer-analytics',
+      type: 'marathon:analytics_summary',
+      payload_ref: { smoke: true },
+      acceptance_criteria: ['returns aggregate analytics'],
+    }),
+  });
+  assertOk(runlayerAnalytics.response, '/api/v1/tasks/execute marathon:analytics_summary');
+  if (
+    runlayerAnalytics.json?.output_ref?.source !== 'marathon' ||
+    runlayerAnalytics.json?.output_ref?.task_type !== 'marathon:analytics_summary' ||
+    typeof runlayerAnalytics.json?.output_ref?.participants?.total !== 'number' ||
+    typeof runlayerAnalytics.json?.output_ref?.surveys?.npsScore !== 'number'
+  ) {
+    throw new Error('Marathon RunLayer analytics task did not return the expected aggregate output_ref shape.');
+  }
+  assertAggregateOnlyFields(runlayerAnalytics.json, 'marathon:analytics_summary');
+  addCheck(report, 'pass', 'runlayer-analytics-task', 'Marathon RunLayer analytics task returns aggregate dashboard data only.');
 
   const runlayerEngagement = await requestJson(report, '/api/v1/tasks/execute', {
     method: 'POST',
@@ -726,6 +795,7 @@ async function checkPublicRoutes(report, options) {
   ) {
     throw new Error('Marathon RunLayer engagement task did not return the expected aggregate-only output_ref shape.');
   }
+  assertAggregateOnlyFields(runlayerEngagement.json, 'marathon:participant_engagement_plan');
   addCheck(report, 'pass', 'runlayer-engagement-task', 'Marathon RunLayer engagement task returns aggregate-only task planning data.');
 
   await assertFrontendShell(
