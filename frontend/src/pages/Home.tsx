@@ -10,6 +10,7 @@ import {
   type PublicReview,
   type WinnerSummary,
 } from '../api/publicMarathon';
+import { formatLanguageLabel } from '../languages';
 import '../landing.css';
 
 function formatMissingGate(value: string): string {
@@ -188,7 +189,7 @@ export default function Home() {
           {loading && <span className="home-language-loading">Загрузка языков...</span>}
           {!loading && registrationOpen && featuredLanguages.map((language) => (
             <Link key={language.code} to={languagePath(language)} className="home-language-chip">
-              {language.name}
+              {formatLanguageLabel(language.code, language.name)}
             </Link>
           ))}
           {!loading && !registrationOpen && (

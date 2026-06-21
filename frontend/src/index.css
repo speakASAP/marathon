@@ -413,6 +413,200 @@ a:hover {
   margin-bottom: 1.5rem;
 }
 
+
+.profile-catalog-page {
+  min-height: 100vh;
+  background: #f3f6f8;
+}
+
+.profile-catalog-hero {
+  color: #fff;
+  background: linear-gradient(115deg, rgba(16, 24, 50, 0.92), rgba(32, 103, 130, 0.82)), url('/img/marathon/runners-start-finish.png') center/cover no-repeat;
+}
+
+.profile-catalog-hero-inner {
+  min-height: 360px;
+  display: grid;
+  align-content: start;
+  gap: 58px;
+  padding-top: 28px;
+  padding-bottom: 46px;
+}
+
+.profile-catalog-brand {
+  display: inline-flex;
+  flex-direction: column;
+  justify-self: start;
+  color: #fff;
+  text-decoration: none;
+  text-transform: uppercase;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.profile-catalog-brand span {
+  font-size: 1.45rem;
+}
+
+.profile-catalog-brand small {
+  font-size: 0.7rem;
+  text-transform: none;
+  opacity: 0.86;
+}
+
+.profile-catalog-copy {
+  max-width: 690px;
+}
+
+.profile-catalog-eyebrow,
+.profile-section-heading span {
+  display: inline-flex;
+  margin-bottom: 10px;
+  color: #1f9c71;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.profile-catalog-copy h1 {
+  margin: 0;
+  font-size: clamp(2.1rem, 5vw, 4.5rem);
+  line-height: 0.98;
+  max-width: 760px;
+}
+
+.profile-catalog-copy p {
+  max-width: 610px;
+  margin: 18px 0 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1.08rem;
+}
+
+.profile-catalog-main {
+  padding-top: 40px;
+  padding-bottom: 56px;
+}
+
+.profile-owned-section,
+.profile-public-section {
+  margin-top: 18px;
+}
+
+.profile-section-heading {
+  margin-bottom: 18px;
+}
+
+.profile-section-heading h2 {
+  margin: 0;
+  color: #101832;
+  font-size: 2rem;
+}
+
+.profile-catalog-note {
+  color: #5e6a80;
+  font-weight: 700;
+}
+
+.profile-language-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.profile-language-card {
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 170px 1fr;
+  border: 1px solid #dce6f2;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 16px 42px rgba(32, 52, 88, 0.08);
+}
+
+.profile-language-preview {
+  position: relative;
+  display: block;
+  color: #fff;
+  text-decoration: none;
+  background: #101832;
+}
+
+.profile-language-preview img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.profile-language-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.54));
+}
+
+.profile-language-preview span {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 16px;
+  z-index: 1;
+  color: #fff;
+  font-size: 1.35rem;
+  font-weight: 900;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+.profile-language-body {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 18px;
+}
+
+.profile-language-body h3 {
+  margin: 0;
+  color: #101832;
+  font-size: 1.12rem;
+}
+
+.profile-language-body p {
+  margin: 0;
+  color: #5e6a80;
+  line-height: 1.5;
+}
+
+.profile-language-start {
+  justify-self: start;
+  margin-top: 4px;
+  text-decoration: none;
+}
+
+@media (max-width: 900px) {
+  .profile-language-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .profile-catalog-hero-inner {
+    min-height: 330px;
+    gap: 42px;
+  }
+
+  .profile-language-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-language-card {
+    grid-template-rows: 190px 1fr;
+  }
+}
+
 /* Profile */
 .btn-profile-login {
   padding: 0.75rem 1.25rem;

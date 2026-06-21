@@ -36,7 +36,7 @@ export default function Layout() {
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [readinessError, setReadinessError] = useState('');
   const location = useLocation();
-  const bare = isLandingPath(location.pathname);
+  const bare = isLandingPath(location.pathname) || location.pathname === '/profile';
   const hideGlobalHeader = bare || location.pathname === '/';
   const registrationStatusUnavailable = Boolean(readinessError);
   const registrationClosed = !registrationStatusUnavailable && readiness?.registrationOpen !== true;

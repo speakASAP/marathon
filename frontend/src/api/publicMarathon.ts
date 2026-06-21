@@ -3,12 +3,15 @@ export interface MarathonSummary {
   languageCode: string;
   title: string;
   slug?: string;
+  active?: boolean;
+  coverImageUrl?: string;
   landingVideoUrl?: string;
 }
 
 export interface MarathonLanguage {
   code: string;
   name: string;
+  full_name?: string;
   url?: string;
 }
 
@@ -93,6 +96,14 @@ export async function fetchMarathonByLanguage(languageCode: string): Promise<Mar
 export async function fetchMarathonLanguages(): Promise<MarathonLanguage[]> {
   try {
     return asArray<MarathonLanguage>(await fetchJson<unknown>('/api/v1/marathons/languages'));
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchActiveMarathons(): Promise<MarathonSummary[]> {
+  try {
+    return asArray<MarathonSummary>(await fetchJson<unknown>('/api/v1/marathons?active=true'));
   } catch {
     return [];
   }

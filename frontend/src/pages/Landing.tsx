@@ -11,29 +11,9 @@ import {
   type MarathonSummary,
   type PublicReview,
 } from '../api/publicMarathon';
+import { formatLanguageLabel } from '../languages';
 import '../landing.css';
 
-const LANGUAGE_LABELS: Record<string, string> = {
-  de: 'Немецкий',
-  en: 'Английский',
-  es: 'Испанский',
-  fr: 'Французский',
-  it: 'Итальянский',
-  ru: 'Русский',
-  cz: 'Чешский',
-  cs: 'Чешский',
-  tr: 'Турецкий',
-  pt: 'Португальский',
-  nl: 'Нидерландский',
-  pl: 'Польский',
-  no: 'Норвежский',
-  nb: 'Норвежский',
-  nn: 'Норвежский',
-  se: 'Шведский',
-  sv: 'Шведский',
-  dk: 'Датский',
-  da: 'Датский',
-};
 
 const MARATHON_IMAGES = {
   hero: '/img/marathon/runners-start-finish.png',
@@ -42,7 +22,7 @@ const MARATHON_IMAGES = {
 };
 
 function formatLanguageName(marathon: MarathonSummary): string {
-  return LANGUAGE_LABELS[marathon.languageCode.toLowerCase()] || marathon.title || 'этот язык';
+  return formatLanguageLabel(marathon.languageCode, marathon.title);
 }
 
 function formatMissingGate(value: string): string {
@@ -233,7 +213,7 @@ export default function Landing() {
               {languages.length ? (
                 languages.map((language) => (
                   <option key={language.code} value={language.code}>
-                    {LANGUAGE_LABELS[language.code.toLowerCase()] || language.name}
+                    {formatLanguageLabel(language.code, language.name)}
                   </option>
                 ))
               ) : (
