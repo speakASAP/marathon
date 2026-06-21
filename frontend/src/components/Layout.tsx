@@ -2,9 +2,29 @@ import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { fetchCatalogReadiness, type CatalogReadiness } from '../api/publicMarathon';
 
+const LANDING_LANGUAGE_SLUGS = [
+  'english',
+  'german',
+  'spanish',
+  'french',
+  'italian',
+  'czech',
+  'turkish',
+  'portuguese',
+  'dutch',
+  'polish',
+  'norwegian',
+  'swedish',
+  'danish',
+];
+
 /** True when path renders Landing, whose nav and footer are inside the page. */
 function isLandingPath(pathname: string): boolean {
-  return pathname === '/' || pathname === '/landing' || /^\/[a-z]{2}\/$/.test(pathname);
+  const normalized = pathname.replace(/\/$/, '') || '/';
+  if (normalized === '/' || normalized === '/landing') return true;
+  if (/^\/[a-z]{2}$/.test(normalized)) return true;
+  if (/^\/marathon\/[^/]+$/.test(normalized)) return true;
+  return LANDING_LANGUAGE_SLUGS.includes(normalized.slice(1));
 }
 
 /**

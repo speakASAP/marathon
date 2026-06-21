@@ -20,6 +20,19 @@ const LANGUAGE_LABELS: Record<string, string> = {
   fr: 'Французский',
   it: 'Итальянский',
   ru: 'Русский',
+  cz: 'Чешский',
+  cs: 'Чешский',
+  tr: 'Турецкий',
+  pt: 'Португальский',
+  nl: 'Нидерландский',
+  pl: 'Польский',
+  no: 'Норвежский',
+  nb: 'Норвежский',
+  nn: 'Норвежский',
+  se: 'Шведский',
+  sv: 'Шведский',
+  dk: 'Датский',
+  da: 'Датский',
 };
 
 const MARATHON_IMAGES = {
@@ -29,7 +42,7 @@ const MARATHON_IMAGES = {
 };
 
 function formatLanguageName(marathon: MarathonSummary): string {
-  return marathon.title || LANGUAGE_LABELS[marathon.languageCode.toLowerCase()] || 'этот язык';
+  return LANGUAGE_LABELS[marathon.languageCode.toLowerCase()] || marathon.title || 'этот язык';
 }
 
 function formatMissingGate(value: string): string {
@@ -162,8 +175,7 @@ export default function Landing() {
   }
 
   const languageName = formatLanguageName(marathon);
-  const activeLanguage = languages.find((language) => language.code === marathon.languageCode);
-  const raceLanguageName = LANGUAGE_LABELS[marathon.languageCode.toLowerCase()] || activeLanguage?.name || languageName;
+  const raceLanguageName = formatLanguageName(marathon);
   const hasActiveMarathon = marathon.id !== 'fallback';
   const registrationOpen = hasActiveMarathon && readiness?.registrationOpen === true;
   const registrationStatusId = registrationOpen ? undefined : 'registration-status-note';
@@ -179,7 +191,7 @@ export default function Landing() {
   const heroIntro = registrationOpen
     ? 'Начните с первого дня, каждый день выполняйте одно языковое задание, следите за темпом в профиле и дойдите до финиша через 30 дней.'
     : 'Наглядный 30-дневный маршрут от старта до финиша: каждый день вы проходите один этап, выполняете задание и движетесь к результату.';
-  const registerTitle = registrationOpen ? `Старт your ${raceLanguageName} Marathon` : 'Регистрация скоро откроется';
+  const registerTitle = registrationOpen ? `Старт марафона: ${raceLanguageName}` : 'Регистрация скоро откроется';
   const missingLaunchGates = readiness?.missing ?? [];
   const faqItems = registrationOpen
     ? [
@@ -221,11 +233,11 @@ export default function Landing() {
               {languages.length ? (
                 languages.map((language) => (
                   <option key={language.code} value={language.code}>
-                    {language.name}
+                    {LANGUAGE_LABELS[language.code.toLowerCase()] || language.name}
                   </option>
                 ))
               ) : (
-                <option value={marathon.languageCode}>{activeLanguage?.name || languageName}</option>
+                <option value={marathon.languageCode}>{languageName}</option>
               )}
             </select>
           </label>
@@ -293,7 +305,7 @@ export default function Landing() {
             </p>
           </div>
           <div className="ml-how-grid">
-            <article><span>01</span><h3>Старт the run</h3><p>Выберите языковой марафон и войдите в маршрут с первого дня одним понятным действием.</p></article>
+            <article><span>01</span><h3>Старт маршрута</h3><p>Выберите языковой марафон и войдите в маршрут с первого дня одним понятным действием.</p></article>
             <article><span>02</span><h3>Выполняйте одно задание в день</h3><p>Каждый день вы открываете следующее задание, выполняете языковую работу и отправляете отчет.</p></article>
             <article><span>03</span><h3>Финиш на 30-й день</h3><p>Финишная линия - это завершенный маршрут: 30 дней видимого прогресса, а не расплывчатое обещание.</p></article>
           </div>
@@ -381,7 +393,7 @@ export default function Landing() {
             <img src={MARATHON_IMAGES.finish} alt="Участники празднуют финиш на 30-й день" loading="lazy" />
             <div>
               <h3>Старт. Движение. Финиш.</h3>
-              <p>Ежедневное заданиеs make the route measurable. The finish is not abstract: after 30 days, the participant can see the path they completed.</p>
+              <p>Ежедневные задания делают маршрут измеримым. Финиш не абстрактный: через 30 дней участник видит путь, который прошел.</p>
               <Link to="/winners" className="ml-primary-action">Посмотреть финалистов</Link>
             </div>
           </div>
