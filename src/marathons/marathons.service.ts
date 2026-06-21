@@ -153,9 +153,17 @@ export class MarathonsService {
   }
 
   async getByLanguage(languageCode: string): Promise<MarathonSummary | null> {
-    this.logger.debug(`Marathon requested (language=${languageCode})`);
+    const requestedLanguage = languageCode.trim().toLowerCase();
+    const resolvedLanguageCode = MARATHON_LANGUAGE_ALIASES[requestedLanguage] || requestedLanguage;
+    this.logger.debug(`Marathon requested (language=${languageCode}, resolved=${resolvedLanguageCode})`);
     const marathon = (await this.prisma.marathon.findFirst({
-      where: { languageCode, active: true },
+      where: {
+        active: true,
+        OR: [
+          { languageCode: resolvedLanguageCode },
+          { slug: requestedLanguage },
+        ],
+      },
       orderBy: { createdAt: 'desc' },
     })) as MarathonRecord | null;
     if (!marathon) {
@@ -190,10 +198,11 @@ export class MarathonsService {
         full_name: marathon.languageCode.toUpperCase(),
         small_icon: '',
       };
+      const publicSlug = MARATHON_LANGUAGE_PUBLIC_SLUGS[marathon.languageCode] || marathon.slug;
       const paymentUrl = marathon.product
         ? `${base}/marathon/${marathon.slug}/pay`
         : '';
-      const url = `${base}/marathon/${marathon.slug}`;
+      const url = `${base}/${publicSlug}`;
 
       return {
         id: marathon.id,
@@ -445,6 +454,38 @@ export class MarathonsService {
   }
 }
 
+const MARATHON_LANGUAGE_ALIASES: Record<string, string> = {
+  english: 'en',
+  german: 'de',
+  spanish: 'es',
+  french: 'fr',
+  italian: 'it',
+  czech: 'cz',
+  turkish: 'tr',
+  portuguese: 'pt',
+  dutch: 'nl',
+  polish: 'pl',
+  norwegian: 'no',
+  swedish: 'se',
+  danish: 'dk',
+};
+
+const MARATHON_LANGUAGE_PUBLIC_SLUGS: Record<string, string> = {
+  en: 'english',
+  de: 'german',
+  es: 'spanish',
+  fr: 'french',
+  it: 'italian',
+  cz: 'czech',
+  tr: 'turkish',
+  pt: 'portuguese',
+  nl: 'dutch',
+  pl: 'polish',
+  no: 'norwegian',
+  se: 'swedish',
+  dk: 'danish',
+};
+
 /** Legacy-parity language metadata (code -> name, full_name, small_icon). */
 const LANGUAGE_METADATA: Record<string, { name: string; full_name: string; small_icon: string }> = {
   en: { name: 'English', full_name: 'English', small_icon: '' },
@@ -456,10 +497,13 @@ const LANGUAGE_METADATA: Record<string, { name: string; full_name: string; small
   pl: { name: 'Polski', full_name: 'Polish', small_icon: '' },
   ru: { name: 'Русский', full_name: 'Russian', small_icon: '' },
   uk: { name: 'Українська', full_name: 'Ukrainian', small_icon: '' },
+  cz: { name: 'Čeština', full_name: 'Czech', small_icon: '' },
   cs: { name: 'Čeština', full_name: 'Czech', small_icon: '' },
   sk: { name: 'Slovenčina', full_name: 'Slovak', small_icon: '' },
   nl: { name: 'Nederlands', full_name: 'Dutch', small_icon: '' },
+  dk: { name: 'Dansk', full_name: 'Danish', small_icon: '' },
   da: { name: 'Dansk', full_name: 'Danish', small_icon: '' },
+  se: { name: 'Svenska', full_name: 'Swedish', small_icon: '' },
   sv: { name: 'Svenska', full_name: 'Swedish', small_icon: '' },
   no: { name: 'Norsk', full_name: 'Norwegian', small_icon: '' },
   tr: { name: 'Türkçe', full_name: 'Turkish', small_icon: '' },
