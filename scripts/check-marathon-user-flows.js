@@ -6,6 +6,8 @@
  * 1. A visitor traverses every public page and user-entry route.
  * 2. A new participant chooses a language/marathon and attempts registration.
  * 3. A registered participant reaches the VIP checkout boundary.
+ * 4. Payment return URLs land back on the Marathon dashboard.
+ * 5. The dashboard exposes post-payment actions: current assignment, report, and feedback.
  *
  * The script never submits a real card/payment. Authenticated checkout creation
  * runs only when MARATHON_SMOKE_AUTH_TOKEN or --auth-token is supplied.
@@ -160,6 +162,14 @@ async function assertFrontendRoute(report, path) {
   assertShell(html, path);
 }
 
+function assertBundleMarkerGroups(bundle, groups, label) {
+  for (const markers of groups) {
+    if (!markers.some((marker) => bundle.includes(marker))) {
+      throw new Error(`${label} is missing marker group: ${markers.join(' | ')}`);
+    }
+  }
+}
+
 function getCheckoutRedirectUrl(body, baseUrl) {
   const rawUrl = body?.redirectUrl || body?.payment?.data?.redirectUrl || body?.payment?.redirectUrl;
   if (typeof rawUrl !== 'string' || !rawUrl.trim()) return '';
@@ -238,14 +248,10 @@ async function checkVisitorTraversal(report, options) {
     ['/profile'],
     ['/support'],
   ];
-  for (const markers of markerGroups) {
-    if (!markers.some((marker) => bundle.includes(marker))) {
-      throw new Error(`Frontend bundle is missing visitor navigation/action marker group: ${markers.join(' | ')}`);
-    }
-  }
+  assertBundleMarkerGroups(bundle, markerGroups, 'Frontend bundle visitor navigation/action contract');
   addCheck(report, 'pass', 'visitor-navigation-actions', 'Primary visitor navigation and CTA markers are present in the frontend bundle.');
 
-  return { selectedLanguage, activeMarathon: marathon.response.ok ? marathon.json : null };
+  return { selectedLanguage, activeMarathon: marathon.response.ok ? marathon.json : null, bundle };
 }
 
 async function checkRegistrationAttempt(report, options, traversalContext) {
@@ -290,15 +296,82 @@ async function checkRegistrationAttempt(report, options, traversalContext) {
   if (!registration.json?.marathonerId) {
     throw new Error('Registration did not return marathonerId.');
   }
+  const profilePath = `/profile/${encodeURIComponent(registration.json.marathonerId)}`;
   report.context.registration = {
     email: mask(email),
     marathonerId: mask(registration.json.marathonerId),
     userBound: registration.json.userBound === true,
     hasRedirectUrl: typeof registration.json.redirectUrl === 'string' && registration.json.redirectUrl.length > 0,
+    profilePath,
   };
-  await assertFrontendRoute(report, `/profile/${encodeURIComponent(registration.json.marathonerId)}`);
+  await assertFrontendRoute(report, profilePath);
+  await assertFrontendRoute(report, `${profilePath}?payment=success`);
+  await assertFrontendRoute(report, `${profilePath}?payment=cancelled`);
   addCheck(report, 'pass', 'new-user-registration', 'New user can choose language/marathon, submit registration, and reach the profile handoff route.');
+  addCheck(report, 'pass', 'payment-return-routes', 'Payment success and cancellation return URLs serve the same Marathon profile dashboard route.');
   return registration.json.marathonerId;
+}
+
+function checkDashboardBundleContract(report, bundle) {
+  const markerGroups = [
+    ['Payment confirmation is processing'],
+    ['VIP access is active'],
+    ['Payment was cancelled'],
+    ['Refresh status'],
+    ['VIP access required'],
+    ['Pay with'],
+    ['PayPal'],
+    ['Mastercard'],
+    ['Bank transfer'],
+    ['Gift code'],
+    ['Progress report'],
+    ['Generate report'],
+    ['Current step', 'Текущий этап'],
+    ['Open assignment', 'Открыть задание', 'Открыть'],
+    ['Marathon feedback'],
+    ['Save feedback', 'Update feedback'],
+  ];
+  assertBundleMarkerGroups(bundle, markerGroups, 'Frontend bundle dashboard/payment contract');
+  addCheck(report, 'pass', 'dashboard-payment-action-markers', 'Dashboard bundle contains payment return, VIP checkout, current assignment, report, and feedback action markers.');
+}
+
+async function checkAuthenticatedDashboard(report, options, marathonerId) {
+  if (!options.authToken || !marathonerId) {
+    addCheck(report, 'pass', 'dashboard-authenticated-skipped', 'Authenticated dashboard API checks were skipped because no smoke auth token or registered participant was supplied.');
+    return;
+  }
+
+  const profile = await requestJson(report, `/api/v1/me/marathons/${encodeURIComponent(marathonerId)}`, {
+    authToken: options.authToken,
+  });
+  assertOk(profile.response, 'GET /api/v1/me/marathons/:marathonerId');
+  if (!profile.json?.id || profile.json.id !== marathonerId) {
+    throw new Error('Authenticated dashboard did not return the registered participant profile.');
+  }
+  if (!Array.isArray(profile.json.answers)) {
+    throw new Error('Authenticated dashboard response did not include assignment state.');
+  }
+
+  report.context.dashboard = {
+    type: profile.json.type || '',
+    needsPayment: Boolean(profile.json.needs_payment),
+    hasCurrentStep: Boolean(profile.json.current_step?.stepId),
+    assignmentCount: profile.json.answers.length,
+    finished: Boolean(profile.json.finished_at),
+  };
+
+  if (profile.json.current_step?.stepId) {
+    await assertFrontendRoute(report, `/steps/${encodeURIComponent(profile.json.current_step.stepId)}?marathonerId=${encodeURIComponent(marathonerId)}`);
+  }
+
+  const reportResponse = await requestJson(report, `/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/progress-report`, {
+    authToken: options.authToken,
+  });
+  assertOk(reportResponse.response, 'GET /api/v1/me/marathons/:marathonerId/progress-report');
+  if (!reportResponse.json?.summary || !reportResponse.json?.access) {
+    throw new Error('Progress report did not include summary/access dashboard data.');
+  }
+  addCheck(report, 'pass', 'dashboard-post-payment-actions', 'Authenticated dashboard exposes assignment state, current-step route when available, and progress report actions after payment return.');
 }
 
 async function checkPaymentAttempt(report, options, marathonerId) {
@@ -339,12 +412,16 @@ async function checkPaymentAttempt(report, options, marathonerId) {
   if (!redirectUrl) {
     throw new Error('Checkout did not return a valid basket/payment redirect URL.');
   }
+  const redirect = new URL(redirectUrl);
+  if (redirect.host === new URL(report.baseUrl).host) {
+    throw new Error('Checkout redirect points back to Marathon instead of the payment provider.');
+  }
   report.context.checkout = {
     status: checkout.json.status,
     orderId: mask(checkout.json.orderId),
-    redirectHost: new URL(redirectUrl).host,
+    redirectHost: redirect.host,
   };
-  addCheck(report, 'pass', 'payment-checkout-basket', 'Registered authenticated participant can create checkout and receive a basket/payment redirect URL.');
+  addCheck(report, 'pass', 'payment-checkout-basket', 'Registered authenticated participant can create checkout and receive a basket/payment redirect URL outside Marathon.');
 }
 
 function printText(report) {
@@ -361,8 +438,10 @@ async function main() {
   const report = createReport(options);
   try {
     const traversalContext = await checkVisitorTraversal(report, options);
+    checkDashboardBundleContract(report, traversalContext.bundle);
     const marathonerId = await checkRegistrationAttempt(report, options, traversalContext);
     await checkPaymentAttempt(report, options, marathonerId);
+    await checkAuthenticatedDashboard(report, options, marathonerId);
   } catch (error) {
     addCheck(report, 'fail', 'user-flow-error', error.message || String(error));
   }
