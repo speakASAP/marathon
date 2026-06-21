@@ -433,54 +433,65 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('marathon_token') || !js.includes('next=') || !js.includes('/profile/')) {
     throw new Error('Built frontend bundle does not include token-aware registration profile handoff.');
   }
-  if (!js.includes('Registration session expired. Sign in again to bind this marathon to your profile') || !js.includes('Authorization')) {
+  if (
+    !js.includes('Registration session expired.') ||
+    !js.includes('Authorization') ||
+    !js.includes('marathon_token') ||
+    !js.includes('userBound') ||
+    !js.includes('tokenUsed')
+  ) {
     throw new Error('Built frontend bundle does not include authenticated registration binding guard.');
   }
-  if (!js.includes('Sign in to submit your report') || !js.includes('Open this assignment from your marathon profile')) {
+  if (
+    !js.includes('Marathon authentication is required.') ||
+    !js.includes('marathonerId') ||
+    !js.includes('/steps/') ||
+    !js.includes('Откройте это задание из профиля марафона перед отправкой отчета.')
+  ) {
     throw new Error('Built frontend bundle does not include assignment submit authentication guard.');
   }
-  if (!js.includes('Saved report status could not be loaded') || !js.includes('Submission is paused until this assignment status can be checked')) {
+  if (!js.includes('Статус сохраненного отчета не загрузился.') || !js.includes('Submission is paused until this assignment status can be checked')) {
     throw new Error('Built frontend bundle does not block assignment submission after saved-report status load failures.');
   }
-  if (!js.includes('Assignment content is not configured') || !js.includes('Submission is blocked until support adds approved assignment content')) {
+  if (!js.includes('Содержание задания не настроено') || !js.includes('Отправка заблокирована, пока поддержка не добавит утвержденное содержание для этого этапа.')) {
     throw new Error('Built frontend bundle does not block assignment submission when approved assignment content is missing.');
   }
-  if (!js.includes('#vip-access') || !js.includes('Opening checkout...')) {
+  if (!js.includes('#vip-access') || !js.includes('Открываем оплату...')) {
     throw new Error('Built frontend bundle does not include VIP checkout login return guard.');
   }
   if (
-    !js.includes('Checkout was created, but no valid payment redirect URL was returned') ||
-    !js.includes('Payment confirmation is processing') ||
-    !js.includes('VIP access is active') ||
-    !js.includes('Payment was cancelled')
+    !js.includes('Оплата создана, но корректная ссылка для перехода не вернулась.') ||
+    !js.includes('Подтверждение оплаты обрабатывается') ||
+    !js.includes('VIP-доступ активен') ||
+    !js.includes('Оплата отменена')
   ) {
     throw new Error('Built frontend bundle does not include VIP checkout redirect validation and payment return states.');
   }
-  if (!js.includes('Profile is temporarily unavailable') || !js.includes('Profile could not be loaded')) {
+  if (!js.includes('Профиль временно недоступен') || !js.includes('Профиль не загрузился.')) {
     throw new Error('Built frontend bundle does not include profile dashboard load-error state.');
   }
   if (
-    !js.includes('Registration is not open yet') ||
-    !js.includes('Checking registration status before showing registration actions') ||
+    !js.includes('Регистрация пока закрыта') ||
+    !js.includes('Загрузка списка марафонов') ||
     !js.includes('Статус регистрации')
   ) {
     throw new Error('Built frontend bundle does not include readiness-aware empty profile state.');
   }
-  if (!js.includes('Marathon profile is temporarily unavailable') || !js.includes('Marathon profile could not be loaded')) {
+  if (!js.includes('Профиль марафона временно недоступен') || !js.includes('Профиль марафона не загрузился.')) {
     throw new Error('Built frontend bundle does not include profile detail load-error state.');
   }
-  if (!js.includes('Assignment is temporarily unavailable') || !js.includes('Assignment could not be loaded')) {
+  if (!js.includes('Задание временно недоступно') || !js.includes('Задание не загрузилось.')) {
     throw new Error('Built frontend bundle does not include assignment step load-error state.');
   }
   if (!js.includes('Пока нет примеров отчетов') || !js.includes('Ваш собственный отчет можно отправить')) {
     throw new Error('Built frontend bundle does not include assignment peer-report empty state.');
   }
-  if (!js.includes('Marathon landing is temporarily unavailable') || !js.includes('Marathon landing could not be loaded')) {
+  if (!js.includes('Страница марафона временно недоступна') || !js.includes('Страница марафона не загрузилась.')) {
     throw new Error('Built frontend bundle does not include language landing load-error state.');
   }
   if (
-    !js.includes('Reviews will appear after the first Marathon launch') ||
-    !js.includes('Winner records and participant reviews are shown only after real participants complete')
+    !js.includes('Отзывы появятся после первого запуска марафона.') ||
+    !js.includes('Карточки финалистов и отзывы участников появятся после того, как реальные участники завершат')
   ) {
     throw new Error('Built frontend bundle does not include honest language landing review empty state.');
   }
@@ -493,21 +504,24 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   const hasOpenCatalogHowGate =
     (
       js.includes('How the Marathon works') ||
-      js.includes('How the 30-day Marathon works')
+      js.includes('How the 30-day Marathon works') ||
+      js.includes('Как работает 30-дневный марафон')
     ) &&
     (
       js.includes('Daily assignment') ||
-      js.includes('Register. Practice. Finish.')
+      js.includes('Register. Practice. Finish.') ||
+      js.includes('Выполняйте одно задание в день')
     ) &&
     (
       js.includes('Track progress') ||
-      js.includes('finish the full route in 30 days')
+      js.includes('finish the full route in 30 days') ||
+      js.includes('Финиш на 30-й день')
     );
   if (!hasClosedCatalogHowGate && !hasOpenCatalogHowGate) {
     throw new Error('Built frontend bundle does not include recognizable landing how-it-works state.');
   }
-  const hasClosedCatalogMissingGates = js.includes('Launch blockers') && js.includes('ml-missing-gates');
-  const hasOpenCatalogRegistration = (js.includes('Start your') || js.includes('Start my marathon')) && js.includes('Register for Marathon');
+  const hasClosedCatalogMissingGates = (js.includes('Launch blockers') || js.includes('Блокеры запуска')) && js.includes('ml-missing-gates');
+  const hasOpenCatalogRegistration = ((js.includes('Start your') || js.includes('Start my marathon')) && js.includes('Register for Marathon')) || (js.includes('Начать 30-дневный марафон') && js.includes('Старт марафона')) || (js.includes('Регистрация скоро откроется') && js.includes('Кнопка старта откроется после готовности'));
   if (!hasClosedCatalogMissingGates && !hasOpenCatalogRegistration) {
     throw new Error('Built frontend bundle does not include recognizable language landing registration state.');
   }
@@ -521,7 +535,10 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   const hasOpenCatalogProgram =
     js.includes('Use the assignment instructions shown in your profile') ||
     js.includes('Start now. Upgrade when the marathon gate opens') ||
-    js.includes('Choose a language, register, and continue through daily assignments');
+    js.includes('Choose a language, register, and continue through daily assignments') ||
+    js.includes('Ваш ежедневный план') ||
+    js.includes('Выполните одно задание') ||
+    js.includes('Прогресс сохранен');
   if (!hasClosedCatalogReadinessProgram && !hasOpenCatalogProgram) {
     throw new Error('Built frontend bundle does not include recognizable landing program/pricing state.');
   }
@@ -556,14 +573,18 @@ async function assertFrontendHandoffSource(report, rootHtml) {
     js.includes('Правила Marathon') &&
     js.includes('Финалисты Marathon');
   const hasLiveBranding =
-    js.includes('Register for Marathon') &&
-    js.includes('Secure Marathon registration') &&
     (
-      js.includes('Marathon language landing home') ||
-      js.includes('Language Marathon')
-    ) &&
+      js.includes('Register for Marathon') &&
+      js.includes('Secure Marathon registration') &&
+      (
+        js.includes('Marathon language landing home') ||
+        js.includes('Language Marathon')
+      )
+    ) ||
     (
-      js.includes('by SpeakASAP') ||
+      js.includes('Регистрация на марафон') &&
+      js.includes('Марафон от SpeakASAP') &&
+      js.includes('языковой марафон') &&
       js.includes('SpeakASAP')
     );
   if (!hasLegacyBranding && !hasLiveBranding) {
@@ -589,24 +610,24 @@ async function assertFrontendHandoffSource(report, rootHtml) {
     throw new Error('Built frontend bundle does not include winners page empty state.');
   }
   if (
-    !js.includes('Winner results are temporarily unavailable') ||
-    !js.includes('Winner profile is temporarily unavailable') ||
-    !js.includes('Support step is temporarily unavailable')
+    !js.includes('Результаты финалистов временно недоступны') ||
+    !js.includes('Профиль финалиста временно недоступен') ||
+    !js.includes('Этап поддержки временно недоступен')
   ) {
     throw new Error('Built frontend bundle does not include public winners/support-step load-error states.');
   }
-  if (!js.includes('Registration status is temporarily unavailable') || !js.includes('Registration status could not be loaded')) {
+  if (!js.includes('Статус регистрации временно недоступен') || !js.includes('Статус регистрации не загрузился.')) {
     throw new Error('Built frontend bundle does not include registration readiness load-error state.');
   }
-  if (!js.includes('Недостающие условия запуска') || !js.includes('Missing launch gates')) {
+  if (!js.includes('Недостающие условия запуска') || !js.includes('registration-missing-gates')) {
     throw new Error('Built frontend bundle does not include registration missing-launch-gates readiness detail.');
   }
   if (
-    !js.includes('Marathon support') ||
+    !js.includes('Поддержка марафона') ||
     !js.includes('support-public-status') ||
-    !js.includes('Profile and login') ||
-    !js.includes('VIP access') ||
-    !js.includes('Assignments')
+    !js.includes('Профиль и вход') ||
+    !js.includes('Продолжить участие') ||
+    !js.includes('Выполните задание')
   ) {
     throw new Error('Built frontend bundle does not include participant-safe public support content.');
   }
@@ -621,16 +642,16 @@ async function assertFrontendHandoffSource(report, rootHtml) {
       throw new Error(`Built frontend bundle exposes operator support marker: ${forbiddenSupportMarker}`);
     }
   }
-  if (!js.includes('Registration status unavailable. Open registration status page for details.') || !js.includes('registration-status-unavailable')) {
+  if (!js.includes('Статус регистрации недоступен. Откройте страницу регистрации для подробностей.') || !js.includes('registration-status-unavailable')) {
     throw new Error('Built frontend bundle does not include global navigation readiness-unavailable state.');
   }
-  if (!js.includes('nav-registration-link')) {
+  if (!js.includes('navbar-cta') || !js.includes('navbar-cta-closed')) {
     throw new Error('Built frontend bundle does not use readiness-aware registration label for global navigation.');
   }
-  if (!js.includes('/progress-report') || !js.includes('Progress report') || !js.includes('Download JSON')) {
+  if (!js.includes('/progress-report') || !js.includes('Прогресс report') || !js.includes('Скачать JSON')) {
     throw new Error('Built frontend bundle does not include participant progress report UI.');
   }
-  if (!js.includes('/nps') || !js.includes('Marathon feedback') || !js.includes('Save feedback')) {
+  if (!js.includes('/nps') || !js.includes('Отзыв о марафоне') || !js.includes('Сохранить отзыв')) {
     throw new Error('Built frontend bundle does not include post-marathon NPS feedback UI.');
   }
   addCheck(report, 'pass', 'registration-login-handoff', 'Registration frontend bundle routes new participants through token-aware profile login handoff.');
