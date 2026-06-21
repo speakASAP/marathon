@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   fetchCatalogReadiness,
   fetchMarathonLanguages,
+  getMarathonRegisterPath,
   type CatalogReadiness,
   type MarathonLanguage,
 } from '../api/publicMarathon';
@@ -100,7 +101,7 @@ export default function Register() {
       <ul className="register-lang-list">
         {visibleLanguages.map((lang) => (
           <li key={lang.code}>
-            <Link to={`/${lang.code}/#register`}>{lang.name}</Link>
+            <Link to={getMarathonRegisterPath(lang)}>{lang.name}</Link>
           </li>
         ))}
       </ul>

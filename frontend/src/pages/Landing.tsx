@@ -6,6 +6,7 @@ import {
   fetchMarathonByLanguage,
   fetchMarathonLanguages,
   fetchPublicReviews,
+  getMarathonRegisterPath,
   type CatalogReadiness,
   type MarathonLanguage,
   type MarathonSummary,
@@ -105,6 +106,21 @@ export default function Landing() {
   }, [marathon, readiness]);
 
   const featuredReviews = useMemo(() => reviews.slice(0, 3), [reviews]);
+
+  useEffect(() => {
+    if (loading || loadError || !marathon || window.location.hash !== "#register") return;
+    const id = window.setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [loading, loadError, marathon]);
+
+  const goToLanguageRegister = (languageCode: string) => {
+    const selectedLanguage = languages.find((language) => language.code === languageCode);
+    window.location.href = selectedLanguage
+      ? getMarathonRegisterPath(selectedLanguage)
+      : `/${encodeURIComponent(languageCode)}#register`;
+  };
 
   const scrollToForm = () => {
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -207,7 +223,7 @@ export default function Landing() {
             <select
               value={marathon.languageCode}
               onChange={(event) => {
-                window.location.href = `/${event.target.value}/`;
+                goToLanguageRegister(event.target.value);
               }}
             >
               {languages.length ? (

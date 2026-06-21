@@ -5,6 +5,7 @@ import {
   fetchMarathonLanguages,
   fetchPublicReviews,
   fetchWinnerSummaries,
+  getMarathonRegisterPath,
   type CatalogReadiness,
   type MarathonLanguage,
   type PublicReview,
@@ -18,10 +19,6 @@ function formatMissingGate(value: string): string {
     .split('-')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
-}
-
-function languagePath(language: MarathonLanguage): string {
-  return `/${encodeURIComponent(language.code)}/#register`;
 }
 
 /**
@@ -67,7 +64,7 @@ export default function Home() {
   const missingLaunchGates = readiness?.missing ?? [];
   const featuredLanguages = useMemo(() => languages.slice(0, 8), [languages]);
   const primaryLanguage = featuredLanguages[0];
-  const startPath = primaryLanguage ? languagePath(primaryLanguage) : '/register';
+  const startPath = primaryLanguage ? getMarathonRegisterPath(primaryLanguage) : '/register';
   const approvedSteps = readiness ? `${readiness.counts.stepsWithContent}/${readiness.counts.steps}` : '377/377';
   const heroTitle = registrationOpen
     ? 'Начните языковой марафон сегодня'
@@ -188,7 +185,7 @@ export default function Home() {
         <div className="home-language-rail">
           {loading && <span className="home-language-loading">Загрузка языков...</span>}
           {!loading && registrationOpen && featuredLanguages.map((language) => (
-            <Link key={language.code} to={languagePath(language)} className="home-language-chip">
+            <Link key={language.code} to={getMarathonRegisterPath(language)} className="home-language-chip">
               {formatLanguageLabel(language.code, language.name)}
             </Link>
           ))}

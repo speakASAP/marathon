@@ -82,6 +82,16 @@ function asArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? value as T[] : [];
 }
 
+export function getMarathonRegisterPath(language: MarathonLanguage): string {
+  const href = language.url || `/${language.code}`;
+  try {
+    const parsed = new URL(href, window.location.origin);
+    return `${parsed.pathname.replace(/\/$/, "") || "/"}#register`;
+  } catch {
+    return `/${encodeURIComponent(language.code)}#register`;
+  }
+}
+
 export async function fetchMarathonByLanguage(languageCode: string): Promise<MarathonSummary | null> {
   const response = await fetch(`/api/v1/marathons/by-language/${encodeURIComponent(languageCode)}`);
   if (response.status === 404) return null;
