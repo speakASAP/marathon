@@ -9,7 +9,7 @@
   "tasks_failed_last_cycle": 0,
   "open_task_ids": [],
   "last_milestone": "vip-checkout-auth-customer-verified-2026-06-13",
-  "next_focus": "Production launch data is sufficient and VIP checkout customer identity is fixed: phone-only Marathon participants use validated Auth token contact data for checkout, production-safe payment/gift/winner/NPS smoke passes, readiness and public journey are green, registration remains open, and TASK-MAR-064 audit:data-hygiene is deployed for non-blocking legacy data hygiene review.",
+  "next_focus": "Project completed/frozen: no active goals, plans, tasks, blockers, or human/AI actions pending as of 2026-06-21.",
   "blockers": [],
   "follow_ups": [
     "Use a unique image tag or no-cache build when deploying uncommitted remote changes; reusing the git short SHA tag can leave Kubernetes on stale image content.",
@@ -18,5 +18,9 @@
   "budget_units_used": 0,
   "metrics": {
     "custom": {}
-  }
+  },
+  "project_status": "completed_frozen",
+  "completed_at": "2026-06-21",
+  "frozen_at": "2026-06-21",
+  "updated_at": "2026-06-21"
 }
