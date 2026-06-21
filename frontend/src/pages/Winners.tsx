@@ -27,7 +27,7 @@ export default function Winners() {
         setLoading(false);
       })
       .catch(() => {
-        setLoadError('Winner results could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setLoadError('Результаты финалистов не загрузились. Обновите страницу или обратитесь в поддержку, если проблема повторится.');
         setLoading(false);
       });
   }, [page]);
@@ -42,14 +42,14 @@ export default function Winners() {
       {loading && items.length === 0 && <p>Загрузка…</p>}
       {hasLoadError && items.length === 0 && (
         <section className="profile-empty-panel" role="alert">
-          <h2>Winner results are temporarily unavailable</h2>
+          <h2>Результаты финалистов временно недоступны</h2>
           <p>{loadError}</p>
           <div className="profile-empty-actions">
             <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
-              Refresh
+              Обновить
             </button>
             <Link to="/support" className="btn-profile-login">
-              Contact support
+              Связаться с поддержкой
             </Link>
           </div>
         </section>
@@ -99,7 +99,7 @@ export default function Winners() {
       </div>
       {hasLoadError && items.length > 0 && (
         <section className="profile-empty-panel" role="alert">
-          <h2>More winner results could not be loaded</h2>
+          <h2>Дополнительные результаты финалистов не загрузились</h2>
           <p>{loadError}</p>
         </section>
       )}

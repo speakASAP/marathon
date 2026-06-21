@@ -24,7 +24,7 @@ export default function Layout() {
     ? 'Статус'
     : registrationClosed ? 'Скоро' : 'Регистрация';
   const navRegistrationTitle = registrationStatusUnavailable
-    ? 'Registration status unavailable. Open registration status page for details.'
+    ? 'Статус регистрации недоступен. Откройте страницу регистрации для подробностей.'
     : undefined;
 
   useEffect(() => {
@@ -42,9 +42,9 @@ export default function Layout() {
       {!hideGlobalHeader && (
       <header className="main-header" id="main-nav">
         <div className="container header-inner">
-          <Link to="/" className="navbar-brand" aria-label="Marathon home">
+          <Link to="/" className="navbar-brand" aria-label="Главная Marathon">
             Marathon
-            <span className="navbar-brand-provider">by SpeakASAP®</span>
+            <span className="navbar-brand-provider">от SpeakASAP®</span>
           </Link>
           <nav className={`main-nav-links ${menuOpen ? 'main-nav-links--open' : ''}`}>
             <Link to="/winners">Финалисты</Link>

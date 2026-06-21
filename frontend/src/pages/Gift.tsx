@@ -22,14 +22,14 @@ export default function Gift() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    document.title = 'Gift code — SpeakASAP Marathon';
+    document.title = 'Подарочный код — Marathon SpeakASAP';
     setMarathonerId(new URLSearchParams(window.location.search).get('marathonerId') || '');
     setReadinessError('');
     fetchCatalogReadiness()
       .then((data: CatalogReadiness | null) => setReadiness(data))
       .catch(() => {
         setReadiness(null);
-        setReadinessError('Gift redemption status could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setReadinessError('Статус подарочного кода не загрузился. Обновите страницу или обратитесь в поддержку, если проблема повторится.');
       })
       .finally(() => setReadinessLoading(false));
   }, []);
@@ -39,15 +39,15 @@ export default function Gift() {
     setMessage('');
     setError('');
     if (readinessError) {
-      setError('Gift redemption status is temporarily unavailable. Refresh this page before trying again.');
+      setError('Статус подарочного кода временно недоступен. Обновите страницу перед повторной попыткой.');
       return;
     }
     if (readiness?.giftReady === false) {
-      setError('Gift redemption is not available until an active marathon and unused gift codes are configured.');
+      setError('Подарочные коды будут доступны после настройки активного марафона и неиспользованных кодов.');
       return;
     }
     if (!marathonerId.trim()) {
-      setError('Open the gift form from your marathon profile so the participant ID is included.');
+      setError('Откройте форму подарочного кода из профиля марафона, чтобы передался ID участника.');
       return;
     }
     if (!getToken()) {
@@ -55,14 +55,14 @@ export default function Gift() {
       return;
     }
     if (!code.trim()) {
-      setError('Enter a gift code.');
+      setError('Введите подарочный код.');
       return;
     }
 
     setSubmitting(true);
     try {
       const body = await redeemGiftCode(marathonerId.trim(), code.trim());
-      setMessage('VIP access unlocked. Returning to your marathon profile...');
+      setMessage('VIP-доступ открыт. Возвращаем вас в профиль марафона...');
       window.setTimeout(() => {
         window.location.href = body.redirectUrl || `/profile/${encodeURIComponent(marathonerId.trim())}`;
       }, 800);
@@ -71,7 +71,7 @@ export default function Gift() {
         redirectToLogin(`/gift?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
         return;
       }
-      setError(err instanceof Error ? err.message : 'Gift redemption failed');
+      setError(err instanceof Error ? err.message : 'Не удалось применить подарочный код');
     } finally {
       setSubmitting(false);
     }
@@ -89,10 +89,10 @@ export default function Gift() {
   const redeemDisabled = submitting || readinessLoading || giftStatusUnavailable || !hasParticipantContext || needsLogin;
   const missingLaunchGates = readiness?.missing ?? [];
   const heroCopy = readinessLoading
-    ? 'Checking Marathon readiness before showing gift-code redemption.'
+    ? 'Проверяем готовность марафона перед показом формы подарочного кода.'
     : giftUnavailable
-      ? 'Gift redemption will open after an active marathon and approved unused gift codes are configured.'
-      : 'Gift codes unlock VIP participation without a payment after the marathon gate.';
+      ? 'Подарочные коды откроются после настройки активного марафона и утвержденных неиспользованных кодов.'
+      : 'Подарочные коды открывают VIP-участие без оплаты после VIP-этапа.';
 
   return (
     <div className="container page-static gift-page">
@@ -103,43 +103,43 @@ export default function Gift() {
       </nav>
       <section className="gift-hero">
         <div>
-          <h1>Gift code for VIP Marathon access</h1>
+          <h1>Подарочный код для VIP-доступа к марафону</h1>
           <p>{heroCopy}</p>
         </div>
         {readinessLoading ? (
           <div className="gift-card gift-card-readiness gift-card-loading" aria-live="polite">
-            <h2>Checking gift redemption status</h2>
-            <p>Gift-code entry stays hidden until the production catalog and gift inventory status are verified.</p>
+            <h2>Проверяем статус подарочного кода</h2>
+            <p>Поле подарочного кода скрыто до проверки production-каталога и списка подарочных кодов.</p>
           </div>
         ) : giftStatusUnavailable ? (
           <div className="gift-card gift-card-readiness" role="alert">
-            <h2>Gift redemption status is temporarily unavailable</h2>
+            <h2>Статус подарочного кода временно недоступен</h2>
             <p>{readinessError}</p>
             <div className="profile-empty-actions">
               <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
-                Refresh
+                Обновить
               </button>
               <Link to="/support" className="btn-profile-login">
-                Contact support
+                Связаться с поддержкой
               </Link>
             </div>
           </div>
         ) : giftUnavailable ? (
           <div className="gift-card gift-card-readiness" aria-live="polite">
-            <h2>Gift redemption is not ready</h2>
-            <p>No unused production gift codes are available for an active marathon.</p>
+            <h2>Подарочные коды еще не готовы</h2>
+            <p>Для активного марафона нет доступных неиспользованных production-кодов.</p>
             {readiness && (
               <dl className="gift-readiness-list">
-                <div><dt>Active marathons</dt><dd>{readiness.counts.activeMarathons}</dd></div>
-                <div><dt>Steps</dt><dd>{readiness.counts.steps ?? 0}</dd></div>
-                <div><dt>Steps with content</dt><dd>{readiness.counts.stepsWithContent ?? 0}</dd></div>
-                <div><dt>VIP products</dt><dd>{readiness.counts.products ?? 0}</dd></div>
-                <div><dt>Unused gift codes</dt><dd>{readiness.counts.unusedGifts}</dd></div>
+                <div><dt>Активные марафоны</dt><dd>{readiness.counts.activeMarathons}</dd></div>
+                <div><dt>Этапы</dt><dd>{readiness.counts.steps ?? 0}</dd></div>
+                <div><dt>Этапы with content</dt><dd>{readiness.counts.stepsWithContent ?? 0}</dd></div>
+                <div><dt>VIP-продукты</dt><dd>{readiness.counts.products ?? 0}</dd></div>
+                <div><dt>Неиспользованные подарочные коды</dt><dd>{readiness.counts.unusedGifts}</dd></div>
               </dl>
             )}
             {missingLaunchGates.length ? (
               <div className="gift-missing-gates" aria-label="Missing launch gates">
-                <strong>Gift launch blockers</strong>
+                <strong>Блокеры подарочных кодов</strong>
                 <div>
                   {missingLaunchGates.map((item) => (
                     <span key={item}>{formatMissingGate(item)}</span>
@@ -147,41 +147,41 @@ export default function Gift() {
                 </div>
               </div>
             ) : null}
-            <Link to="/support" className="btn-profile-login">Contact support</Link>
+            <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
           </div>
         ) : (
           <form className="gift-card" onSubmit={redeem}>
             {!hasParticipantContext && (
               <div className="gift-auth-panel" role="alert">
-                <strong>Open gift redemption from your marathon profile</strong>
-                <span>The profile link includes the participant ID needed to unlock VIP access on the correct marathon.</span>
-                <Link to="/profile" className="btn-profile-login">Open profile</Link>
+                <strong>Откройте подарочный код из профиля марафона</strong>
+                <span>Ссылка из профиля содержит ID участника, нужный для открытия VIP-доступа в правильном марафоне.</span>
+                <Link to="/profile" className="btn-profile-login">Открыть профиль</Link>
               </div>
             )}
             {needsLogin && (
               <div className="gift-auth-panel" role="alert">
-                <strong>Sign in to redeem a gift code</strong>
-                <span>Gift redemption requires your Marathon token and will return to this participant after portal login.</span>
-                <button type="button" className="btn-profile-login" onClick={openLogin}>Sign in</button>
+                <strong>Войдите, чтобы применить подарочный код</strong>
+                <span>Для подарочного кода нужен токен Marathon; после входа портал вернет вас к этому участнику.</span>
+                <button type="button" className="btn-profile-login" onClick={openLogin}>Войти</button>
               </div>
             )}
-            <label htmlFor="marathoner-id">Participant ID</label>
+            <label htmlFor="marathoner-id">ID участника</label>
             <input
               id="marathoner-id"
               value={marathonerId}
               onChange={(event) => setMarathonerId(event.target.value)}
-              placeholder="Participant ID"
+              placeholder="ID участника"
             />
-            <label htmlFor="gift-code">Gift code</label>
+            <label htmlFor="gift-code">Подарочный код</label>
             <input
               id="gift-code"
               value={code}
               onChange={(event) => setCode(event.target.value)}
-              placeholder="Enter gift code"
+              placeholder="Введите подарочный код"
               disabled={!hasParticipantContext || needsLogin}
             />
             <button type="submit" disabled={redeemDisabled}>
-              {submitting ? 'Redeeming...' : needsLogin ? 'Sign in required' : 'Redeem gift code'}
+              {submitting ? 'Применяем...' : needsLogin ? 'Войти required' : 'Применить подарочный код'}
             </button>
             {message && <p>{message}</p>}
             {error && <p className="ml-error">{error}</p>}
@@ -191,31 +191,31 @@ export default function Gift() {
       <section className="gift-next-steps">
         <article>
           <span>1</span>
-          <h2>{registrationClosed ? 'Wait for registration' : 'Register'}</h2>
+          <h2>{registrationClosed ? 'Дождитесь регистрации' : 'Регистрация'}</h2>
           <p>
             {registrationClosed
-              ? 'Approved marathon catalog data must be loaded before new participant records can be created.'
-              : 'Create your participant record and start the free marathon days.'}
+              ? 'Перед созданием новых участников должен быть загружен утвержденный каталог марафона.'
+              : 'Создайте запись участника и начните бесплатные дни марафона.'}
           </p>
         </article>
         <article>
           <span>2</span>
-          <h2>Open your profile</h2>
-          <p>Your assignments and VIP status appear in the marathon dashboard.</p>
+          <h2>Откройте профиль</h2>
+          <p>Задания и VIP-статус отображаются в панели марафона.</p>
         </article>
         <article>
           <span>3</span>
-          <h2>Unlock VIP</h2>
-          <p>Use checkout or a gift code once the VIP gate asks for access.</p>
+          <h2>Откройте VIP</h2>
+          <p>Используйте оплату или подарочный код, когда VIP-этап запросит доступ.</p>
         </article>
       </section>
       <div className="gift-actions">
         {registrationClosed ? (
-          <Link to="/support" className="btn-profile-open">Contact support</Link>
+          <Link to="/support" className="btn-profile-open">Связаться с поддержкой</Link>
         ) : (
           <>
-            <Link to="/register" className="btn-profile-open">Register</Link>
-            <Link to="/support" className="btn-profile-login">Contact support</Link>
+            <Link to="/register" className="btn-profile-open">Регистрация</Link>
+            <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
           </>
         )}
       </div>

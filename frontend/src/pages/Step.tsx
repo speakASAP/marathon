@@ -25,7 +25,7 @@ export default function Step() {
   const [randomAnswer, setRandomAnswer] = useState<RandomAnswer | null>(null);
   const [loadingRandom, setLoadingRandom] = useState(false);
   const [marathonerId, setMarathonerId] = useState('');
-  const [report, setReport] = useState('');
+  const [report, setОтчет] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const [submitError, setSubmitError] = useState('');
@@ -44,7 +44,7 @@ export default function Step() {
     setSavedSubmission(null);
     setSavedSubmissionError('');
     setSubmissionAuthRequired(false);
-    setReport('');
+    setОтчет('');
     setLoadingStep(true);
     fetchStepInfo(stepId)
       .then((data) => {
@@ -57,7 +57,7 @@ export default function Step() {
         setLoadingStep(false);
       })
       .catch(() => {
-        setStepLoadError('Assignment could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setStepLoadError('Задание не загрузилось. Обновите страницу или обратитесь в поддержку, если проблема повторится.');
         setLoadingStep(false);
       });
   }, [stepId]);
@@ -77,7 +77,7 @@ export default function Step() {
       .then((data) => {
         setSavedSubmission(data);
         if (data.exists && typeof data.report === 'string') {
-          setReport(data.report);
+          setОтчет(data.report);
         }
         setLoadingSavedSubmission(false);
       })
@@ -85,13 +85,13 @@ export default function Step() {
         if (error instanceof MarathonAuthRequiredError) {
           setSubmissionAuthRequired(true);
         } else {
-          setSavedSubmissionError('Saved report status could not be loaded.');
+          setSavedSubmissionError('Статус сохраненного отчета не загрузился.');
         }
         setLoadingSavedSubmission(false);
       });
   }, [stepId, marathonerId]);
 
-  const loadRandomReport = () => {
+  const loadRandomОтчет = () => {
     if (!stepId) return;
     setLoadingRandom(true);
     fetchRandomAnswer(stepId, marathonerId)
@@ -104,7 +104,7 @@ export default function Step() {
 
   useEffect(() => {
     if (tab === 'report' && stepId) {
-      loadRandomReport();
+      loadRandomОтчет();
     }
   }, [tab, stepId, marathonerId]);
 
@@ -112,13 +112,13 @@ export default function Step() {
     if (step) document.title = `${step.title} — Marathon`;
   }, [step]);
 
-  const submitReport = async (event: FormEvent) => {
+  const submitОтчет = async (event: FormEvent) => {
     event.preventDefault();
     setSubmitMessage('');
     setSubmitError('');
     if (!stepId) return;
     if (!marathonerId.trim()) {
-      setSubmitError('Open this assignment from your marathon profile before sending a report.');
+      setSubmitError('Откройте это задание из профиля марафона перед отправкой отчета.');
       return;
     }
     if (submissionAuthRequired || !getToken()) {
@@ -126,11 +126,11 @@ export default function Step() {
       return;
     }
     if (!assignmentContent) {
-      setSubmitError('Assignment content is not configured. Submission is blocked until support adds approved assignment content.');
+      setSubmitError('Содержание задания не настроено. Отправка заблокирована, пока поддержка не добавит утвержденное задание.');
       return;
     }
     if (!report.trim()) {
-      setSubmitError('Write your report before submitting.');
+      setSubmitError('Напишите отчет перед отправкой.');
       return;
     }
 
@@ -146,13 +146,13 @@ export default function Step() {
         bonus_left: typeof body.bonus_left === 'number' ? body.bonus_left : 0,
         updated_at: body.updated_at,
       });
-      setSubmitMessage(body.is_late ? 'Report saved. It was marked late and one bonus day was used.' : 'Report saved. Your progress is now recorded.');
+      setSubmitMessage(body.is_late ? 'Отчет сохранен. Он отмечен как поздний, использован один бонусный день.' : 'Отчет сохранен. Ваш прогресс записан.');
     } catch (error) {
       if (error instanceof MarathonAuthRequiredError) {
         redirectToLogin(`/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
         return;
       }
-      setSubmitError(error instanceof Error ? error.message : 'Submission failed');
+      setSubmitError(error instanceof Error ? error.message : 'Не удалось отправить отчет');
     } finally {
       setSubmitting(false);
     }
@@ -171,7 +171,7 @@ export default function Step() {
     || !hasParticipantContext
     || !assignmentContent
     || submitBlockedByStatusError;
-  const peerReportEmpty = tab === 'report' && !loadingRandom && !randomAnswer;
+  const peerОтчетEmpty = tab === 'report' && !loadingRandom && !randomAnswer;
 
   if (loadingStep && !step) {
     return (
@@ -189,15 +189,15 @@ export default function Step() {
           <span> · </span>
           <Link to="/profile">Мои марафоны</Link>
         </nav>
-        <h1>Assignment is temporarily unavailable</h1>
+        <h1>Задание временно недоступно</h1>
         <section className="profile-empty-panel" role="alert">
           <p>{stepLoadError}</p>
           <div className="profile-empty-actions">
             <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
-              Refresh
+              Обновить
             </button>
             <a className="btn-profile-login" href="mailto:support@speakasap.com">
-              Contact support
+              Связаться с поддержкой
             </a>
           </div>
         </section>
@@ -254,7 +254,7 @@ export default function Step() {
             <div className="step-assignment-content">{assignmentContent}</div>
           ) : (
             <div className="step-content-missing" role="alert">
-              Assignment content is not configured for this step. Contact support before submitting a report.
+              Содержание задания не настроено for this step. Связаться с поддержкой before submitting a report.
             </div>
           )}
           {step?.socialLink && (
@@ -268,8 +268,8 @@ export default function Step() {
       {tab === 'submit' && (
         <section className="step-submit">
           <h2>Мой отчет</h2>
-          <p className="step-report-note">Write what you completed for this assignment. The platform records your progress and updates bonus-day status automatically.</p>
-          {loadingSavedSubmission && <p className="step-report-note">Checking saved report status...</p>}
+          <p className="step-report-note">Напишите, что вы выполнили по этому заданию. Платформа запишет прогресс и автоматически обновит статус бонусных дней.</p>
+          {loadingSavedSubmission && <p className="step-report-note">Проверяем сохраненный отчет...</p>}
           {savedSubmissionError && (
             <p className="ml-error">
               {savedSubmissionError} Submission is paused until this assignment status can be checked.
@@ -277,28 +277,28 @@ export default function Step() {
           )}
           {!assignmentContent && (
             <div className="step-submit-auth-panel" role="alert">
-              <strong>Assignment content is not configured</strong>
-              <span>Submission is blocked until support adds approved assignment content for this step.</span>
-              <Link to="/support" className="btn-profile-login">Contact support</Link>
+              <strong>Содержание задания не настроено</strong>
+              <span>Отправка заблокирована, пока поддержка не добавит утвержденное содержание для этого этапа.</span>
+              <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
             </div>
           )}
           {!hasParticipantContext && (
             <div className="step-submit-auth-panel" role="alert">
-              <strong>Open this assignment from your marathon profile</strong>
-              <span>The profile link includes the participant ID needed to save your report to the right marathon.</span>
-              <Link to="/profile" className="btn-profile-login">Open profile</Link>
+              <strong>Откройте это задание из профиля марафона</strong>
+              <span>Ссылка из профиля содержит ID участника, нужный для сохранения отчета в правильном марафоне.</span>
+              <Link to="/profile" className="btn-profile-login">Открыть профиль</Link>
             </div>
           )}
           {hasParticipantContext && submissionAuthRequired && (
             <div className="step-submit-auth-panel" role="alert">
-              <strong>Sign in to submit your report</strong>
-              <span>Your report is saved only after the portal returns with a Marathon token for this participant.</span>
-              <button type="button" className="btn-profile-login" onClick={openLogin}>Sign in</button>
+              <strong>Войдите, чтобы отправить отчет</strong>
+              <span>Отчет сохранится только после возврата из портала с токеном Marathon для этого участника.</span>
+              <button type="button" className="btn-profile-login" onClick={openLogin}>Войти</button>
             </div>
           )}
           {savedSubmission?.exists && (
             <div className="step-saved-report" aria-live="polite">
-              <strong>{savedSubmission.state === 'completed' ? 'Saved report loaded' : 'Draft report loaded'}</strong>
+              <strong>{savedSubmission.state === 'completed' ? 'Сохраненный отчет загружен' : 'Черновик отчета загружен'}</strong>
               <span>
                 {savedSubmission.updated_at && `Updated ${new Date(savedSubmission.updated_at).toLocaleString('ru-RU')}. `}
                 Bonus days left: {savedSubmission.bonus_left}.
@@ -306,18 +306,18 @@ export default function Step() {
               </span>
             </div>
           )}
-          <form onSubmit={submitReport} className="step-submit-form">
-            <label htmlFor="step-report">Report</label>
+          <form onSubmit={submitОтчет} className="step-submit-form">
+            <label htmlFor="step-report">Отчет</label>
             <textarea
               id="step-report"
               value={report}
-              onChange={(event) => setReport(event.target.value)}
-              placeholder="Describe your answer, links, notes, or practice result..."
+              onChange={(event) => setОтчет(event.target.value)}
+              placeholder="Опишите ответ, ссылки, заметки или результат практики..."
               rows={8}
               disabled={!hasParticipantContext || submissionAuthRequired || submitBlockedByStatusError || !assignmentContent}
             />
             <button type="submit" className="btn-show-more" disabled={submitDisabled}>
-              {submitting ? 'Saving...' : submissionAuthRequired ? 'Sign in required' : 'Submit report'}
+              {submitting ? 'Сохранение...' : submissionAuthRequired ? 'Войти required' : 'Отправить отчет'}
             </button>
           </form>
           {submitMessage && <p className="step-submit-success">{submitMessage}</p>}
@@ -342,18 +342,18 @@ export default function Step() {
             </div>
           )}
           {!loadingRandom && randomAnswer && (
-            <button type="button" className="btn-show-more" onClick={loadRandomReport}>
+            <button type="button" className="btn-show-more" onClick={loadRandomОтчет}>
               Показать ещё
             </button>
           )}
-          {peerReportEmpty && (
+          {peerОтчетEmpty && (
             <div className="step-peer-empty" aria-live="polite">
               <strong>Пока нет примеров отчетов</strong>
               <span>
                 Когда участники сохранят первые отчеты по этому этапу, здесь появится случайный пример
                 для самопроверки. Ваш собственный отчет можно отправить во вкладке «Мой отчет».
               </span>
-              <button type="button" className="btn-show-more" onClick={loadRandomReport}>
+              <button type="button" className="btn-show-more" onClick={loadRandomОтчет}>
                 Проверить еще раз
               </button>
             </div>

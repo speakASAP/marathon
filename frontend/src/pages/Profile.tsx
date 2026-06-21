@@ -17,10 +17,10 @@ function getProgressPct(marathon: MyMarathonSummary) {
 }
 
 function getStatusLabel(marathon: MyMarathonSummary) {
-  if (marathon.needs_payment) return 'VIP required';
-  if (marathon.type === 'vip') return 'VIP active';
-  if (marathon.type === 'trial') return 'Trial';
-  return 'Active';
+  if (marathon.needs_payment) return 'Нужен VIP';
+  if (marathon.type === 'vip') return 'VIP активен';
+  if (marathon.type === 'trial') return 'Пробный';
+  return 'Активен';
 }
 
 /**
@@ -55,7 +55,7 @@ export default function Profile() {
           setLoading(false);
           return;
         }
-        setLoadError('Profile could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setLoadError('Профиль не загрузился. Обновите страницу или обратитесь в поддержку, если проблема повторится.');
         setLoading(false);
       });
   }, []);
@@ -67,7 +67,7 @@ export default function Profile() {
       .then((data: CatalogReadiness | null) => setReadiness(data))
       .catch(() => {
         setReadiness(null);
-        setReadinessError('Registration status could not be loaded.');
+        setReadinessError('Статус регистрации не загрузился.');
       })
       .finally(() => setReadinessLoading(false));
   }, []);
@@ -107,13 +107,13 @@ export default function Profile() {
         </nav>
         <h1>Мои марафоны</h1>
         <section className="profile-empty-panel" role="alert">
-          <h2>Profile is temporarily unavailable</h2>
-          <p>{loadError || 'The marathon profile service did not return a usable response.'}</p>
+          <h2>Профиль временно недоступен</h2>
+          <p>{loadError || 'Сервис профиля марафона не вернул корректный ответ.'}</p>
           <div className="profile-payment-actions">
             <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
-              Refresh
+              Обновить
             </button>
-            <Link to="/support" className="btn-profile-login">Contact support</Link>
+            <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
           </div>
         </section>
       </div>
@@ -130,13 +130,13 @@ export default function Profile() {
         <section className="profile-empty-panel">
           <h2>У вас пока нет марафонов</h2>
           {readinessLoading ? (
-            <p>Checking registration status before showing registration actions.</p>
+            <p>Проверяем статус регистрации перед показом действий.</p>
           ) : registrationOpen ? (
-            <p>Registration is open. After you start a marathon, progress, the current assignment, and VIP status appear here.</p>
+            <p>Регистрация открыта. После старта марафона здесь появятся прогресс, текущее задание и VIP-статус.</p>
           ) : registrationStatusKnown ? (
-            <p>Registration is not open yet. Approved marathon catalog, assignments, VIP product, and gift inventory must be loaded before a new marathon can appear here.</p>
+            <p>Регистрация еще не открыта. Чтобы здесь появился новый марафон, нужно загрузить утвержденный каталог, задания, VIP-продукт и подарочные коды.</p>
           ) : (
-            <p>{readinessError} Open the registration status page or contact support before trying to start a marathon.</p>
+            <p>{readinessError} Откройте страницу статуса регистрации или обратитесь в поддержку перед стартом марафона.</p>
           )}
           <div className="profile-empty-actions">
             <Link to="/register" className="btn-profile-login">
@@ -175,7 +175,7 @@ export default function Profile() {
                 <div className="profile-marathon-card-side">
                   <span>Бонусные дни</span>
                   <strong>{m.bonus_left}/{m.bonus_total}</strong>
-                  {m.needs_payment && <p>VIP gate is active.</p>}
+                  {m.needs_payment && <p>VIP-доступ требуется.</p>}
                   <Link to={`/profile/${m.id}`} className="btn-profile-open">
                     Открыть
                   </Link>

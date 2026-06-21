@@ -14,12 +14,12 @@ import {
 import '../landing.css';
 
 const LANGUAGE_LABELS: Record<string, string> = {
-  de: 'German',
-  en: 'English',
-  es: 'Spanish',
-  fr: 'French',
-  it: 'Italian',
-  ru: 'Russian',
+  de: 'Немецкий',
+  en: 'Английский',
+  es: 'Испанский',
+  fr: 'Французский',
+  it: 'Итальянский',
+  ru: 'Русский',
 };
 
 const MARATHON_IMAGES = {
@@ -29,7 +29,7 @@ const MARATHON_IMAGES = {
 };
 
 function formatLanguageName(marathon: MarathonSummary): string {
-  return marathon.title || LANGUAGE_LABELS[marathon.languageCode.toLowerCase()] || 'this language';
+  return marathon.title || LANGUAGE_LABELS[marathon.languageCode.toLowerCase()] || 'этот язык';
 }
 
 function formatMissingGate(value: string): string {
@@ -76,7 +76,7 @@ export default function Landing() {
         setLanguages([]);
         setReadiness(null);
         setReviews([]);
-        setLoadError('Marathon landing could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setLoadError('Страница марафона не загрузилась. Обновите страницу или обратитесь в поддержку, если проблема повторится.');
       })
       .finally(() => setLoading(false));
   }, [effectiveLangSlug]);
@@ -98,7 +98,7 @@ export default function Landing() {
     meta.setAttribute(
       'content',
       metaReady
-        ? `Join the ${langName} Marathon by SpeakASAP: approved assignments, profile progress tracking, and VIP access through the Marathon profile.`
+        ? `Join the ${langName} Marathon от SpeakASAP: approved assignments, profile progress tracking, and VIP access through the Marathon profile.`
         : `Registration for the ${langName} Marathon opens after approved catalog, assignment, VIP product, and gift data are loaded.`,
     );
 
@@ -125,7 +125,7 @@ export default function Landing() {
   if (loading) {
     return (
       <div className="marathon-loading">
-        <p>Loading marathon...</p>
+        <p>Загрузка марафона...</p>
       </div>
     );
   }
@@ -136,15 +136,15 @@ export default function Landing() {
         <nav className="page-nav">
           <Link to="/">Главная</Link>
         </nav>
-        <h1>Marathon landing is temporarily unavailable</h1>
+        <h1>Страница марафона временно недоступна</h1>
         <section className="profile-empty-panel" role="alert">
           <p>{loadError}</p>
           <div className="profile-empty-actions">
             <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
-              Refresh
+              Обновить
             </button>
             <Link to="/support" className="btn-profile-login">
-              Contact support
+              Связаться с поддержкой
             </Link>
           </div>
         </section>
@@ -155,8 +155,8 @@ export default function Landing() {
   if (!marathon) {
     return (
       <div className="container page-static">
-        <p>Marathon data is temporarily unavailable.</p>
-        <Link to="/support">Contact support</Link>
+        <p>Данные марафона временно недоступны.</p>
+        <Link to="/support">Связаться с поддержкой</Link>
       </div>
     );
   }
@@ -167,51 +167,51 @@ export default function Landing() {
   const hasActiveMarathon = marathon.id !== 'fallback';
   const registrationOpen = hasActiveMarathon && readiness?.registrationOpen === true;
   const registrationStatusId = registrationOpen ? undefined : 'registration-status-note';
-  const startCtaLabel = registrationOpen ? 'Start my marathon' : 'Registration opens soon';
-  const heroCtaLabel = registrationOpen ? 'Start my 30-day run' : 'See the 30-day route';
+  const startCtaLabel = registrationOpen ? 'Начать марафон' : 'Регистрация скоро откроется';
+  const heroCtaLabel = registrationOpen ? 'Начать 30-дневный марафон' : 'Посмотреть маршрут на 30 дней';
   const heroSecondary = registrationOpen
-    ? { to: '/profile', label: 'Open my marathon' }
-    : { to: '/support', label: 'Contact support' };
-  const pricingIntro = 'The marathon is built like a race: begin at the start line, keep moving through one daily assignment, and finish the full route on day 30.';
+    ? { to: '/profile', label: 'Открыть мой марафон' }
+    : { to: '/support', label: 'Связаться с поддержкой' };
+  const pricingIntro = 'Марафон устроен как забег: начните со старта, каждый день выполняйте одно задание и пройдите весь маршрут к 30-му дню.';
   const heroTitle = registrationOpen
-    ? `Run the ${raceLanguageName} Marathon for 30 days.`
-    : `The ${raceLanguageName} Marathon starts with momentum.`;
+    ? `Пройдите марафон ${raceLanguageName} за 30 дней.`
+    : `Марафон ${raceLanguageName} начинается с движения.`;
   const heroIntro = registrationOpen
-    ? 'Start at day 1, complete one focused language task every day, keep your pace in the profile, and cross the finish line after 30 days.'
-    : 'A visual 30-day race from start to finish: every day you run one step, complete one assignment, and keep moving until the final result.';
-  const registerTitle = registrationOpen ? `Start your ${raceLanguageName} Marathon` : 'Registration opens soon';
+    ? 'Начните с первого дня, каждый день выполняйте одно языковое задание, следите за темпом в профиле и дойдите до финиша через 30 дней.'
+    : 'Наглядный 30-дневный маршрут от старта до финиша: каждый день вы проходите один этап, выполняете задание и движетесь к результату.';
+  const registerTitle = registrationOpen ? `Старт your ${raceLanguageName} Marathon` : 'Регистрация скоро откроется';
   const missingLaunchGates = readiness?.missing ?? [];
   const faqItems = registrationOpen
     ? [
-      ['How much time do I need each day?', 'Use the assignment instructions shown in your profile for the current approved step.'],
-      ['Can I start for free?', 'Registration starts with the free Marathon path. VIP checkout appears from your profile when the gate requires it.'],
-      ['What happens after the VIP gate?', 'Free participants are asked to upgrade before post-gate assignments unlock.'],
-      ['How do assignments work?', 'Each approved task has instructions, report status, and progress state in your marathon profile.'],
+      ['Сколько времени нужно каждый день?', 'Следуйте инструкциям задания, которые показаны в профиле для текущего утвержденного этапа.'],
+      ['Можно начать бесплатно?', 'Регистрация начинается с бесплатного пути марафона. Оплата VIP появляется в профиле, когда этот доступ понадобится.'],
+      ['Что происходит после VIP-этапа?', 'Участникам бесплатного пути нужно перейти на VIP, чтобы открыть следующие задания.'],
+      ['Как работают задания?', 'У каждого утвержденного задания есть инструкции, статус отчета и прогресс в профиле марафона.'],
     ]
     : [
-      ['What is the marathon format?', 'You move through a 30-day route: start, daily assignment, progress check, VIP gate when required, and finish.'],
-      ['What happens every day?', 'Each day has one focused language task. You complete it, report progress, and continue to the next day.'],
-      ['Why is registration closed?', 'Registration opens after the approved active marathon, assignments, VIP product, and gift inventory are loaded.'],
-      ['Where can I see launch status?', 'Open Support for the operational runbook and readiness checks.'],
+      ['Как устроен марафон?', 'Вы проходите 30-дневный маршрут: старт, ежедневные задания, проверка прогресса, VIP-доступ при необходимости и финиш.'],
+      ['Что происходит каждый день?', 'Каждый день есть одно языковое задание. Вы выполняете его, отправляете отчет и переходите к следующему дню.'],
+      ['Почему регистрация закрыта?', 'Регистрация откроется после загрузки утвержденного активного марафона, заданий, VIP-продукта и подарочных кодов.'],
+      ['Где посмотреть статус запуска?', 'Откройте поддержку, чтобы посмотреть рабочие инструкции и проверки готовности.'],
     ];
 
   return (
     <div className="marathon-landing">
       <header className="ml-nav">
-        <Link to="/" className="ml-brand" aria-label="Marathon language landing home">
+        <Link to="/" className="ml-brand" aria-label="Главная страница языкового марафона">
           <span>Marathon</span>
-          <small>by SpeakASAP</small>
+          <small>от SpeakASAP</small>
         </Link>
-        <nav className="ml-nav-links" aria-label="Landing navigation">
-          <a href="#how">How it works</a>
-          <a href="#program">Program</a>
-          <a href="#pricing">Pricing</a>
-          <a href="#winners">Winners</a>
+        <nav className="ml-nav-links" aria-label="Навигация страницы марафона">
+          <a href="#how">Как это работает</a>
+          <a href="#program">Программа</a>
+          <a href="#pricing">Условия</a>
+          <a href="#winners">Финалисты</a>
           <a href="#faq">FAQ</a>
         </nav>
         <div className="ml-nav-actions">
           <label className="ml-language-select">
-            <span>Language</span>
+            <span>Язык</span>
             <select
               value={marathon.languageCode}
               onChange={(event) => {
@@ -229,7 +229,7 @@ export default function Landing() {
               )}
             </select>
           </label>
-          <Link to="/profile" className="ml-secondary-action">My marathon</Link>
+          <Link to="/profile" className="ml-secondary-action">Мой марафон</Link>
           <button
             type="button"
             className={`ml-primary-action${registrationOpen ? '' : ' is-closed'}`}
@@ -259,49 +259,49 @@ export default function Landing() {
             </div>
             {!registrationOpen && (
               <p className="ml-availability-note" id="registration-status-note">
-                Registration is not open yet, but the route is ready to preview: start, daily task, progress checkpoint, and finish.
+                Регистрация еще не открыта, но маршрут уже можно посмотреть: старт, ежедневное задание, контроль прогресса и финиш.
               </p>
             )}
             <dl className="ml-hero-points" aria-label="30-day Marathon highlights">
-              <div><dt>Day 1</dt><dd>start line</dd></div>
-              <div><dt>30</dt><dd>daily tasks</dd></div>
-              <div><dt>Finish</dt><dd>visible result</dd></div>
+              <div><dt>День 1</dt><dd>старт</dd></div>
+              <div><dt>30</dt><dd>ежедневных заданий</dd></div>
+              <div><dt>Финиш</dt><dd>видимый результат</dd></div>
             </dl>
           </div>
 
-          <div className="ml-race-hero" aria-label="Runners moving from start to finish">
-            <img src={MARATHON_IMAGES.hero} alt="Runners starting a marathon route with day markers from day 1 to day 30" />
+          <div className="ml-race-hero" aria-label="Участники движутся от старта к финишу">
+            <img src={MARATHON_IMAGES.hero} alt="Участники начинают маршрут марафона с отметками дней от 1 до 30" />
             <div className="ml-race-card">
-              <strong>30-day route</strong>
-              <span>Start</span>
-              <span>Daily task</span>
-              <span>Checkpoint</span>
-              <span>Finish</span>
+              <strong>Маршрут на 30 дней</strong>
+              <span>Старт</span>
+              <span>Ежедневное задание</span>
+              <span>Контрольная точка</span>
+              <span>Финиш</span>
             </div>
             <div className="ml-race-status">
-              <span>{registrationOpen ? 'Registration open' : 'Registration opens soon'}</span>
-              <strong>{registrationOpen ? 'Run today' : 'Route preview'}</strong>
+              <span>{registrationOpen ? 'Регистрация открыта' : 'Регистрация скоро откроется'}</span>
+              <strong>{registrationOpen ? 'Начать сегодня' : 'Предпросмотр маршрута'}</strong>
             </div>
           </div>
         </section>
 
         <section className="ml-how" id="how">
           <div className="ml-section-head">
-            <h2>How the 30-day Marathon works</h2>
+            <h2>Как работает 30-дневный марафон</h2>
             <p>
-              It is not just a page with lessons. It is a race rhythm: start strong, complete one language task every day, and finish the full route in 30 days.
+              Это не просто страница с уроками. Это ритм забега: уверенный старт, одно языковое задание каждый день и полный маршрут за 30 дней.
             </p>
           </div>
           <div className="ml-how-grid">
-            <article><span>01</span><h3>Start the run</h3><p>Choose the language marathon and enter the route from day 1 with one clear action.</p></article>
-            <article><span>02</span><h3>Do one task daily</h3><p>Every day you open the next assignment, complete the language work, and submit your report.</p></article>
-            <article><span>03</span><h3>Finish day 30</h3><p>The finish line is the completed route: 30 days of visible progress, not a vague promise.</p></article>
+            <article><span>01</span><h3>Старт the run</h3><p>Выберите языковой марафон и войдите в маршрут с первого дня одним понятным действием.</p></article>
+            <article><span>02</span><h3>Выполняйте одно задание в день</h3><p>Каждый день вы открываете следующее задание, выполняете языковую работу и отправляете отчет.</p></article>
+            <article><span>03</span><h3>Финиш на 30-й день</h3><p>Финишная линия - это завершенный маршрут: 30 дней видимого прогресса, а не расплывчатое обещание.</p></article>
           </div>
         </section>
 
         <section className="ml-pricing" id="pricing">
           <div className="ml-section-head">
-            <h2>From start line to finish line</h2>
+            <h2>От старта до финиша</h2>
             <p>{pricingIntro}</p>
           </div>
           <div className="ml-race-route">
@@ -312,57 +312,57 @@ export default function Landing() {
               <span>30</span>
             </div>
             <article>
-              <h3>Start</h3>
-              <p>Registration puts you on the route. Your profile becomes the place where the next step opens.</p>
+              <h3>Старт</h3>
+              <p>Регистрация ставит вас на маршрут. Профиль становится местом, где открывается следующий этап.</p>
             </article>
             <article>
-              <h3>Daily pace</h3>
-              <p>One assignment per day keeps the work concrete: read, speak, write, report, continue.</p>
+              <h3>Ежедневный темп</h3>
+              <p>Одно задание в день делает работу конкретной: читать, говорить, писать, отчитаться и продолжить.</p>
             </article>
             <article>
-              <h3>Checkpoint</h3>
-              <p>Progress, VIP access, reports, and locked steps are handled from the live profile.</p>
+              <h3>Контрольная точка</h3>
+              <p>Прогресс, VIP-доступ, отчеты и закрытые этапы управляются из вашего профиля.</p>
             </article>
             <article>
-              <h3>Finish</h3>
-              <p>On day 30 the marathon has a clear end state: you completed the route and can see the result.</p>
+              <h3>Финиш</h3>
+              <p>На 30-й день у марафона есть ясный итог: маршрут пройден, результат виден.</p>
             </article>
           </div>
         </section>
 
         <section className="ml-workflow" id="program">
           <div className="ml-section-head">
-            <h2>Your daily race plan</h2>
+            <h2>Ваш ежедневный план</h2>
             <p>
-              The page should feel like movement because the product is movement: every day has a task, every task moves you closer to day 30.
+              Марафон построен как движение: каждый день есть задание, и каждое задание приближает вас к 30-му дню.
             </p>
           </div>
           <div className="ml-training-split">
-            <img src={MARATHON_IMAGES.dailyTask} alt="Marathon participants completing a daily task beside a running track" loading="lazy" />
+            <img src={MARATHON_IMAGES.dailyTask} alt="Участники марафона выполняют ежедневное задание рядом с беговой дорожкой" loading="lazy" />
             <div className="ml-day-row">
               <article className="ml-day-card state-done">
-                <span>Warm-up</span>
-                <h3>Open the day</h3>
-                <small>5 minutes</small>
-                <p>Enter your profile, check today&apos;s assignment, and see what must be finished before the next checkpoint.</p>
+                <span>Разминка</span>
+                <h3>Откройте день</h3>
+                <small>5 минут</small>
+                <p>Войдите в профиль, посмотрите сегодняшнее задание и что нужно закончить до следующей контрольной точки.</p>
               </article>
               <article className="ml-day-card state-start">
-                <span>Main run</span>
-                <h3>Complete one task</h3>
-                <small>Daily assignment</small>
-                <p>Do the focused language practice: speak, write, listen, or answer according to the current step.</p>
+                <span>Основной забег</span>
+                <h3>Выполните одно задание</h3>
+                <small>Ежедневное задание</small>
+                <p>Выполните языковую практику: говорите, пишите, слушайте или отвечайте согласно текущему этапу.</p>
               </article>
               <article className="ml-day-card state-finish">
-                <span>Cooldown</span>
-                <h3>Submit and continue</h3>
-                <small>Progress saved</small>
-                <p>Your report keeps the route moving. Tomorrow you return for the next day until the finish.</p>
+                <span>Завершение</span>
+                <h3>Отправьте и продолжайте</h3>
+                <small>Прогресс сохранен</small>
+                <p>Ваш отчет двигает маршрут дальше. Завтра вы вернетесь к следующему дню и так до финиша.</p>
               </article>
             </div>
           </div>
           {!registrationOpen && missingLaunchGates.length ? (
-            <div className="ml-missing-gates ml-workflow-gates" aria-label="Missing launch gates">
-              <strong>Launch blockers</strong>
+            <div className="ml-missing-gates ml-workflow-gates" aria-label="Недостающие условия запуска">
+              <strong>Блокеры запуска</strong>
               <div>
                 {missingLaunchGates.map((item) => (
                   <span key={item}>{formatMissingGate(item)}</span>
@@ -374,15 +374,15 @@ export default function Landing() {
 
         <section className="ml-proof" id="winners">
           <div className="ml-section-head">
-            <h2>Day 30 feels like a finish line</h2>
-            <p>The marathon is built around visible completion: people start together, keep pace, and finish stronger.</p>
+            <h2>30-й день ощущается как финиш</h2>
+            <p>Марафон построен вокруг видимого завершения: участники стартуют вместе, держат темп и приходят к финишу сильнее.</p>
           </div>
           <div className="ml-finish-visual">
-            <img src={MARATHON_IMAGES.finish} alt="Runners celebrating at the day 30 finish line" loading="lazy" />
+            <img src={MARATHON_IMAGES.finish} alt="Участники празднуют финиш на 30-й день" loading="lazy" />
             <div>
-              <h3>Start. Run. Finish.</h3>
-              <p>Daily assignments make the route measurable. The finish is not abstract: after 30 days, the participant can see the path they completed.</p>
-              <Link to="/winners" className="ml-primary-action">See winners</Link>
+              <h3>Старт. Движение. Финиш.</h3>
+              <p>Ежедневное заданиеs make the route measurable. The finish is not abstract: after 30 days, the participant can see the path they completed.</p>
+              <Link to="/winners" className="ml-primary-action">Посмотреть финалистов</Link>
             </div>
           </div>
           <div className="ml-review-grid">
@@ -394,21 +394,21 @@ export default function Landing() {
               </article>
             )) : (
               <article className="ml-review-empty" aria-live="polite">
-                <h3>Reviews will appear after the first Marathon launch.</h3>
+                <h3>Отзывы появятся после первого запуска марафона.</h3>
                 <p>
-                  Winner records and participant reviews are shown only after real participants complete
-                  approved production marathons.
+                  Карточки финалистов и отзывы участников появятся после того, как реальные участники завершат
+                  утвержденные production-марафоны.
                 </p>
-                <Link to="/support" className="ml-outline-action">Launch status</Link>
+                <Link to="/support" className="ml-outline-action">Статус запуска</Link>
               </article>
             )}
           </div>
-          <Link to="/winners" className="ml-text-link">See winners</Link>
+          <Link to="/winners" className="ml-text-link">Посмотреть финалистов</Link>
         </section>
 
         <section className="ml-faq" id="faq">
           <div>
-            <h2>Questions? We're here to help.</h2>
+            <h2>Есть вопросы? Мы поможем.</h2>
             <div className="ml-faq-list">
               {faqItems.map(([question, answer]) => (
                 <details key={question}>
@@ -419,9 +419,9 @@ export default function Landing() {
             </div>
           </div>
           <aside>
-            <h3>Still have questions?</h3>
-            <p>Support can help with registration, profile access, VIP state, and assignment questions.</p>
-            <Link to="/support" className="ml-outline-action">Contact support</Link>
+            <h3>Остались вопросы?</h3>
+            <p>Поддержка поможет с регистрацией, доступом к профилю, VIP-статусом и вопросами по заданиям.</p>
+            <Link to="/support" className="ml-outline-action">Связаться с поддержкой</Link>
           </aside>
         </section>
 
@@ -430,11 +430,11 @@ export default function Landing() {
             <h2>{registerTitle}</h2>
             <p>
               {registrationOpen
-                ? 'Register with your email. The platform creates your participant record and opens your day-1 route.'
-                : 'Registration will open when this language route is ready. The 30-day marathon structure is already visible above.'}
+                ? 'Зарегистрируйтесь по email. Платформа создаст запись участника и откроет маршрут первого дня.'
+                : 'Регистрация откроется, когда этот языковой маршрут будет готов. Структуру 30-дневного марафона уже видно выше.'}
             </p>
             {registeredId && (
-              <p className="ml-success">Registration received. Participant ID: {registeredId}</p>
+              <p className="ml-success">Регистрация получена. ID участника: {registeredId}</p>
             )}
             {formError && <p className="ml-error">{formError}</p>}
           </div>
@@ -447,11 +447,11 @@ export default function Landing() {
             />
           ) : (
             <div className="ml-registration-unavailable">
-              <h3>Registration is not open yet</h3>
-              <p>The start button will open after the approved route, daily assignments, VIP product, and gift codes are ready in production.</p>
+              <h3>Регистрация еще не открыта</h3>
+              <p>Кнопка старта откроется после готовности утвержденного маршрута, ежедневных заданий, VIP-продукта и подарочных кодов в production.</p>
               {missingLaunchGates.length ? (
-                <div className="ml-missing-gates" aria-label="Missing launch gates">
-                  <strong>Launch blockers</strong>
+                <div className="ml-missing-gates" aria-label="Недостающие условия запуска">
+                  <strong>Блокеры запуска</strong>
                   <div>
                     {missingLaunchGates.map((item) => (
                       <span key={item}>{formatMissingGate(item)}</span>
@@ -459,7 +459,7 @@ export default function Landing() {
                   </div>
                 </div>
               ) : null}
-              <Link to="/support" className="ml-outline-action">Contact support</Link>
+              <Link to="/support" className="ml-outline-action">Связаться с поддержкой</Link>
             </div>
           )}
         </section>
@@ -467,14 +467,14 @@ export default function Landing() {
 
       <footer className="ml-footer">
         <div>
-          <strong>Marathon <span>by SpeakASAP</span></strong>
+          <strong>Marathon <span>от SpeakASAP</span></strong>
           <p>Skopalikova 1144/11, 615 00 Brno, Czech Republic</p>
         </div>
-        <nav aria-label="Footer">
-          <Link to="/rules">Rules</Link>
+        <nav aria-label="Подвал">
+          <Link to="/rules">Правила</Link>
           <Link to="/faq">FAQ</Link>
-          <Link to="/support">Support</Link>
-          <Link to="/profile">My marathon</Link>
+          <Link to="/support">Поддержка</Link>
+          <Link to="/profile">Мой марафон</Link>
         </nav>
       </footer>
     </div>

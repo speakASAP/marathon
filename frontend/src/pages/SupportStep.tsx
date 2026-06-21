@@ -21,7 +21,7 @@ export default function SupportStep() {
         setLoading(false);
       })
       .catch(() => {
-        setLoadError('Support step content could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setLoadError('Содержание этапа поддержки не загрузилось. Обновите страницу или обратитесь в поддержку, если проблема повторится.');
         setLoading(false);
       });
   }, [stepId]);
@@ -40,14 +40,14 @@ export default function SupportStep() {
           <Link to="/support">Поддержка</Link>
         </nav>
         <section className="profile-empty-panel" role="alert">
-          <h1>Support step is temporarily unavailable</h1>
+          <h1>Этап поддержки временно недоступен</h1>
           <p>{loadError}</p>
           <div className="profile-empty-actions">
             <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
-              Refresh
+              Обновить
             </button>
             <Link to="/support" className="btn-profile-login">
-              Contact support
+              Связаться с поддержкой
             </Link>
           </div>
         </section>
@@ -77,12 +77,12 @@ export default function SupportStep() {
         <div className="step-assignment-content">{assignmentContent}</div>
       ) : (
         <div className="step-content-missing" role="alert">
-          Assignment content is not configured for this step.
+          Содержание задания для этого этапа не настроено.
         </div>
       )}
       {step.socialLink && (
         <a className="step-resource-link" href={step.socialLink} target="_blank" rel="noopener noreferrer">
-          Open supporting material
+          Открыть дополнительный материал
         </a>
       )}
     </div>

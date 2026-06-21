@@ -57,7 +57,7 @@ export default function RegistrationForm({
     } catch (err) {
       if (err instanceof MarathonRegistrationAuthExpiredError) {
         clearToken();
-        onError?.('Registration session expired. Sign in again to bind this marathon to your profile.');
+        onError?.('Сессия регистрации истекла. Войдите снова, чтобы привязать марафон к вашему профилю.');
         redirectToLogin(`/${languageCode}/#register`);
         return;
       }
@@ -69,7 +69,7 @@ export default function RegistrationForm({
 
   return (
     <form onSubmit={handleSubmit} className="landing-form">
-      <h4>Register for Marathon</h4>
+      <h4>Регистрация на марафон</h4>
       <p className="landing-form-marathon">{marathonTitle}</p>
       <div>
         <label htmlFor="reg-email">Email *</label>
@@ -83,17 +83,17 @@ export default function RegistrationForm({
         />
       </div>
       <div>
-        <label htmlFor="reg-name">Name</label>
+        <label htmlFor="reg-name">Имя</label>
         <input
           id="reg-name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Your name"
+          placeholder="Ваше имя"
         />
       </div>
       <div>
-        <label htmlFor="reg-phone">Phone</label>
+        <label htmlFor="reg-phone">Телефон</label>
         <input
           id="reg-phone"
           type="tel"
@@ -103,9 +103,9 @@ export default function RegistrationForm({
         />
       </div>
       <button type="submit" disabled={submitting}>
-        {submitting ? 'Sending...' : 'Start my marathon'}
+        {submitting ? 'Отправка...' : 'Начать марафон'}
       </button>
-      <p className="landing-form-note">Secure Marathon registration. No payment is required to start.</p>
+      <p className="landing-form-note">Безопасная регистрация на марафон. Для старта оплата не требуется.</p>
     </form>
   );
 }

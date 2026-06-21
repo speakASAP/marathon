@@ -24,7 +24,7 @@ export default function Support() {
       .then((data: CatalogReadiness) => setReadiness(data))
       .catch(() => {
         setReadiness(null);
-        setError('Registration status is temporarily unavailable. Please contact support before trying to start a marathon.');
+        setError('Статус регистрации временно недоступен. Перед стартом марафона обратитесь в поддержку.');
       })
       .finally(() => setLoading(false));
   }, []);
@@ -40,40 +40,40 @@ export default function Support() {
 
       <section className="support-public-hero">
         <div>
-          <h1>Marathon support</h1>
+          <h1>Поддержка Marathon</h1>
           <p>
-            Help with registration, profile access, VIP status, gift codes, and assignment pages.
+            Помощь с регистрацией, доступом к профилю, VIP-статусом, подарочными кодами и страницами заданий.
           </p>
         </div>
         <a className="btn-profile-login" href={`mailto:${SUPPORT_EMAIL}`}>
-          Contact support
+          Связаться с поддержкой
         </a>
       </section>
 
       <section className="support-public-status" aria-live="polite">
         <div>
-          <span>Registration status</span>
-          <strong>{loading ? 'Checking' : registrationOpen ? 'Open' : 'Not open yet'}</strong>
+          <span>Статус регистрации</span>
+          <strong>{loading ? 'Проверяем' : registrationOpen ? 'Открыта' : 'Пока закрыта'}</strong>
         </div>
         {error ? (
           <p className="ml-error">{error}</p>
         ) : registrationOpen ? (
-          <p>Registration is open. Choose a language and start from the registration page.</p>
+          <p>Регистрация открыта. Выберите язык и начните со страницы регистрации.</p>
         ) : (
           <p>
-            Registration opens after the approved marathon catalog, assignments, VIP product, and gift inventory are ready.
+            Регистрация откроется после готовности утвержденного каталога, заданий, VIP-продукта и подарочных кодов.
           </p>
         )}
         {!loading && readiness && (
           <dl className="support-public-counts">
-            <div><dt>Active marathons</dt><dd>{readiness.counts.activeMarathons}</dd></div>
-            <div><dt>Assignments</dt><dd>{readiness.counts.stepsWithContent}/{readiness.counts.steps}</dd></div>
-            <div><dt>VIP products</dt><dd>{readiness.counts.products}</dd></div>
-            <div><dt>Gift codes</dt><dd>{readiness.counts.unusedGifts}</dd></div>
+            <div><dt>Активные марафоны</dt><dd>{readiness.counts.activeMarathons}</dd></div>
+            <div><dt>Задания</dt><dd>{readiness.counts.stepsWithContent}/{readiness.counts.steps}</dd></div>
+            <div><dt>VIP-продукты</dt><dd>{readiness.counts.products}</dd></div>
+            <div><dt>Подарочные коды</dt><dd>{readiness.counts.unusedGifts}</dd></div>
           </dl>
         )}
         {!loading && missing.length > 0 && (
-          <div className="support-public-missing" aria-label="Registration blockers">
+          <div className="support-public-missing" aria-label="Блокеры регистрации">
             {missing.map((item) => (
               <span key={item}>{formatMissingLabel(item)}</span>
             ))}
@@ -81,48 +81,48 @@ export default function Support() {
         )}
         <div className="support-public-actions">
           <Link to="/register" className="btn-profile-login">
-            {registrationOpen ? 'Go to registration' : 'View registration status'}
+            {registrationOpen ? 'Перейти к регистрации' : 'Посмотреть статус регистрации'}
           </Link>
-          <Link to="/profile" className="btn-profile-open">Open profile</Link>
+          <Link to="/profile" className="btn-profile-open">Открыта profile</Link>
         </div>
       </section>
 
       <section className="support-public-grid">
         <article>
-          <span>Profile and login</span>
-          <h2>Cannot see your marathon?</h2>
+          <span>Профиль и вход</span>
+          <h2>Не видите свой марафон?</h2>
           <p>
-            Sign in through SpeakASAP from the profile page. Login returns you to the exact marathon profile when a participant record is already linked.
+            Войдите через SpeakASAP со страницы профиля. Если участник уже привязан, вход вернет вас в нужный профиль марафона.
           </p>
-          <Link to="/profile">Open profile</Link>
+          <Link to="/profile">Открыта profile</Link>
         </article>
         <article>
-          <span>VIP access</span>
-          <h2>Payment or gift code</h2>
+          <span>VIP-доступ</span>
+          <h2>Оплата или подарочный код</h2>
           <p>
-            VIP checkout and gift-code redemption appear from your marathon profile when the VIP gate is active and the launch catalog is ready.
+            Оплата VIP и подарочный код появляются в профиле марафона, когда активен VIP-этап и готов каталог запуска.
           </p>
-          <Link to="/gift">Gift code page</Link>
+          <Link to="/gift">Страница подарочного кода</Link>
         </article>
         <article>
-          <span>Assignments</span>
-          <h2>Report submission</h2>
+          <span>Задания</span>
+          <h2>Отправка отчета</h2>
           <p>
-            Open assignments from your marathon profile so the page can verify your participant ID, login session, saved report state, and assignment content.
+            Открыта assignments from your marathon profile so the page can verify your participant ID, login session, saved report state, and assignment content.
           </p>
-          <Link to="/profile">Continue marathon</Link>
+          <Link to="/profile">Продолжить марафон</Link>
         </article>
       </section>
 
       <section className="support-public-contact">
-        <h2>What to include</h2>
+        <h2>Что указать</h2>
         <ul>
-          <li>Your registration email.</li>
-          <li>The language marathon you are trying to open.</li>
-          <li>A short description of the page or action that needs help.</li>
+          <li>Ваш email регистрации.</li>
+          <li>Языковой марафон, который вы пытаетесь открыть.</li>
+          <li>Краткое описание страницы или действия, с которым нужна помощь.</li>
         </ul>
         <p>
-          Do not send passwords, payment card details, full gift-code lists, or private assignment reports by email.
+          Не отправляйте пароли, данные платежных карт, полные списки подарочных кодов или личные отчеты по email.
         </p>
       </section>
     </div>

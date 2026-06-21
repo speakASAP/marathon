@@ -38,7 +38,7 @@ export default function Register() {
       .catch(() => {
         setLanguages([]);
         setReadiness(null);
-        setLoadError('Registration status could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setLoadError('Статус регистрации не загрузился. Обновите страницу или обратитесь в поддержку, если проблема повторится.');
         setLoading(false);
       });
   }, []);
@@ -56,14 +56,14 @@ export default function Register() {
       {loading && <p>Загрузка…</p>}
       {loadError && (
         <section className="profile-empty-panel" role="alert">
-          <h2>Registration status is temporarily unavailable</h2>
+          <h2>Статус регистрации временно недоступен</h2>
           <p>{loadError}</p>
           <div className="profile-empty-actions">
             <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
-              Refresh
+              Обновить
             </button>
             <Link to="/support" className="btn-profile-login">
-              Contact support
+              Связаться с поддержкой
             </Link>
           </div>
         </section>
@@ -85,7 +85,7 @@ export default function Register() {
             </dl>
           )}
           {readiness?.missing?.length ? (
-            <div className="registration-missing-gates" aria-label="Missing launch gates">
+            <div className="registration-missing-gates" aria-label="Недостающие условия запуска">
               <strong>Недостающие условия запуска</strong>
               <div>
                 {readiness.missing.map((item) => (

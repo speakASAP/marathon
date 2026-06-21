@@ -21,7 +21,7 @@ export default function WinnerDetail() {
         setLoading(false);
       })
       .catch(() => {
-        setLoadError('Winner profile could not be loaded. Refresh this page, or contact support if the problem continues.');
+        setLoadError('Профиль финалиста не загрузился. Обновите страницу или обратитесь в поддержку, если проблема повторится.');
         setLoading(false);
       });
   }, [winnerId]);
@@ -37,14 +37,14 @@ export default function WinnerDetail() {
     return (
       <div className="container">
         <section className="profile-empty-panel" role="alert">
-          <h1>Winner profile is temporarily unavailable</h1>
+          <h1>Профиль финалиста временно недоступен</h1>
           <p>{loadError}</p>
           <div className="profile-empty-actions">
             <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
-              Refresh
+              Обновить
             </button>
             <Link to="/support" className="btn-profile-login">
-              Contact support
+              Связаться с поддержкой
             </Link>
           </div>
         </section>
