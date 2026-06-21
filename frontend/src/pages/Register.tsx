@@ -26,7 +26,7 @@ export default function Register() {
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    document.title = 'Регистрация на марафон — Marathon';
+    document.title = 'Регистрация на марафон — Марафон';
     setLoadError('');
     Promise.all([
       fetchMarathonLanguages(),

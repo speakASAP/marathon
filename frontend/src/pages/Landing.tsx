@@ -85,8 +85,8 @@ export default function Landing() {
     const langName = formatLanguageName(marathon);
     const metaReady = marathon.id !== 'fallback' && readiness?.registrationOpen === true;
     document.title = metaReady
-      ? `${langName} Marathon — языковая практика SpeakASAP`
-      : `${langName} Marathon — статус регистрации`;
+      ? `${langName} марафон — языковая практика SpeakASAP`
+      : `${langName} марафон — статус регистрации`;
 
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
@@ -97,7 +97,7 @@ export default function Landing() {
     meta.setAttribute(
       'content',
       metaReady
-        ? `Присоединяйтесь к марафону ${langName} от SpeakASAP: утвержденные задания, отслеживание прогресса и VIP-доступ через профиль Marathon.`
+        ? `Присоединяйтесь к марафону ${langName} от SpeakASAP: утвержденные задания, отслеживание прогресса и VIP-доступ через профиль марафона.`
         : `Регистрация на марафон ${langName} откроется после загрузки утвержденного каталога, заданий, VIP-продукта.`,
     );
 
@@ -225,7 +225,7 @@ export default function Landing() {
                 Регистрация еще не открыта, но маршрут уже можно посмотреть: старт, ежедневное задание, отчет и финиш.
               </p>
             )}
-            <dl className="ml-hero-points" aria-label="30-day Marathon highlights">
+            <dl className="ml-hero-points" aria-label="Показатели 30-дневного марафона">
               <div><dt>{formatCount(participantCount)}</dt><dd>{participantLabel}</dd></div>
               <div><dt>День 1</dt><dd>старт</dd></div>
               <div><dt>30</dt><dd>ежедневных заданий</dd></div>

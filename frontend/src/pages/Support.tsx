@@ -22,7 +22,7 @@ export default function Support() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    document.title = 'Поддержка — Marathon';
+    document.title = 'Поддержка — Марафон';
     setLoading(true);
     setError('');
     fetchCatalogReadiness()
@@ -42,7 +42,7 @@ export default function Support() {
 
       <section className="support-public-hero">
         <div>
-          <h1>Поддержка Marathon</h1>
+          <h1>Поддержка марафона</h1>
           <p>
             Помощь с регистрацией, доступом к профилю и прохождением языкового марафона.
           </p>

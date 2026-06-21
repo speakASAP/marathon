@@ -118,7 +118,7 @@ export default function Home() {
               Открыть мой марафон
             </Link>
           </div>
-          <dl className="home-launch-metrics" aria-label="Marathon readiness">
+          <dl className="home-launch-metrics" aria-label="Готовность марафона">
             <div>
               <dt>{formatCount(readiness?.counts.registeredParticipants)}</dt>
               <dd>участников уже зарегистрированы</dd>
@@ -134,7 +134,7 @@ export default function Home() {
           </dl>
         </div>
 
-        <div className="home-launch-visual" aria-label="Marathon profile preview">
+        <div className="home-launch-visual" aria-label="Превью профиля марафона">
           <div className="home-desk-scene">
             <div className="home-phone">
               <div className="home-phone-top">
@@ -227,7 +227,7 @@ export default function Home() {
       <section className="home-proof" aria-labelledby="home-proof-title">
         <div className="ml-section-head">
           <h2 id="home-proof-title">Результаты остаются видимыми</h2>
-          <p>Финалисты и отзывы берутся из платформы Marathon, а личные отчеты и комментарии опросов не публикуются.</p>
+          <p>Финалисты и отзывы берутся из платформы марафона, а личные отчеты и комментарии опросов не публикуются.</p>
         </div>
         <div className="home-proof-grid">
           <article className="home-proof-panel">

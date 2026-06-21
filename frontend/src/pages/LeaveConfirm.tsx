@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
  */
 export default function LeaveConfirm() {
   useEffect(() => {
-    document.title = 'Выход из марафона — Marathon';
+    document.title = 'Выход из марафона — Марафон';
   }, []);
 
   return (

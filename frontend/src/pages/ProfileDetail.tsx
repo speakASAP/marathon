@@ -108,7 +108,7 @@ export default function ProfileDetail() {
   }, [marathonerId]);
 
   useEffect(() => {
-    if (data) document.title = `${data.title} — Marathon`;
+    if (data) document.title = `${data.title} — Марафон`;
     if (data?.nps_survey) {
       setNpsScore(data.nps_survey.score);
       setNpsComment(data.nps_survey.comment || '');
@@ -350,7 +350,7 @@ export default function ProfileDetail() {
               onChange={(event) => setNpsComment(event.target.value)}
               rows={4}
               maxLength={2000}
-              placeholder="Необязательная личная заметка для команды Marathon"
+              placeholder="Необязательная личная заметка для команды марафона"
             />
             <div className="profile-payment-actions">
               <button type="submit" className="btn-profile-open" disabled={npsSaving || npsScore === null}>

@@ -5,14 +5,14 @@ import { useEffect } from 'react';
  */
 export default function Awards() {
   useEffect(() => {
-    document.title = 'Награды и сертификаты — Marathon';
+    document.title = 'Награды и сертификаты — Марафон';
   }, []);
 
   return (
     <div className="container page-static">
       <h1>Награды и сертификаты</h1>
       <div className="static-content">
-        <p>По завершении Marathon финалисты получают награды и сертификаты SpeakASAP®.</p>
+        <p>По завершении марафона финалисты получают награды и сертификаты SpeakASAP®.</p>
         <p>Сертификат подтверждает прохождение языкового марафона и достигнутый уровень.</p>
         <p>Подробности о призах и условиях получения — в разделе марафона и в письмах от организаторов.</p>
       </div>

@@ -12,9 +12,7 @@ export default function Layout() {
   const hideFooter = false;
   const registrationStatusUnavailable = Boolean(readinessError);
   const registrationClosed = !registrationStatusUnavailable && readiness?.registrationOpen !== true;
-  const navRegistrationLabel = registrationStatusUnavailable
-    ? 'Статус'
-    : registrationClosed ? 'Скоро' : 'Регистрация';
+  const navRegistrationLabel = 'Регистрация';
   const navRegistrationTitle = registrationStatusUnavailable
     ? 'Статус регистрации недоступен. Откройте страницу регистрации для подробностей.'
     : undefined;
@@ -37,9 +35,9 @@ export default function Layout() {
     <div className="layout-wrap">
       <header className="main-header" id="main-nav">
         <div className="container header-inner">
-          <Link to="/" className="navbar-brand" aria-label="Главная Marathon">
-            Marathon
-            <span className="navbar-brand-provider">от SpeakASAP®</span>
+          <Link to="/" className="navbar-brand" aria-label="Главная Марафон от speakasap">
+            Марафон
+            <span className="navbar-brand-provider">от speakasap</span>
           </Link>
           <nav className={`main-nav-links ${menuOpen ? 'main-nav-links--open' : ''}`}>
             <Link to="/winners">Финалисты</Link>
@@ -50,6 +48,8 @@ export default function Layout() {
             <Link to="/profile">Мой профиль</Link>
             <Link to="/awards">Награды</Link>
             <Link to="/support">Поддержка</Link>
+          </nav>
+          <div className="header-actions">
             <Link
               to="/register"
               className={`btn btn-landing navbar-cta ${registrationClosed || registrationStatusUnavailable ? 'navbar-cta-closed' : 'btn-green'}`}
@@ -57,7 +57,7 @@ export default function Layout() {
             >
               {navRegistrationLabel}
             </Link>
-          </nav>
+          </div>
           <button
             type="button"
             className="navbar-toggle"

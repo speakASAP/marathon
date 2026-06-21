@@ -65,7 +65,7 @@ export default function Profile() {
   const [catalogError, setCatalogError] = useState('');
 
   useEffect(() => {
-    document.title = 'Марафоны — Marathon';
+    document.title = 'Марафоны — Марафон';
   }, []);
 
   useEffect(() => {
@@ -124,8 +124,8 @@ export default function Profile() {
     <div className="profile-catalog-page">
       <header className="profile-catalog-hero">
         <div className="container profile-catalog-hero-inner">
-          <Link to="/" className="profile-catalog-brand" aria-label="Главная Marathon">
-            <span>Marathon</span>
+          <Link to="/" className="profile-catalog-brand" aria-label="Главная страница марафона">
+            <span>Марафон</span>
             <small>от SpeakASAP</small>
           </Link>
           <div className="profile-catalog-copy">

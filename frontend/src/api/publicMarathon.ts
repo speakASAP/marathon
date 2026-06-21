@@ -63,6 +63,7 @@ export interface WinnerPage {
 
 export interface MarathonWinnerReview {
   marathon: string;
+  languageCode: string;
   state: string;
   completed: string;
   review: string;

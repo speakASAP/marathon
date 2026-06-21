@@ -27,7 +27,7 @@ export default function SupportStep() {
   }, [stepId]);
 
   useEffect(() => {
-    if (step) document.title = `Поддержка: ${step.title} — Marathon`;
+    if (step) document.title = `Поддержка: ${step.title} — Марафон`;
   }, [step]);
 
   if (loading && !step) return <div className="container"><p>Загрузка…</p></div>;

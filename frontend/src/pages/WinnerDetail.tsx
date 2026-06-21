@@ -36,20 +36,6 @@ function MedalBadge({ kind, count }: { kind: MedalKind; count: number }) {
   );
 }
 
-function LanguageFlags({ codes }: { codes?: string[] }) {
-  const uniqueCodes = Array.from(new Set((codes || []).map((code) => code.toLowerCase()).filter(Boolean)));
-  if (uniqueCodes.length === 0) return null;
-  return (
-    <div className="winner-language-flags" aria-label="Пройденные языковые марафоны">
-      {uniqueCodes.map((code) => (
-        <span key={code} className="winner-language-flag" title={formatLanguageLabel(code)} aria-label={formatLanguageLabel(code)}>
-          {LANGUAGE_FLAGS[code] || code.toUpperCase()}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 function WinnerLanguageFlags({ languages }: { languages?: WinnerLanguage[] }) {
   if (!languages || languages.length === 0) return null;
 
@@ -95,7 +81,7 @@ export default function WinnerDetail() {
 
   useEffect(() => {
     if (winner) {
-      document.title = `Финалист: ${winner.name} — Marathon`;
+      document.title = `Финалист: ${winner.name} — Марафон`;
     }
   }, [winner]);
 
@@ -143,11 +129,10 @@ export default function WinnerDetail() {
               <h1>{winner.name}</h1>
               <WinnerLanguageFlags languages={winner.languages} />
               <div className="winner-medals">
-                <MedalBadg kind="gold" count={winner.gold} />
+                <MedalBadge kind="gold" count={winner.gold} />
                 <MedalBadge kind="silver" count={winner.silver} />
                 <MedalBadge kind="bronze" count={winner.bronze} />
               </div>
-              <LanguageFlags codes={winner.languageCodes} />
             </div>
           </header>
           {winner.reviews && winner.reviews.length > 0 && (
@@ -158,6 +143,9 @@ export default function WinnerDetail() {
                   <li key={i} className="review-item">
                     <div className="review-item__meta">
                       <strong>{r.marathon}</strong>
+                      {r.languageCode && (
+                        <span className="review-item__language">{formatLanguageFlag(r.languageCode)} {formatLanguageLabel(r.languageCode, r.marathon)}</span>
+                      )}
                       {r.state && <span>{r.state}</span>}
                     </div>
                     {r.review && <p>{r.review}</p>}

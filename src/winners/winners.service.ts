@@ -19,6 +19,7 @@ export type WinnerLanguage = {
 
 export type MarathonReview = {
   marathon: string;
+  languageCode: string;
   state: string;
   completed: string;
   review: string;
@@ -473,7 +474,6 @@ export class WinnersService {
     const participants = await this.prisma.marathonParticipant.findMany({
       where: excludeSmokeParticipants({
         userId,
-        active: false,
         finishedAt: { not: null },
       }),
       include: {
@@ -499,6 +499,7 @@ export class WinnersService {
 
       reviews.push({
         marathon: marathon.title,
+        languageCode: marathon.languageCode,
         state,
         completed: participant.finishedAt?.toISOString() || new Date().toISOString(),
         review: feedback.review,
@@ -513,43 +514,26 @@ export class WinnersService {
     const participants = await this.prisma.marathonParticipant.findMany({
       where: excludeSmokeParticipants({
         userId,
-        active: false,
         finishedAt: { not: null },
       }),
-      include: {
+      select: {
         marathon: {
-          include: {
-            steps: {
-              select: { id: true },
-            },
-          },
-        },
-        submissions: {
-          where: {
-            isCompleted: true,
-          },
           select: {
-            stepId: true,
+            languageCode: true,
+            title: true,
           },
         },
-        penaltyReports: true,
       },
-      orderBy: {
-        finishedAt: 'desc',
-      },
+      orderBy: [
+        { finishedAt: "desc" },
+        { createdAt: "desc" },
+      ],
     });
 
     const byCode = new Map<string, WinnerLanguage>();
 
     for (const participant of participants) {
-      if (!this.hasCompletedAllSteps(participant)) {
-        continue;
-      }
-      if (!this.getWinnerState(participant)) {
-        continue;
-      }
-
-      const code = String(participant.marathon.languageCode || '').toLowerCase();
+      const code = String(participant.marathon.languageCode || "").toLowerCase();
       if (!code || byCode.has(code)) {
         continue;
       }

@@ -109,7 +109,7 @@ export default function Step() {
   }, [tab, stepId, marathonerId]);
 
   useEffect(() => {
-    if (step) document.title = `${step.title} — Marathon`;
+    if (step) document.title = `${step.title} — Марафон`;
   }, [step]);
 
   const submitОтчет = async (event: FormEvent) => {
@@ -282,7 +282,7 @@ export default function Step() {
           {hasParticipantContext && submissionAuthRequired && (
             <div className="step-submit-auth-panel" role="alert">
               <strong>Войдите, чтобы отправить отчет</strong>
-              <span>Отчет сохранится только после возврата из портала с токеном Marathon для этого участника.</span>
+              <span>Отчет сохранится только после возврата из портала с токеном марафона для этого участника.</span>
               <button type="button" className="btn-profile-login" onClick={openLogin}>Войти</button>
             </div>
           )}

@@ -1863,8 +1863,8 @@ button.ml-race-status {
 .ml-route-runner {
   justify-self: center;
   display: block;
-  width: 76px;
-  height: 48px;
+  width: 92px;
+  height: 58px;
   background: transparent;
   box-shadow: none;
 }
@@ -1872,10 +1872,10 @@ button.ml-race-status {
 .ml-route-runner::before {
   content: "";
   position: absolute;
-  left: 42px;
-  top: 5px;
-  width: 14px;
-  height: 14px;
+  left: 60px;
+  top: 4px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--ml-coral);
   box-shadow: 0 8px 18px rgba(207, 47, 38, 0.22);
@@ -1884,36 +1884,45 @@ button.ml-race-status {
 .ml-route-runner::after {
   content: "";
   position: absolute;
-  left: 30px;
-  top: 20px;
-  width: 31px;
-  height: 8px;
+  left: 35px;
+  top: 22px;
+  width: 34px;
+  height: 10px;
   border-radius: 999px;
   background: var(--ml-ink);
-  transform: rotate(-17deg);
+  box-shadow:
+    17px -2px 0 -3px var(--ml-blue),
+    -16px 1px 0 -4px rgba(8, 17, 38, 0.26);
+  transform: rotate(-22deg);
   transform-origin: right center;
 }
 
 .ml-route-runner i {
   position: absolute;
   display: block;
-  width: 34px;
-  height: 8px;
   border-radius: 999px;
-  background: var(--ml-blue);
 }
 
 .ml-route-runner i:first-child {
-  left: 18px;
+  left: 42px;
   top: 30px;
-  transform: rotate(33deg);
+  width: 39px;
+  height: 9px;
+  background: var(--ml-blue);
+  box-shadow: -34px -9px 0 -2px var(--ml-coral);
+  transform: rotate(34deg);
+  transform-origin: left center;
 }
 
 .ml-route-runner i:last-child {
-  left: 40px;
-  top: 31px;
+  left: 31px;
+  top: 38px;
+  width: 42px;
+  height: 9px;
   background: var(--ml-mint);
-  transform: rotate(-38deg);
+  box-shadow: 23px -19px 0 -2px var(--ml-blue);
+  transform: rotate(-42deg);
+  transform-origin: right center;
 }
 
 .ml-training-split {

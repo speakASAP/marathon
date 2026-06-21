@@ -37,20 +37,6 @@ function MedalBadge({ kind, count }: { kind: MedalKind; count?: number }) {
   );
 }
 
-function LanguageFlags({ codes }: { codes?: string[] }) {
-  const uniqueCodes = Array.from(new Set((codes || []).map((code) => code.toLowerCase()).filter(Boolean)));
-  if (uniqueCodes.length === 0) return null;
-  return (
-    <div className="winner-language-flags" aria-label="Пройденные языковые марафоны">
-      {uniqueCodes.map((code) => (
-        <span key={code} className="winner-language-flag" title={formatLanguageLabel(code)} aria-label={formatLanguageLabel(code)}>
-          {LANGUAGE_FLAGS[code] || code.toUpperCase()}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 function WinnerLanguageFlags({ languages }: { languages?: WinnerLanguage[] }) {
   if (!languages || languages.length === 0) return null;
 
@@ -157,7 +143,6 @@ export default function Winners() {
                 <MedalBadge kind="silver" count={w.silver} />
                 <MedalBadge kind="bronze" count={w.bronze} />
               </ul>
-              <LanguageFlags codes={w.languageCodes} />
             </div>
             <div className="card-winner__actions">
               <Link to={`/winners/${w.id}`} className="btn btn-winner-link">

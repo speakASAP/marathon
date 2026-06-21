@@ -5,7 +5,7 @@ import { useEffect } from 'react';
  */
 export default function Faq() {
   useEffect(() => {
-    document.title = 'Помощь Marathon — языковые марафоны SpeakASAP®';
+    document.title = 'Помощь по марафону — языковые марафоны SpeakASAP®';
   }, []);
 
   return (

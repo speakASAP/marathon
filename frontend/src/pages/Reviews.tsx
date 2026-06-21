@@ -9,7 +9,7 @@ export default function Reviews() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.title = 'Отзывы — Marathon';
+    document.title = 'Отзывы — Марафон';
     fetchPublicReviews()
       .then((data) => setReviews(data))
       .finally(() => setLoading(false));
