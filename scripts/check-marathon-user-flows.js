@@ -314,22 +314,22 @@ async function checkRegistrationAttempt(report, options, traversalContext) {
 
 function checkDashboardBundleContract(report, bundle) {
   const markerGroups = [
-    ['Payment confirmation is processing'],
-    ['VIP access is active'],
-    ['Payment was cancelled'],
-    ['Refresh status'],
-    ['VIP access required'],
-    ['Pay with'],
+    ['Payment confirmation is processing', 'Подтверждение оплаты обрабатывается'],
+    ['VIP access is active', 'VIP-доступ активен'],
+    ['Payment was cancelled', 'Оплата отменена'],
+    ['Refresh status', 'Обновить статус'],
+    ['VIP access required', 'Нужен VIP-доступ'],
+    ['Pay with', 'Оплатить через'],
     ['PayPal'],
     ['Mastercard'],
-    ['Bank transfer'],
-    ['Gift code'],
-    ['Progress report'],
-    ['Generate report'],
+    ['Bank transfer', 'Банковский перевод'],
+    ['Gift code', 'Подарочный код'],
+    ['Progress report', 'Отчет прогресса'],
+    ['Generate report', 'Сформировать отчет'],
     ['Current step', 'Текущий этап'],
     ['Open assignment', 'Открыть задание', 'Открыть'],
-    ['Marathon feedback'],
-    ['Save feedback', 'Update feedback'],
+    ['Marathon feedback', 'Отзыв о марафоне'],
+    ['Save feedback', 'Update feedback', 'Сохранить отзыв', 'Обновить отзыв'],
   ];
   assertBundleMarkerGroups(bundle, markerGroups, 'Frontend bundle dashboard/payment contract');
   addCheck(report, 'pass', 'dashboard-payment-action-markers', 'Dashboard bundle contains payment return, VIP checkout, current assignment, report, and feedback action markers.');
