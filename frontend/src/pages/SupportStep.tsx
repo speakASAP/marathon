@@ -34,11 +34,6 @@ export default function SupportStep() {
   if (loadError) {
     return (
       <div className="container page-static">
-        <nav className="page-nav">
-          <Link to="/">Главная</Link>
-          <span> · </span>
-          <Link to="/support">Поддержка</Link>
-        </nav>
         <section className="profile-empty-panel" role="alert">
           <h1>Этап поддержки временно недоступен</h1>
           <p>{loadError}</p>
@@ -67,11 +62,6 @@ export default function SupportStep() {
 
   return (
     <div className="container page-static">
-      <nav className="page-nav">
-        <Link to="/">Главная</Link>
-        <span> · </span>
-        <Link to="/support">Поддержка</Link>
-      </nav>
       <h1>{step.title}</h1>
       {assignmentContent ? (
         <div className="step-assignment-content">{assignmentContent}</div>

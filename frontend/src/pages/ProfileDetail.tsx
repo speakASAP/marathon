@@ -134,11 +134,6 @@ export default function ProfileDetail() {
   if (loadError) {
     return (
       <div className="container page-static">
-        <nav className="page-nav">
-          <Link to="/">Главная</Link>
-          <span> · </span>
-          <Link to="/profile">Мои марафоны</Link>
-        </nav>
         <h1>Профиль марафона временно недоступен</h1>
         <section className="profile-empty-panel" role="alert">
           <p>{loadError}</p>
@@ -172,7 +167,7 @@ export default function ProfileDetail() {
     ? (data.needs_payment
       ? 'Платежный провайдер вернул вас сюда. Мы ждем защищенный callback для подтверждения VIP-доступа; обновите страницу через минуту, если блокировка еще видна.'
       : 'Оплата подтверждена, следующие VIP-задания доступны из этого профиля.')
-    : 'Списание не выполнено. Вы можете снова открыть оплату, использовать подарочный код или обратиться в поддержку с этой страницы.';
+    : 'Списание не выполнено. Вы можете снова открыть оплату или обратиться в поддержку с этой страницы.';
 
   const startCheckout = async () => {
     if (!data) return;
@@ -250,11 +245,6 @@ export default function ProfileDetail() {
 
   return (
     <div className="container page-static profile-dashboard">
-      <nav className="page-nav">
-        <Link to="/">Главная</Link>
-        <span> · </span>
-        <Link to="/profile">Мои марафоны</Link>
-      </nav>
       <section className="profile-hero-panel">
         <div>
           <h1>{data.title}</h1>
@@ -286,7 +276,7 @@ export default function ProfileDetail() {
         <section className="profile-payment-panel" id="vip-access">
           <div>
             <h2>Нужен VIP-доступ</h2>
-            <p>В этом марафоне активен VIP-этап. Оплатите доступ или примените подарочный код, чтобы открыть следующие задания.</p>
+            <p>В этом марафоне активен VIP-этап. Оплатите доступ, чтобы открыть следующие задания.</p>
             {checkoutError && <p className="ml-error">{checkoutError}</p>}
           </div>
           <div className="profile-payment-methods" role="radiogroup" aria-label="Способ оплаты">
@@ -311,7 +301,6 @@ export default function ProfileDetail() {
             <button type="button" className="btn-profile-open" onClick={startCheckout} disabled={checkoutLoading}>
               {checkoutLoading ? 'Открываем оплату...' : `Оплатить через ${PAYMENT_METHOD_OPTIONS.find((option) => option.value === paymentMethod)?.label || 'выбранный способ'}`}
             </button>
-            <Link to={`/gift?marathonerId=${encodeURIComponent(data.id)}`} className="btn-profile-open">Подарочный код</Link>
             <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
           </div>
         </section>

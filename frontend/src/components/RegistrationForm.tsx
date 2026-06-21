@@ -105,7 +105,6 @@ export default function RegistrationForm({
       <button type="submit" disabled={submitting}>
         {submitting ? 'Отправка...' : 'Начать марафон'}
       </button>
-      <p className="landing-form-note">Безопасная регистрация на марафон. Для старта оплата не требуется.</p>
     </form>
   );
 }

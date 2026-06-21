@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
-import { SMOKE_GIFT_CODE_PREFIX, excludeSmokeParticipantRelation, excludeSmokeParticipants, smokeParticipantWhere } from "../shared/smoke-filter";
+import { excludeSmokeParticipantRelation, excludeSmokeParticipants, smokeParticipantWhere } from "../shared/smoke-filter";
 
 export type MarathonSummary = {
   id: string;
@@ -14,6 +14,7 @@ export type MarathonSummary = {
   currency?: string;
   isDiscounted?: boolean;
   discountEndsAt?: string;
+  participantCount?: number;
 };
 
 export type MarathonLanguage = {
@@ -30,14 +31,15 @@ export type MarathonCatalogReadiness = {
   ready: boolean;
   registrationOpen: boolean;
   paymentReady: boolean;
-  giftReady: boolean;
   assignmentReady: boolean;
   counts: {
     activeMarathons: number;
+    activeLanguages: number;
     marathons: number;
+    registeredParticipants: number;
+    activeParticipants: number;
+    finishedParticipants: number;
     products: number;
-    gifts: number;
-    unusedGifts: number;
     steps: number;
     stepsWithContent: number;
   };
@@ -68,12 +70,6 @@ export type MarathonAnalytics = {
     confirmed: number;
     conversionRate: number;
     statusCounts: Record<string, number>;
-  };
-  gifts: {
-    total: number;
-    used: number;
-    unused: number;
-    redemptionRate: number;
   };
   winners: {
     rows: number;
@@ -118,6 +114,8 @@ export class MarathonsService {
       },
       orderBy: { createdAt: 'desc' },
     })) as MarathonRecord[];
+    const participantCounts = await this.participantCountsByMarathonIds(marathons.map((marathon) => marathon.id));
+
     return marathons.map((marathon) => ({
       id: marathon.id,
       languageCode: marathon.languageCode,
@@ -128,6 +126,7 @@ export class MarathonsService {
       landingVideoUrl: marathon.landingVideoUrl || undefined,
       isDiscounted: marathon.discountEndsAt ? marathon.discountEndsAt > new Date() : false,
       discountEndsAt: marathon.discountEndsAt?.toISOString(),
+      participantCount: participantCounts[marathon.id] || 0,
     }));
   }
 
@@ -139,6 +138,8 @@ export class MarathonsService {
     if (!marathon) {
       return null;
     }
+    const participantCount = await this.participantCountForMarathon(marathon.id);
+
     return {
       id: marathon.id,
       languageCode: marathon.languageCode,
@@ -149,6 +150,7 @@ export class MarathonsService {
       landingVideoUrl: marathon.landingVideoUrl || undefined,
       isDiscounted: marathon.discountEndsAt ? marathon.discountEndsAt > new Date() : false,
       discountEndsAt: marathon.discountEndsAt?.toISOString(),
+      participantCount,
     };
   }
 
@@ -169,6 +171,8 @@ export class MarathonsService {
     if (!marathon) {
       return null;
     }
+    const participantCount = await this.participantCountForMarathon(marathon.id);
+
     return {
       id: marathon.id,
       languageCode: marathon.languageCode,
@@ -179,6 +183,7 @@ export class MarathonsService {
       landingVideoUrl: marathon.landingVideoUrl || undefined,
       isDiscounted: marathon.discountEndsAt ? marathon.discountEndsAt > new Date() : false,
       discountEndsAt: marathon.discountEndsAt?.toISOString(),
+      participantCount,
     };
   }
 
@@ -220,18 +225,25 @@ export class MarathonsService {
     this.logger.debug('Marathon catalog readiness requested');
     const [
       activeMarathons,
+      activeLanguageRows,
       marathons,
+      registeredParticipants,
+      activeParticipants,
+      finishedParticipants,
       products,
-      gifts,
-      unusedGifts,
       steps,
       allStepContentRows,
     ] = await Promise.all([
       this.prisma.marathon.count({ where: { active: true } }),
+      this.prisma.marathon.groupBy({
+        by: ['languageCode'],
+        where: { active: true },
+      }),
       this.prisma.marathon.count(),
+      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants() }),
+      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ active: true }) }),
+      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ finishedAt: { not: null } }) }),
       this.prisma.marathonProduct.count(),
-      this.prisma.marathonGift.count(),
-      this.prisma.marathonGift.count({ where: { usedAt: null } }),
       this.prisma.marathonStep.count(),
       this.prisma.marathonStep.findMany({ select: { assignmentContent: true } }),
     ]);
@@ -241,7 +253,6 @@ export class MarathonsService {
       where: { active: true },
       include: {
         product: { select: { id: true } },
-        gifts: { where: { usedAt: null }, select: { id: true } },
         steps: {
           select: {
             assignmentContent: true,
@@ -252,7 +263,6 @@ export class MarathonsService {
     });
 
     const allActiveHaveProducts = activeCatalog.length > 0 && activeCatalog.every((marathon) => marathon.product);
-    const allActiveHaveGifts = activeCatalog.length > 0 && activeCatalog.every((marathon) => marathon.gifts.length > 0);
     const allActiveHaveSteps = activeCatalog.length > 0 && activeCatalog.every((marathon) => marathon.steps.length > 0);
     const allActiveHaveGatedSteps = activeCatalog.length > 0
       && activeCatalog.every((marathon) => marathon.steps.some((step) => !step.isTrialStep));
@@ -265,25 +275,24 @@ export class MarathonsService {
     if (!allActiveHaveGatedSteps) missing.push('gated-step');
     if (!allActiveStepsHaveContent) missing.push('step-content');
     if (!allActiveHaveProducts) missing.push('product');
-    if (!allActiveHaveGifts) missing.push('gift');
 
     const paymentReady = activeCatalog.length > 0 && allActiveHaveProducts;
-    const giftReady = activeCatalog.length > 0 && allActiveHaveGifts;
     const assignmentReady = activeCatalog.length > 0 && allActiveHaveSteps && allActiveHaveGatedSteps && allActiveStepsHaveContent;
-    const registrationOpen = paymentReady && giftReady && assignmentReady;
+    const registrationOpen = paymentReady && assignmentReady;
 
     return {
       ready: registrationOpen,
       registrationOpen,
       paymentReady,
-      giftReady,
       assignmentReady,
       counts: {
         activeMarathons,
+        activeLanguages: activeLanguageRows.length,
         marathons,
+        registeredParticipants,
+        activeParticipants,
+        finishedParticipants,
         products,
-        gifts,
-        unusedGifts,
         steps,
         stepsWithContent,
       },
@@ -316,19 +325,6 @@ export class MarathonsService {
       ],
     };
     const visibleWinnerUserWhere = smokeUserIds.length > 0 ? { userId: { notIn: smokeUserIds } } : {};
-    const visibleGiftWhere = {
-      AND: [
-        { code: { not: { startsWith: SMOKE_GIFT_CODE_PREFIX } } },
-        smokeUserIds.length > 0
-          ? {
-              OR: [
-                { redeemedByUserId: null },
-                { redeemedByUserId: { notIn: smokeUserIds } },
-              ],
-            }
-          : {},
-      ],
-    };
     const [
       participants,
       activeParticipants,
@@ -344,8 +340,6 @@ export class MarathonsService {
       paymentAttempts,
       confirmedPaymentAttempts,
       paymentStatuses,
-      totalGifts,
-      usedGifts,
       winnerRows,
       medalRows,
       medalSums,
@@ -369,8 +363,6 @@ export class MarathonsService {
       this.prisma.marathonPaymentAttempt.count({ where: excludeSmokeParticipantRelation() }),
       this.prisma.marathonPaymentAttempt.count({ where: excludeSmokeParticipantRelation({ confirmedAt: { not: null } }) }),
       this.prisma.marathonPaymentAttempt.findMany({ where: excludeSmokeParticipantRelation(), select: { status: true } }),
-      this.prisma.marathonGift.count({ where: visibleGiftWhere }),
-      this.prisma.marathonGift.count({ where: { AND: [visibleGiftWhere, { usedAt: { not: null } }] } }),
       this.prisma.marathonWinner.count({ where: visibleWinnerUserWhere }),
       this.prisma.marathonWinner.count({ where: visibleWinnerWhere }),
       this.prisma.marathonWinner.aggregate({
@@ -424,12 +416,6 @@ export class MarathonsService {
         conversionRate: this.rate(confirmedPaymentAttempts, paymentAttempts),
         statusCounts,
       },
-      gifts: {
-        total: totalGifts,
-        used: usedGifts,
-        unused: totalGifts - usedGifts,
-        redemptionRate: this.rate(usedGifts, totalGifts),
-      },
       winners: {
         rows: winnerRows,
         medalRows,
@@ -446,6 +432,27 @@ export class MarathonsService {
         npsScore: this.rate(surveyPromoters, surveyResponses) - this.rate(surveyDetractors, surveyResponses),
       },
     };
+  }
+
+  private async participantCountForMarathon(marathonId: string): Promise<number> {
+    return this.prisma.marathonParticipant.count({
+      where: excludeSmokeParticipants({ marathonId }),
+    });
+  }
+
+  private async participantCountsByMarathonIds(marathonIds: string[]): Promise<Record<string, number>> {
+    if (marathonIds.length === 0) return {};
+
+    const rows = await this.prisma.marathonParticipant.groupBy({
+      by: ['marathonId'],
+      where: excludeSmokeParticipants({ marathonId: { in: marathonIds } }),
+      _count: { _all: true },
+    });
+
+    return rows.reduce<Record<string, number>>((counts, row) => {
+      counts[row.marathonId] = row._count._all;
+      return counts;
+    }, {});
   }
 
   private rate(numerator: number, denominator: number): number {

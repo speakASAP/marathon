@@ -48,8 +48,8 @@ export class RunlayerService {
         generated_at: new Date().toISOString(),
         readiness,
         recommendation: readiness.ready
-          ? 'Catalog is launch-ready; run guarded mutating registration/payment/gift/assignment verification with approved inputs.'
-          : 'Keep registration closed and obtain approved active Marathon/Product/Gift/Step catalog data before live journey verification.',
+          ? 'Catalog is launch-ready; run guarded mutating registration/payment/assignment verification with approved inputs.'
+          : 'Keep registration closed and obtain approved active Marathon/Product/Step catalog data before live journey verification.',
       },
     };
   }
@@ -65,10 +65,9 @@ export class RunlayerService {
         participants: analytics.participants,
         assignments: analytics.assignments,
         payments: analytics.payments,
-        gifts: analytics.gifts,
         winners: analytics.winners,
         surveys: analytics.surveys,
-        privacy: 'Aggregate metrics only; no participant reports, emails, gift codes, tokens, or survey comments are returned.',
+        privacy: 'Aggregate metrics only; no participant reports, emails, tokens, or survey comments are returned.',
       },
     };
   }
@@ -110,7 +109,7 @@ export class RunlayerService {
               'Load approved launch catalog data.',
               'Run readiness and journey verification before creating participant reminder tasks.',
             ],
-        privacy: 'This response intentionally avoids participant identifiers, emails, report text, JWTs, payment secrets, and gift codes.',
+        privacy: 'This response intentionally avoids participant identifiers, emails, report text, JWTs, payment secrets.',
       },
     };
   }

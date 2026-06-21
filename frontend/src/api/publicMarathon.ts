@@ -6,6 +6,7 @@ export interface MarathonSummary {
   active?: boolean;
   coverImageUrl?: string;
   landingVideoUrl?: string;
+  participantCount?: number;
 }
 
 export interface MarathonLanguage {
@@ -19,14 +20,16 @@ export interface CatalogReadiness {
   ready?: boolean;
   registrationOpen: boolean;
   paymentReady?: boolean;
-  giftReady?: boolean;
   assignmentReady?: boolean;
   counts: {
     activeMarathons: number;
+    activeLanguages?: number;
+    registeredParticipants?: number;
+    activeParticipants?: number;
+    finishedParticipants?: number;
     steps: number;
     stepsWithContent: number;
     products: number;
-    unusedGifts: number;
   };
   missing: string[];
 }

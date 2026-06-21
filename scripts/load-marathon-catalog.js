@@ -303,13 +303,8 @@ function validateLaunchReadiness(catalog, options = {}) {
   }
 
   const productsBySlug = new Map(catalog.products.map((product) => [product.marathonSlug, product]));
-  const giftsBySlug = new Map();
   const stepsBySlug = new Map();
 
-  for (const gift of catalog.gifts) {
-    if (!giftsBySlug.has(gift.marathonSlug)) giftsBySlug.set(gift.marathonSlug, []);
-    giftsBySlug.get(gift.marathonSlug).push(gift);
-  }
 
   for (const step of catalog.steps) {
     if (!stepsBySlug.has(step.marathonSlug)) stepsBySlug.set(step.marathonSlug, []);
@@ -334,21 +329,13 @@ function validateLaunchReadiness(catalog, options = {}) {
     if (!productsBySlug.has(marathon.slug)) {
       throw new Error(`launch-ready catalog requires one MarathonProduct for active marathon ${label}`);
     }
-    if (!giftsBySlug.has(marathon.slug)) {
-      throw new Error(`launch-ready catalog requires at least one MarathonGift code for active marathon ${label}`);
-    }
   }
 }
 
 function buildLaunchChecklist(catalog) {
   const productsBySlug = new Map(catalog.products.map((product) => [product.marathonSlug, product]));
-  const giftsBySlug = new Map();
   const stepsBySlug = new Map();
 
-  for (const gift of catalog.gifts) {
-    if (!giftsBySlug.has(gift.marathonSlug)) giftsBySlug.set(gift.marathonSlug, []);
-    giftsBySlug.get(gift.marathonSlug).push(gift);
-  }
 
   for (const step of catalog.steps) {
     if (!stepsBySlug.has(step.marathonSlug)) stepsBySlug.set(step.marathonSlug, []);
@@ -359,7 +346,6 @@ function buildLaunchChecklist(catalog) {
     const steps = stepsBySlug.get(marathon.slug) || [];
     const trialSteps = steps.filter((step) => step.isTrialStep);
     const gatedSteps = steps.filter((step) => !step.isTrialStep);
-    const gifts = giftsBySlug.get(marathon.slug) || [];
     const hasProduct = productsBySlug.has(marathon.slug);
     const missing = [];
 
@@ -368,14 +354,12 @@ function buildLaunchChecklist(catalog) {
       if (!trialSteps.length) missing.push('trial-step');
       if (!gatedSteps.length) missing.push('gated-step');
       if (!hasProduct) missing.push('product');
-      if (!gifts.length) missing.push('gift');
     }
 
     return {
       active: marathon.active,
       assignmentContentReady: steps.every((step) => Boolean(step.assignmentContent)),
       gatedSteps: gatedSteps.length,
-      giftCodes: gifts.length,
       languageCode: marathon.languageCode,
       launchReady: missing.length === 0,
       missing,
@@ -390,7 +374,6 @@ function buildLaunchChecklist(catalog) {
   return {
     activeMarathons: marathons.filter((marathon) => marathon.active).length,
     marathons,
-    note: 'Gift codes are reported only as counts. Review the source file directly for approved code values.',
   };
 }
 
@@ -412,7 +395,7 @@ function buildApprovalPacket(catalog, options = {}) {
     `Catalog file: ${sourceFile}`,
     `Launch-ready validation: ${options.allowIncomplete ? 'disabled with --allow-incomplete' : 'enabled'}`,
     '',
-    'This packet is redacted for approval evidence. It never prints gift-code values, assignment report payloads, participant records, JWTs, payment keys, or full assignment text.',
+    'This packet is redacted for approval evidence. It never prints assignment report payloads, participant records, JWTs, payment keys, or full assignment text.',
     '',
     '## Summary',
     '',
@@ -420,12 +403,11 @@ function buildApprovalPacket(catalog, options = {}) {
     `- Active marathons: ${launchChecklist.activeMarathons}`,
     `- Steps: ${catalog.steps.length}`,
     `- Products: ${catalog.products.length}`,
-    `- Gift codes: ${catalog.gifts.length} (count only)`,
     '',
     '## Marathon Readiness',
     '',
-    '| Active | Language | Slug | Title | Steps | Trial | Gated | Product | Gift codes | Assignment content | Launch ready | Missing |',
-    '|---|---|---|---|---:|---:|---:|---|---:|---|---|---|',
+    '| Active | Language | Slug | Title | Steps | Trial | Gated | Product | Assignment content | Launch ready | Missing |',
+    '|---|---|---|---|---:|---:|---:|---|---|---|---|',
   ];
 
   for (const marathon of launchChecklist.marathons) {
@@ -442,7 +424,6 @@ function buildApprovalPacket(catalog, options = {}) {
       markdownCell(marathon.trialSteps),
       markdownCell(marathon.gatedSteps),
       markdownCell(productLabel),
-      markdownCell(marathon.giftCodes),
       markdownCell(marathon.assignmentContentReady ? 'yes' : 'no'),
       markdownCell(marathon.launchReady ? 'yes' : 'no'),
       markdownCell(marathon.missing.length ? marathon.missing.join(', ') : 'none'),
@@ -453,8 +434,7 @@ function buildApprovalPacket(catalog, options = {}) {
     '',
     '## Source-Owner Sign-Off',
     '',
-    '- [ ] Every active marathon language, slug, title, launch state, VIP product, price, currency, assignment text, and gift-code inventory count matches the source of truth.',
-    '- [ ] The source owner reviewed actual gift-code values in the source file or source system, but this packet intentionally records counts only.',
+    '- [ ] Every active marathon language, slug, title, launch state, VIP product, price, currency, and assignment text matches the source of truth.',
     '- [ ] The JSON file contains only Marathon/Product/Gift/Step catalog rows and no participant progress, users, answers, submissions, winners, payment attempts, JWTs, or secrets.',
     '- [ ] `launchReady` is `yes` for every active marathon before `--apply` is run.',
     '',

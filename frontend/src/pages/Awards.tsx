@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
 
 /**
- * Awards / certificates page. Content from legacy awards_view.html, gift.html.
+ * Awards / certificates page. Content from legacy awards_view.html.
  */
 export default function Awards() {
   useEffect(() => {
@@ -11,11 +10,6 @@ export default function Awards() {
 
   return (
     <div className="container page-static">
-      <nav className="page-nav">
-        <Link to="/">Главная</Link>
-        <span> · </span>
-        <Link to="/profile">Мой профиль</Link>
-      </nav>
       <h1>Награды и сертификаты</h1>
       <div className="static-content">
         <p>По завершении Marathon финалисты получают награды и сертификаты SpeakASAP®.</p>

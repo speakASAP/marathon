@@ -14,7 +14,6 @@ import Support from './pages/Support';
 import SupportStep from './pages/SupportStep';
 import Register from './pages/Register';
 import Awards from './pages/Awards';
-import Gift from './pages/Gift';
 import LeaveConfirm from './pages/LeaveConfirm';
 
 function App() {
@@ -24,7 +23,6 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/register" element={<Register />} />
         <Route path="/awards" element={<Awards />} />
-        <Route path="/gift" element={<Gift />} />
         <Route path="/leave-confirm" element={<LeaveConfirm />} />
         <Route path="/winners" element={<Winners />} />
         <Route path="/winners/:winnerId" element={<WinnerDetail />} />

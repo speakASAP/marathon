@@ -85,7 +85,6 @@ function publicMarathon(marathon) {
     stepContentCount: marathon.steps.filter((step) => step.assignmentContent?.trim()).length,
     trialStepCount: marathon.steps.filter((step) => step.isTrialStep).length,
     gatedStepCount: marathon.steps.filter((step) => !step.isTrialStep).length,
-    unusedGiftCount: marathon.gifts.length,
   };
 }
 
@@ -99,8 +98,6 @@ async function buildReport() {
       activeMarathons,
       marathons,
       products,
-      gifts,
-      unusedGifts,
       steps,
       allStepContentRows,
       participants,
@@ -109,8 +106,6 @@ async function buildReport() {
       prisma.marathon.count({ where: { active: true } }),
       prisma.marathon.count(),
       prisma.marathonProduct.count(),
-      prisma.marathonGift.count(),
-      prisma.marathonGift.count({ where: { usedAt: null } }),
       prisma.marathonStep.count(),
       prisma.marathonStep.findMany({ select: { assignmentContent: true } }),
       prisma.marathonParticipant.count(),
@@ -122,10 +117,6 @@ async function buildReport() {
       where: { active: true },
       include: {
         product: true,
-        gifts: {
-          where: { usedAt: null },
-          select: { id: true },
-        },
         steps: {
           orderBy: { sequence: 'asc' },
           select: {
@@ -144,8 +135,6 @@ async function buildReport() {
       activeMarathons,
       marathons,
       products,
-      gifts,
-      unusedGifts,
       steps,
       stepsWithContent,
       participants,
@@ -166,9 +155,6 @@ async function buildReport() {
     }
     if (products === 0) {
       addCheck(checks, 'fail', 'catalog-products', 'No MarathonProduct rows exist; VIP checkout cannot be verified.');
-    }
-    if (unusedGifts === 0) {
-      addCheck(checks, 'fail', 'catalog-gifts', 'No unused MarathonGift rows exist; gift redemption cannot be verified.');
     }
 
     for (const marathon of activeCatalog) {
@@ -212,11 +198,6 @@ async function buildReport() {
         }
       }
 
-      if (marathon.gifts.length === 0) {
-        addCheck(checks, 'fail', 'gift', `${label} has no unused MarathonGift row; gift redemption cannot be verified.`);
-      } else {
-        addCheck(checks, 'pass', 'gift', `${label} has ${marathon.gifts.length} unused gift code(s).`);
-      }
     }
 
     for (const key of REQUIRED_ENV_KEYS) {

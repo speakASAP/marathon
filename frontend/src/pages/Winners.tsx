@@ -2,6 +2,40 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchWinnerPage, type WinnerPage } from '../api/publicMarathon';
 
+type MedalKind = 'gold' | 'silver' | 'bronze';
+
+const medalNames: Record<MedalKind, { one: string; few: string; many: string }> = {
+  gold: { one: 'золотая медаль', few: 'золотые медали', many: 'золотых медалей' },
+  silver: { one: 'серебряная медаль', few: 'серебряные медали', many: 'серебряных медалей' },
+  bronze: { one: 'бронзовая медаль', few: 'бронзовые медали', many: 'бронзовых медалей' },
+};
+
+function formatMedalLabel(kind: MedalKind, count: number) {
+  const abs = Math.abs(count);
+  const lastTwo = abs % 100;
+  const last = abs % 10;
+  const form = lastTwo >= 11 && lastTwo <= 14 ? 'many' : last === 1 ? 'one' : last >= 2 && last <= 4 ? 'few' : 'many';
+  return `${count} ${medalNames[kind][form]}`;
+}
+
+function getInitials(name?: string) {
+  const parts = (name || 'Участник').split(/\s+/).filter(Boolean);
+  return parts.slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+}
+
+function MedalBadge({ kind, count }: { kind: MedalKind; count?: number }) {
+  const value = count ?? 0;
+  return (
+    <li className={`medal-badge medal-badge--${kind}`} aria-label={formatMedalLabel(kind, value)}>
+      <span className="medal-badge__medal" aria-hidden="true">
+        <span className="medal-badge__ribbon" />
+        <span className="medal-badge__coin">{value}</span>
+      </span>
+      <span className="medal-badge__label">{formatMedalLabel(kind, value)}</span>
+    </li>
+  );
+}
+
 /**
  * Winners list (Phase 2a). Paginated via GET /api/v1/winners. Legacy card grid.
  */
@@ -12,7 +46,7 @@ export default function Winners() {
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    document.title = 'Финалисты Marathon — языковые марафоны SpeakASAP®';
+    document.title = 'Медали финалистов языковых марафонов — SpeakASAP®';
   }, []);
 
   useEffect(() => {
@@ -38,7 +72,7 @@ export default function Winners() {
 
   return (
     <div className="container page-winners">
-      <h1>Финалисты Marathon</h1>
+      <h1>Медали финалистов языковых марафонов</h1>
       {loading && items.length === 0 && <p>Загрузка…</p>}
       {hasLoadError && items.length === 0 && (
         <section className="profile-empty-panel" role="alert">
@@ -78,15 +112,15 @@ export default function Winners() {
               <img src={w.avatar} alt="" className="card-winner__avatar" width={80} height={80} loading="lazy" />
             ) : (
               <div className="card-winner__avatar card-winner__avatar--placeholder">
-                <span className="card-winner__stub">👤</span>
+                <span className="card-winner__stub">{getInitials(w.name)}</span>
               </div>
             )}
             <div className="card-winner__text">
               <p className="card-winner__name">{w.name || 'Участник'}</p>
               <ul className="card-winner__medals">
-                <li>🥇 {w.gold ?? 0}</li>
-                <li>🥈 {w.silver ?? 0}</li>
-                <li>🥉 {w.bronze ?? 0}</li>
+                <MedalBadge kind="gold" count={w.gold} />
+                <MedalBadge kind="silver" count={w.silver} />
+                <MedalBadge kind="bronze" count={w.bronze} />
               </ul>
             </div>
             <div className="card-winner__actions">

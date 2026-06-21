@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   fetchCatalogReadiness,
@@ -7,6 +7,7 @@ import {
   type CatalogReadiness,
   type MarathonLanguage,
 } from '../api/publicMarathon';
+import { formatLanguageLabel, formatLanguageOptionLabel } from '../languages';
 
 function formatMissingGate(value: string): string {
   return value
@@ -45,13 +46,14 @@ export default function Register() {
   }, []);
 
   const registrationClosed = !loading && readiness?.registrationOpen !== true;
-  const visibleLanguages = registrationClosed ? [] : languages;
+  const sortedLanguages = useMemo(
+    () => [...languages].sort((a, b) => formatLanguageLabel(a.code, a.name).localeCompare(formatLanguageLabel(b.code, b.name), 'ru')),
+    [languages],
+  );
+  const visibleLanguages = registrationClosed ? [] : sortedLanguages;
 
   return (
     <div className="container page-static">
-      <nav className="page-nav">
-        <Link to="/">Главная</Link>
-      </nav>
       <h1>Регистрация на марафон</h1>
       <p>Выберите язык марафона и перейдите на страницу регистрации.</p>
       {loading && <p>Загрузка…</p>}
@@ -74,7 +76,7 @@ export default function Register() {
           <h2>Регистрация пока закрыта</h2>
           <p>
             Production каталог еще не готов для регистрации. Как только активный марафон, задания,
-            VIP продукт и подарочные коды будут утверждены, здесь появятся доступные языки.
+            VIP продукт будет утвержден, здесь появятся доступные языки.
           </p>
           {readiness && (
             <dl className="registration-readiness-list">
@@ -82,8 +84,7 @@ export default function Register() {
               <div><dt>Этапы</dt><dd>{readiness.counts.steps}</dd></div>
               <div><dt>Этапы с заданиями</dt><dd>{readiness.counts.stepsWithContent}</dd></div>
               <div><dt>VIP продукты</dt><dd>{readiness.counts.products}</dd></div>
-              <div><dt>Подарочные коды</dt><dd>{readiness.counts.unusedGifts}</dd></div>
-            </dl>
+              </dl>
           )}
           {readiness?.missing?.length ? (
             <div className="registration-missing-gates" aria-label="Недостающие условия запуска">
@@ -101,7 +102,7 @@ export default function Register() {
       <ul className="register-lang-list">
         {visibleLanguages.map((lang) => (
           <li key={lang.code}>
-            <Link to={getMarathonRegisterPath(lang)}>{lang.name}</Link>
+            <Link to={getMarathonRegisterPath(lang)}>{formatLanguageOptionLabel(lang.code, lang.name)}</Link>
           </li>
         ))}
       </ul>

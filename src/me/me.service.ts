@@ -339,10 +339,7 @@ export class MeService {
       answers.find((answer) => answer.state === 'active') ||
       (latestSubmission ? this.mapToAnswer(latestSubmission, latestStep) : null);
 
-    const canChangeReportTime =
-      participant.active &&
-      !this.isWinner(participant, steps) &&
-      (!latestStep || !latestStep.isPenalized);
+    const canChangeReportTime = participant.active && !this.isWinner(participant, steps);
 
     return {
       title: marathon.title,

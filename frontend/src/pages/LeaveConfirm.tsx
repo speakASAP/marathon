@@ -12,11 +12,6 @@ export default function LeaveConfirm() {
 
   return (
     <div className="container page-static">
-      <nav className="page-nav">
-        <Link to="/">Главная</Link>
-        <span> · </span>
-        <Link to="/profile">Мой профиль</Link>
-      </nav>
       <h1>Выход из марафона</h1>
       <div className="static-content">
         <p>Если вы хотите выйти из марафона, обратитесь в поддержку или используйте настройки в личном кабинете.</p>

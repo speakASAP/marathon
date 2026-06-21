@@ -1,43 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { fetchCatalogReadiness, type CatalogReadiness } from '../api/publicMarathon';
+import MarathonFooterLinks from './MarathonFooterLinks';
 
-const LANDING_LANGUAGE_SLUGS = [
-  'english',
-  'german',
-  'spanish',
-  'french',
-  'italian',
-  'czech',
-  'turkish',
-  'portuguese',
-  'dutch',
-  'polish',
-  'norwegian',
-  'swedish',
-  'danish',
-];
-
-/** True when path renders Landing, whose nav and footer are inside the page. */
-function isLandingPath(pathname: string): boolean {
-  const normalized = pathname.replace(/\/$/, '') || '/';
-  if (normalized === '/' || normalized === '/landing') return true;
-  if (/^\/[a-z]{2}$/.test(normalized)) return true;
-  if (/^\/marathon\/[^/]+$/.test(normalized)) return true;
-  return LANDING_LANGUAGE_SLUGS.includes(normalized.slice(1));
-}
-
-/**
- * Global shell: legacy-aligned header and footer for all pages.
- * On landing routes only Outlet is rendered; Landing has its own nav and footer.
- */
+/** Global shell: one shared Marathon header for every route. */
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [readinessError, setReadinessError] = useState('');
   const location = useLocation();
-  const bare = isLandingPath(location.pathname) || location.pathname === '/profile';
-  const hideGlobalHeader = bare || location.pathname === '/';
+  const hideFooter = false;
   const registrationStatusUnavailable = Boolean(readinessError);
   const registrationClosed = !registrationStatusUnavailable && readiness?.registrationOpen !== true;
   const navRegistrationLabel = registrationStatusUnavailable
@@ -46,6 +18,10 @@ export default function Layout() {
   const navRegistrationTitle = registrationStatusUnavailable
     ? 'Статус регистрации недоступен. Откройте страницу регистрации для подробностей.'
     : undefined;
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     setReadinessError('');
@@ -59,7 +35,6 @@ export default function Layout() {
 
   return (
     <div className="layout-wrap">
-      {!hideGlobalHeader && (
       <header className="main-header" id="main-nav">
         <div className="container header-inner">
           <Link to="/" className="navbar-brand" aria-label="Главная Marathon">
@@ -73,7 +48,6 @@ export default function Layout() {
             <Link to="/rules">Правила</Link>
             <Link to="/faq">Помощь</Link>
             <Link to="/profile">Мой профиль</Link>
-            <Link to="/register" className="nav-registration-link" title={navRegistrationTitle}>{navRegistrationLabel}</Link>
             <Link to="/awards">Награды</Link>
             <Link to="/support">Поддержка</Link>
             <Link
@@ -97,11 +71,10 @@ export default function Layout() {
           </button>
         </div>
       </header>
-      )}
       <main className="layout-main">
         <Outlet />
       </main>
-      {!bare && (
+      {!hideFooter && (
       <footer className="main-footer">
         <div className="container footer-inner">
           <div className="footer-col">
@@ -117,8 +90,9 @@ export default function Layout() {
             <a href="https://instagram.com/shipilova_speakasap" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i className="fa fa-instagram" /></a>
           </div>
           <div className="footer-col">
-            <a href="https://speakasap.com/privacy/" target="_blank" rel="noopener noreferrer">Политика конфиденциальности</a>
+            <a href="https://speakasap.com/policy/" target="_blank" rel="noopener noreferrer">Политика конфиденциальности</a>
           </div>
+          <MarathonFooterLinks className="footer-marathons" />
         </div>
         <div className="container footer-copy">
           <p>Copyright © SpeakASAP® 2010–{new Date().getFullYear()}</p>

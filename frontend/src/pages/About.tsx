@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
 
 /**
  * Static page: О языковых марафонах. Content from legacy about.html.
@@ -11,11 +10,6 @@ export default function About() {
 
   return (
     <div className="container page-static">
-      <nav className="page-nav">
-        <Link to="/">Главная</Link>
-        <span> · </span>
-        <Link to="/winners">Финалисты</Link>
-      </nav>
       <h1>О Marathon</h1>
       <div className="static-content">
         <p>Языковые марафоны 🏆 — это совершенно новый подход в обучении, который позволяет через 30 дней иметь:</p>

@@ -45,10 +45,6 @@ export class RegistrationsService {
       },
       include: {
         product: true,
-        gifts: {
-          where: { usedAt: null },
-          select: { id: true },
-        },
         steps: {
           orderBy: { sequence: 'asc' },
           select: {
@@ -113,16 +109,11 @@ export class RegistrationsService {
 
   private assertRegistrationReady(marathon: {
     product: unknown | null;
-    gifts: { id: string }[];
     steps: { assignmentContent: string | null; isTrialStep: boolean; sequence: number; title: string }[];
   }): void {
     if (!marathon.product) {
       this.logger.warn('marathon.registration.blocked reason=missing_product');
       throw new BadRequestException('Registration is not open: VIP product is not configured');
-    }
-    if (marathon.gifts.length === 0) {
-      this.logger.warn('marathon.registration.blocked reason=missing_gift_inventory');
-      throw new BadRequestException('Registration is not open: gift-code inventory is not configured');
     }
     if (marathon.steps.length === 0) {
       this.logger.warn('marathon.registration.blocked reason=missing_steps');

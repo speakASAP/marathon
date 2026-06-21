@@ -6,7 +6,6 @@ import {
   fetchMarathonByLanguage,
   fetchMarathonLanguages,
   fetchPublicReviews,
-  getMarathonRegisterPath,
   type CatalogReadiness,
   type MarathonLanguage,
   type MarathonSummary,
@@ -33,11 +32,17 @@ function formatMissingGate(value: string): string {
     .join(' ');
 }
 
+function formatCount(value: number | undefined): string {
+  if (typeof value !== 'number') return '0';
+  return new Intl.NumberFormat('ru-RU').format(value);
+}
+
 export default function Landing() {
   const { langSlug } = useParams<{ langSlug: string }>();
-  const effectiveLangSlug = langSlug && langSlug !== 'landing' ? langSlug : 'de';
+  const isLanguageLanding = Boolean(langSlug && langSlug !== 'landing');
+  const effectiveLangSlug = isLanguageLanding && langSlug ? langSlug : 'de';
   const [marathon, setMarathon] = useState<MarathonSummary | null>(null);
-  const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
+  const [, setLanguages] = useState<MarathonLanguage[]>([]);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [reviews, setReviews] = useState<PublicReview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,7 +98,7 @@ export default function Landing() {
       'content',
       metaReady
         ? `Присоединяйтесь к марафону ${langName} от SpeakASAP: утвержденные задания, отслеживание прогресса и VIP-доступ через профиль Marathon.`
-        : `Регистрация на марафон ${langName} откроется после загрузки утвержденного каталога, заданий, VIP-продукта и подарочных кодов.`,
+        : `Регистрация на марафон ${langName} откроется после загрузки утвержденного каталога, заданий, VIP-продукта.`,
     );
 
     let canonical = document.querySelector('link[rel="canonical"]');
@@ -115,12 +120,6 @@ export default function Landing() {
     return () => window.clearTimeout(id);
   }, [loading, loadError, marathon]);
 
-  const goToLanguageRegister = (languageCode: string) => {
-    const selectedLanguage = languages.find((language) => language.code === languageCode);
-    window.location.href = selectedLanguage
-      ? getMarathonRegisterPath(selectedLanguage)
-      : `/${encodeURIComponent(languageCode)}#register`;
-  };
 
   const scrollToForm = () => {
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -142,9 +141,6 @@ export default function Landing() {
   if (loadError) {
     return (
       <div className="container page-static">
-        <nav className="page-nav">
-          <Link to="/">Главная</Link>
-        </nav>
         <h1>Страница марафона временно недоступна</h1>
         <section className="profile-empty-panel" role="alert">
           <p>{loadError}</p>
@@ -170,85 +166,44 @@ export default function Landing() {
     );
   }
 
-  const languageName = formatLanguageName(marathon);
   const raceLanguageName = formatLanguageName(marathon);
+  const participantCount = isLanguageLanding
+    ? marathon.participantCount
+    : readiness?.counts.registeredParticipants;
+  const participantLabel = isLanguageLanding ? 'участников в этом марафоне' : 'участников уже зарегистрированы';
+  const resultLevel = marathon.languageCode.toLowerCase() === 'en' ? 'pre-intermediate' : 'A1';
   const hasActiveMarathon = marathon.id !== 'fallback';
   const registrationOpen = hasActiveMarathon && readiness?.registrationOpen === true;
   const registrationStatusId = registrationOpen ? undefined : 'registration-status-note';
-  const startCtaLabel = registrationOpen ? 'Начать марафон' : 'Регистрация скоро откроется';
   const heroCtaLabel = registrationOpen ? 'Начать 30-дневный марафон' : 'Посмотреть маршрут на 30 дней';
   const heroSecondary = registrationOpen
     ? { to: '/profile', label: 'Открыть мой марафон' }
     : { to: '/support', label: 'Связаться с поддержкой' };
-  const pricingIntro = 'Марафон устроен как забег: начните со старта, каждый день выполняйте одно задание и пройдите весь маршрут к 30-му дню.';
+  const pricingIntro = `Марафон устроен как забег: начните со старта, каждый день выполняйте одно задание и придите к финишу с результатом уровня ${resultLevel}.`;
   const heroTitle = registrationOpen
-    ? `Пройдите марафон ${raceLanguageName} за 30 дней.`
+    ? `Пройдите марафон ${raceLanguageName} за 30 дней`
     : `Марафон ${raceLanguageName} начинается с движения.`;
   const heroIntro = registrationOpen
-    ? 'Начните с первого дня, каждый день выполняйте одно языковое задание, следите за темпом в профиле и дойдите до финиша через 30 дней.'
-    : 'Наглядный 30-дневный маршрут от старта до финиша: каждый день вы проходите один этап, выполняете задание и движетесь к результату.';
+    ? `Начните с первого дня, каждый день выполняйте одно языковое задание, следите за темпом в профиле и на финише получите результат уровня ${resultLevel}.`
+    : `Наглядный 30-дневный маршрут от старта до финиша: каждый день вы проходите один этап, выполняете задание и движетесь к результату уровня ${resultLevel}.`;
   const registerTitle = registrationOpen ? `Старт марафона: ${raceLanguageName}` : 'Регистрация скоро откроется';
   const missingLaunchGates = readiness?.missing ?? [];
   const faqItems = registrationOpen
     ? [
-      ['Сколько времени нужно каждый день?', 'Следуйте инструкциям задания, которые показаны в профиле для текущего утвержденного этапа.'],
+      ['Сколько времени нужно каждый день?', 'На один языковой марафон планируйте от 15 минут в день. Дальше время зависит от задания и от того, сколько вы сами хотите заниматься.'],
       ['Можно начать бесплатно?', 'Регистрация начинается с бесплатного пути марафона. Оплата VIP появляется в профиле, когда этот доступ понадобится.'],
-      ['Что происходит после VIP-этапа?', 'Участникам бесплатного пути нужно перейти на VIP, чтобы открыть следующие задания.'],
+      ['Что происходит после бесплатной части марафона?', 'После бесплатной части марафона нужно перейти на VIP, чтобы открыть следующие задания.'],
       ['Как работают задания?', 'У каждого утвержденного задания есть инструкции, статус отчета и прогресс в профиле марафона.'],
     ]
     : [
-      ['Как устроен марафон?', 'Вы проходите 30-дневный маршрут: старт, ежедневные задания, проверка прогресса, VIP-доступ при необходимости и финиш.'],
+      ['Как устроен марафон?', `Вы проходите 30-дневный маршрут: старт, ежедневные задания, проверка прогресса, VIP-доступ при необходимости и финиш с результатом уровня ${resultLevel}.`],
       ['Что происходит каждый день?', 'Каждый день есть одно языковое задание. Вы выполняете его, отправляете отчет и переходите к следующему дню.'],
-      ['Почему регистрация закрыта?', 'Регистрация откроется после загрузки утвержденного активного марафона, заданий, VIP-продукта и подарочных кодов.'],
+      ['Почему регистрация закрыта?', 'Регистрация откроется после загрузки утвержденного активного марафона, заданий, VIP-продукта.'],
       ['Где посмотреть статус запуска?', 'Откройте поддержку, чтобы посмотреть рабочие инструкции и проверки готовности.'],
     ];
 
   return (
     <div className="marathon-landing">
-      <header className="ml-nav">
-        <Link to="/" className="ml-brand" aria-label="Главная страница языкового марафона">
-          <span>Marathon</span>
-          <small>от SpeakASAP</small>
-        </Link>
-        <nav className="ml-nav-links" aria-label="Навигация страницы марафона">
-          <a href="#how">Как это работает</a>
-          <a href="#program">Программа</a>
-          <a href="#pricing">Условия</a>
-          <a href="#winners">Финалисты</a>
-          <a href="#faq">FAQ</a>
-        </nav>
-        <div className="ml-nav-actions">
-          <label className="ml-language-select">
-            <span>Язык</span>
-            <select
-              value={marathon.languageCode}
-              onChange={(event) => {
-                goToLanguageRegister(event.target.value);
-              }}
-            >
-              {languages.length ? (
-                languages.map((language) => (
-                  <option key={language.code} value={language.code}>
-                    {formatLanguageLabel(language.code, language.name)}
-                  </option>
-                ))
-              ) : (
-                <option value={marathon.languageCode}>{languageName}</option>
-              )}
-            </select>
-          </label>
-          <Link to="/profile" className="ml-secondary-action">Мой марафон</Link>
-          <button
-            type="button"
-            className={`ml-primary-action${registrationOpen ? '' : ' is-closed'}`}
-            onClick={scrollToForm}
-            aria-describedby={registrationStatusId}
-          >
-            {startCtaLabel}
-          </button>
-        </div>
-      </header>
-
       <main>
         <section className="ml-hero">
           <div className="ml-hero-copy">
@@ -267,29 +222,36 @@ export default function Landing() {
             </div>
             {!registrationOpen && (
               <p className="ml-availability-note" id="registration-status-note">
-                Регистрация еще не открыта, но маршрут уже можно посмотреть: старт, ежедневное задание, контроль прогресса и финиш.
+                Регистрация еще не открыта, но маршрут уже можно посмотреть: старт, ежедневное задание, отчет и финиш.
               </p>
             )}
             <dl className="ml-hero-points" aria-label="30-day Marathon highlights">
+              <div><dt>{formatCount(participantCount)}</dt><dd>{participantLabel}</dd></div>
               <div><dt>День 1</dt><dd>старт</dd></div>
               <div><dt>30</dt><dd>ежедневных заданий</dd></div>
-              <div><dt>Финиш</dt><dd>видимый результат</dd></div>
+              <div><dt>Финиш</dt><dd>уровень {resultLevel}</dd></div>
             </dl>
           </div>
 
           <div className="ml-race-hero" aria-label="Участники движутся от старта к финишу">
             <img src={MARATHON_IMAGES.hero} alt="Участники начинают маршрут марафона с отметками дней от 1 до 30" />
+            <div className="ml-image-stage-label">Старт</div>
             <div className="ml-race-card">
               <strong>Маршрут на 30 дней</strong>
-              <span>Старт</span>
-              <span>Ежедневное задание</span>
-              <span>Контрольная точка</span>
-              <span>Финиш</span>
+              <span className="ml-race-step is-start"><i aria-hidden="true" />Старт</span>
+              <span className="ml-race-step is-daily"><i aria-hidden="true" />Ежедневное задание</span>
+              <span className="ml-race-step is-report"><i aria-hidden="true" />Отчет</span>
+              <span className="ml-race-step is-finish"><i aria-hidden="true" />Финиш</span>
             </div>
-            <div className="ml-race-status">
+            <button
+              type="button"
+              className="ml-race-status"
+              onClick={scrollToForm}
+              aria-describedby={registrationStatusId}
+            >
               <span>{registrationOpen ? 'Регистрация открыта' : 'Регистрация скоро откроется'}</span>
               <strong>{registrationOpen ? 'Начать сегодня' : 'Предпросмотр маршрута'}</strong>
-            </div>
+            </button>
           </div>
         </section>
 
@@ -303,7 +265,18 @@ export default function Landing() {
           <div className="ml-how-grid">
             <article><span>01</span><h3>Старт маршрута</h3><p>Выберите языковой марафон и войдите в маршрут с первого дня одним понятным действием.</p></article>
             <article><span>02</span><h3>Выполняйте одно задание в день</h3><p>Каждый день вы открываете следующее задание, выполняете языковую работу и отправляете отчет.</p></article>
-            <article><span>03</span><h3>Финиш на 30-й день</h3><p>Финишная линия - это завершенный маршрут: 30 дней видимого прогресса, а не расплывчатое обещание.</p></article>
+            <article><span>03</span><h3>Финиш на 30-й день</h3><p>Финишная линия - это завершенный маршрут и результат уровня {resultLevel}, а не расплывчатое обещание.</p></article>
+          </div>
+          <div className="ml-how-route" aria-label="Графика маршрута от старта до финиша">
+            <span className="ml-how-route-label">Старт</span>
+            <div className="ml-how-route-days" aria-hidden="true">
+              {Array.from({ length: 30 }, (_, index) => (
+                <span key={index} className={index === 0 || index === 9 || index === 19 || index === 29 ? 'is-major' : undefined}>
+                  {index + 1}
+                </span>
+              ))}
+            </div>
+            <span className="ml-how-route-finish">🏆 Финиш: {resultLevel}</span>
           </div>
         </section>
 
@@ -314,10 +287,12 @@ export default function Landing() {
           </div>
           <div className="ml-race-route">
             <div className="ml-route-line" aria-hidden="true">
-              <span>1</span>
-              <span>10</span>
-              <span>20</span>
-              <span>30</span>
+              <span>День 1</span>
+              <b className="ml-route-runner" aria-label="Бегущий участник движется к финишу">
+                <i />
+                <i />
+              </b>
+              <span>День 30</span>
             </div>
             <article>
               <h3>Старт</h3>
@@ -328,12 +303,12 @@ export default function Landing() {
               <p>Одно задание в день делает работу конкретной: читать, говорить, писать, отчитаться и продолжить.</p>
             </article>
             <article>
-              <h3>Контрольная точка</h3>
-              <p>Прогресс, VIP-доступ, отчеты и закрытые этапы управляются из вашего профиля.</p>
+              <h3>Отчет</h3>
+              <p>После задания вы пишете отчет о выполнении. Платформа фиксирует прогресс и открывает следующий день маршрута.</p>
             </article>
             <article>
               <h3>Финиш</h3>
-              <p>На 30-й день у марафона есть ясный итог: маршрут пройден, результат виден.</p>
+              <p>На 30-й день у марафона есть ясный итог: маршрут пройден, цель достигнута, уровень {resultLevel} получен.</p>
             </article>
           </div>
         </section>
@@ -364,7 +339,7 @@ export default function Landing() {
                 <span>Завершение</span>
                 <h3>Отправьте и продолжайте</h3>
                 <small>Прогресс сохранен</small>
-                <p>Ваш отчет двигает маршрут дальше. Завтра вы вернетесь к следующему дню и так до финиша.</p>
+                <p>Ваш отчет двигает маршрут дальше. Завтра вы вернетесь к следующему дню и так до финиша с результатом уровня {resultLevel}.</p>
               </article>
             </div>
           </div>
@@ -382,14 +357,18 @@ export default function Landing() {
 
         <section className="ml-proof" id="winners">
           <div className="ml-section-head">
-            <h2>30-й день ощущается как финиш</h2>
-            <p>Марафон построен вокруг видимого завершения: участники стартуют вместе, держат темп и приходят к финишу сильнее.</p>
+            <h2>30-й день — это финиш и результат</h2>
+            <p>На финише участник завершает первый важный этап изучения языка и достигает результата уровня {resultLevel}.</p>
           </div>
           <div className="ml-finish-visual">
-            <img src={MARATHON_IMAGES.finish} alt="Участники празднуют финиш на 30-й день" loading="lazy" />
+            <div className="ml-finish-image">
+              <img src={MARATHON_IMAGES.finish} alt="Участники празднуют финиш на 30-й день" loading="lazy" />
+              <div className="ml-image-stage-label">Финиш</div>
+              <div className="ml-finish-ribbon-label">Языковой марафон на уровень А1</div>
+            </div>
             <div>
-              <h3>Старт. Движение. Финиш.</h3>
-              <p>Ежедневные задания делают маршрут измеримым. Финиш не абстрактный: через 30 дней участник видит путь, который прошел.</p>
+              <h3>Старт. 30 дней. Уровень {resultLevel}.</h3>
+              <p>Ежедневные задания делают маршрут измеримым. Финиш не абстрактный: через 30 дней участник достигает конкретной цели и получает результат уровня {resultLevel}.</p>
               <Link to="/winners" className="ml-primary-action">Посмотреть финалистов</Link>
             </div>
           </div>
@@ -433,50 +412,49 @@ export default function Landing() {
           </aside>
         </section>
 
-        <section className="ml-register" ref={formRef} id="register">
-          <div className="ml-register-copy">
-            <h2>{registerTitle}</h2>
-            <p>
-              {registrationOpen
-                ? 'Зарегистрируйтесь по email. Платформа создаст запись участника и откроет маршрут первого дня.'
-                : 'Регистрация откроется, когда этот языковой маршрут будет готов. Структуру 30-дневного марафона уже видно выше.'}
-            </p>
-            {registeredId && (
-              <p className="ml-success">Регистрация получена. ID участника: {registeredId}</p>
-            )}
-            {formError && <p className="ml-error">{formError}</p>}
-          </div>
+        <section className={`ml-register${registrationOpen ? ' is-form-only' : ''}`} ref={formRef} id="register">
           {registrationOpen ? (
-            <RegistrationForm
-              languageCode={marathon.languageCode}
-              marathonTitle={marathon.title}
-              onSuccess={handleRegisterSuccess}
-              onError={setFormError}
-            />
-          ) : (
-            <div className="ml-registration-unavailable">
-              <h3>Регистрация еще не открыта</h3>
-              <p>Кнопка старта откроется после готовности утвержденного маршрута, ежедневных заданий, VIP-продукта и подарочных кодов в production.</p>
-              {missingLaunchGates.length ? (
-                <div className="ml-missing-gates" aria-label="Недостающие условия запуска">
-                  <strong>Блокеры запуска</strong>
-                  <div>
-                    {missingLaunchGates.map((item) => (
-                      <span key={item}>{formatMissingGate(item)}</span>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-              <Link to="/support" className="ml-outline-action">Связаться с поддержкой</Link>
+            <div className="ml-register-form-stack">
+              <RegistrationForm
+                languageCode={marathon.languageCode}
+                marathonTitle={`${raceLanguageName} язык`}
+                onSuccess={handleRegisterSuccess}
+                onError={setFormError}
+              />
+              {registeredId && (
+                <p className="ml-success">Регистрация получена. ID участника: {registeredId}</p>
+              )}
+              {formError && <p className="ml-error">{formError}</p>}
             </div>
+          ) : (
+            <>
+              <div className="ml-register-copy">
+                <h2>{registerTitle}</h2>
+                <p>Регистрация откроется, когда этот языковой маршрут будет готов. Структуру 30-дневного марафона уже видно выше.</p>
+              </div>
+              <div className="ml-registration-unavailable">
+                <h3>Регистрация еще не открыта</h3>
+                <p>Кнопка старта откроется после готовности утвержденного маршрута, ежедневных заданий, VIP-продукта в production.</p>
+                {missingLaunchGates.length ? (
+                  <div className="ml-missing-gates" aria-label="Недостающие условия запуска">
+                    <strong>Блокеры запуска</strong>
+                    <div>
+                      {missingLaunchGates.map((item) => (
+                        <span key={item}>{formatMissingGate(item)}</span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                <Link to="/support" className="ml-outline-action">Связаться с поддержкой</Link>
+              </div>
+            </>
           )}
         </section>
       </main>
 
       <footer className="ml-footer">
         <div>
-          <strong>Marathon <span>от SpeakASAP</span></strong>
-          <p>Skopalikova 1144/11, 615 00 Brno, Czech Republic</p>
+          <strong>Марафон <span>от Спикаса</span></strong>
         </div>
         <nav aria-label="Подвал">
           <Link to="/rules">Правила</Link>

@@ -11,6 +11,11 @@ function formatMissingLabel(value: string): string {
     .join(' ');
 }
 
+function formatCount(value: number | undefined): string {
+  if (typeof value !== 'number') return '0';
+  return new Intl.NumberFormat('ru-RU').format(value);
+}
+
 export default function Support() {
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,15 +39,12 @@ export default function Support() {
 
   return (
     <div className="container page-static page-support">
-      <nav className="page-nav">
-        <Link to="/">Главная</Link>
-      </nav>
 
       <section className="support-public-hero">
         <div>
           <h1>Поддержка Marathon</h1>
           <p>
-            Помощь с регистрацией, доступом к профилю, VIP-статусом, подарочными кодами и страницами заданий.
+            Помощь с регистрацией, доступом к профилю и прохождением языкового марафона.
           </p>
         </div>
         <a className="btn-profile-login" href={`mailto:${SUPPORT_EMAIL}`}>
@@ -51,25 +53,26 @@ export default function Support() {
       </section>
 
       <section className="support-public-status" aria-live="polite">
-        <div>
+        <div className="support-public-status-heading">
           <span>Статус регистрации</span>
-          <strong>{loading ? 'Проверяем' : registrationOpen ? 'Открыта' : 'Пока закрыта'}</strong>
+          <strong className={registrationOpen ? 'support-status-badge support-status-badge-open' : 'support-status-badge'}>
+            {loading ? 'Проверяем' : registrationOpen ? 'Регистрация открыта' : 'Пока закрыта'}
+          </strong>
         </div>
         {error ? (
           <p className="ml-error">{error}</p>
         ) : registrationOpen ? (
-          <p>Регистрация открыта. Выберите язык и начните со страницы регистрации.</p>
+          <p>Регистрация открыта. Выберите язык и начните марафон со страницы регистрации.</p>
         ) : (
           <p>
-            Регистрация откроется после готовности утвержденного каталога, заданий, VIP-продукта и подарочных кодов.
+            Регистрация откроется после готовности утвержденного каталога марафонов.
           </p>
         )}
         {!loading && readiness && (
           <dl className="support-public-counts">
-            <div><dt>Активные марафоны</dt><dd>{readiness.counts.activeMarathons}</dd></div>
-            <div><dt>Задания</dt><dd>{readiness.counts.stepsWithContent}/{readiness.counts.steps}</dd></div>
-            <div><dt>VIP-продукты</dt><dd>{readiness.counts.products}</dd></div>
-            <div><dt>Подарочные коды</dt><dd>{readiness.counts.unusedGifts}</dd></div>
+            <div><dt>Участники марафона</dt><dd>{formatCount(readiness.counts.registeredParticipants)}</dd></div>
+            <div><dt>Активные марафоны</dt><dd>{formatCount(readiness.counts.activeMarathons)}</dd></div>
+            <div><dt>Иностранные языки</dt><dd>{formatCount(readiness.counts.activeLanguages ?? readiness.counts.activeMarathons)}</dd></div>
           </dl>
         )}
         {!loading && missing.length > 0 && (
@@ -81,7 +84,7 @@ export default function Support() {
         )}
         <div className="support-public-actions">
           <Link to="/register" className="btn-profile-login">
-            {registrationOpen ? 'Перейти к регистрации' : 'Посмотреть статус регистрации'}
+            {registrationOpen ? 'Начать марафон' : 'Посмотреть статус регистрации'}
           </Link>
           <Link to="/profile" className="btn-profile-open">Открыть профиль</Link>
         </div>
@@ -92,23 +95,23 @@ export default function Support() {
           <span>Профиль и вход</span>
           <h2>Не видите свой марафон?</h2>
           <p>
-            Войдите через SpeakASAP со страницы профиля. Если участник уже привязан, вход вернет вас в нужный профиль марафона.
+            Войдите через SpeakASAP со страницы профиля. Если вы уже зарегистрированы, мы автоматически перенаправим вас в нужный профиль марафона.
           </p>
           <Link to="/profile">Открыть профиль</Link>
         </article>
         <article>
-          <span>VIP-доступ</span>
-          <h2>Оплата или подарочный код</h2>
+          <span>Языки</span>
+          <h2>13 иностранных языков</h2>
           <p>
-            Оплата VIP и подарочный код появляются в профиле марафона, когда активен VIP-этап и готов каталог запуска.
+            Выберите свой языковой марафон и продолжайте обучение в профиле участника.
           </p>
-          <Link to="/gift">Страница подарочного кода</Link>
+          <Link to="/register">Выбрать язык</Link>
         </article>
         <article>
-          <span>Задания</span>
-          <h2>Отправка отчета</h2>
+          <span>Марафон</span>
+          <h2>Продолжить участие</h2>
           <p>
-            Открывайте задания из профиля марафона, чтобы страница проверила ID участника, сессию входа, статус отчета и содержание задания.
+            Выполните задание и отправьте отчет, чтобы завершить этап. После каждого этапа система проверяет выполнение, и вы можете бежать марафон дальше.
           </p>
           <Link to="/profile">Продолжить марафон</Link>
         </article>
@@ -121,9 +124,9 @@ export default function Support() {
           <li>Языковой марафон, который вы пытаетесь открыть.</li>
           <li>Краткое описание страницы или действия, с которым нужна помощь.</li>
         </ul>
-        <p>
-          Не отправляйте пароли, данные платежных карт, полные списки подарочных кодов или личные отчеты по email.
-        </p>
+        <a className="btn-profile-login" href={`mailto:${SUPPORT_EMAIL}`}>
+          Связаться с поддержкой
+        </a>
       </section>
     </div>
   );

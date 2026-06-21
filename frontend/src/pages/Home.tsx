@@ -11,7 +11,7 @@ import {
   type PublicReview,
   type WinnerSummary,
 } from '../api/publicMarathon';
-import { formatLanguageLabel } from '../languages';
+import { formatLanguageLabel, formatLanguageOptionLabel } from '../languages';
 import '../landing.css';
 
 function formatMissingGate(value: string): string {
@@ -19,6 +19,11 @@ function formatMissingGate(value: string): string {
     .split('-')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+}
+
+function formatCount(value: number | undefined): string {
+  if (typeof value !== 'number') return '0';
+  return new Intl.NumberFormat('ru-RU').format(value);
 }
 
 /**
@@ -33,7 +38,7 @@ export default function Home() {
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    document.title = 'Marathon от SpeakASAP — начните языковой марафон';
+    document.title = 'Марафон от SpeakASAP — начните языковой марафон';
   }, []);
 
   useEffect(() => {
@@ -62,7 +67,11 @@ export default function Home() {
 
   const registrationOpen = readiness?.registrationOpen === true;
   const missingLaunchGates = readiness?.missing ?? [];
-  const featuredLanguages = useMemo(() => languages.slice(0, 8), [languages]);
+  const sortedLanguages = useMemo(
+    () => [...languages].sort((a, b) => formatLanguageLabel(a.code, a.name).localeCompare(formatLanguageLabel(b.code, b.name), 'ru')),
+    [languages],
+  );
+  const featuredLanguages = sortedLanguages;
   const primaryLanguage = featuredLanguages[0];
   const startPath = primaryLanguage ? getMarathonRegisterPath(primaryLanguage) : '/register';
   const approvedSteps = readiness ? `${readiness.counts.stepsWithContent}/${readiness.counts.steps}` : '377/377';
@@ -71,14 +80,11 @@ export default function Home() {
     : 'Регистрация на марафон готовится';
   const heroCopy = registrationOpen
     ? 'Выберите язык, зарегистрируйтесь и проходите ежедневные задания, отчеты, VIP-доступ, финал и отслеживание прогресса в одном профиле.'
-    : 'Регистрация откроется только после готовности активного каталога, заданий, VIP-продукта и подарочных кодов в production.';
+    : 'Регистрация откроется только после готовности активного каталога, заданий, VIP-продукта в production.';
 
   if (loadError) {
     return (
       <div className="container page-static">
-        <nav className="page-nav">
-          <Link to="/">Главная</Link>
-        </nav>
         <h1>Главная страница марафона временно недоступна</h1>
         <section className="profile-empty-panel" role="alert">
           <p>{loadError}</p>
@@ -97,26 +103,6 @@ export default function Home() {
 
   return (
     <div className="home-launch">
-      <header className="home-launch-nav">
-        <Link to="/" className="home-launch-brand" aria-label="Marathon home">
-          <span>Marathon</span>
-          <small>by SpeakASAP</small>
-        </Link>
-        <nav className="home-launch-links" aria-label="Marathon landing navigation">
-          <Link to="/winners">Финалисты</Link>
-          <Link to="/reviews">Отзывы</Link>
-          <Link to="/rules">Правила</Link>
-          <Link to="/faq">FAQ</Link>
-          <Link to="/profile">Профиль</Link>
-        </nav>
-        <Link
-          to={registrationOpen ? startPath : '/register'}
-          className={`ml-primary-action${registrationOpen ? '' : ' is-closed'}`}
-        >
-          {registrationOpen ? 'Начать марафон' : 'Статус регистрации'}
-        </Link>
-      </header>
-
       <section className="home-launch-hero">
         <div className="home-launch-copy">
           <h1>{heroTitle}</h1>
@@ -134,16 +120,16 @@ export default function Home() {
           </div>
           <dl className="home-launch-metrics" aria-label="Marathon readiness">
             <div>
-              <dt>{readiness?.counts.activeMarathons ?? 13}</dt>
-              <dd>активных марафонов</dd>
+              <dt>{formatCount(readiness?.counts.registeredParticipants)}</dt>
+              <dd>участников уже зарегистрированы</dd>
+            </div>
+            <div>
+              <dt>{readiness?.counts.activeLanguages ?? readiness?.counts.activeMarathons ?? 13}</dt>
+              <dd>иностранных языков</dd>
             </div>
             <div>
               <dt>{approvedSteps}</dt>
               <dd>утвержденных заданий</dd>
-            </div>
-            <div>
-              <dt>{readiness?.counts.products ?? 13}</dt>
-              <dd>VIP-продуктов</dd>
             </div>
           </dl>
         </div>
@@ -166,7 +152,7 @@ export default function Home() {
             </div>
             <div className="home-notebook">
               <span>Языковой марафон</span>
-              <strong>Регистрация. Практика. Финиш.</strong>
+              <strong>Регистрация. Практика. Финиш A1.</strong>
               <p>Ежедневная работа связана с профилем участника.</p>
             </div>
           </div>
@@ -186,7 +172,7 @@ export default function Home() {
           {loading && <span className="home-language-loading">Загрузка языков...</span>}
           {!loading && registrationOpen && featuredLanguages.map((language) => (
             <Link key={language.code} to={getMarathonRegisterPath(language)} className="home-language-chip">
-              {formatLanguageLabel(language.code, language.name)}
+              {formatLanguageOptionLabel(language.code, language.name)}
             </Link>
           ))}
           {!loading && !registrationOpen && (
@@ -228,12 +214,12 @@ export default function Home() {
           <article>
             <span>03</span>
             <h3>Откройте VIP</h3>
-            <p>Используйте оплату или подарочный код из профиля, когда потребуется полный доступ.</p>
+            <p>Используйте оплату из профиля, когда потребуется полный доступ.</p>
           </article>
           <article>
             <span>04</span>
             <h3>Финиш</h3>
-            <p>Завершенные отчеты связывают прогресс, статус финалиста и отзыв после марафона.</p>
+            <p>Завершенные отчеты связывают прогресс, статус финалиста и результат уровня A1.</p>
           </article>
         </div>
       </section>

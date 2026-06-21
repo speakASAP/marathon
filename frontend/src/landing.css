@@ -623,7 +623,7 @@
 }
 
 .ml-primary-action.large {
-  min-height: 52px;
+  min-height: 48px;
   padding-inline: 24px;
 }
 
@@ -681,7 +681,7 @@
 
 .ml-hero-points {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   max-width: 600px;
   margin: 32px 0 0;
   border: 1px solid var(--ml-line);
@@ -916,7 +916,7 @@
 }
 
 .ml-how-grid span,
-.gift-next-steps span {
+.profile-next-steps span {
   display: inline-flex;
   width: 48px;
   height: 48px;
@@ -1212,16 +1212,32 @@
 
 .ml-register {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(360px, 0.8fr);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
   gap: 36px;
   align-items: start;
   margin-bottom: 50px;
 }
 
+.ml-register.is-form-only {
+  grid-template-columns: minmax(300px, 380px);
+  justify-content: center;
+}
+
+.ml-register-form-stack {
+  display: grid;
+  gap: 14px;
+  width: min(100%, 380px);
+}
+
 .landing-form {
   display: grid;
-  gap: 16px;
-  padding: 30px;
+  gap: 12px;
+  padding: 24px;
+}
+
+.landing-form > div {
+  display: grid;
+  gap: 7px;
 }
 
 .ml-registration-unavailable {
@@ -1298,7 +1314,7 @@
 
 .landing-form input {
   width: 100%;
-  min-height: 48px;
+  min-height: 44px;
   box-sizing: border-box;
   border: 1px solid var(--ml-line);
   border-radius: 8px;
@@ -1314,7 +1330,7 @@
 
 .landing-form button[type="submit"] {
   width: 100%;
-  min-height: 52px;
+  min-height: 48px;
 }
 
 .landing-form button[type="submit"]:disabled {
@@ -1353,6 +1369,7 @@
   padding: 38px clamp(20px, 5vw, 68px);
   border-top: 1px solid var(--ml-line);
 }
+
 
 @media (max-width: 1050px) {
   .home-launch-nav {
@@ -1495,6 +1512,47 @@
   z-index: 1;
 }
 
+.ml-image-stage-label {
+  position: absolute;
+  top: 22px;
+  left: 22px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 18px 0 28px;
+  border-radius: 0 8px 8px 0;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ml-ink);
+  box-shadow: 0 14px 34px rgba(8, 17, 38, 0.2);
+  font-size: 0.94rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.ml-image-stage-label::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  width: 3px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--ml-blue);
+}
+
+.ml-image-stage-label::after {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 10px;
+  width: 17px;
+  height: 13px;
+  background: var(--ml-coral);
+  clip-path: polygon(0 0, 100% 0, 78% 50%, 100% 100%, 0 100%);
+}
+
 .ml-race-card,
 .ml-race-status {
   position: absolute;
@@ -1523,20 +1581,93 @@
 }
 
 .ml-race-card span {
-  display: grid;
-  min-height: 42px;
-  place-items: center;
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   border-radius: 6px;
   background: #f4f8fc;
   color: #192846;
   font-size: 0.84rem;
   font-weight: 900;
+  text-align: center;
 }
 
-.ml-race-card span:first-of-type,
-.ml-race-card span:last-of-type {
-  color: #fff;
+.ml-race-step i {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.ml-race-step.is-start,
+.ml-race-step.is-finish {
+  background: #fff;
+  border: 1px solid var(--ml-line);
+  color: var(--ml-ink);
+}
+
+.ml-race-step.is-start i,
+.ml-race-step.is-finish i {
+  width: 20px;
+  height: 22px;
+  border-left: 3px solid var(--ml-blue);
+}
+
+.ml-race-step.is-start i::before,
+.ml-race-step.is-finish i::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 16px;
+  height: 12px;
   background: var(--ml-coral);
+  clip-path: polygon(0 0, 100% 0, 78% 50%, 100% 100%, 0 100%);
+}
+
+.ml-race-step.is-finish i {
+  border-left-color: var(--ml-ink);
+}
+
+.ml-race-step.is-finish i::before {
+  background: var(--ml-mint);
+}
+
+.ml-race-step.is-daily {
+  background: var(--ml-soft);
+  color: var(--ml-blue);
+}
+
+.ml-race-step.is-daily i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--ml-blue);
+  transform: rotate(45deg);
+}
+
+.ml-race-step.is-report {
+  background: var(--ml-mint-soft);
+  color: #137154;
+}
+
+.ml-race-step.is-report i {
+  width: 14px;
+  height: 18px;
+  border: 2px solid var(--ml-mint);
+  border-radius: 3px;
+}
+
+.ml-race-step.is-report i::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  top: 5px;
+  height: 2px;
+  background: var(--ml-mint);
+  box-shadow: 0 5px 0 var(--ml-mint);
 }
 
 .ml-race-status {
@@ -1546,6 +1677,16 @@
   gap: 4px;
   min-width: 190px;
   padding: 16px 18px;
+  cursor: pointer;
+  text-align: left;
+}
+
+button.ml-race-status {
+  font: inherit;
+}
+
+.ml-race-status:hover {
+  transform: translateY(-1px);
 }
 
 .ml-race-status span {
@@ -1575,6 +1716,74 @@
   height: 128px;
   border: 14px solid rgba(18, 87, 184, 0.08);
   border-radius: 50%;
+}
+
+
+.ml-how-route {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 20px;
+  border: 1px solid var(--ml-line);
+  border-radius: 8px;
+  background: linear-gradient(90deg, #fff7f6, #f2fbf7);
+  box-shadow: 0 16px 40px rgba(32, 52, 88, 0.07);
+}
+
+.ml-how-route-label,
+.ml-how-route-finish {
+  color: var(--ml-ink);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.ml-how-route-finish {
+  color: var(--ml-coral-dark);
+}
+
+.ml-how-route-days {
+  display: grid;
+  grid-template-columns: repeat(30, minmax(10px, 1fr));
+  gap: 4px;
+  align-items: center;
+  position: relative;
+}
+
+.ml-how-route-days::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--ml-coral), var(--ml-blue), var(--ml-mint));
+  transform: translateY(-50%);
+}
+
+.ml-how-route-days span {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: transparent;
+  border: 2px solid #cbd8e8;
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+
+.ml-how-route-days span.is-major {
+  width: 30px;
+  height: 30px;
+  color: #fff;
+  border-color: var(--ml-ink);
+  background: var(--ml-ink);
 }
 
 .ml-race-route {
@@ -1611,8 +1820,10 @@
   top: 0;
   left: 2%;
   right: 2%;
-  height: 44px;
-  display: flex;
+  height: 58px;
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr) auto;
+  gap: 18px;
   align-items: center;
   justify-content: space-between;
 }
@@ -1620,27 +1831,89 @@
 .ml-route-line::before {
   content: "";
   position: absolute;
-  left: 18px;
-  right: 18px;
+  left: 24px;
+  right: 24px;
   top: 50%;
-  height: 6px;
+  height: 8px;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--ml-coral), var(--ml-blue), var(--ml-mint));
   transform: translateY(-50%);
 }
 
-.ml-route-line span {
+.ml-route-line span,
+.ml-route-runner {
   position: relative;
   z-index: 1;
-  display: grid;
-  width: 44px;
+}
+
+.ml-route-line span {
+  display: inline-flex;
+  min-width: 92px;
   height: 44px;
-  place-items: center;
-  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
   background: var(--ml-ink);
   color: #fff;
+  padding: 0 14px;
   font-weight: 950;
   box-shadow: 0 10px 24px rgba(8, 17, 38, 0.2);
+}
+
+.ml-route-runner {
+  justify-self: center;
+  display: block;
+  width: 76px;
+  height: 48px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ml-route-runner::before {
+  content: "";
+  position: absolute;
+  left: 42px;
+  top: 5px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ml-coral);
+  box-shadow: 0 8px 18px rgba(207, 47, 38, 0.22);
+}
+
+.ml-route-runner::after {
+  content: "";
+  position: absolute;
+  left: 30px;
+  top: 20px;
+  width: 31px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ml-ink);
+  transform: rotate(-17deg);
+  transform-origin: right center;
+}
+
+.ml-route-runner i {
+  position: absolute;
+  display: block;
+  width: 34px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ml-blue);
+}
+
+.ml-route-runner i:first-child {
+  left: 18px;
+  top: 30px;
+  transform: rotate(33deg);
+}
+
+.ml-route-runner i:last-child {
+  left: 40px;
+  top: 31px;
+  background: var(--ml-mint);
+  transform: rotate(-38deg);
 }
 
 .ml-training-split {
@@ -1651,7 +1924,7 @@
 }
 
 .ml-training-split > img,
-.ml-finish-visual > img {
+.ml-finish-image > img {
   width: 100%;
   height: 100%;
   min-height: 430px;
@@ -1682,6 +1955,35 @@
   gap: 28px;
   align-items: stretch;
   margin-bottom: 28px;
+}
+
+.ml-finish-image {
+  position: relative;
+  min-height: 430px;
+}
+
+.ml-finish-ribbon-label {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 52%;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 6px;
+  background: rgba(239, 58, 52, 0.92);
+  color: #fff;
+  box-shadow: 0 12px 28px rgba(8, 17, 38, 0.2);
+  font-size: clamp(1rem, 1.45vw, 1.35rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1.1;
+  text-align: center;
+  transform: translateY(-50%) rotate(-0.5deg);
+  pointer-events: none;
 }
 
 .ml-finish-visual > div {
@@ -1735,7 +2037,8 @@
   .ml-race-hero img,
   .ml-race-hero,
   .ml-training-split > img,
-  .ml-finish-visual > img {
+  .ml-finish-image,
+  .ml-finish-image > img {
     min-height: 420px;
   }
 }
@@ -1748,6 +2051,23 @@
   .ml-race-hero,
   .ml-race-hero img {
     min-height: 360px;
+  }
+
+  .ml-image-stage-label {
+    top: 12px;
+    left: 12px;
+    min-height: 36px;
+    padding-inline: 14px;
+    font-size: 0.8rem;
+  }
+
+  .ml-how-route {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .ml-how-route-days {
+    grid-template-columns: repeat(15, minmax(10px, 1fr));
   }
 
   .ml-race-card {
@@ -1764,6 +2084,7 @@
     min-width: 0;
   }
 
+
   .ml-race-route {
     padding-top: 62px;
   }
@@ -1774,8 +2095,18 @@
   }
 
   .ml-training-split > img,
-  .ml-finish-visual > img {
+  .ml-finish-image,
+  .ml-finish-image > img {
     min-height: 280px;
+  }
+
+  .ml-finish-ribbon-label {
+    left: 7%;
+    right: 7%;
+    top: 51%;
+    min-height: 38px;
+    padding-inline: 12px;
+    font-size: 0.82rem;
   }
 }
 

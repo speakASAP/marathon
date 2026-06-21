@@ -175,6 +175,7 @@ export class VipService {
     };
   }
 
+
   async redeemGift(userId: string, marathonerId: string | undefined, rawCode: string | undefined) {
     const normalizedMarathonerId = marathonerId?.trim();
     const code = rawCode?.trim();

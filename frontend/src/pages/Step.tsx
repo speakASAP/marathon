@@ -184,11 +184,6 @@ export default function Step() {
   if (stepLoadError) {
     return (
       <div className="container page-static page-step">
-        <nav className="page-nav">
-          <Link to="/">Главная</Link>
-          <span> · </span>
-          <Link to="/profile">Мои марафоны</Link>
-        </nav>
         <h1>Задание временно недоступно</h1>
         <section className="profile-empty-panel" role="alert">
           <p>{stepLoadError}</p>
@@ -216,11 +211,6 @@ export default function Step() {
 
   return (
     <div className="container page-static page-step">
-      <nav className="page-nav">
-        <Link to="/">Главная</Link>
-        <span> · </span>
-        <Link to="/profile">Мои марафоны</Link>
-      </nav>
       <h1>{step?.title ?? `Этап ${stepId}`}</h1>
 
       <div className="step-content-card">

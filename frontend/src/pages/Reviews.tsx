@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { fetchPublicReviews, type PublicReview } from '../api/publicMarathon';
 
 /**
@@ -18,11 +17,6 @@ export default function Reviews() {
 
   return (
     <div className="container page-reviews">
-      <nav className="page-nav">
-        <Link to="/">Главная</Link>
-        <span> · </span>
-        <Link to="/winners">Финалисты</Link>
-      </nav>
       <h1>Отзывы наших студентов</h1>
       {loading && <p>Загрузка…</p>}
       {!loading && reviews.length === 0 && <p>Нет отзывов.</p>}

@@ -3,7 +3,7 @@
  * HTTP-level Marathon journey smoke verifier.
  *
  * Default mode is read-only. Mutating checks require --mutating and explicit
- * inputs so production registration/payment/gift/submission checks are never
+ * inputs so production registration/payment/submission checks are never
  * triggered accidentally.
  */
 
@@ -16,7 +16,6 @@ function parseArgs(argv) {
     baseUrl: DEFAULT_BASE_URL,
     checkout: false,
     email: '',
-    giftCode: '',
     json: false,
     language: '',
     marathonerId: process.env.MARATHON_SMOKE_MARATHONER_ID || '',
@@ -47,8 +46,6 @@ function parseArgs(argv) {
       options.marathonerId = requireValue(argv, ++index, arg);
     } else if (arg === '--step-id') {
       options.stepId = requireValue(argv, ++index, arg);
-    } else if (arg === '--gift-code') {
-      options.giftCode = requireValue(argv, ++index, arg);
     } else if (arg === '--help' || arg === '-h') {
       usage(0);
     } else {
@@ -72,7 +69,6 @@ function requireValue(argv, index, flag) {
 function validateOptions(options) {
   const requestedMutatingChecks = [
     options.checkout ? '--checkout' : '',
-    options.giftCode ? '--gift-code' : '',
     options.submit ? '--submit' : '',
   ].filter(Boolean);
 
@@ -86,7 +82,6 @@ function validateOptions(options) {
 
   const requestedAuthenticatedChecks = [
     options.checkout ? '--checkout' : '',
-    options.giftCode ? '--gift-code' : '',
     options.submit ? '--submit' : '',
   ].filter(Boolean);
 
@@ -118,8 +113,7 @@ function usage(exitCode = 0) {
     '',
     'Mutating checks require --mutating:',
     '  --email <email>       Register a smoke participant',
-    '  --auth-token <jwt>    Verify profile, checkout, gift, or submission as this user',
-    '  --gift-code <code>    Redeem a gift code for the smoke participant',
+    '  --auth-token <jwt>    Verify profile, checkout, or submission as this user',
     '  --checkout            Create a VIP checkout for the smoke participant',
     '  --submit              Submit the current active assignment for the smoke participant',
     '',
@@ -451,9 +445,6 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Assignment content is not configured') || !js.includes('Submission is blocked until support adds approved assignment content')) {
     throw new Error('Built frontend bundle does not block assignment submission when approved assignment content is missing.');
   }
-  if (!js.includes('Sign in to redeem a gift code') || !js.includes('Open gift redemption from your marathon profile')) {
-    throw new Error('Built frontend bundle does not include gift redemption authentication guard.');
-  }
   if (!js.includes('#vip-access') || !js.includes('Opening checkout...')) {
     throw new Error('Built frontend bundle does not include VIP checkout login return guard.');
   }
@@ -624,24 +615,11 @@ async function assertFrontendHandoffSource(report, rootHtml) {
     'Post-load journey verification',
     'npm run load:catalog:pod',
     '--auth-token <portal-jwt>',
-    'approved-smoke-gift-code',
     'support-runbook-command',
   ]) {
     if (js.includes(forbiddenSupportMarker)) {
       throw new Error(`Built frontend bundle exposes operator support marker: ${forbiddenSupportMarker}`);
     }
-  }
-  if (!js.includes('Gift redemption status is temporarily unavailable') || !js.includes('Gift redemption status could not be loaded')) {
-    throw new Error('Built frontend bundle does not include gift readiness load-error state.');
-  }
-  if (
-    !js.includes('Checking gift redemption status') ||
-    !js.includes('Gift-code entry stays hidden until the production catalog and gift inventory status are verified')
-  ) {
-    throw new Error('Built frontend bundle does not hide gift redemption entry while readiness is loading.');
-  }
-  if (!js.includes('Gift launch blockers') || !js.includes('gift-missing-gates')) {
-    throw new Error('Built frontend bundle does not include gift missing-launch-gates readiness detail.');
   }
   if (!js.includes('Registration status unavailable. Open registration status page for details.') || !js.includes('registration-status-unavailable')) {
     throw new Error('Built frontend bundle does not include global navigation readiness-unavailable state.');
@@ -809,12 +787,6 @@ async function checkPublicRoutes(report, options) {
     '/steps/smoke-step?marathonerId=smoke-participant&marathon_token=smoke-token',
     'frontend-step-return',
     'Direct assignment login return route serves the frontend shell.',
-  );
-  await assertFrontendShell(
-    report,
-    '/gift?marathonerId=smoke-participant&marathon_token=smoke-token',
-    'frontend-gift-return',
-    'Direct gift-code login return route serves the frontend shell.',
   );
 
   const unauthenticatedReport = await request(report, '/api/v1/me/marathons/smoke-participant/progress-report');
@@ -993,16 +965,6 @@ async function checkMutatingJourney(report, options, publicContext) {
     throw new Error('Profile detail did not return the smoke participant.');
   }
   addCheck(report, 'pass', 'profile', 'Authenticated profile detail returned the smoke participant.');
-
-  if (options.giftCode) {
-    const gift = await requestJson(report, '/api/v1/vip/gift-redemptions', {
-      method: 'POST',
-      authToken: options.authToken,
-      body: JSON.stringify({ marathonerId, code: options.giftCode }),
-    });
-    assertOk(gift.response, 'POST /api/v1/vip/gift-redemptions');
-    addCheck(report, 'pass', 'gift-redemption', 'Gift code redemption returned success.');
-  }
 
   if (options.checkout) {
     const checkout = await requestJson(report, '/api/v1/vip/checkout', {

@@ -62,6 +62,90 @@ const medalOrder = [
   { silverCount: 'desc' as const },
   { bronzeCount: 'desc' as const },
 ];
+const legacyReviewPhotosByName = new Map<string, string>([
+  ['Софья Загиезова', '/img/landing/photo-1.png'],
+  ['Светлана Сливка', '/img/landing/photo-2.png'],
+  ['Ирина Телесненко', '/img/landing/photo-3.png'],
+  ['Наталья Кулешова', '/static/img/landing/photo-4.png'],
+  ['Ирина Трегубова', '/static/img/landing/photo-5.png'],
+  ['Ида Горбачева', '/static/img/landing/photo-6.png'],
+  ['Елена Матвейчук', '/static/img/landing/photo-7.png'],
+  ['Олеся Черкасова', '/static/img/landing/photo-8.png'],
+  ['Надежда Золотарева', '/static/img/landing/photo-9.png'],
+  ['Анна Громова', '/static/img/landing/photo-10.png'],
+]);
+
+const generatedWinnerAvatars = {
+  female: [
+    '/img/winners/winner-avatar-01.webp',
+    '/img/winners/winner-avatar-03.webp',
+    '/img/winners/winner-avatar-06.webp',
+    '/img/winners/winner-avatar-07.webp',
+    '/img/winners/winner-avatar-14.webp',
+  ],
+  male: [
+    '/img/winners/winner-avatar-02.webp',
+    '/img/winners/winner-avatar-04.webp',
+    '/img/winners/winner-avatar-05.webp',
+    '/img/winners/winner-avatar-08.webp',
+    '/img/winners/winner-avatar-12.webp',
+  ],
+  neutral: [
+    '/img/winners/winner-avatar-09.webp',
+    '/img/winners/winner-avatar-10.webp',
+    '/img/winners/winner-avatar-11.webp',
+    '/img/winners/winner-avatar-13.webp',
+    '/img/winners/winner-avatar-15.webp',
+    '/img/winners/winner-avatar-16.webp',
+  ],
+};
+
+const femaleFirstNames = new Set([
+  'александра',
+  'алиса',
+  'анастасия',
+  'анна',
+  'гала',
+  'елена',
+  'ида',
+  'ирина',
+  'катерина',
+  'ксюша',
+  'лана',
+  'лидия',
+  'майя',
+  'надежда',
+  'наталья',
+  'наташа',
+  'олеся',
+  'светлана',
+  'софия',
+  'софья',
+  'таня',
+  'татьяна',
+  'хельга',
+  'юлия',
+  'julia',
+  'katarina',
+  'lana',
+  'olesja',
+  'valeriya',
+  'vita',
+]);
+
+const maleFirstNames = new Set([
+  'александр',
+  'альберт',
+  'антон',
+  'борис',
+  'владимир',
+  'евгений',
+  'кирилл',
+  'никита',
+  'anton',
+  'boris',
+  'vladimir',
+]);
 
 @Injectable()
 export class WinnersService {
@@ -70,11 +154,6 @@ export class WinnersService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * List winners with fast response: DB-only, no auth service calls.
-   * Returns placeholder name (Участник #userId) and empty avatar so the page renders immediately.
-   * Winner detail (getById) still fetches full name/avatar from auth for the modal.
-   */
   async list(page: number = 1, limit: number = DEFAULT_PAGE_SIZE): Promise<WinnersPaginated> {
     const pageSize = Math.min(Math.max(1, limit), MAX_PAGE_SIZE);
     const pageNum = Math.max(1, page);
@@ -106,13 +185,16 @@ export class WinnersService {
       `Winners list (fast): total=${total}, found=${winners.length}, latency=${dbLatency}ms`,
     );
 
-    const items: WinnerSummary[] = (winners as WinnerRecord[]).map((w) => ({
-      id: w.id,
-      name: `Участник #${w.userId}`,
-      gold: w.goldCount,
-      silver: w.silverCount,
-      bronze: w.bronzeCount,
-      avatar: '',
+    const items: WinnerSummary[] = await Promise.all((winners as WinnerRecord[]).map(async (w) => {
+      const userInfo = await this.getUserInfo(w.userId);
+      return {
+        id: w.id,
+        name: userInfo.name,
+        gold: w.goldCount,
+        silver: w.silverCount,
+        bronze: w.bronzeCount,
+        avatar: userInfo.avatar,
+      };
     }));
 
     const nextPage = skip + winners.length < total ? pageNum + 1 : null;
@@ -273,7 +355,7 @@ export class WinnersService {
           this.logger.debug(
             `User info fetched successfully: userId=${userId}, name=${name}, hasAvatar=${!!avatar}, latency=${latency}ms`,
           );
-          return { name, avatar };
+          return { name, avatar: avatar || this.resolveWinnerAvatar(name) };
         } else {
           this.logger.warn(
             `Auth service returned error: userId=${userId}, status=${response.status}, latency=${latency}ms`,
@@ -289,10 +371,90 @@ export class WinnersService {
       this.logger.debug(`Auth service URL not configured, using default name for userId=${userId}`);
     }
 
+    return this.getParticipantPublicProfile(userId);
+  }
+
+  private async getParticipantPublicProfile(userId: string): Promise<{ name: string; avatar: string }> {
+    const participant = await this.prisma.marathonParticipant.findFirst({
+      where: excludeSmokeParticipants({
+        userId,
+        name: { not: null },
+      }),
+      orderBy: [
+        { finishedAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
+      select: {
+        name: true,
+      },
+    });
+    const name = participant?.name?.trim() || `Участник #${userId}`;
+
     return {
-      name: `Участник #${userId}`,
-      avatar: '',
+      name,
+      avatar: this.resolveWinnerAvatar(name),
     };
+  }
+
+  private resolveWinnerAvatar(name: string): string {
+    const legacyPhoto = legacyReviewPhotosByName.get(name);
+    if (legacyPhoto) {
+      return legacyPhoto;
+    }
+
+    const bucket = this.getAvatarBucket(name);
+    const avatars = generatedWinnerAvatars[bucket];
+    return avatars[this.stableNameIndex(name, avatars.length)];
+  }
+
+  private getAvatarBucket(name: string): keyof typeof generatedWinnerAvatars {
+    const firstName = this.normalizeFirstName(name);
+    if (femaleFirstNames.has(firstName)) {
+      return 'female';
+    }
+    if (maleFirstNames.has(firstName)) {
+      return 'male';
+    }
+
+    if (/^[а-яё]+$/i.test(firstName)) {
+      if (['илья', 'кузьма', 'лука', 'никита', 'савва', 'фома'].includes(firstName)) {
+        return 'male';
+      }
+      if (/[ая]$/.test(firstName)) {
+        return 'female';
+      }
+      return 'male';
+    }
+
+    if (/^[a-z]+$/i.test(firstName)) {
+      if (/[aeiy]$/.test(firstName)) {
+        return 'female';
+      }
+      if (/[bdfklmnprstvz]$/.test(firstName)) {
+        return 'male';
+      }
+    }
+
+    return 'neutral';
+  }
+
+  private normalizeFirstName(name: string): string {
+    const first = name
+      .trim()
+      .split(/\s+/)
+      .find(Boolean);
+    return (first || '')
+      .toLocaleLowerCase('ru-RU')
+      .replace(/ё/g, 'е')
+      .replace(/[^a-zа-я]/gi, '');
+  }
+
+  private stableNameIndex(name: string, size: number): number {
+    let hash = 0;
+    for (const char of name) {
+      hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
+    }
+    return Math.abs(hash) % size;
   }
 
   private async getWinnerReviews(userId: string): Promise<MarathonReview[]> {
@@ -305,31 +467,12 @@ export class WinnersService {
       include: {
         marathon: true,
         penaltyReports: true,
-        submissions: {
-          where: {
-            isCompleted: true,
-          },
-        },
       },
     });
 
-    const allStepsCount = await Promise.all(
-      participants.map(async (p) => {
-        const stepsCount = await this.prisma.marathonStep.count({
-          where: { marathonId: p.marathonId },
-        });
-        return { participant: p, stepsCount };
-      }),
-    );
-
-    const winners = allStepsCount.filter(
-      (item) => item.participant.submissions.length === item.stepsCount,
-    );
-
     const reviews: MarathonReview[] = [];
 
-    for (const item of winners) {
-      const participant = item.participant;
+    for (const participant of participants) {
       const marathon = participant.marathon;
 
       const state = this.getWinnerState(participant);
@@ -337,15 +480,17 @@ export class WinnersService {
         continue;
       }
 
-      const reviewText = await this.getReviewText(participant);
-      const thanksText = await this.getThanksText(participant);
+      const feedback = await this.getWinnerFeedback(participant);
+      if (!feedback.review && !feedback.thanks) {
+        continue;
+      }
 
       reviews.push({
         marathon: marathon.title,
         state,
         completed: participant.finishedAt?.toISOString() || new Date().toISOString(),
-        review: reviewText,
-        thanks: thanksText,
+        review: feedback.review,
+        thanks: feedback.thanks,
       });
     }
 
@@ -476,39 +621,50 @@ export class WinnersService {
     return 'bronze';
   }
 
-  private async getReviewText(participant: any): Promise<string> {
-    const submission = await this.prisma.stepSubmission.findFirst({
+  private async getWinnerFeedback(participant: any): Promise<{ review: string; thanks: string }> {
+    const submissions = await this.prisma.stepSubmission.findMany({
       where: {
         participantId: participant.id,
+        isCompleted: true,
+      },
+      include: {
         step: {
-          formKey: 'Step11Form3',
+          select: {
+            sequence: true,
+          },
         },
       },
+      orderBy: {
+        step: {
+          sequence: 'desc',
+        },
+      },
+      take: 8,
     });
 
-    if (submission && submission.payloadJson) {
+    let review = '';
+    let thanks = '';
+
+    for (const submission of submissions) {
+      if (!submission.payloadJson || typeof submission.payloadJson !== 'object') {
+        continue;
+      }
       const payload = submission.payloadJson as Record<string, any>;
-      return payload.q14 || '';
+      review ||= this.cleanFeedbackField(payload.q14);
+      thanks ||= this.cleanFeedbackField(payload.q15);
+      if (review && thanks) {
+        break;
+      }
     }
 
-    return '';
+    return { review, thanks };
   }
 
-  private async getThanksText(participant: any): Promise<string> {
-    const submission = await this.prisma.stepSubmission.findFirst({
-      where: {
-        participantId: participant.id,
-        step: {
-          formKey: 'Step11Form3',
-        },
-      },
-    });
-
-    if (submission && submission.payloadJson) {
-      const payload = submission.payloadJson as Record<string, any>;
-      return payload.q15 || '';
+  private cleanFeedbackField(value: unknown): string {
+    if (typeof value !== 'string') {
+      return '';
     }
 
-    return '';
+    return value.trim();
   }
 }
