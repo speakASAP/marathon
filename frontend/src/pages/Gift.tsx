@@ -132,13 +132,13 @@ export default function Gift() {
               <dl className="gift-readiness-list">
                 <div><dt>Активные марафоны</dt><dd>{readiness.counts.activeMarathons}</dd></div>
                 <div><dt>Этапы</dt><dd>{readiness.counts.steps ?? 0}</dd></div>
-                <div><dt>Этапы with content</dt><dd>{readiness.counts.stepsWithContent ?? 0}</dd></div>
+                <div><dt>Этапы с заданиями</dt><dd>{readiness.counts.stepsWithContent ?? 0}</dd></div>
                 <div><dt>VIP-продукты</dt><dd>{readiness.counts.products ?? 0}</dd></div>
                 <div><dt>Неиспользованные подарочные коды</dt><dd>{readiness.counts.unusedGifts}</dd></div>
               </dl>
             )}
             {missingLaunchGates.length ? (
-              <div className="gift-missing-gates" aria-label="Missing launch gates">
+              <div className="gift-missing-gates" aria-label="Недостающие условия запуска">
                 <strong>Блокеры подарочных кодов</strong>
                 <div>
                   {missingLaunchGates.map((item) => (
@@ -181,7 +181,7 @@ export default function Gift() {
               disabled={!hasParticipantContext || needsLogin}
             />
             <button type="submit" disabled={redeemDisabled}>
-              {submitting ? 'Применяем...' : needsLogin ? 'Войти required' : 'Применить подарочный код'}
+              {submitting ? 'Применяем...' : needsLogin ? 'Требуется вход' : 'Применить подарочный код'}
             </button>
             {message && <p>{message}</p>}
             {error && <p className="ml-error">{error}</p>}

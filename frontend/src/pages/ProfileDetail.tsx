@@ -277,7 +277,7 @@ export default function ProfileDetail() {
           </div>
           {paymentReturn === 'success' && data.needs_payment && (
             <button type="button" className="btn-profile-login" onClick={() => window.location.reload()}>
-              Обновить status
+              Обновить статус
             </button>
           )}
         </section>

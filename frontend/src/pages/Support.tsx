@@ -83,7 +83,7 @@ export default function Support() {
           <Link to="/register" className="btn-profile-login">
             {registrationOpen ? 'Перейти к регистрации' : 'Посмотреть статус регистрации'}
           </Link>
-          <Link to="/profile" className="btn-profile-open">Открыта profile</Link>
+          <Link to="/profile" className="btn-profile-open">Открыть профиль</Link>
         </div>
       </section>
 
@@ -94,7 +94,7 @@ export default function Support() {
           <p>
             Войдите через SpeakASAP со страницы профиля. Если участник уже привязан, вход вернет вас в нужный профиль марафона.
           </p>
-          <Link to="/profile">Открыта profile</Link>
+          <Link to="/profile">Открыть профиль</Link>
         </article>
         <article>
           <span>VIP-доступ</span>
@@ -108,7 +108,7 @@ export default function Support() {
           <span>Задания</span>
           <h2>Отправка отчета</h2>
           <p>
-            Открыта assignments from your marathon profile so the page can verify your participant ID, login session, saved report state, and assignment content.
+            Открывайте задания из профиля марафона, чтобы страница проверила ID участника, сессию входа, статус отчета и содержание задания.
           </p>
           <Link to="/profile">Продолжить марафон</Link>
         </article>

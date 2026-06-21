@@ -86,8 +86,8 @@ export default function Landing() {
     const langName = formatLanguageName(marathon);
     const metaReady = marathon.id !== 'fallback' && readiness?.registrationOpen === true;
     document.title = metaReady
-      ? `${langName} Marathon — SpeakASAP language practice`
-      : `${langName} Marathon — registration status`;
+      ? `${langName} Marathon — языковая практика SpeakASAP`
+      : `${langName} Marathon — статус регистрации`;
 
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
@@ -98,8 +98,8 @@ export default function Landing() {
     meta.setAttribute(
       'content',
       metaReady
-        ? `Join the ${langName} Marathon от SpeakASAP: approved assignments, profile progress tracking, and VIP access through the Marathon profile.`
-        : `Registration for the ${langName} Marathon opens after approved catalog, assignment, VIP product, and gift data are loaded.`,
+        ? `Присоединяйтесь к марафону ${langName} от SpeakASAP: утвержденные задания, отслеживание прогресса и VIP-доступ через профиль Marathon.`
+        : `Регистрация на марафон ${langName} откроется после загрузки утвержденного каталога, заданий, VIP-продукта и подарочных кодов.`,
     );
 
     let canonical = document.querySelector('link[rel="canonical"]');
