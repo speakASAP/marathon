@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import RegistrationForm from '../components/RegistrationForm';
+import CertificateShowcase from '../components/CertificateShowcase';
 import {
   fetchCatalogReadiness,
   fetchMarathonByLanguage,
@@ -354,6 +355,14 @@ export default function Landing() {
             </div>
           ) : null}
         </section>
+
+
+        <CertificateShowcase
+          id="landing-certificate"
+          className="home-certificate-band"
+          title="Что получает финалист"
+          lead="После финиша марафона участник получает статус «Сертификат» и медальную версию сертификата по результату прохождения."
+        />
 
         <section className="ml-proof" id="winners">
           <div className="ml-section-head">

@@ -11,7 +11,8 @@ import {
   type PublicReview,
   type WinnerSummary,
 } from '../api/publicMarathon';
-import { formatLanguageLabel, formatLanguageOptionLabel } from '../languages';
+import { PUBLIC_MARATHON_LANGUAGES, formatLanguageLabel, formatLanguageOptionLabel } from '../languages';
+import CertificateShowcase from '../components/CertificateShowcase';
 import '../landing.css';
 
 function formatMissingGate(value: string): string {
@@ -67,11 +68,19 @@ export default function Home() {
 
   const registrationOpen = readiness?.registrationOpen === true;
   const missingLaunchGates = readiness?.missing ?? [];
+  const fallbackLanguages = useMemo<MarathonLanguage[]>(
+    () => PUBLIC_MARATHON_LANGUAGES.map((language) => ({
+      code: language.code,
+      name: language.label.replace(/\s+A1$/, ''),
+      url: `/${language.slug}/`,
+    })),
+    [],
+  );
   const sortedLanguages = useMemo(
     () => [...languages].sort((a, b) => formatLanguageLabel(a.code, a.name).localeCompare(formatLanguageLabel(b.code, b.name), 'ru')),
     [languages],
   );
-  const featuredLanguages = sortedLanguages;
+  const featuredLanguages = sortedLanguages.length ? sortedLanguages : fallbackLanguages;
   const primaryLanguage = featuredLanguages[0];
   const startPath = primaryLanguage ? getMarathonRegisterPath(primaryLanguage) : '/register';
   const approvedSteps = readiness ? `${readiness.counts.stepsWithContent}/${readiness.counts.steps}` : '377/377';
@@ -97,6 +106,12 @@ export default function Home() {
             </Link>
           </div>
         </section>
+        <CertificateShowcase
+          id="home-certificate-fallback"
+          className="home-certificate-band"
+          title="Что получает финалист"
+          lead="После финиша марафона участник получает статус «Сертификат» и медальную версию сертификата по результату прохождения."
+        />
       </div>
     );
   }
@@ -162,20 +177,16 @@ export default function Home() {
       <section className="home-language-band" aria-labelledby="home-language-title">
         <div>
           <h2 id="home-language-title">Выберите язык марафона</h2>
-          <p>
-            {registrationOpen
-              ? 'Production-каталог готов. Выберите язык и начните с формы регистрации.'
-              : 'Доступные языки появятся после готовности production-запуска.'}
-          </p>
+          <p>Выберите любой доступный языковой марафон. Если регистрация еще закрыта, страница языка покажет маршрут и статус запуска.</p>
         </div>
         <div className="home-language-rail">
           {loading && <span className="home-language-loading">Загрузка языков...</span>}
-          {!loading && registrationOpen && featuredLanguages.map((language) => (
+          {!loading && featuredLanguages.map((language) => (
             <Link key={language.code} to={getMarathonRegisterPath(language)} className="home-language-chip">
               {formatLanguageOptionLabel(language.code, language.name)}
             </Link>
           ))}
-          {!loading && !registrationOpen && (
+          {!loading && featuredLanguages.length === 0 && (
             <Link to="/register" className="home-language-chip is-status">
               Статус регистрации
             </Link>
@@ -223,6 +234,13 @@ export default function Home() {
           </article>
         </div>
       </section>
+
+      <CertificateShowcase
+        id="home-certificate"
+        className="home-certificate-band"
+        title="Что получает финалист"
+        lead="После финиша марафона участник получает статус «Сертификат» и медальную версию сертификата по результату прохождения."
+      />
 
       <section className="home-proof" aria-labelledby="home-proof-title">
         <div className="ml-section-head">

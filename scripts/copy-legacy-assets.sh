@@ -51,8 +51,16 @@ done
 
 # Certificates (gold, silver, bronze — legacy uses in certs-view)
 for name in gold silver bronze; do
-  if [ -f "$PORTAL_IMG/${name}.png" ]; then
-    cp "$PORTAL_IMG/${name}.png" "$PUBLIC/img/certificates/${name}_en.png"
+  for CERT_SRC in "$PORTAL_ROOT/marathon/static/img/${name}.png" "$PORTAL_IMG/${name}.png"; do
+    if [ -f "$CERT_SRC" ]; then
+      cp "$CERT_SRC" "$PUBLIC/img/certificates/${name}_en.png"
+      break
+    fi
+  done
+done
+for name in gold silver bronze; do
+  if [ ! -f "$PUBLIC/img/certificates/${name}_en.png" ]; then
+    echo "Certificate preview missing: ${name}_en.png"
   fi
 done
 [ -d "$PUBLIC/img/certificates" ] && [ -n "$(ls -A "$PUBLIC/img/certificates" 2>/dev/null)" ] && echo "Copied img/certificates"

@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { fetchCatalogReadiness, type CatalogReadiness } from '../api/publicMarathon';
+import { fetchCatalogReadiness, fetchMarathonLanguages, type CatalogReadiness, type MarathonLanguage } from '../api/publicMarathon';
 import MarathonFooterLinks from './MarathonFooterLinks';
+import { PUBLIC_MARATHON_LANGUAGES, formatLanguageOptionLabel } from '../languages';
 
 /** Global shell: one shared Marathon header for every route. */
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [readinessError, setReadinessError] = useState('');
+  const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
   const location = useLocation();
   const hideFooter = false;
   const registrationStatusUnavailable = Boolean(readinessError);
@@ -16,6 +18,26 @@ export default function Layout() {
   const navRegistrationTitle = registrationStatusUnavailable
     ? 'Статус регистрации недоступен. Откройте страницу регистрации для подробностей.'
     : undefined;
+
+  const languageOptions = useMemo<MarathonLanguage[]>(() => {
+    if (languages.length) return languages;
+    return PUBLIC_MARATHON_LANGUAGES.map((language) => ({
+      code: language.code,
+      name: language.label.replace(/\s+A1$/, ''),
+      url: `/${language.slug}/`,
+    }));
+  }, [languages]);
+  const currentLanguagePath = useMemo(() => {
+    const normalizedPath = location.pathname.replace(/\/$/, '') || '/';
+    const match = languageOptions.find((language) => {
+      const href = language.url || `/${language.code}/`;
+      const pathname = href.startsWith('http') ? new URL(href).pathname : href;
+      const normalizedLanguagePath = pathname.replace(/\/$/, '') || '/';
+      return normalizedPath === normalizedLanguagePath || normalizedPath === `/${language.code}`;
+    });
+    if (!match) return '';
+    return match.url || `/${match.code}/`;
+  }, [languageOptions, location.pathname]);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -29,6 +51,9 @@ export default function Layout() {
         setReadiness(null);
         setReadinessError('registration-status-unavailable');
       });
+    fetchMarathonLanguages()
+      .then((items) => setLanguages(items))
+      .catch(() => setLanguages([]));
   }, []);
 
   return (
@@ -50,6 +75,23 @@ export default function Layout() {
             <Link to="/support">Поддержка</Link>
           </nav>
           <div className="header-actions">
+            <label className="navbar-language-select">
+              <span>Язык</span>
+              <select
+                value={currentLanguagePath}
+                onChange={(event) => {
+                  if (event.target.value) window.location.href = event.target.value;
+                }}
+                aria-label="Выбор языка марафона"
+              >
+                <option value="">Выберите язык</option>
+                {languageOptions.map((language) => (
+                  <option key={language.code} value={language.url || `/${language.code}/`}>
+                    {formatLanguageOptionLabel(language.code, language.name)}
+                  </option>
+                ))}
+              </select>
+            </label>
             <Link
               to="/register"
               className={`btn btn-landing navbar-cta ${registrationClosed || registrationStatusUnavailable ? 'navbar-cta-closed' : 'btn-green'}`}
