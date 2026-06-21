@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { fetchWinnerDetail, type WinnerDetail as WinnerDetailData } from '../api/publicMarathon';
+import { fetchWinnerDetail, type WinnerLanguage, type WinnerDetail as WinnerDetailData } from '../api/publicMarathon';
+import { formatLanguageFlag, formatLanguageLabel } from '../languages';
 
 type MedalKind = 'gold' | 'silver' | 'bronze';
 
@@ -32,6 +33,39 @@ function MedalBadge({ kind, count }: { kind: MedalKind; count: number }) {
       </span>
       <span className="medal-badge__label">{formatMedalLabel(kind, count)}</span>
     </span>
+  );
+}
+
+function LanguageFlags({ codes }: { codes?: string[] }) {
+  const uniqueCodes = Array.from(new Set((codes || []).map((code) => code.toLowerCase()).filter(Boolean)));
+  if (uniqueCodes.length === 0) return null;
+  return (
+    <div className="winner-language-flags" aria-label="Пройденные языковые марафоны">
+      {uniqueCodes.map((code) => (
+        <span key={code} className="winner-language-flag" title={formatLanguageLabel(code)} aria-label={formatLanguageLabel(code)}>
+          {LANGUAGE_FLAGS[code] || code.toUpperCase()}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function WinnerLanguageFlags({ languages }: { languages?: WinnerLanguage[] }) {
+  if (!languages || languages.length === 0) return null;
+
+  return (
+    <ul className="winner-language-flags winner-language-flags--detail" aria-label="Пройденные языковые марафоны">
+      {languages.map((language) => {
+        const label = formatLanguageLabel(language.code, language.title);
+        return (
+          <li key={language.code}>
+            <span className="winner-language-flag" title={label} aria-label={label}>
+              {formatLanguageFlag(language.code)}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -107,11 +141,13 @@ export default function WinnerDetail() {
             )}
             <div className="winner-header__copy">
               <h1>{winner.name}</h1>
+              <WinnerLanguageFlags languages={winner.languages} />
               <div className="winner-medals">
-                <MedalBadge kind="gold" count={winner.gold} />
+                <MedalBadg kind="gold" count={winner.gold} />
                 <MedalBadge kind="silver" count={winner.silver} />
                 <MedalBadge kind="bronze" count={winner.bronze} />
               </div>
+              <LanguageFlags codes={winner.languageCodes} />
             </div>
           </header>
           {winner.reviews && winner.reviews.length > 0 && (

@@ -43,11 +43,15 @@ export function formatLanguageLabel(code: string, fallback?: string): string {
 }
 
 
-const LANGUAGE_FLAGS: Record<string, string> = {
+export const LANGUAGE_FLAGS: Record<string, string> = {
   en: '🇬🇧', de: '🇩🇪', es: '🇪🇸', fr: '🇫🇷', it: '🇮🇹', ru: '🇷🇺',
   cz: '🇨🇿', cs: '🇨🇿', tr: '🇹🇷', pt: '🇵🇹', nl: '🇳🇱', pl: '🇵🇱',
   no: '🇳🇴', nb: '🇳🇴', nn: '🇳🇴', se: '🇸🇪', sv: '🇸🇪', dk: '🇩🇰', da: '🇩🇰',
 };
+
+export function formatLanguageFlag(code: string): string {
+  return LANGUAGE_FLAGS[code.toLowerCase()] || '🏁';
+}
 
 export function formatLanguageOptionLabel(code: string, fallback?: string): string {
   const normalized = code.toLowerCase();

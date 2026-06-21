@@ -9,6 +9,12 @@ export type WinnerSummary = {
   silver: number;
   bronze: number;
   avatar: string;
+  languages: WinnerLanguage[];
+};
+
+export type WinnerLanguage = {
+  code: string;
+  title: string;
 };
 
 export type MarathonReview = {
@@ -186,7 +192,10 @@ export class WinnersService {
     );
 
     const items: WinnerSummary[] = await Promise.all((winners as WinnerRecord[]).map(async (w) => {
-      const userInfo = await this.getUserInfo(w.userId);
+      const [userInfo, languages] = await Promise.all([
+        this.getUserInfo(w.userId),
+        this.getWinnerLanguages(w.userId),
+      ]);
       return {
         id: w.id,
         name: userInfo.name,
@@ -194,6 +203,7 @@ export class WinnersService {
         silver: w.silverCount,
         bronze: w.bronzeCount,
         avatar: userInfo.avatar,
+        languages,
       };
     }));
 
@@ -242,9 +252,10 @@ export class WinnersService {
 
     this.logger.debug(`Fetching user info and reviews for winner: winnerId=${winnerId}`);
     const fetchStartTime = Date.now();
-    const [userInfo, reviews] = await Promise.all([
+    const [userInfo, reviews, languages] = await Promise.all([
       this.getUserInfo(winner.userId),
       this.getWinnerReviews(winner.userId),
+      this.getWinnerLanguages(winner.userId),
     ]);
     const fetchLatency = Date.now() - fetchStartTime;
 
@@ -259,6 +270,7 @@ export class WinnersService {
       silver: winner.silverCount,
       bronze: winner.bronzeCount,
       avatar: userInfo.avatar,
+      languages,
       reviews,
     };
   }
@@ -497,6 +509,60 @@ export class WinnersService {
     return reviews.sort((a, b) => new Date(b.completed).getTime() - new Date(a.completed).getTime());
   }
 
+  private async getWinnerLanguages(userId: string): Promise<WinnerLanguage[]> {
+    const participants = await this.prisma.marathonParticipant.findMany({
+      where: excludeSmokeParticipants({
+        userId,
+        active: false,
+        finishedAt: { not: null },
+      }),
+      include: {
+        marathon: {
+          include: {
+            steps: {
+              select: { id: true },
+            },
+          },
+        },
+        submissions: {
+          where: {
+            isCompleted: true,
+          },
+          select: {
+            stepId: true,
+          },
+        },
+        penaltyReports: true,
+      },
+      orderBy: {
+        finishedAt: 'desc',
+      },
+    });
+
+    const byCode = new Map<string, WinnerLanguage>();
+
+    for (const participant of participants) {
+      if (!this.hasCompletedAllSteps(participant)) {
+        continue;
+      }
+      if (!this.getWinnerState(participant)) {
+        continue;
+      }
+
+      const code = String(participant.marathon.languageCode || '').toLowerCase();
+      if (!code || byCode.has(code)) {
+        continue;
+      }
+
+      byCode.set(code, {
+        code,
+        title: participant.marathon.title || code.toUpperCase(),
+      });
+    }
+
+    return Array.from(byCode.values());
+  }
+
   private async recomputeWinnerMedals(userId: string): Promise<WinnerRecord | null> {
     const participants = await this.prisma.marathonParticipant.findMany({
       where: {
@@ -619,6 +685,15 @@ export class WinnersService {
       }
     }
     return 'bronze';
+  }
+
+  private hasCompletedAllSteps(participant: any): boolean {
+    const stepIds = new Set((participant.marathon?.steps || []).map((step: any) => step.id));
+    const completedStepIds = new Set((participant.submissions || []).map((submission: any) => submission.stepId));
+    return (
+      stepIds.size > 0 &&
+      Array.from(stepIds).every((stepId) => completedStepIds.has(stepId))
+    );
   }
 
   private async getWinnerFeedback(participant: any): Promise<{ review: string; thanks: string }> {

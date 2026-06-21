@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchWinnerPage, type WinnerPage } from '../api/publicMarathon';
+import { fetchWinnerPage, type WinnerLanguage, type WinnerPage } from '../api/publicMarathon';
+import { formatLanguageFlag, formatLanguageLabel } from '../languages';
 
 type MedalKind = 'gold' | 'silver' | 'bronze';
 
@@ -33,6 +34,39 @@ function MedalBadge({ kind, count }: { kind: MedalKind; count?: number }) {
       </span>
       <span className="medal-badge__label">{formatMedalLabel(kind, value)}</span>
     </li>
+  );
+}
+
+function LanguageFlags({ codes }: { codes?: string[] }) {
+  const uniqueCodes = Array.from(new Set((codes || []).map((code) => code.toLowerCase()).filter(Boolean)));
+  if (uniqueCodes.length === 0) return null;
+  return (
+    <div className="winner-language-flags" aria-label="Пройденные языковые марафоны">
+      {uniqueCodes.map((code) => (
+        <span key={code} className="winner-language-flag" title={formatLanguageLabel(code)} aria-label={formatLanguageLabel(code)}>
+          {LANGUAGE_FLAGS[code] || code.toUpperCase()}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function WinnerLanguageFlags({ languages }: { languages?: WinnerLanguage[] }) {
+  if (!languages || languages.length === 0) return null;
+
+  return (
+    <ul className="winner-language-flags" aria-label="Пройденные языковые марафоны">
+      {languages.map((language) => {
+        const label = formatLanguageLabel(language.code, language.title);
+        return (
+          <li key={language.code}>
+            <span className="winner-language-flag" title={label} aria-label={label}>
+              {formatLanguageFlag(language.code)}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -117,11 +151,13 @@ export default function Winners() {
             )}
             <div className="card-winner__text">
               <p className="card-winner__name">{w.name || 'Участник'}</p>
+              <WinnerLanguageFlags languages={w.languages} />
               <ul className="card-winner__medals">
                 <MedalBadge kind="gold" count={w.gold} />
                 <MedalBadge kind="silver" count={w.silver} />
                 <MedalBadge kind="bronze" count={w.bronze} />
               </ul>
+              <LanguageFlags codes={w.languageCodes} />
             </div>
             <div className="card-winner__actions">
               <Link to={`/winners/${w.id}`} className="btn btn-winner-link">

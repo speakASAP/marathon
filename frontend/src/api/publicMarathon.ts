@@ -47,6 +47,12 @@ export interface WinnerSummary {
   silver?: number;
   bronze?: number;
   avatar?: string;
+  languages?: WinnerLanguage[];
+}
+
+export interface WinnerLanguage {
+  code: string;
+  title: string;
 }
 
 export interface WinnerPage {
@@ -70,6 +76,7 @@ export interface WinnerDetail {
   silver: number;
   bronze: number;
   avatar: string;
+  languages?: WinnerLanguage[];
   reviews: MarathonWinnerReview[];
 }
 
