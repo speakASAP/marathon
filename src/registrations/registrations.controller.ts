@@ -1,6 +1,12 @@
-import { Body, Controller, HttpException, Logger, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, Logger, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
-import { RegistrationsService, RegistrationRequest, RegistrationResponse } from './registrations.service';
+import {
+  RegistrationsService,
+  RegistrationAvailabilityRequest,
+  RegistrationAvailabilityResponse,
+  RegistrationRequest,
+  RegistrationResponse,
+} from './registrations.service';
 import { validatePortalToken, validateToken } from '../shared/auth-client';
 
 @Controller('registrations')
@@ -8,6 +14,19 @@ export class RegistrationsController {
   private readonly logger = new Logger(RegistrationsController.name);
 
   constructor(private readonly registrationsService: RegistrationsService) {}
+
+  @Get('availability')
+  async availability(
+    @Query('email') email?: string,
+    @Query('phone') phone?: string,
+    @Query('languageCode') languageCode?: string,
+  ): Promise<RegistrationAvailabilityResponse> {
+    const payload: RegistrationAvailabilityRequest = { email, phone, languageCode };
+    this.logger.log(
+      `marathon.registration.availability_requested hasEmail=${Boolean(email)} hasPhone=${Boolean(phone)} languageCode=${languageCode || ''}`,
+    );
+    return this.registrationsService.checkAvailability(payload);
+  }
 
   @Post()
   async register(

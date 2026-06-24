@@ -38,6 +38,18 @@ export interface RegistrationResult {
   tokenUsed: boolean;
 }
 
+export interface RegistrationAvailabilityResult {
+  available: boolean;
+  registered: boolean;
+  loginRequired: boolean;
+  message?: string;
+  profilePath?: string;
+  matched: {
+    email: boolean;
+    phone: boolean;
+  };
+}
+
 interface ApiErrorBody {
   message?: string;
   detail?: string;
@@ -90,5 +102,38 @@ export async function submitMarathonRegistration(input: RegistrationInput): Prom
     redirectUrl: typeof body.redirectUrl === 'string' ? body.redirectUrl : undefined,
     userBound: body.userBound === true,
     tokenUsed: Boolean(token),
+  };
+}
+
+export async function checkMarathonRegistrationAvailability(
+  input: Partial<RegistrationInput>,
+): Promise<RegistrationAvailabilityResult> {
+  const params = new URLSearchParams();
+  if (input.email?.trim()) {
+    params.set('email', input.email.trim());
+  }
+  if (input.phone?.trim()) {
+    params.set('phone', input.phone.trim());
+  }
+  if (input.languageCode?.trim()) {
+    params.set('languageCode', input.languageCode.trim());
+  }
+
+  const response = await fetch(`/api/v1/registrations/availability?${params.toString()}`);
+  const body = await response.json().catch(() => ({} as ApiErrorBody & Partial<RegistrationAvailabilityResult>));
+  if (!response.ok) {
+    throw readApiError(response, body);
+  }
+
+  return {
+    available: body.available === true,
+    registered: body.registered === true,
+    loginRequired: body.loginRequired === true,
+    message: typeof body.message === 'string' ? body.message : undefined,
+    profilePath: typeof body.profilePath === 'string' ? body.profilePath : undefined,
+    matched: {
+      email: body.matched?.email === true,
+      phone: body.matched?.phone === true,
+    },
   };
 }

@@ -13,6 +13,7 @@ import {
 import {
   MarathonRegistrationAuthExpiredError,
   MarathonRegistrationExistingAccountError,
+  checkMarathonRegistrationAvailability,
   normalizeRegistrationRedirectUrl,
   submitMarathonRegistration,
   type RegistrationInput,
@@ -46,6 +47,8 @@ export default function RegistrationForm({
   const [existingAccountMessage, setExistingAccountMessage] = useState('');
   const [existingAccountLoginPath, setExistingAccountLoginPath] = useState('');
   const [handoffMessage, setHandoffMessage] = useState('');
+  const [availabilityStatus, setAvailabilityStatus] = useState<'idle' | 'checking' | 'available'>('idle');
+  const availabilityRequestRef = useRef(0);
   const autoSubmitRef = useRef(false);
 
   const getAuthPrefill = (input?: Partial<RegistrationInput>) => ({
@@ -53,6 +56,10 @@ export default function RegistrationForm({
     phone: input?.phone || phone.trim() || undefined,
     identifier: input?.email || email.trim() || input?.phone || phone.trim() || undefined,
   });
+
+  const emailReadyForLookup = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
+  const phoneReadyForLookup = (value: string) => value.replace(/\D/g, '').length >= 7;
 
   const storePendingRegistration = (input: RegistrationInput) => {
     savePendingRegistration({
@@ -116,6 +123,51 @@ export default function RegistrationForm({
   };
 
   useEffect(() => {
+    const normalizedEmail = email.trim();
+    const normalizedPhone = phone.trim();
+    const canCheckEmail = emailReadyForLookup(normalizedEmail);
+    const canCheckPhone = phoneReadyForLookup(normalizedPhone);
+
+    if (!canCheckEmail && !canCheckPhone) {
+      availabilityRequestRef.current += 1;
+      setAvailabilityStatus('idle');
+      return;
+    }
+
+    const requestId = availabilityRequestRef.current + 1;
+    availabilityRequestRef.current = requestId;
+    setAvailabilityStatus('checking');
+
+    const timer = window.setTimeout(() => {
+      void checkMarathonRegistrationAvailability({
+        email: canCheckEmail ? normalizedEmail : undefined,
+        phone: canCheckPhone ? normalizedPhone : undefined,
+        languageCode,
+      })
+        .then((result) => {
+          if (availabilityRequestRef.current !== requestId) return;
+          if (result.registered) {
+            setExistingAccountLoginPath(result.profilePath || getRegistrationReturnPath(languageCode));
+            setExistingAccountMessage(result.message || 'Этот email или телефон уже зарегистрирован.');
+            setAvailabilityStatus('idle');
+            return;
+          }
+          setExistingAccountMessage('');
+          setExistingAccountLoginPath('');
+          setAvailabilityStatus('available');
+        })
+        .catch(() => {
+          if (availabilityRequestRef.current !== requestId) return;
+          setAvailabilityStatus('idle');
+        });
+    }, 450);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [email, phone, languageCode]);
+
+  useEffect(() => {
     const pending = getPendingRegistration(languageCode);
     if (!pending || !getToken() || autoSubmitRef.current) return;
     autoSubmitRef.current = true;
@@ -139,6 +191,10 @@ export default function RegistrationForm({
     }
     if (!phone.trim()) {
       onError?.('Укажите телефон');
+      return;
+    }
+    if (existingAccountMessage) {
+      onError?.('Этот email или телефон уже зарегистрирован. Войдите через единый аккаунт Alfares.');
       return;
     }
     await finishRegistration({
@@ -188,7 +244,10 @@ export default function RegistrationForm({
           placeholder="+420 ..."
         />
       </div>
-      <button type="submit" disabled={submitting}>
+      {availabilityStatus === 'checking' && (
+        <p className="landing-form-check-message" role="status">Проверяем email и телефон...</p>
+      )}
+      <button type="submit" disabled={submitting || availabilityStatus === 'checking' || Boolean(existingAccountMessage)}>
         {submitting ? 'Отправка...' : 'Начать марафон'}
       </button>
       {existingAccountMessage && (

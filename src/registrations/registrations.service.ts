@@ -17,6 +17,24 @@ export type RegistrationResponse = {
   userBound: boolean;
 };
 
+export type RegistrationAvailabilityRequest = {
+  email?: string;
+  phone?: string;
+  languageCode?: string;
+};
+
+export type RegistrationAvailabilityResponse = {
+  available: boolean;
+  registered: boolean;
+  loginRequired: boolean;
+  message?: string;
+  profilePath?: string;
+  matched: {
+    email: boolean;
+    phone: boolean;
+  };
+};
+
 @Injectable()
 export class RegistrationsService {
   private readonly logger = new Logger(RegistrationsService.name);
@@ -25,6 +43,54 @@ export class RegistrationsService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
   ) {}
+
+  async checkAvailability(payload: RegistrationAvailabilityRequest): Promise<RegistrationAvailabilityResponse> {
+    const email = payload.email?.trim().toLowerCase() || '';
+    const phone = payload.phone?.trim() || '';
+
+    if (!email && !phone) {
+      throw new BadRequestException('Email or phone is required');
+    }
+
+    const contactFilters = [
+      ...(email ? [{ email }] : []),
+      ...(phone ? [{ phone }] : []),
+    ];
+
+    const existingParticipant = await this.prisma.marathonParticipant.findFirst({
+      where: {
+        active: true,
+        OR: contactFilters,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, marathonId: true, email: true, phone: true },
+    });
+
+    if (!existingParticipant) {
+      return {
+        available: true,
+        registered: false,
+        loginRequired: false,
+        matched: { email: false, phone: false },
+      };
+    }
+
+    this.logger.warn(
+      `marathon.registration.availability_blocked reason=existing_participant marathonerId=${existingParticipant.id} marathonId=${existingParticipant.marathonId}`,
+    );
+
+    return {
+      available: false,
+      registered: true,
+      loginRequired: true,
+      message: 'Этот email или телефон уже зарегистрирован. Войдите с паролем или восстановите доступ.',
+      profilePath: `/profile/${existingParticipant.id}`,
+      matched: {
+        email: Boolean(email && existingParticipant.email?.trim().toLowerCase() === email),
+        phone: Boolean(phone && existingParticipant.phone?.trim() === phone),
+      },
+    };
+  }
 
   async register(payload: RegistrationRequest, userId?: string): Promise<RegistrationResponse> {
     this.logger.log(

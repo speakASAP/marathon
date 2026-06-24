@@ -1341,6 +1341,13 @@
   cursor: wait;
 }
 
+.landing-form-check-message {
+  margin: 0;
+  color: #4d5d74;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
 .landing-form-auth-panel {
   display: grid;
   gap: 10px;
