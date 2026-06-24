@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { clearToken, getToken } from '../auth';
 import {
@@ -147,7 +147,9 @@ export default function Profile() {
   const [profileSaveLoading, setProfileSaveLoading] = useState(false);
   const [profileSaveError, setProfileSaveError] = useState('');
   const [profileSaveMessage, setProfileSaveMessage] = useState('');
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const [avatarDragging, setAvatarDragging] = useState(false);
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [avatarProcessing, setAvatarProcessing] = useState(false);
   const [catalog, setCatalog] = useState<MarathonSummary[]>([]);
   const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
@@ -271,12 +273,21 @@ export default function Profile() {
   const handleAvatarInput = (event: ChangeEvent<HTMLInputElement>) => {
     void updateAvatarFromFile(event.target.files?.[0]);
     event.target.value = '';
+    setAvatarMenuOpen(false);
   };
 
-  const handleAvatarDrop = (event: DragEvent<HTMLLabelElement>) => {
+  const handleAvatarDrop = (event: DragEvent<HTMLElement>) => {
     event.preventDefault();
     setAvatarDragging(false);
+    setAvatarMenuOpen(false);
     void updateAvatarFromFile(event.dataTransfer.files?.[0]);
+  };
+
+  const handleAvatarRemove = () => {
+    setAccountProfile({ ...accountProfile, avatarUrl: '' });
+    setProfileSaveError('');
+    setProfileSaveMessage('Фото удалено. Сохраните профиль.');
+    setAvatarMenuOpen(false);
   };
 
   return (
@@ -317,8 +328,39 @@ export default function Profile() {
         {isAuthenticated && (
           <section className="profile-settings-panel" aria-labelledby="profile-settings-title">
             <div className="profile-settings-preview">
-              <div className="profile-settings-avatar" aria-hidden="true">
-                {avatarUrl ? <img src={avatarUrl} alt="" /> : <span>{profileInitial}</span>}
+              <div
+                className={[
+                  'profile-settings-avatar-wrap',
+                  avatarDragging ? 'is-dragging' : '',
+                  avatarMenuOpen ? 'is-open' : '',
+                ].filter(Boolean).join(' ')}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setAvatarDragging(true);
+                }}
+                onDragLeave={() => setAvatarDragging(false)}
+                onDrop={handleAvatarDrop}
+              >
+                <button
+                  type="button"
+                  className="profile-settings-avatar"
+                  aria-expanded={avatarMenuOpen}
+                  aria-label="Изменить аватар"
+                  onClick={() => setAvatarMenuOpen((open) => !open)}
+                >
+                  {avatarUrl ? <img src={avatarUrl} alt="" /> : <span>{profileInitial}</span>}
+                  <small>{avatarProcessing ? 'Готовим...' : 'Изменить'}</small>
+                </button>
+                {avatarMenuOpen && (
+                  <div className="profile-avatar-menu" role="menu">
+                    <button type="button" role="menuitem" onClick={() => avatarInputRef.current?.click()} disabled={avatarProcessing}>
+                      Изменить
+                    </button>
+                    <button type="button" role="menuitem" onClick={handleAvatarRemove} disabled={!accountProfile.avatarUrl || avatarProcessing}>
+                      Удалить
+                    </button>
+                  </div>
+                )}
               </div>
               <div>
                 <span>Профиль участника</span>
@@ -347,6 +389,7 @@ export default function Profile() {
                 onDrop={handleAvatarDrop}
               >
                 <input
+                  ref={avatarInputRef}
                   id="profile-avatar-file"
                   type="file"
                   accept="image/*"
@@ -360,7 +403,7 @@ export default function Profile() {
                 <button
                   type="button"
                   className="btn-profile-login"
-                  onClick={() => setAccountProfile({ ...accountProfile, avatarUrl: '' })}
+                  onClick={handleAvatarRemove}
                   disabled={!accountProfile.avatarUrl || avatarProcessing}
                 >
                   Удалить фото
