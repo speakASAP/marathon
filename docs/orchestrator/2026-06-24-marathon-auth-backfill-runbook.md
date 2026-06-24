@@ -3,7 +3,7 @@
 Date: 2026-06-24
 Repo: marathon
 Owner role: WS-H Marathon Users Auth Backfill Dry-Run Runbook Owner
-Status: owner-approval-ready dry-run plan; apply is blocked until explicit approval
+Status: owner approvals documented on 2026-06-24; execution remains gate-sequenced with masked output and stop conditions
 
 ## IPS Chain
 
@@ -38,7 +38,7 @@ remote:
 
 classification: sensitive
 last_reviewed: 2026-06-24
-reviewed_by: [MISSING: owner]
+reviewed_by: owner via current orchestration thread, 2026-06-24
 
 database:
   engine: [MISSING: postgres assumed from Prisma, not live-verified in this session]
@@ -183,12 +183,12 @@ Forbidden output:
 
 ## Missing Facts
 
-- [MISSING: owner approval for live read-only dry-run].
-- [MISSING: owner approval for apply].
+- [APPROVED: Gate 1 live read-only dry-run approved by owner follow-up on 2026-06-24].
+- [APPROVED: Gate 2 backfill apply approved by owner follow-up on 2026-06-24; exact execution facts below remain required].
 - [MISSING: approved Marathon runtime DB profile and execution context].
 - [MISSING: approved Auth API base URL for apply].
 - [MISSING: owner-approved batch size beyond initial limit 25].
 - [UNKNOWN: whether a read-only DB role exists for Marathon production].
 - [UNKNOWN: final reconciliation policy for already-bound UUID participants].
-- [MISSING: owner approval for `--include-bound` reconciliation apply].
+- [APPROVED: `--include-bound` reconciliation apply approved by owner follow-up on 2026-06-24; reconciliation approval env is still required at execution].
 - [UNKNOWN: mapping policy for non-UUID legacy `MarathonParticipant.userId` values].

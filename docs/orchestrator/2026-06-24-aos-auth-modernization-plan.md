@@ -249,7 +249,23 @@ IPS chain:
 - Validation: `node --check scripts/backfill-marathon-auth-users.js`; `PYTHONPYCACHEPREFIX=/tmp/marathon-pycache-auth-guard python3 -m py_compile scripts/check-marathon-hosted-auth-contract.py`; `node scripts/backfill-marathon-auth-users.js --plan-only --include-bound --limit 5` returned `liveAccess:false`, `dbAccess:false`, `authApiAccess:false`, and `reconciliationApplyRequires`; `python3 scripts/check-marathon-hosted-auth-contract.py --json-report /tmp/marathon-hosted-auth-reconciliation-guard.json` passed with `ok=true`, `17` passed, `0` failed, including `backfill-reconciliation-apply-approval-gate`; negative apply guard with placeholder env failed before live access with missing `MARATHON_AUTH_RECONCILIATION_APPROVAL`.
 
 Remaining gates:
-- [MISSING: owner-approved Gate 1 live read-only backfill dry-run].
-- [MISSING: owner-approved Gate 2 backfill apply].
-- [MISSING: owner-approved `--include-bound` reconciliation apply].
-- [MISSING: approved non-sensitive live credential/contact-code callback smoke].
+- [APPROVED: Gate 1 live read-only backfill dry-run approved by owner follow-up on 2026-06-24; execution evidence still missing].
+- [APPROVED: Gate 2 backfill apply approved by owner follow-up on 2026-06-24; Gate 1 evidence, exact batch limit, ticket, and Auth API target still required before execution].
+- [APPROVED: `--include-bound` reconciliation apply approved by owner follow-up on 2026-06-24; reconciliation approval env and no-nonempty-userId-update guard still required at execution].
+- [APPROVED: non-sensitive live credential/contact-code callback smoke approved by owner follow-up on 2026-06-24; exact approved test contact/account and command shape still missing].
+
+
+## 2026-06-24 - Auth Backfill And Live Smoke Approvals
+
+Status: owner approvals documented; execution not run in this documentation update.
+
+IPS chain:
+- Vision: Marathon users move to shared Alfares Auth/AOS identity through explicit, reviewable live-operation gates.
+- Goal Impact: approved Gate 1, Gate 2, reconciliation apply, and non-sensitive credential smoke work can proceed with bounded commands, masked output, and stop conditions.
+- System: deployed Marathon pod, Marathon production database, Auth API, hosted Auth/contact-code flow, backfill script, and smoke validation.
+- Feature: approved Auth migration readiness gates.
+- Task: document owner approvals for Gate 1 live read-only dry-run, Gate 2 apply, `--include-bound` reconciliation apply, and non-sensitive live credential/contact-code callback smoke.
+- Execution Plan: run each approved gate separately; preserve masked evidence; do not expose PII/secrets; do not proceed from Gate 1 to Gate 2 without reviewing Gate 1 evidence.
+- Coding Prompt: record approval state without inventing missing operational facts.
+- Code: `docs/orchestrator/2026-06-24-marathon-auth-approval-record.md` plus the updated gate docs.
+- Validation: [MISSING: execution validation; this section records approval state only].

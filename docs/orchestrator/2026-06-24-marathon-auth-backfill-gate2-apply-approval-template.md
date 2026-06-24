@@ -3,7 +3,7 @@
 Date: 2026-06-24
 Repo: marathon
 Operation class: owner-approved live DB mutation plus Auth API provisioning
-Status: template only; blocked until Gate 1 dry-run evidence is reviewed
+Status: owner-approved on 2026-06-24; execution remains blocked until Gate 1 dry-run evidence and exact command facts are reviewed
 
 ## IPS Chain
 
@@ -90,9 +90,9 @@ Direct rollback requires a new explicit owner approval with exact target IDs kep
 ## Current Missing Facts
 
 - [MISSING: Gate 1 dry-run evidence].
-- [MISSING: owner approval phrase].
+- [APPROVED: Gate 2 apply approved by owner follow-up on 2026-06-24].
 - [MISSING: approved batch limit].
 - [MISSING: owner-approved ticket/change ID].
 - [MISSING: approved Auth API base URL].
 - [UNKNOWN: final policy for non-UUID legacy bindings].
-- [MISSING: owner approval for `--include-bound` already-bound UUID reconciliation apply].
+- [APPROVED: `--include-bound` already-bound UUID reconciliation apply approved by owner follow-up on 2026-06-24].

@@ -3,7 +3,7 @@
 Date: 2026-06-24
 Repo: marathon
 Operation class: owner-approved read-only live DB dry-run
-Status: approval-ready; not approved by this document alone
+Status: approved by owner follow-up on 2026-06-24; not executed by this document alone
 
 ## IPS Chain
 
@@ -74,6 +74,6 @@ Gate 1 success does not approve Gate 2 apply. After the dry-run, review aggregat
 
 ## Current Missing Facts
 
-- [MISSING: owner approval phrase].
+- [APPROVED: owner approved Gate 1 live read-only dry-run in current orchestration thread on 2026-06-24].
 - [UNKNOWN: dry-run aggregate candidate counts until Gate 1 is approved].
 - [UNKNOWN: whether any non-UUID legacy participant bindings require a separate mapping plan].
