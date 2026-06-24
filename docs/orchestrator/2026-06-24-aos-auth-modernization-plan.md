@@ -231,3 +231,25 @@ Evidence:
 Remaining gates:
 - [MISSING: owner-approved Marathon live DB dry-run/backfill apply].
 - [MISSING: live credential/contact-code profile callback smoke with approved non-sensitive test account/contact].
+
+
+## 2026-06-24 - Backfill Reconciliation Apply Guardrail
+
+Status: source guardrail and templates hardened for Auth/AOS user reconciliation; no live DB query, backfill dry-run/apply, Auth API call, contact-code delivery, deployment, secret read, or legacy `speakasap-portal` access was performed.
+
+IPS chain:
+- Vision: Marathon Auth migration keeps user reconciliation explicit, reviewable, and owned by approved Auth/AOS backfill gates.
+- Goal Impact: already-bound participant reconciliation cannot be accidentally applied under the generic backfill approval; it requires a separate owner approval signal.
+- System: Marathon Auth backfill script, hosted Auth source contract checker, backfill runbook, and Gate 2 apply template.
+- Feature: fail-closed `--include-bound` reconciliation apply guard.
+- Task: require `MARATHON_AUTH_RECONCILIATION_APPROVAL=OWNER_APPROVED_MARATHON_AUTH_RECONCILIATION_2026_06_24` whenever `--include-bound` is combined with `--apply`.
+- Execution Plan: source/docs/checker only; keep plan-only and dry-run behavior non-mutating; avoid secrets, live DB reads, Auth API calls, deployment, and legacy SpeakASAP surfaces.
+- Coding Prompt: add a source-level approval gate, expose the requirement in plan-only output, and make the hosted Auth checker fail if the gate is removed.
+- Code: `scripts/backfill-marathon-auth-users.js`, `scripts/check-marathon-hosted-auth-contract.py`, `docs/orchestrator/2026-06-24-marathon-auth-backfill-runbook.md`, `docs/orchestrator/2026-06-24-marathon-auth-backfill-gate2-apply-approval-template.md`, and this plan entry.
+- Validation: `node --check scripts/backfill-marathon-auth-users.js`; `PYTHONPYCACHEPREFIX=/tmp/marathon-pycache-auth-guard python3 -m py_compile scripts/check-marathon-hosted-auth-contract.py`; `node scripts/backfill-marathon-auth-users.js --plan-only --include-bound --limit 5` returned `liveAccess:false`, `dbAccess:false`, `authApiAccess:false`, and `reconciliationApplyRequires`; `python3 scripts/check-marathon-hosted-auth-contract.py --json-report /tmp/marathon-hosted-auth-reconciliation-guard.json` passed with `ok=true`, `17` passed, `0` failed, including `backfill-reconciliation-apply-approval-gate`; negative apply guard with placeholder env failed before live access with missing `MARATHON_AUTH_RECONCILIATION_APPROVAL`.
+
+Remaining gates:
+- [MISSING: owner-approved Gate 1 live read-only backfill dry-run].
+- [MISSING: owner-approved Gate 2 backfill apply].
+- [MISSING: owner-approved `--include-bound` reconciliation apply].
+- [MISSING: approved non-sensitive live credential/contact-code callback smoke].

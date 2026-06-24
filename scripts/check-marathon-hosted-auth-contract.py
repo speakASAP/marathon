@@ -26,6 +26,7 @@ PROFILE_API = REPO_ROOT / "frontend" / "src" / "api" / "profileMarathon.ts"
 REGISTRATION_FORM = REPO_ROOT / "frontend" / "src" / "components" / "RegistrationForm.tsx"
 JOURNEY_API = REPO_ROOT / "frontend" / "src" / "api" / "journeyMarathon.ts"
 REGISTRATION_SERVICE = REPO_ROOT / "src" / "registrations" / "registrations.service.ts"
+BACKFILL_SCRIPT = REPO_ROOT / "scripts" / "backfill-marathon-auth-users.js"
 PACKAGE_JSON = REPO_ROOT / "package.json"
 
 SOURCE_SCAN_ROOTS = [
@@ -256,6 +257,38 @@ def iter_source_files() -> Iterable[Path]:
         yield PACKAGE_JSON
 
 
+
+def check_backfill_reconciliation_apply_gate(checks: list[Check]) -> None:
+    text = read_text(BACKFILL_SCRIPT)
+    required = [
+        "OWNER_APPROVED_MARATHON_AUTH_BACKFILL_2026_06_24",
+        "MARATHON_AUTH_BACKFILL_TICKET",
+        "DATABASE_URL=<Marathon DB DSN supplied by approved runtime profile>",
+        "AUTH_SERVICE_URL=<Auth API base URL supplied by approved runtime profile>",
+        "OWNER_APPROVED_MARATHON_AUTH_RECONCILIATION_2026_06_24",
+        "MARATHON_AUTH_RECONCILIATION_APPROVAL",
+        "--include-bound is used with --apply",
+        "reconciliationApplyRequires",
+        "source: 'marathon'",
+        "sessionId: `marathon:${participant.id}`",
+        "MarathonParticipant.userId when currently empty",
+    ]
+    missing = contains_all(text, required)
+    include_bound_apply_gate = bool(
+        re.search(
+            r"includeBound\s*&&\s*process\.env\.MARATHON_AUTH_RECONCILIATION_APPROVAL\s*!==\s*RECONCILIATION_APPROVAL_PHRASE",
+            text,
+        )
+    )
+    no_nonempty_user_update = bool(re.search(r"if \(!participant\.userId\) \{[\s\S]+?prisma\.marathonParticipant\.update", text))
+    add_check(
+        checks,
+        "backfill-reconciliation-apply-approval-gate",
+        not missing and include_bound_apply_gate and no_nonempty_user_update,
+        "Backfill apply requires owner approval, and --include-bound reconciliation apply requires a separate explicit approval while preserving non-empty Marathon userId values.",
+        [rel(BACKFILL_SCRIPT)] + ([f"missing={missing}"] if missing else []),
+    )
+
 def check_forbidden_local_passwordless(checks: list[Check]) -> None:
     findings: list[str] = []
     for path in iter_source_files():
@@ -290,14 +323,15 @@ def check_no_legacy_only_primary_login(checks: list[Check]) -> None:
 
 def run_checks() -> dict[str, object]:
     checks: list[Check] = []
-    for path in [AUTH_TS, MAIN_TSX, APP_TSX, PROFILE_DETAIL, PROFILE_API, REGISTRATION_FORM, JOURNEY_API, REGISTRATION_SERVICE]:
+    for path in [AUTH_TS, MAIN_TSX, APP_TSX, PROFILE_DETAIL, PROFILE_API, REGISTRATION_FORM, JOURNEY_API, REGISTRATION_SERVICE, BACKFILL_SCRIPT]:
         add_check(checks, f"required-file:{rel(path)}", path.exists(), "Required source file exists.", [rel(path)])
-    if all(path.exists() for path in [AUTH_TS, MAIN_TSX, APP_TSX, PROFILE_DETAIL, PROFILE_API, REGISTRATION_FORM, JOURNEY_API, REGISTRATION_SERVICE]):
+    if all(path.exists() for path in [AUTH_TS, MAIN_TSX, APP_TSX, PROFILE_DETAIL, PROFILE_API, REGISTRATION_FORM, JOURNEY_API, REGISTRATION_SERVICE, BACKFILL_SCRIPT]):
         check_hosted_auth_redirects(checks)
         check_fragment_handoff(checks)
         check_phone_required(checks)
         check_existing_account_ui(checks)
         check_profile_callback_no_loop(checks)
+        check_backfill_reconciliation_apply_gate(checks)
         check_forbidden_local_passwordless(checks)
         check_no_legacy_only_primary_login(checks)
 

@@ -28,6 +28,7 @@ Validation: JSON apply summary with masked samples and reviewed counts.
   - masked samples only.
 - Owner selected an apply batch size and change/ticket ID.
 - Owner approved the Auth API target and runtime execution context.
+- `--include-bound` is excluded unless a separate reconciliation approval phrase is provided.
 
 ## Approval Phrase
 
@@ -45,6 +46,12 @@ Fill placeholders only after approval:
 ssh alfares 'kubectl -n statex-apps exec deployment/marathon -- sh -lc "cd /app && MARATHON_AUTH_BACKFILL_APPROVAL=OWNER_APPROVED_MARATHON_AUTH_BACKFILL_2026_06_24 MARATHON_AUTH_BACKFILL_TICKET=<TICKET> AUTH_SERVICE_URL=<AUTH_SERVICE_URL> node scripts/backfill-marathon-auth-users.js --apply --limit <N>"'
 ```
 
+For a separately approved already-bound UUID reconciliation apply only, add both `--include-bound` and:
+
+```bash
+MARATHON_AUTH_RECONCILIATION_APPROVAL=OWNER_APPROVED_MARATHON_AUTH_RECONCILIATION_2026_06_24
+```
+
 ## Expected Writes
 
 - Calls Auth `POST /auth/register-contact` with `source=marathon`.
@@ -55,7 +62,7 @@ ssh alfares 'kubectl -n statex-apps exec deployment/marathon -- sh -lc "cd /app 
 
 - Do not edit Auth DB directly.
 - Do not update non-empty Marathon `userId` values in this batch.
-- Do not include `--include-bound` unless a separate reconciliation approval exists.
+- Do not include `--include-bound` unless a separate reconciliation approval exists and the reconciliation approval environment variable is present.
 - Do not print raw emails, raw phones, names, JWTs, refresh tokens, cookies, DB URLs, secret values, or full participant exports.
 - Do not run more than the approved limit.
 
@@ -88,3 +95,4 @@ Direct rollback requires a new explicit owner approval with exact target IDs kep
 - [MISSING: owner-approved ticket/change ID].
 - [MISSING: approved Auth API base URL].
 - [UNKNOWN: final policy for non-UUID legacy bindings].
+- [MISSING: owner approval for `--include-bound` already-bound UUID reconciliation apply].

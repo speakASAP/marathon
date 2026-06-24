@@ -64,6 +64,7 @@ backfill:
   command_plan_only: node scripts/backfill-marathon-auth-users.js --plan-only --limit 5
   command_dry_run: node scripts/backfill-marathon-auth-users.js --limit 25
   command_apply: MARATHON_AUTH_BACKFILL_APPROVAL=OWNER_APPROVED_MARATHON_AUTH_BACKFILL_2026_06_24 MARATHON_AUTH_BACKFILL_TICKET=<ticket> node scripts/backfill-marathon-auth-users.js --apply --limit 25
+  command_reconciliation_apply: MARATHON_AUTH_BACKFILL_APPROVAL=OWNER_APPROVED_MARATHON_AUTH_BACKFILL_2026_06_24 MARATHON_AUTH_BACKFILL_TICKET=<ticket> MARATHON_AUTH_RECONCILIATION_APPROVAL=OWNER_APPROVED_MARATHON_AUTH_RECONCILIATION_2026_06_24 node scripts/backfill-marathon-auth-users.js --apply --include-bound --limit 25
   auth_endpoint: POST /auth/register-contact
   auth_source: marathon
 ```
@@ -99,7 +100,7 @@ node scripts/backfill-marathon-auth-users.js --apply --limit 25
 Gate 3 - Larger apply batches:
 - Requires review of the previous batch output.
 - Increase `--limit` or `MARATHON_AUTH_BACKFILL_BATCH_SIZE` only after owner approval.
-- Do not use `--include-bound` in apply mode unless the owner explicitly approves a reconciliation run.
+- Do not use `--include-bound` in apply mode unless the owner explicitly approves a reconciliation run. The script now fails closed unless `MARATHON_AUTH_RECONCILIATION_APPROVAL=OWNER_APPROVED_MARATHON_AUTH_RECONCILIATION_2026_06_24` is also present.
 
 ## Dry-Run Procedure
 
@@ -156,7 +157,7 @@ The script sends each eligible participant to Auth as:
 }
 ```
 
-Auth returns the canonical `userId`. Auth also records the Marathon provisioning marker at `perApplicationPreferences.authSources.marathon` without overwriting another service's primary `source`. Marathon stores that canonical Auth user id in `MarathonParticipant.userId` only when the participant currently has no `userId`. Existing non-UUID legacy bindings are skipped and must be handled by a separate approved mapping plan.
+Auth returns the canonical `userId`. Auth also records the Marathon provisioning marker at `perApplicationPreferences.authSources.marathon` without overwriting another service's primary `source`. Marathon stores that canonical Auth user id in `MarathonParticipant.userId` only when the participant currently has no `userId`. Existing non-UUID legacy bindings are skipped and must be handled by a separate approved mapping plan. UUID-bound reconciliation with `--include-bound --apply` requires separate owner approval and must not update non-empty Marathon `userId` values.
 
 ## Rollback And Forward-Fix Policy
 
@@ -189,4 +190,5 @@ Forbidden output:
 - [MISSING: owner-approved batch size beyond initial limit 25].
 - [UNKNOWN: whether a read-only DB role exists for Marathon production].
 - [UNKNOWN: final reconciliation policy for already-bound UUID participants].
+- [MISSING: owner approval for `--include-bound` reconciliation apply].
 - [UNKNOWN: mapping policy for non-UUID legacy `MarathonParticipant.userId` values].

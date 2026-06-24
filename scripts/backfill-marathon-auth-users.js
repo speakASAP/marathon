@@ -6,6 +6,7 @@
  * it does read Marathon participants through Prisma. Use --plan-only for a
  * non-live safety check that performs no DB or Auth API access.
  * Use --apply only after owner approval for a production DB mutation.
+ * Use --include-bound with --apply only after separate reconciliation approval.
  */
 
 const authUrl = (process.env.AUTH_SERVICE_URL || 'http://auth-microservice:3370').replace(/\/$/, '');
@@ -16,6 +17,7 @@ const includeBound = process.argv.includes('--include-bound');
 const limitArgIndex = process.argv.indexOf('--limit');
 const limit = limitArgIndex >= 0 ? Math.max(Number(process.argv[limitArgIndex + 1] || '0'), 0) : 0;
 const APPLY_APPROVAL_PHRASE = 'OWNER_APPROVED_MARATHON_AUTH_BACKFILL_2026_06_24';
+const RECONCILIATION_APPROVAL_PHRASE = 'OWNER_APPROVED_MARATHON_AUTH_RECONCILIATION_2026_06_24';
 
 function assertApplyApproved() {
   if (!apply) return;
@@ -26,6 +28,9 @@ function assertApplyApproved() {
   }
   if (!process.env.MARATHON_AUTH_BACKFILL_TICKET) {
     missing.push('MARATHON_AUTH_BACKFILL_TICKET=<owner-approved change/ticket id>');
+  }
+  if (includeBound && process.env.MARATHON_AUTH_RECONCILIATION_APPROVAL !== RECONCILIATION_APPROVAL_PHRASE) {
+    missing.push(`MARATHON_AUTH_RECONCILIATION_APPROVAL=${RECONCILIATION_APPROVAL_PHRASE} when --include-bound is used with --apply`);
   }
   if (!process.env.DATABASE_URL) {
     missing.push('DATABASE_URL=<Marathon DB DSN supplied by approved runtime profile>');
@@ -68,6 +73,12 @@ function printPlan() {
         MARATHON_AUTH_BACKFILL_TICKET: '<owner-approved change/ticket id>',
         DATABASE_URL: '<approved Marathon DB profile DSN>',
         AUTH_SERVICE_URL: '<approved Auth API base URL>',
+      },
+      reconciliationApplyRequires: {
+        cliFlag: '--include-bound',
+        env: {
+          MARATHON_AUTH_RECONCILIATION_APPROVAL: RECONCILIATION_APPROVAL_PHRASE,
+        },
       },
     },
     selection: {
