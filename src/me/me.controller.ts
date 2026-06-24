@@ -1,9 +1,35 @@
-import { Body, Controller, Get, Logger, NotFoundException, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Logger, NotFoundException, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthGuard } from '../shared/auth.guard';
-import { MeService, MyMarathon, MyMarathonProgressReport, MyMarathonSurvey } from './me.service';
+import { MeService, MyMarathon, MyMarathonProgressReport, MyMarathonSurvey, MarathonUserProfileInput, MarathonUserProfileSettings } from './me.service';
 
 type RequestWithUser = Request & { user?: { id: string } };
+
+
+@Controller('me/profile')
+@UseGuards(AuthGuard)
+export class MeProfileController {
+  private readonly logger = new Logger(MeProfileController.name);
+
+  constructor(private readonly meService: MeService) {}
+
+  @Get()
+  async getProfile(@Req() req: RequestWithUser): Promise<MarathonUserProfileSettings> {
+    const userId = req.user!.id;
+    this.logger.log(`Marathon user profile request received: userId=${userId}`);
+    return this.meService.getUserProfile(userId);
+  }
+
+  @Patch()
+  async updateProfile(
+    @Req() req: RequestWithUser,
+    @Body() body: MarathonUserProfileInput,
+  ): Promise<MarathonUserProfileSettings> {
+    const userId = req.user!.id;
+    this.logger.log(`Marathon user profile update received: userId=${userId}`);
+    return this.meService.updateUserProfile(userId, body);
+  }
+}
 
 @Controller('me/marathons')
 @UseGuards(AuthGuard)

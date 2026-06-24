@@ -35,6 +35,18 @@ export type MyMarathonSurvey = {
   submitted_at: string;
 };
 
+export type MarathonUserProfileSettings = {
+  displayName: string;
+  avatarUrl: string;
+  bio: string;
+};
+
+export type MarathonUserProfileInput = {
+  displayName?: string;
+  avatarUrl?: string;
+  bio?: string;
+};
+
 export type ProgressReportStep = {
   stepId: string;
   sequence: number;
@@ -106,6 +118,52 @@ export class MeService {
   private readonly logger = new Logger(MeService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  async getUserProfile(userId: string): Promise<MarathonUserProfileSettings> {
+    const [profile, participant] = await Promise.all([
+      this.prisma.marathonUserProfile.findUnique({ where: { userId } }),
+      this.prisma.marathonParticipant.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        select: { name: true, email: true },
+      }),
+    ]);
+
+    return {
+      displayName: profile?.displayName || participant?.name || '',
+      avatarUrl: profile?.avatarUrl || '',
+      bio: profile?.bio || '',
+    };
+  }
+
+  async updateUserProfile(userId: string, input: MarathonUserProfileInput): Promise<MarathonUserProfileSettings> {
+    const displayName = this.normalizeProfileText(input.displayName, 120, 'Display name');
+    const bio = this.normalizeProfileText(input.bio, 500, 'Profile bio');
+    const avatarUrl = this.normalizeAvatarUrl(input.avatarUrl);
+
+    const profile = await this.prisma.marathonUserProfile.upsert({
+      where: { userId },
+      create: {
+        userId,
+        displayName,
+        avatarUrl,
+        bio,
+        avatarSource: avatarUrl ? 'user' : 'generated',
+      },
+      update: {
+        displayName,
+        avatarUrl,
+        bio,
+        avatarSource: avatarUrl ? 'user' : 'generated',
+      },
+    });
+
+    return {
+      displayName: profile.displayName || '',
+      avatarUrl: profile.avatarUrl || '',
+      bio: profile.bio || '',
+    };
+  }
 
   async listMarathons(userId: string): Promise<MyMarathon[]> {
     this.logger.debug(`My marathons list requested (userId=${userId})`);
@@ -336,6 +394,34 @@ export class MeService {
     });
 
     return this.mapSurvey(response);
+  }
+
+
+  private normalizeProfileText(value: unknown, maxLength: number, fieldName: string): string | null {
+    if (value === undefined || value === null) return null;
+    if (typeof value !== 'string') {
+      throw new BadRequestException(`${fieldName} must be a string`);
+    }
+    const normalized = value.trim();
+    if (normalized.length > maxLength) {
+      throw new BadRequestException(`${fieldName} is too long`);
+    }
+    return normalized || null;
+  }
+
+  private normalizeAvatarUrl(value: unknown): string | null {
+    const normalized = this.normalizeProfileText(value, 1000, 'Avatar URL');
+    if (!normalized) return null;
+    if (normalized.startsWith('/')) return normalized;
+    try {
+      const url = new URL(normalized);
+      if (url.protocol === 'https:' || url.protocol === 'http:') {
+        return url.toString();
+      }
+    } catch {
+      // Fall through to a user-facing validation error.
+    }
+    throw new BadRequestException('Avatar URL must be an http(s) URL or an internal path');
   }
 
   private mapToMyMarathon(participant: any): MyMarathon {

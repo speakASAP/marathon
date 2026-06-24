@@ -25,6 +25,12 @@ export interface Answer {
   block_reason?: string | null;
 }
 
+export interface MarathonUserProfileSettings {
+  displayName: string;
+  avatarUrl: string;
+  bio: string;
+}
+
 export interface MyMarathonSummary {
   id: string;
   title: string;
@@ -145,6 +151,28 @@ function readCheckoutRedirectUrl(payload: CheckoutPayload): string {
 
 async function readJsonBody<T extends { message?: string; error?: string }>(response: Response): Promise<T> {
   return response.json().catch(() => ({} as T));
+}
+
+
+export async function fetchMyProfile(): Promise<MarathonUserProfileSettings> {
+  const response = await authFetch('/api/v1/me/profile');
+  if (response.status === 401) throw new MarathonAuthRequiredError();
+  if (!response.ok) throw new Error(`profile-settings:${response.status}`);
+  return response.json() as Promise<MarathonUserProfileSettings>;
+}
+
+export async function updateMyProfile(input: MarathonUserProfileSettings): Promise<MarathonUserProfileSettings> {
+  const response = await authFetch('/api/v1/me/profile', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (response.status === 401) throw new MarathonAuthRequiredError();
+  const body = await readJsonBody<MarathonUserProfileSettings & { message?: string; error?: string }>(response);
+  if (!response.ok) {
+    throw new Error(body.message || body.error || `Profile update failed (${response.status})`);
+  }
+  return body;
 }
 
 export async function fetchMyMarathon(marathonerId: string): Promise<MyMarathon> {

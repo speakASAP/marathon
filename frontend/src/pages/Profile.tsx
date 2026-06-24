@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { clearToken, getToken } from '../auth';
 import {
   MarathonAuthRequiredError,
   fetchMyMarathons,
+  fetchMyProfile,
+  updateMyProfile,
+  type MarathonUserProfileSettings,
   type MyMarathonSummary,
 } from '../api/profileMarathon';
 import {
@@ -18,6 +21,12 @@ import { formatLanguageLabel } from '../languages';
 
 type MarathonCard = MarathonSummary & {
   language?: MarathonLanguage;
+};
+
+const EMPTY_PROFILE: MarathonUserProfileSettings = {
+  displayName: '',
+  avatarUrl: '',
+  bio: '',
 };
 
 
@@ -58,6 +67,10 @@ export default function Profile() {
   const [list, setList] = useState<MyMarathonSummary[] | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [accountProfile, setAccountProfile] = useState<MarathonUserProfileSettings>(EMPTY_PROFILE);
+  const [profileSaveLoading, setProfileSaveLoading] = useState(false);
+  const [profileSaveError, setProfileSaveError] = useState('');
+  const [profileSaveMessage, setProfileSaveMessage] = useState('');
   const [catalog, setCatalog] = useState<MarathonSummary[]>([]);
   const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
@@ -93,17 +106,22 @@ export default function Profile() {
   useEffect(() => {
     if (!getToken()) {
       setList([]);
+      setAccountProfile(EMPTY_PROFILE);
       return;
     }
 
     setProfileLoading(true);
     setLoadError('');
-    fetchMyMarathons()
-      .then((data) => setList(data))
+    Promise.all([fetchMyMarathons(), fetchMyProfile()])
+      .then(([data, profile]) => {
+        setList(data);
+        setAccountProfile(profile);
+      })
       .catch((error) => {
         if (error instanceof MarathonAuthRequiredError) {
           clearToken();
           setList([]);
+          setAccountProfile(EMPTY_PROFILE);
           return;
         }
         setLoadError('Профиль не загрузился. Обновите страницу или обратитесь в поддержку, если проблема повторится.');
@@ -128,6 +146,32 @@ export default function Profile() {
     [cards, ownedLanguageCodes],
   );
   const registrationOpen = readiness?.registrationOpen === true;
+  const isAuthenticated = Boolean(getToken());
+  const avatarUrl = accountProfile.avatarUrl.trim();
+  const profileInitial = (accountProfile.displayName.trim().charAt(0) || 'Я').toUpperCase();
+
+  const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setProfileSaveLoading(true);
+    setProfileSaveError('');
+    setProfileSaveMessage('');
+    try {
+      const updated = await updateMyProfile(accountProfile);
+      setAccountProfile(updated);
+      setProfileSaveMessage('Профиль сохранен.');
+    } catch (error) {
+      if (error instanceof MarathonAuthRequiredError) {
+        clearToken();
+        setList([]);
+        setAccountProfile(EMPTY_PROFILE);
+        setProfileSaveError('Сессия истекла. Войдите снова, чтобы сохранить профиль.');
+        return;
+      }
+      setProfileSaveError(error instanceof Error ? error.message : 'Профиль не сохранился. Попробуйте еще раз.');
+    } finally {
+      setProfileSaveLoading(false);
+    }
+  };
 
   return (
     <div className="profile-catalog-page">
@@ -138,11 +182,12 @@ export default function Profile() {
             <small>от SpeakASAP</small>
           </Link>
           <div className="profile-catalog-copy">
-            <span className="profile-catalog-eyebrow">Доступные языковые марафоны</span>
-            <h1>Выберите марафон и начните обучение</h1>
+            <span className="profile-catalog-eyebrow">{isAuthenticated ? 'Личный кабинет' : 'Доступные языковые марафоны'}</span>
+            <h1>{isAuthenticated ? 'Мой профиль' : 'Выберите марафон и начните обучение'}</h1>
             <p>
-              Сейчас открыты {readiness?.counts.activeMarathons ?? (availableCards.length || cards.length || 13)} языковых марафонов.
-              У каждого языка своя страница, превью страны и быстрый старт регистрации.
+              {isAuthenticated
+                ? 'Здесь находятся ваши марафоны, прогресс и настройки профиля участника.'
+                : `Сейчас открыты ${readiness?.counts.activeMarathons ?? (availableCards.length || cards.length || 13)} языковых марафонов. У каждого языка своя страница, превью страны и быстрый старт регистрации.`}
             </p>
           </div>
         </div>
@@ -160,6 +205,55 @@ export default function Profile() {
               </button>
               <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
             </div>
+          </section>
+        )}
+
+        {isAuthenticated && (
+          <section className="profile-settings-panel" aria-labelledby="profile-settings-title">
+            <div className="profile-settings-preview">
+              <div className="profile-settings-avatar" aria-hidden="true">
+                {avatarUrl ? <img src={avatarUrl} alt="" /> : <span>{profileInitial}</span>}
+              </div>
+              <div>
+                <span>Профиль участника</span>
+                <h2 id="profile-settings-title">Моя карточка</h2>
+                <p>{accountProfile.bio || 'Добавьте аватар и короткое описание для своего профиля марафона.'}</p>
+              </div>
+            </div>
+            <form className="profile-settings-form" onSubmit={handleProfileSubmit}>
+              <label htmlFor="profile-display-name">Имя</label>
+              <input
+                id="profile-display-name"
+                type="text"
+                value={accountProfile.displayName}
+                maxLength={120}
+                onChange={(event) => setAccountProfile({ ...accountProfile, displayName: event.target.value })}
+              />
+              <label htmlFor="profile-avatar-url">Ссылка на картинку</label>
+              <input
+                id="profile-avatar-url"
+                type="url"
+                value={accountProfile.avatarUrl}
+                maxLength={1000}
+                placeholder="https://..."
+                onChange={(event) => setAccountProfile({ ...accountProfile, avatarUrl: event.target.value })}
+              />
+              <label htmlFor="profile-bio">О себе</label>
+              <textarea
+                id="profile-bio"
+                value={accountProfile.bio}
+                maxLength={500}
+                rows={4}
+                onChange={(event) => setAccountProfile({ ...accountProfile, bio: event.target.value })}
+              />
+              <div className="profile-payment-actions">
+                <button type="submit" className="btn-profile-open" disabled={profileSaveLoading}>
+                  {profileSaveLoading ? 'Сохраняем...' : 'Сохранить профиль'}
+                </button>
+                {profileSaveMessage && <span className="profile-settings-message">{profileSaveMessage}</span>}
+              </div>
+              {profileSaveError && <p className="ml-error">{profileSaveError}</p>}
+            </form>
           </section>
         )}
 

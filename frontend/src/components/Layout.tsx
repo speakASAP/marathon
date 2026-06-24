@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { fetchCatalogReadiness, fetchMarathonLanguages, type CatalogReadiness, type MarathonLanguage } from '../api/publicMarathon';
 import MarathonFooterLinks from './MarathonFooterLinks';
+import { getToken } from '../auth';
 import { PUBLIC_MARATHON_LANGUAGES, formatLanguageOptionLabel } from '../languages';
 
 /** Global shell: one shared Marathon header for every route. */
@@ -10,6 +11,7 @@ export default function Layout() {
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [readinessError, setReadinessError] = useState('');
   const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
+  const [hasToken, setHasToken] = useState(() => Boolean(getToken()));
   const location = useLocation();
   const hideFooter = false;
   const registrationStatusUnavailable = Boolean(readinessError);
@@ -41,6 +43,7 @@ export default function Layout() {
 
   useEffect(() => {
     setMenuOpen(false);
+    setHasToken(Boolean(getToken()));
   }, [location.pathname]);
 
   useEffect(() => {
@@ -92,13 +95,19 @@ export default function Layout() {
                 ))}
               </select>
             </label>
-            <Link
-              to="/register"
-              className={`btn btn-landing navbar-cta ${registrationClosed || registrationStatusUnavailable ? 'navbar-cta-closed' : 'btn-green'}`}
-              title={navRegistrationTitle}
-            >
-              {navRegistrationLabel}
-            </Link>
+            {hasToken ? (
+              <Link to="/profile" className="navbar-profile-avatar" aria-label="Мой профиль" title="Мой профиль">
+                <span>Я</span>
+              </Link>
+            ) : (
+              <Link
+                to="/register"
+                className={`btn btn-landing navbar-cta ${registrationClosed || registrationStatusUnavailable ? 'navbar-cta-closed' : 'btn-green'}`}
+                title={navRegistrationTitle}
+              >
+                {navRegistrationLabel}
+              </Link>
+            )}
           </div>
           <button
             type="button"

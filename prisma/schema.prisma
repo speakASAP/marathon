@@ -111,6 +111,7 @@ model MarathonUserProfile {
   userId       String   @unique
   displayName  String?
   avatarUrl    String?
+  bio          String?
   avatarSource String   @default("generated")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
