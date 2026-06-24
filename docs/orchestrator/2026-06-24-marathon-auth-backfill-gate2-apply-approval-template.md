@@ -100,4 +100,4 @@ Direct rollback requires a new explicit owner approval with exact target IDs kep
 
 ## Execution Context Note - 2026-06-24
 
-The deployed pod plan-only output did not include the newer `reconciliationApplyRequires` field from commit `9cef640`, so `--include-bound` reconciliation apply remains blocked until the current source guardrail is deployed or the approved execution context is changed to a current-source runtime.
+The current deployed Marathon image `localhost:5000/marathon:ad086e8` includes the newer `reconciliationApplyRequires` plan-only output. A negative `--apply --include-bound` check without `MARATHON_AUTH_RECONCILIATION_APPROVAL` failed before DB/Auth mutation, confirming the runtime guardrail is active.
