@@ -13,6 +13,7 @@ import { MeModule } from './me/me.module';
 import { VipModule } from './vip/vip.module';
 import { SubmissionsModule } from './submissions/submissions.module';
 import { RunlayerModule } from './runlayer/runlayer.module';
+import { SupportChatModule } from './support-chat/support-chat.module';
 import { RequestContextMiddleware } from './shared/request-context.middleware';
 import { NotificationsService } from './shared/notifications.service';
 import { PrismaService } from './shared/prisma.service';
@@ -34,6 +35,7 @@ import { PrismaService } from './shared/prisma.service';
     VipModule,
     SubmissionsModule,
     RunlayerModule,
+    SupportChatModule,
   ],
   controllers: [AppController],
   providers: [AppService, NotificationsService, PrismaService],

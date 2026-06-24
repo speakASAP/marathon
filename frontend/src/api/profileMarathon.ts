@@ -28,6 +28,7 @@ export interface Answer {
 export interface MyMarathonSummary {
   id: string;
   title: string;
+  languageCode: string;
   type: string;
   needs_payment: boolean;
   registered: boolean;
@@ -40,6 +41,7 @@ export interface MyMarathonSummary {
 export interface MyMarathon {
   id: string;
   title: string;
+  languageCode: string;
   type: string;
   needs_payment: boolean;
   bonus_left: number;

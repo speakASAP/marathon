@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { clearToken, getToken, redirectToLogin } from '../auth';
+import { clearToken, getToken } from '../auth';
 import {
   MarathonAuthRequiredError,
   fetchMyMarathons,
@@ -92,7 +92,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (!getToken()) {
-      redirectToLogin('/profile');
+      setList([]);
       return;
     }
 
@@ -103,7 +103,7 @@ export default function Profile() {
       .catch((error) => {
         if (error instanceof MarathonAuthRequiredError) {
           clearToken();
-          redirectToLogin('/profile');
+          setList([]);
           return;
         }
         setLoadError('Профиль не загрузился. Обновите страницу или обратитесь в поддержку, если проблема повторится.');
@@ -119,6 +119,14 @@ export default function Profile() {
     () => catalog.map((marathon) => ({ ...marathon, language: languageByCode.get(marathon.languageCode) })),
     [catalog, languageByCode],
   );
+  const ownedLanguageCodes = useMemo(
+    () => new Set((list || []).map((marathon) => marathon.languageCode).filter(Boolean)),
+    [list],
+  );
+  const availableCards = useMemo(
+    () => cards.filter((card) => !ownedLanguageCodes.has(card.languageCode)),
+    [cards, ownedLanguageCodes],
+  );
   const registrationOpen = readiness?.registrationOpen === true;
 
   return (
@@ -133,7 +141,7 @@ export default function Profile() {
             <span className="profile-catalog-eyebrow">Доступные языковые марафоны</span>
             <h1>Выберите марафон и начните обучение</h1>
             <p>
-              Сейчас открыты {readiness?.counts.activeMarathons ?? (cards.length || 13)} языковых марафонов.
+              Сейчас открыты {readiness?.counts.activeMarathons ?? (availableCards.length || cards.length || 13)} языковых марафонов.
               У каждого языка своя страница, превью страны и быстрый старт регистрации.
             </p>
           </div>
@@ -155,48 +163,55 @@ export default function Profile() {
           </section>
         )}
 
-        {list && list.length > 0 && (
+        {list && (
           <section className="profile-owned-section" aria-labelledby="owned-marathons-title">
             <div className="profile-section-heading">
               <span>Мой прогресс</span>
               <h2 id="owned-marathons-title">Мои марафоны</h2>
             </div>
-            <ul className="profile-marathon-list">
-              {list.map((m) => {
-                const progressPct = getProgressPct(m);
-                const completedCount = getCompletedCount(m);
-                return (
-                  <li key={m.id} className="profile-marathon-card">
-                    <div className="profile-marathon-card-main">
-                      <div className="profile-marathon-card-heading">
-                        <h2>{m.title}</h2>
-                        <span className={m.needs_payment ? 'profile-marathon-status status-payment' : 'profile-marathon-status'}>
-                          {getStatusLabel(m)}
-                        </span>
+            {list.length === 0 ? (
+              <section className="profile-empty-panel">
+                <h2>У вас пока нет марафонов</h2>
+                <p>Начните марафон из списка ниже. После регистрации прогресс появится здесь.</p>
+              </section>
+            ) : (
+              <ul className="profile-marathon-list">
+                {list.map((m) => {
+                  const progressPct = getProgressPct(m);
+                  const completedCount = getCompletedCount(m);
+                  return (
+                    <li key={m.id} className="profile-marathon-card">
+                      <div className="profile-marathon-card-main">
+                        <div className="profile-marathon-card-heading">
+                          <h2>{m.title}</h2>
+                          <span className={m.needs_payment ? 'profile-marathon-status status-payment' : 'profile-marathon-status'}>
+                            {getStatusLabel(m)}
+                          </span>
+                        </div>
+                        <p>
+                          {m.current_step
+                            ? `Текущий этап: ${m.current_step.title}`
+                            : 'Активный этап появится после старта расписания.'}
+                        </p>
+                        <div className="profile-card-progress">
+                          <span>{completedCount}/{m.answers.length || 0} этапов</span>
+                          <strong>{progressPct}%</strong>
+                          <div className="profile-progress-track"><span style={{ width: `${progressPct}%` }} /></div>
+                        </div>
                       </div>
-                      <p>
-                        {m.current_step
-                          ? `Текущий этап: ${m.current_step.title}`
-                          : 'Активный этап появится после старта расписания.'}
-                      </p>
-                      <div className="profile-card-progress">
-                        <span>{completedCount}/{m.answers.length || 0} этапов</span>
-                        <strong>{progressPct}%</strong>
-                        <div className="profile-progress-track"><span style={{ width: `${progressPct}%` }} /></div>
+                      <div className="profile-marathon-card-side">
+                        <span>Бонусные дни</span>
+                        <strong>{m.bonus_left}/{m.bonus_total}</strong>
+                        {m.needs_payment && <p>VIP-доступ требуется.</p>}
+                        <Link to={`/profile/${m.id}`} className="btn-profile-open">
+                          Открыть
+                        </Link>
                       </div>
-                    </div>
-                    <div className="profile-marathon-card-side">
-                      <span>Бонусные дни</span>
-                      <strong>{m.bonus_left}/{m.bonus_total}</strong>
-                      {m.needs_payment && <p>VIP-доступ требуется.</p>}
-                      <Link to={`/profile/${m.id}`} className="btn-profile-open">
-                        Открыть
-                      </Link>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
         )}
 
@@ -220,17 +235,17 @@ export default function Profile() {
             </section>
           )}
 
-          {!catalogLoading && !catalogError && cards.length === 0 && (
+          {!catalogLoading && !catalogError && availableCards.length === 0 && (
             <section className="profile-empty-panel">
-              <h2>Активных марафонов пока нет</h2>
-              <p>Как только каталог будет доступен, здесь появится список языков для участия.</p>
-              <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
+              <h2>{cards.length === 0 ? 'Активных марафонов пока нет' : 'Все доступные марафоны уже в вашем профиле'}</h2>
+              <p>{cards.length === 0 ? 'Как только каталог будет доступен, здесь появится список языков для участия.' : 'Новые языки появятся здесь, когда откроется следующий марафон.'}</p>
+              {cards.length === 0 && <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>}
             </section>
           )}
 
-          {cards.length > 0 && (
+          {availableCards.length > 0 && (
             <ul className="profile-language-grid">
-              {cards.map((card) => {
+              {availableCards.map((card) => {
                 const languageName = getLanguageLabel(card);
                 return (
                   <li key={card.id} className="profile-language-card">

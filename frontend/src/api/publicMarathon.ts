@@ -70,6 +70,14 @@ export interface MarathonWinnerReview {
   thanks: string;
 }
 
+
+
+export interface SupportChatResponse {
+  answer: string;
+  source: 'ai-microservice' | 'marathon-fallback' | 'guardrail';
+  refused: boolean;
+}
+
 export interface WinnerDetail {
   id: string;
   name: string;
@@ -167,4 +175,17 @@ export async function fetchWinnerDetail(winnerId: string): Promise<WinnerDetail 
     throw new Error(`winner:${response.status}`);
   }
   return response.json() as Promise<WinnerDetail>;
+}
+
+
+export async function sendSupportChatMessage(message: string): Promise<SupportChatResponse> {
+  const response = await fetch('/api/v1/support/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  });
+  if (!response.ok) {
+    throw new Error(`support-chat:${response.status}`);
+  }
+  return response.json() as Promise<SupportChatResponse>;
 }

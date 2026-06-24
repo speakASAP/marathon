@@ -72,6 +72,30 @@ export class RegistrationsService {
     }
     this.assertRegistrationReady(marathon);
 
+    if (userId) {
+      const existingParticipant = await this.prisma.marathonParticipant.findFirst({
+        where: {
+          userId,
+          marathonId: marathon.id,
+        },
+        orderBy: [
+          { active: 'desc' },
+          { createdAt: 'desc' },
+        ],
+        select: { id: true },
+      });
+      if (existingParticipant) {
+        this.logger.log(
+          `marathon.registration.reused_existing marathonerId=${existingParticipant.id} marathonId=${marathon.id} userBound=true`,
+        );
+        return {
+          marathonerId: existingParticipant.id,
+          redirectUrl: this.buildRedirectUrl(marathon.languageCode),
+          userBound: true,
+        };
+      }
+    }
+
     if (!userId) {
       const existingParticipant = await this.prisma.marathonParticipant.findFirst({
         where: {

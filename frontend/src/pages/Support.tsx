@@ -1,8 +1,13 @@
-import { useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchCatalogReadiness, type CatalogReadiness } from '../api/publicMarathon';
+import { fetchCatalogReadiness, sendSupportChatMessage, type CatalogReadiness } from '../api/publicMarathon';
 
 const SUPPORT_EMAIL = 'marathon@speakasap.com';
+
+type ChatMessage = {
+  role: 'agent' | 'user';
+  text: string;
+};
 
 function formatMissingLabel(value: string): string {
   return value
@@ -20,6 +25,15 @@ export default function Support() {
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      role: 'agent',
+      text: 'Здравствуйте. Я отвечаю только на вопросы о марафонах SpeakASAP: регистрация, профиль, задания, VIP, подарочные коды и победители.',
+    },
+  ]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState('');
 
   useEffect(() => {
     document.title = 'Поддержка — Марафон';
@@ -33,6 +47,32 @@ export default function Support() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleChatSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const message = chatInput.trim();
+    if (!message || chatLoading) return;
+
+    setChatInput('');
+    setChatError('');
+    setChatLoading(true);
+    setChatMessages((items) => [...items, { role: 'user', text: message }]);
+    try {
+      const response = await sendSupportChatMessage(message);
+      setChatMessages((items) => [...items, { role: 'agent', text: response.answer }]);
+    } catch {
+      setChatError('Чат временно недоступен. Напишите в поддержку, если вопрос срочный.');
+      setChatMessages((items) => [
+        ...items,
+        {
+          role: 'agent',
+          text: 'Сейчас не получается получить ответ чат-агента. По вопросам марафона можно написать в поддержку и указать email регистрации, язык и страницу.',
+        },
+      ]);
+    } finally {
+      setChatLoading(false);
+    }
+  }
 
   const registrationOpen = readiness?.registrationOpen === true;
   const missing = readiness?.missing ?? [];
@@ -50,6 +90,41 @@ export default function Support() {
         <a className="btn-profile-login" href={`mailto:${SUPPORT_EMAIL}`}>
           Связаться с поддержкой
         </a>
+      </section>
+
+      <section className="support-chat-panel" aria-label="Онлайн-чат по марафону">
+        <div className="support-chat-heading">
+          <div>
+            <span>Онлайн-чат</span>
+            <h2>Спросите чат-агента о марафоне</h2>
+          </div>
+          <strong>Только Marathon</strong>
+        </div>
+        <div className="support-chat-messages" aria-live="polite">
+          {chatMessages.map((item, index) => (
+            <div className={`support-chat-message support-chat-message-${item.role}`} key={`${item.role}-${index}`}>
+              {item.text}
+            </div>
+          ))}
+          {chatLoading && <div className="support-chat-message support-chat-message-agent">Проверяю данные марафона...</div>}
+        </div>
+        <form className="support-chat-form" onSubmit={handleChatSubmit}>
+          <label htmlFor="support-chat-input">Ваш вопрос о марафоне</label>
+          <div>
+            <input
+              id="support-chat-input"
+              value={chatInput}
+              onChange={(event) => setChatInput(event.target.value)}
+              maxLength={1200}
+              placeholder="Например: как продолжить марафон или где открыть профиль?"
+            />
+            <button type="submit" disabled={chatLoading || !chatInput.trim()}>
+              Отправить
+            </button>
+          </div>
+          {chatError && <p className="ml-error">{chatError}</p>}
+          <p>Чат отвечает только по марафонам и не обрабатывает вопросы вне этой темы.</p>
+        </form>
       </section>
 
       <section className="support-public-status" aria-live="polite">

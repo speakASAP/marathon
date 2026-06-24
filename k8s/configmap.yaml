@@ -33,5 +33,8 @@ data:
   PUBLIC_BASE_URL: "https://marathon.alfares.cz"
   FRONTEND_URL: "https://marathon.alfares.cz"
   PAYMENT_SERVICE_URL: "http://payments-microservice:3468"
+  AI_SERVICE_URL: "http://ai-microservice:3380"
+  SUPPORT_CHAT_MODEL_TIER: "free"
+  SUPPORT_CHAT_AI_TIMEOUT_MS: "12000"
   PAYMENT_CALLBACK_URL: "https://marathon.alfares.cz/api/v1/payments/webhook"
   PAYMENT_DEFAULT_METHOD: "stripe"

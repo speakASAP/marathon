@@ -14,6 +14,7 @@ export type Answer = {
 
 export type MyMarathon = {
   title: string;
+  languageCode: string;
   type: 'trial' | 'free' | 'vip';
   needs_payment: boolean;
   registered: boolean;
@@ -111,6 +112,11 @@ export class MeService {
 
     const participants = await this.prisma.marathonParticipant.findMany({
       where: { userId },
+      orderBy: [
+        { active: 'desc' },
+        { finishedAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
       include: {
         marathon: {
           include: {
@@ -131,7 +137,15 @@ export class MeService {
       },
     });
 
-    return participants.map((participant) => this.mapToMyMarathon(participant));
+    const participantByLanguage = new Map<string, (typeof participants)[number]>();
+    for (const participant of participants) {
+      const languageCode = participant.marathon.languageCode;
+      if (!participantByLanguage.has(languageCode)) {
+        participantByLanguage.set(languageCode, participant);
+      }
+    }
+
+    return Array.from(participantByLanguage.values()).map((participant) => this.mapToMyMarathon(participant));
   }
 
   async getMarathonById(userId: string, marathonerId: string): Promise<MyMarathon | null> {
@@ -343,6 +357,7 @@ export class MeService {
 
     return {
       title: marathon.title,
+      languageCode: marathon.languageCode,
       type,
       needs_payment: needsPayment,
       registered: true,

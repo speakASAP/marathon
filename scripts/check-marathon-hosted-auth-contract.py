@@ -96,7 +96,9 @@ def check_fragment_handoff(checks: list[Check]) -> None:
     required = [
         "access_token",
         "refresh_token",
-        "URLSearchParams(url.hash.slice(1))",
+        "const plainAnchor =",
+        "const hashQuery =",
+        "new URLSearchParams(hashQuery)",
         "hashParams.delete(key)",
         "window.history.replaceState",
         "setToken(token)",
