@@ -8,6 +8,8 @@ export type StepSummary = {
   assignmentContent: string | null;
   formKey: string | null;
   socialLink: string | null;
+  isTrialStep: boolean;
+  isPenalized: boolean;
 };
 
 @Injectable()
@@ -29,6 +31,8 @@ export class StepsService {
       assignmentContent: step.assignmentContent,
       formKey: step.formKey,
       socialLink: step.socialLink,
+      isTrialStep: step.isTrialStep,
+      isPenalized: step.isPenalized,
     };
   }
 
@@ -45,6 +49,8 @@ export class StepsService {
       assignmentContent: s.assignmentContent,
       formKey: s.formKey,
       socialLink: s.socialLink,
+      isTrialStep: s.isTrialStep,
+      isPenalized: s.isPenalized,
     }));
   }
 }

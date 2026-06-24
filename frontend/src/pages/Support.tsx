@@ -146,27 +146,33 @@ export default function Support() {
         </form>
       </section>
 
-      <section className="support-public-help" aria-label="Помощь участнику">
-        <article>
-          <h2>Профиль и вход</h2>
-          <p>
-            Если профиль не открывается, войдите через центральный аккаунт и вернитесь на страницу марафона.
-            Для срочной помощи укажите email регистрации и язык марафона.
-          </p>
-        </article>
-        <article>
-          <h2>Продолжить участие</h2>
-          <p>
-            Откройте профиль, выберите текущий этап или любой доступный этап заранее.
-            Расписание отчётов останется привязанным к календарным дням марафона.
-          </p>
-        </article>
-        <article>
-          <h2>Выполните задание</h2>
-          <p>
-            На странице этапа прочитайте задание, отправьте отчет и после сохранения смотрите примеры отчетов других участников.
-          </p>
-        </article>
+
+      <section className="support-public-status" aria-label="Быстрые действия">
+        <div className="support-public-status-heading">
+          <span>Профиль и вход</span>
+          <strong className="support-status-badge">Участнику</strong>
+        </div>
+        <p>
+          Войдите в профиль, чтобы открыть свои марафоны, оплату VIP, подарочный код, отчеты и обратную связь.
+        </p>
+        <div className="support-public-actions">
+          <Link to="/profile" className="btn-profile-login">Продолжить участие</Link>
+          <Link to="/register" className="btn-profile-open">Выбрать язык</Link>
+        </div>
+      </section>
+
+      <section className="support-public-status" aria-label="Помощь с этапом">
+        <div className="support-public-status-heading">
+          <span>Выполните задание</span>
+          <strong className="support-status-badge">Этапы</strong>
+        </div>
+        <p>
+          Если этап не открывается, проверьте вход в профиль и статус VIP-доступа. Следующее задание открывается из профиля марафона.
+        </p>
+        <div className="support-public-actions">
+          <Link to="/profile" className="btn-profile-login">Открыть профиль</Link>
+          <a className="btn-profile-open" href={`mailto:${SUPPORT_EMAIL}`}>Написать в поддержку</a>
+        </div>
       </section>
 
       <section className="support-public-status" aria-live="polite">

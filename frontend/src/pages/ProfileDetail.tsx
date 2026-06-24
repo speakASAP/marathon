@@ -24,8 +24,7 @@ const PAYMENT_METHOD_OPTIONS: Array<{ value: VipPaymentMethod; label: string; de
   {
     value: 'fiobanka',
     label: 'Банковский перевод',
-    detail: 'Временно недоступен: банковский QR требует настроенного счета Fio, сейчас он не подключен.',
-    disabled: true,
+    detail: 'Откроется QR для оплаты из банковского приложения. Это не ссылка, а банковские реквизиты платежа.',
   },
 ];
 

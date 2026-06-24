@@ -2,6 +2,7 @@
 
 ## Backlog
 
+- [x] TASK-MAR-069: Build full support-chat Marathon knowledge context (goal_id: support-knowledge, priority: 1)
 - [x] T1: Implement VIP checkout endpoint calling payments-microservice:3468 (goal_id: vip-payment, priority: 1)
 - [x] T2: Implement payment webhook handler — set isFree=false, paymentReported=true on confirmation (goal_id: vip-payment, priority: 1)
 - [x] T3: Implement gift code redemption endpoint (goal_id: vip-payment, priority: 2)

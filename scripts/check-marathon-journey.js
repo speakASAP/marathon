@@ -819,6 +819,9 @@ async function checkPublicRoutes(report, options) {
   if (!supportChat.json?.answer || supportChat.json?.refused !== false) {
     throw new Error('/api/v1/support/chat did not answer an in-scope Marathon question.');
   }
+  if (supportChat.json?.knowledge_version !== 'support-chat-knowledge-v1') {
+    throw new Error('/api/v1/support/chat did not use the Marathon support knowledge context.');
+  }
   const supportChatText = String(supportChat.json.answer || '');
   for (const forbidden of ['jwt', 'api key', 'api_key', 'password', 'secret', 'token']) {
     if (supportChatText.toLowerCase().includes(forbidden)) {
@@ -826,6 +829,20 @@ async function checkPublicRoutes(report, options) {
     }
   }
   addCheck(report, 'pass', 'support-chat-api', 'Support chat answers an in-scope Marathon question without sensitive markers.');
+
+  const durationChat = await requestJson(report, '/api/v1/support/chat', {
+    method: 'POST',
+    body: JSON.stringify({ message: 'Сколько дней длится марафон?' }),
+  });
+  assertOk(durationChat.response, '/api/v1/support/chat duration');
+  const durationText = String(durationChat.json?.answer || '');
+  if (durationChat.json?.refused !== false || !durationText.includes('30')) {
+    throw new Error('/api/v1/support/chat did not answer the canonical 30-day duration fact.');
+  }
+  if (durationChat.json?.knowledge_version !== 'support-chat-knowledge-v1') {
+    throw new Error('/api/v1/support/chat duration did not report the Marathon support knowledge version.');
+  }
+  addCheck(report, 'pass', 'support-chat-duration-fact', 'Support chat protects the canonical 30-day Marathon duration fact.');
 
   const refusedChat = await requestJson(report, '/api/v1/support/chat', {
     method: 'POST',

@@ -71,6 +71,8 @@ VIP checkout customer identity addendum, 2026-06-13: phone-only Marathon registr
 
 Root landing refactor addendum, 2026-06-13: `TASK-MAR-063` starts the next frontend/product increment from the verified Kubernetes production baseline. The root `/` page is being rebuilt as a production journey entry point for language selection, registration, profile continuation, VIP unlock, assignments, finalists, and reviews. This work must not reopen the completed catalog/payment blocker, must use Kubernetes/shared PostgreSQL as the only Marathon source of truth, and must keep secrets, gift codes, participant private content, and full identifiers out of UI and validation notes.
 
+Support-chat knowledge addendum, 2026-06-24: `TASK-MAR-069` gives the support chatbot a full safe Marathon overview through `MarathonKnowledgeService`. The service builds a short-lived cached snapshot from canonical Marathon facts, catalog readiness, aggregate analytics, active languages, active marathon summaries, and sanitized step/assignment summaries. Support responses for in-scope questions expose `knowledge_version=support-chat-knowledge-v1`. The prompt context deliberately excludes participant emails, phone numbers, raw names, JWTs, payment secrets, checkout URLs, order IDs, gift codes, raw report bodies, peer answer text, and raw NPS comments. If the knowledge snapshot or model call fails, support-chat must return a safe deterministic fallback instead of leaking internals.
+
 ## Known Issues
 <!-- AI-maintained -->
 - None currently blocking Marathon continuation. Root landing TASK-MAR-063 is deployed as image `localhost:5000/marathon:43cadbf` with readiness, public journey smoke, and desktop/mobile visual QA evidence.
