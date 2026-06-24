@@ -546,7 +546,7 @@ export default function ProfileDetail() {
                 <div className="profile-step-main">
                   <div className="profile-step-heading">
                     <span className="answer-title">{a.title}</span>
-                    <span className="answer-state">{getStateLabel(a)}</span>
+                    {!paymentBlocked && <span className="answer-state">{getStateLabel(a)}</span>}
                   </div>
                   <span className="profile-step-meta">{getStepMeta(a)}</span>
                 </div>
@@ -554,9 +554,6 @@ export default function ProfileDetail() {
                   <Link className="profile-step-action" to={`/steps/${a.stepId}?marathonerId=${encodeURIComponent(data.id)}`}>
                     {a.state === 'inactive' ? 'Открыть заранее' : 'Открыть'}
                   </Link>
-                )}
-                {paymentBlocked && (
-                  <a className="profile-step-action profile-step-action-muted" href="#payment-access">Оплатить</a>
                 )}
                 {!canOpen && !paymentBlocked && (
                   <span className="profile-step-action profile-step-action-disabled">Закрыто</span>
