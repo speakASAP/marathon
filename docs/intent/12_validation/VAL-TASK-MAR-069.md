@@ -2,7 +2,7 @@
 id: VAL-TASK-MAR-069
 task: TASK-MAR-069
 feature: FEAT-004
-status: pending-final-evidence
+status: validated
 ---
 
 # Validation: TASK-MAR-069
@@ -27,4 +27,14 @@ npm run check:journey -- --base-url https://marathon.alfares.cz --json
 
 ## Evidence
 
-[MISSING: final command output and deployed image tag.]
+- `git diff --check`: passed.
+- `node --check scripts/check-marathon-journey.js`: passed.
+- `npm run build`: passed.
+- `npm run build:frontend`: passed.
+- Deploy image: `localhost:5000/marathon:support-knowledge-ui-20260624-225426`.
+- Kubernetes status: `marathon-c7499d94b-btz2w` running `1/1`, zero restarts at final check.
+- Deploy readiness phase: passed.
+- Public user-flow smoke: passed.
+- Guarded production smoke: passed for registration, payment unlock, gift unlock, 29 submitted steps, winner reconciliation, and NPS create/update.
+- `npm run check:journey -- --base-url https://marathon.alfares.cz --json`: passed.
+- Direct support-chat duration check returned `knowledge_version=support-chat-knowledge-v1` and the canonical 30-day Marathon duration fact.
