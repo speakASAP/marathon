@@ -254,7 +254,7 @@ export default function Profile() {
     try {
       const updated = await updateMyProfile(accountProfile);
       setAccountProfile(updated);
-      window.dispatchEvent(new Event('marathon-profile-updated'));
+      window.dispatchEvent(new CustomEvent('marathon-profile-updated', { detail: updated }));
       setProfileSaveMessage('Профиль сохранен.');
     } catch (error) {
       if (error instanceof MarathonAuthRequiredError) {

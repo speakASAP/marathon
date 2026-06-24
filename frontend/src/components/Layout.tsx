@@ -14,6 +14,7 @@ export default function Layout() {
   const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
   const [hasToken, setHasToken] = useState(() => Boolean(getToken()));
   const [hasRegisteredMarathon, setHasRegisteredMarathon] = useState(false);
+  const [selectedPaymentRequiredProfile, setSelectedPaymentRequiredProfile] = useState('');
   const [profile, setProfile] = useState<MarathonUserProfileSettings | null>(null);
   const location = useLocation();
   const hideFooter = false;
@@ -49,7 +50,15 @@ export default function Layout() {
     const profilePathParts = location.pathname.split('/').filter(Boolean);
     return Boolean(queryMarathonerId) || (profilePathParts[0] === 'profile' && profilePathParts.length === 2);
   }, [location.pathname, location.search]);
+  const selectedProfileId = useMemo(() => {
+    const queryMarathonerId = new URLSearchParams(location.search).get('marathonerId')?.trim();
+    if (queryMarathonerId) return queryMarathonerId;
+    const profilePathParts = location.pathname.split('/').filter(Boolean);
+    if (profilePathParts[0] === 'profile' && profilePathParts.length === 2) return profilePathParts[1];
+    return '';
+  }, [location.pathname, location.search]);
   const hideRegistrationNavigation = hasSelectedMarathonContext || hasRegisteredMarathon;
+  const showSelectedPaymentAction = Boolean(selectedPaymentRequiredProfile);
   const profileAvatarUrl = profile?.avatarUrl?.trim() || '';
   const profileInitial = (profile?.displayName?.trim().charAt(0) || 'Я').toUpperCase();
 
@@ -57,6 +66,7 @@ export default function Layout() {
     setMenuOpen(false);
     const tokenPresent = Boolean(getToken());
     setHasToken(tokenPresent);
+    setSelectedPaymentRequiredProfile('');
     if (!tokenPresent) {
       setHasRegisteredMarathon(false);
       setProfile(null);
@@ -85,19 +95,34 @@ export default function Layout() {
 
     fetchMyMarathons()
       .then((items) => {
-        if (!ignore) setHasRegisteredMarathon(items.length > 0);
+        if (ignore) return;
+        setHasRegisteredMarathon(items.length > 0);
+        const selected = selectedProfileId ? items.find((item) => item.id === selectedProfileId) : null;
+        setSelectedPaymentRequiredProfile(selected?.payment_required ? selected.id : '');
       })
       .catch(() => {
-        if (!ignore) setHasRegisteredMarathon(false);
+        if (!ignore) {
+          setHasRegisteredMarathon(false);
+          setSelectedPaymentRequiredProfile('');
+        }
       });
     loadProfile();
 
-    window.addEventListener('marathon-profile-updated', loadProfile);
+    const handleProfileUpdated = (event: Event) => {
+      const nextProfile = (event as CustomEvent<MarathonUserProfileSettings | undefined>).detail;
+      if (nextProfile) {
+        setProfile(nextProfile);
+        return;
+      }
+      loadProfile();
+    };
+
+    window.addEventListener('marathon-profile-updated', handleProfileUpdated);
     return () => {
       ignore = true;
-      window.removeEventListener('marathon-profile-updated', loadProfile);
+      window.removeEventListener('marathon-profile-updated', handleProfileUpdated);
     };
-  }, [hasToken]);
+  }, [hasToken, selectedProfileId]);
 
   useEffect(() => {
     setReadinessError('');
@@ -149,6 +174,11 @@ export default function Layout() {
                   ))}
                 </select>
               </label>
+            )}
+            {showSelectedPaymentAction && (
+              <a className="btn btn-landing navbar-cta btn-green" href="#payment-access">
+                Оплатить
+              </a>
             )}
             {hasToken ? (
               <Link to="/profile" className="navbar-profile-avatar" aria-label="Мой профиль" title="Мой профиль">

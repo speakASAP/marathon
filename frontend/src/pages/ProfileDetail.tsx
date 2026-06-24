@@ -225,7 +225,7 @@ export default function ProfileDetail() {
   const current = data.current_step;
   const completedCount = data.answers.filter((answer) => answer.state === 'done' || answer.state === 'completed' || answer.state === 'checked').length;
   const progressPct = data.answers.length ? Math.round((completedCount / data.answers.length) * 100) : 0;
-  const canGenerateProgressReport = data.can_generate_progress_report;
+  const canGenerateProgressReport = !data.payment_required && data.can_generate_progress_report;
   const showBonusDays = data.bonus_total > 0;
   const paymentReturnTitle = paymentReturn === 'success'
     ? (data.payment_required ? 'Подтверждение оплаты обрабатывается' : 'Оплата подтверждена')

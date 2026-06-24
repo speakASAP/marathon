@@ -419,8 +419,8 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   }
   if (
     !css.includes('support-public-status') ||
-    !css.includes('support-public-grid') ||
-    !css.includes('support-public-counts')
+    !css.includes('support-chat-panel') ||
+    !css.includes('support-public-actions')
   ) {
     throw new Error('Built frontend CSS does not include participant-safe support page layout.');
   }
@@ -633,7 +633,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
     !js.includes('support-public-status') ||
     !js.includes('Профиль и вход') ||
     !js.includes('Продолжить участие') ||
-    !js.includes('Выполните задание')
+    !js.includes('Онлайн-чат')
   ) {
     throw new Error('Built frontend bundle does not include participant-safe public support content.');
   }
