@@ -1,12 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { clearToken, getToken } from '../auth';
 import {
   MarathonAuthRequiredError,
   fetchMyMarathons,
-  fetchMyProfile,
-  updateMyProfile,
-  type MarathonUserProfileSettings,
   type MyMarathonSummary,
 } from '../api/profileMarathon';
 import {
@@ -26,88 +23,6 @@ import { formatLanguageLabel } from '../languages';
 type MarathonCard = MarathonSummary & {
   language?: MarathonLanguage;
 };
-
-const EMPTY_PROFILE: MarathonUserProfileSettings = {
-  displayName: '',
-  avatarUrl: '',
-  bio: '',
-};
-
-const AVATAR_OUTPUT_SIZE = 300;
-const AVATAR_UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
-
-function loadImageFromFile(file: File): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    const objectUrl = URL.createObjectURL(file);
-    image.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(image);
-    };
-    image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error('Не удалось прочитать изображение.'));
-    };
-    image.src = objectUrl;
-  });
-}
-
-function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => {
-        if (blob) {
-          resolve(blob);
-          return;
-        }
-        canvas.toBlob((fallbackBlob) => {
-          if (fallbackBlob) {
-            resolve(fallbackBlob);
-            return;
-          }
-          reject(new Error('Не удалось подготовить аватар.'));
-        }, 'image/jpeg', 0.82);
-      },
-      'image/webp',
-      0.82,
-    );
-  });
-}
-
-function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Не удалось сохранить аватар.'));
-    reader.readAsDataURL(blob);
-  });
-}
-
-async function compressAvatarFile(file: File): Promise<string> {
-  if (!file.type.startsWith('image/')) {
-    throw new Error('Выберите файл изображения.');
-  }
-  if (file.size > AVATAR_UPLOAD_MAX_BYTES) {
-    throw new Error('Файл слишком большой. Выберите изображение до 50 MB.');
-  }
-
-  const image = await loadImageFromFile(file);
-  const canvas = document.createElement('canvas');
-  canvas.width = AVATAR_OUTPUT_SIZE;
-  canvas.height = AVATAR_OUTPUT_SIZE;
-  const context = canvas.getContext('2d');
-  if (!context) {
-    throw new Error('Браузер не смог подготовить аватар.');
-  }
-
-  const sourceSize = Math.min(image.naturalWidth, image.naturalHeight);
-  const sourceX = Math.max(0, (image.naturalWidth - sourceSize) / 2);
-  const sourceY = Math.max(0, (image.naturalHeight - sourceSize) / 2);
-  context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, AVATAR_OUTPUT_SIZE, AVATAR_OUTPUT_SIZE);
-
-  const blob = await canvasToBlob(canvas);
-  return blobToDataUrl(blob);
-}
 
 
 function getCompletedCount(marathon: MyMarathonSummary) {
@@ -146,14 +61,6 @@ export default function Profile() {
   const [list, setList] = useState<MyMarathonSummary[] | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
-  const [accountProfile, setAccountProfile] = useState<MarathonUserProfileSettings>(EMPTY_PROFILE);
-  const [profileSaveLoading, setProfileSaveLoading] = useState(false);
-  const [profileSaveError, setProfileSaveError] = useState('');
-  const [profileSaveMessage, setProfileSaveMessage] = useState('');
-  const avatarInputRef = useRef<HTMLInputElement | null>(null);
-  const [avatarDragging, setAvatarDragging] = useState(false);
-  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
-  const [avatarProcessing, setAvatarProcessing] = useState(false);
   const [catalog, setCatalog] = useState<MarathonSummary[]>([]);
   const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
@@ -190,7 +97,6 @@ export default function Profile() {
   useEffect(() => {
     if (!getToken()) {
       setList([]);
-      setAccountProfile(EMPTY_PROFILE);
       setAdminAvailable(false);
       return;
     }
@@ -199,7 +105,6 @@ export default function Profile() {
     setLoadError('');
     Promise.all([
       fetchMyMarathons(),
-      fetchMyProfile(),
       fetchAdminSession().catch((error) => {
         if (error instanceof AdminMarathonPricingError && (error.status === 401 || error.status === 403)) {
           return null;
@@ -207,9 +112,8 @@ export default function Profile() {
         return null;
       }),
     ])
-      .then(([data, profile, adminSession]) => {
+      .then(([data, adminSession]) => {
         setList(data);
-        setAccountProfile(profile);
         setAdminAvailable(adminSession?.admin === true);
       })
       .catch((error) => {
@@ -217,7 +121,6 @@ export default function Profile() {
         if (error instanceof MarathonAuthRequiredError) {
           clearToken();
           setList([]);
-          setAccountProfile(EMPTY_PROFILE);
           return;
         }
         setLoadError('Профиль не загрузился. Обновите страницу или обратитесь в поддержку, если проблема повторится.');
@@ -243,69 +146,6 @@ export default function Profile() {
   );
   const registrationOpen = readiness?.registrationOpen === true;
   const isAuthenticated = Boolean(getToken());
-  const avatarUrl = accountProfile.avatarUrl.trim();
-  const profileInitial = (accountProfile.displayName.trim().charAt(0) || 'Я').toUpperCase();
-
-  const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setProfileSaveLoading(true);
-    setProfileSaveError('');
-    setProfileSaveMessage('');
-    try {
-      const updated = await updateMyProfile(accountProfile);
-      setAccountProfile(updated);
-      window.dispatchEvent(new CustomEvent('marathon-profile-updated', { detail: updated }));
-      setProfileSaveMessage('Профиль сохранен.');
-    } catch (error) {
-      if (error instanceof MarathonAuthRequiredError) {
-        clearToken();
-        setList([]);
-        setAccountProfile(EMPTY_PROFILE);
-        setProfileSaveError('Сессия истекла. Войдите снова, чтобы сохранить профиль.');
-        return;
-      }
-      setProfileSaveError(error instanceof Error ? error.message : 'Профиль не сохранился. Попробуйте еще раз.');
-    } finally {
-      setProfileSaveLoading(false);
-    }
-  };
-
-
-  const updateAvatarFromFile = async (file?: File | null) => {
-    if (!file) return;
-    setAvatarProcessing(true);
-    setProfileSaveError('');
-    setProfileSaveMessage('');
-    try {
-      const avatarDataUrl = await compressAvatarFile(file);
-      setAccountProfile((profile) => ({ ...profile, avatarUrl: avatarDataUrl }));
-      setProfileSaveMessage('Фото подготовлено. Сохраните профиль.');
-    } catch (error) {
-      setProfileSaveError(error instanceof Error ? error.message : 'Фото не загрузилось. Попробуйте другой файл.');
-    } finally {
-      setAvatarProcessing(false);
-    }
-  };
-
-  const handleAvatarInput = (event: ChangeEvent<HTMLInputElement>) => {
-    void updateAvatarFromFile(event.target.files?.[0]);
-    event.target.value = '';
-    setAvatarMenuOpen(false);
-  };
-
-  const handleAvatarDrop = (event: DragEvent<HTMLElement>) => {
-    event.preventDefault();
-    setAvatarDragging(false);
-    setAvatarMenuOpen(false);
-    void updateAvatarFromFile(event.dataTransfer.files?.[0]);
-  };
-
-  const handleAvatarRemove = () => {
-    setAccountProfile({ ...accountProfile, avatarUrl: '' });
-    setProfileSaveError('');
-    setProfileSaveMessage('Фото удалено. Сохраните профиль.');
-    setAvatarMenuOpen(false);
-  };
 
   return (
     <div className="profile-catalog-page">
@@ -320,7 +160,7 @@ export default function Profile() {
             <h1>{isAuthenticated ? 'Мой профиль' : 'Выберите марафон и начните обучение'}</h1>
             <p>
               {isAuthenticated
-                ? 'Здесь находятся ваши марафоны, прогресс и настройки профиля участника.'
+                ? 'Здесь находятся ваши марафоны и прогресс участника.'
                 : `Сейчас открыты ${readiness?.counts.activeMarathons ?? (availableCards.length || cards.length || 13)} языковых марафонов. У каждого языка своя страница, превью страны и быстрый старт регистрации.`}
             </p>
           </div>
@@ -342,118 +182,16 @@ export default function Profile() {
           </section>
         )}
 
-        {isAuthenticated && (
-          <section className="profile-settings-panel" aria-labelledby="profile-settings-title">
-            <div className="profile-settings-preview">
-              <div
-                className={[
-                  'profile-settings-avatar-wrap',
-                  avatarDragging ? 'is-dragging' : '',
-                  avatarMenuOpen ? 'is-open' : '',
-                ].filter(Boolean).join(' ')}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setAvatarDragging(true);
-                }}
-                onDragLeave={() => setAvatarDragging(false)}
-                onDrop={handleAvatarDrop}
-              >
-                <button
-                  type="button"
-                  className="profile-settings-avatar"
-                  aria-expanded={avatarMenuOpen}
-                  aria-label="Изменить аватар"
-                  onClick={() => setAvatarMenuOpen((open) => !open)}
-                >
-                  {avatarUrl ? <img src={avatarUrl} alt="" /> : <span>{profileInitial}</span>}
-                  <small>{avatarProcessing ? 'Готовим...' : 'Изменить'}</small>
-                </button>
-                {avatarMenuOpen && (
-                  <div className="profile-avatar-menu" role="menu">
-                    <button type="button" role="menuitem" onClick={() => avatarInputRef.current?.click()} disabled={avatarProcessing}>
-                      Изменить
-                    </button>
-                    <button type="button" role="menuitem" onClick={handleAvatarRemove} disabled={!accountProfile.avatarUrl || avatarProcessing}>
-                      Удалить
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div>
-                <span>Профиль участника</span>
-                <h2 id="profile-settings-title">Моя карточка</h2>
-                <p>{accountProfile.bio || 'Добавьте аватар и короткое описание для своего профиля марафона.'}</p>
-              </div>
+        {isAuthenticated && adminAvailable && (
+          <div className="profile-admin-entry" aria-label="Администраторская секция">
+            <div>
+              <span>Администрирование</span>
+              <strong>Администраторская секция</strong>
             </div>
-            {adminAvailable && (
-              <div className="profile-admin-entry" aria-label="Администраторская секция">
-                <div>
-                  <span>Администрирование</span>
-                  <strong>Администраторская секция</strong>
-                </div>
-                <Link to="/admin/marathons/prices" className="btn-profile-open">
-                  Войти в администраторскую секцию
-                </Link>
-              </div>
-            )}
-            <form className="profile-settings-form" onSubmit={handleProfileSubmit}>
-              <label htmlFor="profile-display-name">Имя</label>
-              <input
-                id="profile-display-name"
-                type="text"
-                value={accountProfile.displayName}
-                maxLength={120}
-                onChange={(event) => setAccountProfile({ ...accountProfile, displayName: event.target.value })}
-              />
-              <span className="profile-settings-field-label">Фото</span>
-              <label
-                htmlFor="profile-avatar-file"
-                className={avatarDragging ? 'profile-avatar-dropzone is-dragging' : 'profile-avatar-dropzone'}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setAvatarDragging(true);
-                }}
-                onDragLeave={() => setAvatarDragging(false)}
-                onDrop={handleAvatarDrop}
-              >
-                <input
-                  ref={avatarInputRef}
-                  id="profile-avatar-file"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarInput}
-                  disabled={avatarProcessing}
-                />
-                <strong>{avatarProcessing ? 'Готовим фото...' : 'Перетащите фото сюда'}</strong>
-                <small>или выберите файл</small>
-              </label>
-              <div className="profile-avatar-actions">
-                <button
-                  type="button"
-                  className="btn-profile-login"
-                  onClick={handleAvatarRemove}
-                  disabled={!accountProfile.avatarUrl || avatarProcessing}
-                >
-                  Удалить фото
-                </button>
-              </div>
-              <label htmlFor="profile-bio">О себе</label>
-              <textarea
-                id="profile-bio"
-                value={accountProfile.bio}
-                maxLength={500}
-                rows={4}
-                onChange={(event) => setAccountProfile({ ...accountProfile, bio: event.target.value })}
-              />
-              <div className="profile-payment-actions">
-                <button type="submit" className="btn-profile-open" disabled={profileSaveLoading}>
-                  {profileSaveLoading ? 'Сохраняем...' : 'Сохранить профиль'}
-                </button>
-                {profileSaveMessage && <span className="profile-settings-message">{profileSaveMessage}</span>}
-              </div>
-              {profileSaveError && <p className="ml-error">{profileSaveError}</p>}
-            </form>
-          </section>
+            <Link to="/admin/marathons/prices" className="btn-profile-open">
+              Войти в администраторскую секцию
+            </Link>
+          </div>
         )}
 
         {list && (
