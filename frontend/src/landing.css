@@ -453,6 +453,36 @@
   border-bottom: 1px solid var(--ml-line);
 }
 
+.home-proof-person {
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.home-proof-person > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.home-proof-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 10px 22px rgba(32, 52, 88, 0.14);
+}
+
+.home-proof-avatar--placeholder {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #eaf2ff, #fff4ef);
+  color: #24324f;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
 .home-proof-panel li:last-child {
   border-bottom: 0;
 }

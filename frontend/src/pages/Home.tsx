@@ -27,6 +27,18 @@ function formatCount(value: number | undefined): string {
   return new Intl.NumberFormat('ru-RU').format(value);
 }
 
+function getInitials(name: string | undefined): string {
+  const initials = (name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+
+  return initials || 'У';
+}
+
 /**
  * Home: production landing entry point for registration and marathon continuation.
  */
@@ -253,9 +265,18 @@ export default function Home() {
             {winners.length > 0 ? (
               <ul>
                 {winners.slice(0, 5).map((winner) => (
-                  <li key={winner.id}>
-                    <Link to={`/winners/${winner.id}`}>{winner.name || 'Участник'}</Link>
-                    <span>{winner.gold ?? 0} золотых</span>
+                  <li key={winner.id} className="home-proof-person">
+                    {winner.avatar ? (
+                      <img src={winner.avatar} alt="" className="home-proof-avatar" width={54} height={54} loading="lazy" />
+                    ) : (
+                      <span className="home-proof-avatar home-proof-avatar--placeholder" aria-hidden="true">
+                        {getInitials(winner.name)}
+                      </span>
+                    )}
+                    <div>
+                      <Link to={`/winners/${winner.id}`}>{winner.name || 'Участник'}</Link>
+                      <span>{winner.gold ?? 0} золотых</span>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -269,9 +290,18 @@ export default function Home() {
             {reviews.length > 0 ? (
               <ul>
                 {reviews.map((review) => (
-                  <li key={`${review.name}-${review.text}`}>
-                    <strong>{review.name}</strong>
-                    <p>{review.text.slice(0, 140)}{review.text.length > 140 ? '...' : ''}</p>
+                  <li key={`${review.name}-${review.text}`} className="home-proof-person">
+                    {review.photo ? (
+                      <img src={review.photo} alt="" className="home-proof-avatar" width={54} height={54} loading="lazy" />
+                    ) : (
+                      <span className="home-proof-avatar home-proof-avatar--placeholder" aria-hidden="true">
+                        {getInitials(review.name)}
+                      </span>
+                    )}
+                    <div>
+                      <strong>{review.name}</strong>
+                      <p>{review.text.slice(0, 140)}{review.text.length > 140 ? '...' : ''}</p>
+                    </div>
                   </li>
                 ))}
               </ul>

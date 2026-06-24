@@ -630,8 +630,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   }
   if (
     !js.includes('Поддержка марафона') ||
-    !js.includes('support-chat-form') ||
-    !js.includes('Ваш вопрос о марафоне') ||
+    !js.includes('support-public-status') ||
+    !js.includes('Профиль и вход') ||
+    !js.includes('Продолжить участие') ||
     !js.includes('Онлайн-чат')
   ) {
     throw new Error('Built frontend bundle does not include participant-safe public support content.');
