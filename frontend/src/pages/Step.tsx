@@ -13,7 +13,7 @@ import {
 } from '../api/assignmentMarathon';
 
 /**
- * Step (task) page: tabs Задание / Отчет; other marathoners' results from GET /api/v1/answers/random.
+ * Step (task) page: assignment and submission form first; peer reports unlock after submission.
  */
 export default function Step() {
   const { stepId } = useParams<{ stepId: string }>();
@@ -21,7 +21,7 @@ export default function Step() {
   const [loadingStep, setLoadingStep] = useState(true);
   const [stepNotFound, setStepNotFound] = useState(false);
   const [stepLoadError, setStepLoadError] = useState('');
-  const [tab, setTab] = useState<'task' | 'submit' | 'report'>('task');
+  const [tab, setTab] = useState<'task' | 'report'>('task');
   const [randomAnswer, setRandomAnswer] = useState<RandomAnswer | null>(null);
   const [loadingRandom, setLoadingRandom] = useState(false);
   const [marathonerId, setMarathonerId] = useState('');
@@ -146,7 +146,7 @@ export default function Step() {
         bonus_left: typeof body.bonus_left === 'number' ? body.bonus_left : 0,
         updated_at: body.updated_at,
       });
-      setSubmitMessage(body.is_late ? 'Отчет сохранен. Он отмечен как поздний, использован один бонусный день.' : 'Отчет сохранен. Ваш прогресс записан.');
+      setSubmitMessage(body.is_late ? 'Отчет сохранен. Он отмечен как поздний.' : 'Отчет сохранен. Ваш прогресс записан.');
     } catch (error) {
       if (error instanceof MarathonAuthRequiredError) {
         redirectToLogin(`/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
@@ -165,6 +165,7 @@ export default function Step() {
     : '/profile';
   const openLogin = () => redirectToLogin(stepReturnPath);
   const submitBlockedByStatusError = Boolean(savedSubmissionError);
+  const canViewPeerReports = Boolean(savedSubmission?.exists && savedSubmission.state === 'completed');
   const submitDisabled = submitting
     || loadingSavedSubmission
     || submissionAuthRequired
@@ -172,6 +173,12 @@ export default function Step() {
     || !assignmentContent
     || submitBlockedByStatusError;
   const peerОтчетEmpty = tab === 'report' && !loadingRandom && !randomAnswer;
+
+  useEffect(() => {
+    if (tab === 'report' && !canViewPeerReports) {
+      setTab('task');
+    }
+  }, [tab, canViewPeerReports]);
 
   if (loadingStep && !step) {
     return (
@@ -222,20 +229,15 @@ export default function Step() {
         >
           Задание
         </button>
-        <button
-          type="button"
-          className={tab === 'submit' ? 'active' : ''}
-          onClick={() => setTab('submit')}
-        >
-          Мой отчет
-        </button>
-        <button
-          type="button"
-          className={tab === 'report' ? 'active' : ''}
-          onClick={() => setTab('report')}
-        >
-          Отчет
-        </button>
+        {canViewPeerReports && (
+          <button
+            type="button"
+            className={tab === 'report' ? 'active' : ''}
+            onClick={() => setTab('report')}
+          >
+            Отчёты других участников
+          </button>
+        )}
       </div>
 
       {tab === 'task' && (
@@ -244,80 +246,71 @@ export default function Step() {
             <div className="step-assignment-content">{assignmentContent}</div>
           ) : (
             <div className="step-content-missing" role="alert">
-              Содержание задания не настроено for this step. Связаться с поддержкой before submitting a report.
+              Содержание задания не настроено для этого этапа. Свяжитесь с поддержкой перед отправкой отчета.
             </div>
           )}
-          {step?.socialLink && (
-            <a className="step-resource-link" href={step.socialLink} target="_blank" rel="noopener noreferrer">
-              Open supporting material
-            </a>
-          )}
-        </section>
-      )}
-
-      {tab === 'submit' && (
-        <section className="step-submit">
-          <h2>Мой отчет</h2>
-          <p className="step-report-note">Напишите, что вы выполнили по этому заданию. Платформа запишет прогресс и автоматически обновит статус бонусных дней.</p>
-          {loadingSavedSubmission && <p className="step-report-note">Проверяем сохраненный отчет...</p>}
-          {savedSubmissionError && (
-            <p className="ml-error">
-              {savedSubmissionError} Submission is paused until this assignment status can be checked.
-            </p>
-          )}
-          {!assignmentContent && (
-            <div className="step-submit-auth-panel" role="alert">
-              <strong>Содержание задания не настроено</strong>
-              <span>Отправка заблокирована, пока поддержка не добавит утвержденное содержание для этого этапа.</span>
-              <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
-            </div>
-          )}
-          {!hasParticipantContext && (
-            <div className="step-submit-auth-panel" role="alert">
-              <strong>Откройте это задание из профиля марафона</strong>
-              <span>Ссылка из профиля содержит ID участника, нужный для сохранения отчета в правильном марафоне.</span>
-              <Link to="/profile" className="btn-profile-login">Открыть профиль</Link>
-            </div>
-          )}
-          {hasParticipantContext && submissionAuthRequired && (
-            <div className="step-submit-auth-panel" role="alert">
-              <strong>Войдите, чтобы отправить отчет</strong>
-              <span>Отчет сохранится только после возврата из портала с токеном марафона для этого участника.</span>
-              <button type="button" className="btn-profile-login" onClick={openLogin}>Войти</button>
-            </div>
-          )}
-          {savedSubmission?.exists && (
-            <div className="step-saved-report" aria-live="polite">
-              <strong>{savedSubmission.state === 'completed' ? 'Сохраненный отчет загружен' : 'Черновик отчета загружен'}</strong>
-              <span>
-                {savedSubmission.updated_at && `Updated ${new Date(savedSubmission.updated_at).toLocaleString('ru-RU')}. `}
-                Bonus days left: {savedSubmission.bonus_left}.
-                {savedSubmission.is_late ? ' Marked late.' : ''}
-              </span>
-            </div>
-          )}
-          <form onSubmit={submitОтчет} className="step-submit-form">
-            <label htmlFor="step-report">Отчет</label>
-            <textarea
-              id="step-report"
-              value={report}
-              onChange={(event) => setОтчет(event.target.value)}
-              placeholder="Опишите ответ, ссылки, заметки или результат практики..."
-              rows={8}
-              disabled={!hasParticipantContext || submissionAuthRequired || submitBlockedByStatusError || !assignmentContent}
-            />
-            <button type="submit" className="btn-show-more" disabled={submitDisabled}>
-              {submitting ? 'Сохранение...' : submissionAuthRequired ? 'Войти required' : 'Отправить отчет'}
-            </button>
-          </form>
-          {submitMessage && <p className="step-submit-success">{submitMessage}</p>}
-          {submitError && <p className="ml-error">{submitError}</p>}
+          <section className="step-submit" aria-labelledby="step-submit-title">
+            <h2 id="step-submit-title">Отправка отчета</h2>
+            <p className="step-report-note">Ответьте на вопросы задания и отправьте отчет внизу этой страницы. После отправки откроются отчеты других участников.</p>
+            {loadingSavedSubmission && <p className="step-report-note">Проверяем сохраненный отчет...</p>}
+            {savedSubmissionError && (
+              <p className="ml-error">
+                {savedSubmissionError} Отправка приостановлена, пока статус задания не будет проверен.
+              </p>
+            )}
+            {!assignmentContent && (
+              <div className="step-submit-auth-panel" role="alert">
+                <strong>Содержание задания не настроено</strong>
+                <span>Отправка заблокирована, пока поддержка не добавит утвержденное содержание для этого этапа.</span>
+                <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
+              </div>
+            )}
+            {!hasParticipantContext && (
+              <div className="step-submit-auth-panel" role="alert">
+                <strong>Откройте это задание из профиля марафона</strong>
+                <span>Ссылка из профиля содержит ID участника, нужный для сохранения отчета в правильном марафоне.</span>
+                <Link to="/profile" className="btn-profile-login">Открыть профиль</Link>
+              </div>
+            )}
+            {hasParticipantContext && submissionAuthRequired && (
+              <div className="step-submit-auth-panel" role="alert">
+                <strong>Войдите, чтобы отправить отчет</strong>
+                <span>Отчет сохранится только после возврата из портала с токеном марафона для этого участника.</span>
+                <button type="button" className="btn-profile-login" onClick={openLogin}>Войти</button>
+              </div>
+            )}
+            {savedSubmission?.exists && (
+              <div className="step-saved-report" aria-live="polite">
+                <strong>{savedSubmission.state === 'completed' ? 'Отчет отправлен' : 'Черновик отчета загружен'}</strong>
+                <span>
+                  {savedSubmission.updated_at && `Обновлено ${new Date(savedSubmission.updated_at).toLocaleString('ru-RU')}.`}
+                  {savedSubmission.is_late ? ' Отмечено как поздняя отправка.' : ''}
+                </span>
+              </div>
+            )}
+            <form onSubmit={submitОтчет} className="step-submit-form">
+              <label htmlFor="step-report">Ваши ответы</label>
+              <textarea
+                id="step-report"
+                value={report}
+                onChange={(event) => setОтчет(event.target.value)}
+                placeholder="Заполните ответы по заданию, ссылки, заметки или результат практики..."
+                rows={8}
+                disabled={!hasParticipantContext || submissionAuthRequired || submitBlockedByStatusError || !assignmentContent}
+              />
+              <button type="submit" className="btn-show-more" disabled={submitDisabled}>
+                {submitting ? 'Сохранение...' : submissionAuthRequired ? 'Войти' : 'Отправить отчет'}
+              </button>
+            </form>
+            {submitMessage && <p className="step-submit-success">{submitMessage}</p>}
+            {submitError && <p className="ml-error">{submitError}</p>}
+          </section>
         </section>
       )}
 
       {tab === 'report' && (
         <section className="step-report">
-          <h2>Результаты других марафонцев</h2>
+          <h2>Отчёты других участников</h2>
           <p className="step-report-note">Пример отчёта участника по этому этапу (случайный выбор).</p>
           {loadingRandom && !randomAnswer && <p>Загрузка…</p>}
           {randomAnswer && (
@@ -341,7 +334,7 @@ export default function Step() {
               <strong>Пока нет примеров отчетов</strong>
               <span>
                 Когда участники сохранят первые отчеты по этому этапу, здесь появится случайный пример
-                для самопроверки. Ваш собственный отчет можно отправить во вкладке «Мой отчет».
+                для самопроверки.
               </span>
               <button type="button" className="btn-show-more" onClick={loadRandomОтчет}>
                 Проверить еще раз

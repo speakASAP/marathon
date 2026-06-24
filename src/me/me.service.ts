@@ -111,7 +111,7 @@ export type MyMarathonProgressReport = {
   }>;
 };
 
-const BONUS_DAYS = 7;
+const BONUS_DAYS = 0;
 
 @Injectable()
 export class MeService {
@@ -410,9 +410,12 @@ export class MeService {
   }
 
   private normalizeAvatarUrl(value: unknown): string | null {
-    const normalized = this.normalizeProfileText(value, 1000, 'Avatar URL');
+    const normalized = this.normalizeProfileText(value, 250000, 'Avatar image');
     if (!normalized) return null;
     if (normalized.startsWith('/')) return normalized;
+    if (/^data:image\/(webp|png|jpeg);base64,[a-z0-9+/=]+$/i.test(normalized)) {
+      return normalized;
+    }
     try {
       const url = new URL(normalized);
       if (url.protocol === 'https:' || url.protocol === 'http:') {
@@ -421,7 +424,7 @@ export class MeService {
     } catch {
       // Fall through to a user-facing validation error.
     }
-    throw new BadRequestException('Avatar URL must be an http(s) URL or an internal path');
+    throw new BadRequestException('Avatar image must be a compressed image upload, an http(s) URL, or an internal path');
   }
 
   private mapToMyMarathon(participant: any): MyMarathon {
@@ -534,9 +537,6 @@ export class MeService {
   }
 
   private getMarathonType(participant: any): 'trial' | 'free' | 'vip' {
-    if (participant.vipRequired && participant.isFree) {
-      return 'trial';
-    }
     if (participant.isFree) {
       return 'free';
     }
@@ -578,7 +578,7 @@ export class MeService {
         const prevStop = schedule.length > 0 ? new Date(schedule[schedule.length - 1].stop) : new Date();
         const nextStop = new Date(prevStop);
         nextStop.setDate(nextStop.getDate() + 1);
-        const blockedByPayment = needsPayment && !step.isTrialStep;
+        const blockedByPayment = needsPayment;
         const state = !hasOpenStep && !blockedByPayment ? 'active' : 'inactive';
         if (state === 'active') {
           hasOpenStep = true;

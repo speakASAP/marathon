@@ -70,11 +70,6 @@ export default function SupportStep() {
           Содержание задания для этого этапа не настроено.
         </div>
       )}
-      {step.socialLink && (
-        <a className="step-resource-link" href={step.socialLink} target="_blank" rel="noopener noreferrer">
-          Открыть дополнительный материал
-        </a>
-      )}
     </div>
   );
 }

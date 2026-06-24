@@ -17,10 +17,15 @@ import {
 
 type PaymentReturnState = 'success' | 'cancelled' | null;
 
-const PAYMENT_METHOD_OPTIONS: Array<{ value: VipPaymentMethod; label: string; detail: string }> = [
-  { value: 'paypal', label: 'PayPal', detail: 'Оплата через кошелек PayPal.' },
-  { value: 'card', label: 'Mastercard', detail: 'Оплата Mastercard или другой поддерживаемой картой.' },
-  { value: 'fiobanka', label: 'Банковский перевод', detail: 'Оплата банковским переводом через платежного провайдера.' },
+const PAYMENT_METHOD_OPTIONS: Array<{ value: VipPaymentMethod; label: string; detail: string; disabled?: boolean }> = [
+  { value: 'paypal', label: 'PayPal', detail: 'Оплата через PayPal в защищенном Stripe Checkout.' },
+  { value: 'card', label: 'Mastercard', detail: 'Оплата Mastercard или другой поддерживаемой картой через Stripe.' },
+  {
+    value: 'fiobanka',
+    label: 'Банковский перевод',
+    detail: 'Временно недоступен: банковский QR требует настроенного счета Fio, сейчас он не подключен.',
+    disabled: true,
+  },
 ];
 
 function formatDateTime(value: string) {
@@ -176,6 +181,8 @@ export default function ProfileDetail() {
   const current = data.current_step;
   const completedCount = data.answers.filter((answer) => answer.state === 'done' || answer.state === 'completed').length;
   const progressPct = data.answers.length ? Math.round((completedCount / data.answers.length) * 100) : 0;
+  const hasCompletedAssignments = completedCount > 0;
+  const showBonusDays = data.bonus_total > 0;
   const paymentReturnTitle = paymentReturn === 'success'
     ? (data.needs_payment ? 'Подтверждение оплаты обрабатывается' : 'VIP-доступ активен')
     : 'Оплата отменена';
@@ -187,6 +194,11 @@ export default function ProfileDetail() {
 
   const startCheckout = async () => {
     if (!data) return;
+    const selectedMethod = PAYMENT_METHOD_OPTIONS.find((option) => option.value === paymentMethod);
+    if (selectedMethod?.disabled) {
+      setCheckoutError('Банковский перевод временно недоступен. Используйте PayPal или Mastercard.');
+      return;
+    }
     setCheckoutLoading(true);
     setCheckoutError('');
     try {
@@ -264,10 +276,12 @@ export default function ProfileDetail() {
       <section className="profile-hero-panel">
         <div>
           <h1>{data.title}</h1>
-          <p className="profile-meta">
-            {data.type === 'trial' && 'Пробный период. '}
-            Бонусных дней: {data.bonus_left} из {data.bonus_total}.
-          </p>
+          {(data.type === 'trial' || showBonusDays) && (
+            <p className="profile-meta">
+              {data.type === 'trial' && 'Пробный период. '}
+              {showBonusDays && `Бонусных дней: ${data.bonus_left} из ${data.bonus_total}.`}
+            </p>
+          )}
         </div>
         <div className="profile-progress-card">
           <span>Прогресс</span>
@@ -297,14 +311,23 @@ export default function ProfileDetail() {
           </div>
           <div className="profile-payment-methods" role="radiogroup" aria-label="Способ оплаты">
             {PAYMENT_METHOD_OPTIONS.map((option) => (
-              <label key={option.value} className={paymentMethod === option.value ? 'profile-payment-method selected' : 'profile-payment-method'}>
+              <label
+                key={option.value}
+                className={[
+                  'profile-payment-method',
+                  paymentMethod === option.value ? 'selected' : '',
+                  option.disabled ? 'disabled' : '',
+                ].filter(Boolean).join(' ')}
+              >
                 <input
                   type="radio"
                   name="payment-method"
                   value={option.value}
                   checked={paymentMethod === option.value}
-                  onChange={() => setPaymentMethod(option.value)}
-                  disabled={checkoutLoading}
+                  onChange={() => {
+                    if (!option.disabled) setPaymentMethod(option.value);
+                  }}
+                  disabled={checkoutLoading || option.disabled}
                 />
                 <span>
                   <strong>{option.label}</strong>
@@ -314,7 +337,7 @@ export default function ProfileDetail() {
             ))}
           </div>
           <div className="profile-payment-actions">
-            <button type="button" className="btn-profile-open" onClick={startCheckout} disabled={checkoutLoading}>
+            <button type="button" className="btn-profile-open" onClick={startCheckout} disabled={checkoutLoading || PAYMENT_METHOD_OPTIONS.find((option) => option.value === paymentMethod)?.disabled}>
               {checkoutLoading ? 'Открываем оплату...' : `Оплатить через ${PAYMENT_METHOD_OPTIONS.find((option) => option.value === paymentMethod)?.label || 'выбранный способ'}`}
             </button>
             <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
@@ -379,11 +402,12 @@ export default function ProfileDetail() {
           </form>
         </section>
       )}
+      {hasCompletedAssignments && (
       <section className="profile-report-panel">
         <div className="profile-report-heading">
           <div>
-            <h2>Прогресс report</h2>
-            <p>Сводка по заданиям, VIP, бонусным дням и попыткам оплаты для этого марафона.</p>
+            <h2>Отчет прогресса</h2>
+            <p>Сводка по выполненным заданиям, VIP и попыткам оплаты для этого марафона.</p>
           </div>
           <div className="profile-payment-actions">
             <button type="button" className="btn-profile-open" onClick={loadProgressReport} disabled={reportLoading}>
@@ -402,7 +426,9 @@ export default function ProfileDetail() {
             <div><span>Выполнено</span><strong>{report.summary.completedSteps}/{report.summary.totalSteps}</strong></div>
             <div><span>Проверено</span><strong>{report.summary.checkedSteps}</strong></div>
             <div><span>Поздно</span><strong>{report.summary.lateSteps}</strong></div>
-            <div><span>Бонусных дней</span><strong>{report.access.bonusDaysLeft}/{report.access.bonusDaysTotal}</strong></div>
+            {report.access.bonusDaysTotal > 0 && (
+              <div><span>Бонусных дней</span><strong>{report.access.bonusDaysLeft}/{report.access.bonusDaysTotal}</strong></div>
+            )}
             <div><span>VIP</span><strong>{report.access.needsPayment ? 'Требуется' : report.access.type.toUpperCase()}</strong></div>
             <div><span>Оплаты</span><strong>{report.summary.paymentAttempts}</strong></div>
             {report.currentStep && (
@@ -414,6 +440,7 @@ export default function ProfileDetail() {
           </div>
         )}
       </section>
+      )}
       <section className="profile-steps">
         <h2>Этапы</h2>
         <ul className="profile-answers">

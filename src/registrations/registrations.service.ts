@@ -213,6 +213,8 @@ export class RegistrationsService {
         userId: centralUserId,
         isFree: true,
         vipRequired: !!marathon.vipGateDate,
+        bonusDaysLeft: 0,
+        canUsePenalty: false,
         reportHour,
       },
     });

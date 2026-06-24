@@ -456,7 +456,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   ) {
     throw new Error('Built frontend bundle does not include assignment submit authentication guard.');
   }
-  if (!js.includes('Статус сохраненного отчета не загрузился.') || !js.includes('Submission is paused until this assignment status can be checked')) {
+  if (!js.includes('Статус сохраненного отчета не загрузился.') || !js.includes('Отправка приостановлена, пока статус задания не будет проверен')) {
     throw new Error('Built frontend bundle does not block assignment submission after saved-report status load failures.');
   }
   if (!js.includes('Содержание задания не настроено') || !js.includes('Отправка заблокирована, пока поддержка не добавит утвержденное содержание для этого этапа.')) {
@@ -489,7 +489,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Задание временно недоступно') || !js.includes('Задание не загрузилось.')) {
     throw new Error('Built frontend bundle does not include assignment step load-error state.');
   }
-  if (!js.includes('Пока нет примеров отчетов') || !js.includes('Ваш собственный отчет можно отправить')) {
+  if (!js.includes('Пока нет примеров отчетов') || !js.includes('для самопроверки.')) {
     throw new Error('Built frontend bundle does not include assignment peer-report empty state.');
   }
   if (!js.includes('Страница марафона временно недоступна') || !js.includes('Страница марафона не загрузилась.')) {
@@ -654,7 +654,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('navbar-cta') || !js.includes('navbar-cta-closed')) {
     throw new Error('Built frontend bundle does not use readiness-aware registration label for global navigation.');
   }
-  if (!js.includes('/progress-report') || !js.includes('Прогресс report') || !js.includes('Скачать JSON')) {
+  if (!js.includes('/progress-report') || !js.includes('Отчет прогресса') || !js.includes('Скачать JSON')) {
     throw new Error('Built frontend bundle does not include participant progress report UI.');
   }
   if (!js.includes('/nps') || !js.includes('Отзыв о марафоне') || !js.includes('Сохранить отзыв')) {

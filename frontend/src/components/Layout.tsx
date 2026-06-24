@@ -41,6 +41,12 @@ export default function Layout() {
     return match.url || `/${match.code}/`;
   }, [languageOptions, location.pathname]);
 
+  const hasSelectedMarathonContext = useMemo(() => {
+    const queryMarathonerId = new URLSearchParams(location.search).get('marathonerId')?.trim();
+    const profilePathParts = location.pathname.split('/').filter(Boolean);
+    return Boolean(queryMarathonerId) || (profilePathParts[0] === 'profile' && profilePathParts.length === 2);
+  }, [location.pathname, location.search]);
+
   useEffect(() => {
     setMenuOpen(false);
     setHasToken(Boolean(getToken()));
@@ -78,23 +84,25 @@ export default function Layout() {
             <Link to="/support">Поддержка</Link>
           </nav>
           <div className="header-actions">
-            <label className="navbar-language-select">
-              <span>Язык</span>
-              <select
-                value={currentLanguagePath}
-                onChange={(event) => {
-                  if (event.target.value) window.location.href = event.target.value;
-                }}
-                aria-label="Выбор языка марафона"
-              >
-                <option value="">Выберите язык</option>
-                {languageOptions.map((language) => (
-                  <option key={language.code} value={language.url || `/${language.code}/`}>
-                    {formatLanguageOptionLabel(language.code, language.name)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {!hasSelectedMarathonContext && (
+              <label className="navbar-language-select">
+                <span>Язык</span>
+                <select
+                  value={currentLanguagePath}
+                  onChange={(event) => {
+                    if (event.target.value) window.location.href = event.target.value;
+                  }}
+                  aria-label="Выбор языка марафона"
+                >
+                  <option value="">Выберите язык</option>
+                  {languageOptions.map((language) => (
+                    <option key={language.code} value={language.url || `/${language.code}/`}>
+                      {formatLanguageOptionLabel(language.code, language.name)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {hasToken ? (
               <Link to="/profile" className="navbar-profile-avatar" aria-label="Мой профиль" title="Мой профиль">
                 <span>Я</span>

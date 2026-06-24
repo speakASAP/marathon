@@ -81,7 +81,7 @@ export class SubmissionsService {
       throw new ConflictException('Assignment content is not configured for this step');
     }
 
-    if (this.needsPayment(participant) && !step.isTrialStep) {
+    if (this.needsPayment(participant)) {
       throw new ForbiddenException('VIP access is required before submitting this step');
     }
 

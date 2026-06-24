@@ -55,7 +55,7 @@ model MarathonParticipant {
   isFree           Boolean  @default(true)
   vipRequired      Boolean  @default(false)
   paymentReported  Boolean  @default(false)
-  bonusDaysLeft    Int      @default(7)
+  bonusDaysLeft    Int      @default(0)
   canUsePenalty    Boolean  @default(true)
   active           Boolean  @default(true)
   reportHour       DateTime
