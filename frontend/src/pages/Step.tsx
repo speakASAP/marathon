@@ -186,7 +186,7 @@ export default function Step() {
         bonus_left: typeof body.bonus_left === 'number' ? body.bonus_left : 0,
         updated_at: body.updated_at,
       });
-      setSubmitMessage(body.is_late ? 'Отчет сохранен. Он отмечен как поздний, использован один бонусный день.' : 'Отчет сохранен. Ваш прогресс записан.');
+      setSubmitMessage(body.is_late ? 'Отчет сохранен. Он отмечен как поздний.' : 'Отчет сохранен. Ваш прогресс записан.');
     } catch (error) {
       if (error instanceof MarathonAuthRequiredError) {
         redirectToLogin(`/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
@@ -398,8 +398,7 @@ export default function Step() {
               <div className="step-saved-report" aria-live="polite">
                 <strong>{savedSubmission.state === 'completed' ? 'Отчет отправлен' : 'Черновик отчета загружен'}</strong>
                 <span>
-                  {savedSubmission.updated_at && `Обновлено ${new Date(savedSubmission.updated_at).toLocaleString('ru-RU')}. `}
-                  Бонусных дней осталось: {savedSubmission.bonus_left}.
+                  {savedSubmission.updated_at && `Обновлено ${new Date(savedSubmission.updated_at).toLocaleString('ru-RU')}.`}
                   {savedSubmission.is_late ? ' Отмечено как поздняя отправка.' : ''}
                 </span>
               </div>

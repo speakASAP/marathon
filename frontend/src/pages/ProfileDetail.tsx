@@ -203,6 +203,8 @@ export default function ProfileDetail() {
   const current = data.current_step;
   const completedCount = data.answers.filter((answer) => answer.state === 'done' || answer.state === 'completed').length;
   const progressPct = data.answers.length ? Math.round((completedCount / data.answers.length) * 100) : 0;
+  const hasCompletedAssignments = completedCount > 0;
+  const showBonusDays = data.bonus_total > 0;
   const paymentReturnTitle = paymentReturn === 'success'
     ? (data.needs_payment ? 'Подтверждение оплаты обрабатывается' : 'VIP-доступ активен')
     : 'Оплата отменена';
@@ -317,10 +319,12 @@ export default function ProfileDetail() {
       <section className="profile-hero-panel">
         <div>
           <h1>{data.title}</h1>
-          <p className="profile-meta">
-            {data.type === 'trial' && 'Пробный период. '}
-            Бонусных дней: {data.bonus_left} из {data.bonus_total}.
-          </p>
+          {(data.type === 'trial' || showBonusDays) && (
+            <p className="profile-meta">
+              {data.type === 'trial' && 'Пробный период. '}
+              {showBonusDays && `Бонусных дней: ${data.bonus_left} из ${data.bonus_total}.`}
+            </p>
+          )}
         </div>
         <div className="profile-progress-card">
           <span>Прогресс</span>
@@ -469,11 +473,12 @@ export default function ProfileDetail() {
           </form>
         </section>
       )}
+      {hasCompletedAssignments && (
       <section className="profile-report-panel">
         <div className="profile-report-heading">
           <div>
-            <h2>Прогресс report</h2>
-            <p>Сводка по заданиям, VIP, бонусным дням и попыткам оплаты для этого марафона.</p>
+            <h2>Отчет прогресса</h2>
+            <p>Сводка по выполненным заданиям, VIP и попыткам оплаты для этого марафона.</p>
           </div>
           <div className="profile-payment-actions">
             <button type="button" className="btn-profile-open" onClick={loadProgressReport} disabled={reportLoading}>
@@ -492,7 +497,9 @@ export default function ProfileDetail() {
             <div><span>Выполнено</span><strong>{report.summary.completedSteps}/{report.summary.totalSteps}</strong></div>
             <div><span>Проверено</span><strong>{report.summary.checkedSteps}</strong></div>
             <div><span>Поздно</span><strong>{report.summary.lateSteps}</strong></div>
-            <div><span>Бонусных дней</span><strong>{report.access.bonusDaysLeft}/{report.access.bonusDaysTotal}</strong></div>
+            {report.access.bonusDaysTotal > 0 && (
+              <div><span>Бонусных дней</span><strong>{report.access.bonusDaysLeft}/{report.access.bonusDaysTotal}</strong></div>
+            )}
             <div><span>VIP</span><strong>{report.access.needsPayment ? 'Требуется' : report.access.type.toUpperCase()}</strong></div>
             <div><span>Оплаты</span><strong>{report.summary.paymentAttempts}</strong></div>
             {report.currentStep && (
@@ -504,6 +511,7 @@ export default function ProfileDetail() {
           </div>
         )}
       </section>
+      )}
       <section className="profile-steps">
         <h2>Этапы</h2>
         <ul className="profile-answers">

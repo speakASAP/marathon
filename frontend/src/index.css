@@ -2678,9 +2678,36 @@ a:hover {
 .support-public-hero p,
 .support-public-status p,
 .support-public-grid p,
+.support-public-help p,
 .support-public-contact p {
   color: #5e6a80;
   line-height: 1.6;
+}
+
+.support-public-help {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
+
+.support-public-help article {
+  min-height: 150px;
+  padding: 20px;
+  border: 1px solid #dfe7ef;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(28, 42, 68, 0.07);
+}
+
+.support-public-help h2 {
+  margin: 0 0 8px;
+  color: #101832;
+  font-size: 1.05rem;
+}
+
+.support-public-help p {
+  margin: 0;
 }
 
 
@@ -2960,6 +2987,10 @@ a:hover {
     grid-template-columns: 1fr;
     align-items: start;
     padding: 22px;
+  }
+
+  .support-public-help {
+    grid-template-columns: 1fr;
   }
 
   .support-public-status-heading,

@@ -118,7 +118,7 @@ export type MyMarathonProgressReport = {
   }>;
 };
 
-const BONUS_DAYS = 7;
+const BONUS_DAYS = 0;
 
 @Injectable()
 export class MeService {
@@ -611,9 +611,6 @@ export class MeService {
   }
 
   private getMarathonType(participant: any): 'trial' | 'free' | 'vip' {
-    if (participant.vipRequired && participant.isFree) {
-      return 'trial';
-    }
     if (participant.isFree) {
       return 'free';
     }
@@ -657,7 +654,7 @@ export class MeService {
         }
         schedule.push(mapped);
       } else {
-        const blockedByPayment = needsPayment && !step.isTrialStep;
+        const blockedByPayment = needsPayment;
         const scheduledFuture = startAt > now;
         const state = !hasOpenStep && !blockedByPayment && !scheduledFuture ? 'active' : 'inactive';
         if (state === 'active') {

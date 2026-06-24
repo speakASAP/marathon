@@ -126,7 +126,7 @@ async function verifyPaymentUnlock(token, marathon) {
     token,
     label: "payment profile before checkout",
   });
-  if (beforeProfile?.needs_payment !== true || beforeProfile?.type !== "trial") {
+  if (beforeProfile?.needs_payment !== true || beforeProfile?.type !== "free") {
     throw new Error("payment participant was not payment-gated before checkout");
   }
 
@@ -307,7 +307,8 @@ async function main() {
   if (participant.isFree !== false || participant.paymentReported !== true) throw new Error("gift redemption did not unlock VIP state");
 
   const winner = await prisma.marathonWinner.findFirst({ where: { userId }, orderBy: { createdAt: "desc" } });
-  if (!winner || winner.goldCount < 1) throw new Error("winner row was not created/recomputed with a gold medal");
+  const medalCount = (winner?.goldCount || 0) + (winner?.silverCount || 0) + (winner?.bronzeCount || 0);
+  if (!winner || medalCount < 1) throw new Error("winner row was not created/recomputed with a medal");
 
   const npsCreate = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/nps`, {
     method: "POST",
