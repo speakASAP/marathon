@@ -19,6 +19,10 @@ from typing import Iterable
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 AUTH_TS = REPO_ROOT / "frontend" / "src" / "auth.ts"
+MAIN_TSX = REPO_ROOT / "frontend" / "src" / "main.tsx"
+APP_TSX = REPO_ROOT / "frontend" / "src" / "App.tsx"
+PROFILE_DETAIL = REPO_ROOT / "frontend" / "src" / "pages" / "ProfileDetail.tsx"
+PROFILE_API = REPO_ROOT / "frontend" / "src" / "api" / "profileMarathon.ts"
 REGISTRATION_FORM = REPO_ROOT / "frontend" / "src" / "components" / "RegistrationForm.tsx"
 JOURNEY_API = REPO_ROOT / "frontend" / "src" / "api" / "journeyMarathon.ts"
 REGISTRATION_SERVICE = REPO_ROOT / "src" / "registrations" / "registrations.service.ts"
@@ -170,6 +174,67 @@ def check_existing_account_ui(checks: list[Check]) -> None:
     )
 
 
+
+def check_profile_callback_no_loop(checks: list[Check]) -> None:
+    auth = read_text(AUTH_TS)
+    main = read_text(MAIN_TSX)
+    app = read_text(APP_TSX)
+    profile = read_text(PROFILE_DETAIL)
+    api = read_text(PROFILE_API)
+    required_main = [
+        "import { captureTokenFromUrl } from './auth'",
+        "captureTokenFromUrl();",
+        "ReactDOM.createRoot",
+    ]
+    required_auth = [
+        "window.history.replaceState",
+        "setToken(token)",
+        "AUTH_HANDOFF_HASH_PARAMS",
+        "access_token",
+        "refresh_token",
+    ]
+    required_routes = [
+        'path="/profile/:marathonerId"',
+        "element={<ProfileDetail />}",
+    ]
+    required_api = [
+        "authFetch(`/api/v1/me/marathons/${marathonerId}`)",
+        "if (response.status === 401) throw new MarathonAuthRequiredError()",
+    ]
+    required_profile = [
+        "setLoading(true)",
+        "setUnauth(false)",
+        "setLoading(false)",
+        "if (error instanceof MarathonAuthRequiredError)",
+        "setUnauth(true)",
+        "if (loading)",
+        "if (unauth)",
+        "getLoginUrl(`/profile/${marathonerId}`)",
+        "getPasswordResetUrl()",
+        "Войти с email или телефоном",
+    ]
+    missing = (
+        contains_all(main, required_main)
+        + contains_all(auth, required_auth)
+        + contains_all(app, required_routes)
+        + contains_all(api, required_api)
+        + contains_all(profile, required_profile)
+    )
+    capture_before_render = main.find("captureTokenFromUrl();") != -1 and main.find("ReactDOM.createRoot") != -1 and main.find("captureTokenFromUrl();") < main.find("ReactDOM.createRoot")
+    auth_error_index = profile.find("MarathonAuthRequiredError")
+    unauth_index = profile.find("setUnauth(true)", auth_error_index)
+    loading_false_index = profile.find("setLoading(false)", unauth_index)
+    finite_unauth_state = auth_error_index != -1 and unauth_index != -1 and loading_false_index != -1 and auth_error_index < unauth_index < loading_false_index
+    unauth_block = profile.split("if (unauth)", 1)[-1].split("if (loadError)", 1)[0]
+    no_auto_login_redirect_loop = "redirectToLogin" not in unauth_block and "window.location" not in unauth_block
+    add_check(
+        checks,
+        "profile-callback-no-loop-guard",
+        not missing and capture_before_render and finite_unauth_state and no_auto_login_redirect_loop,
+        "Profile callback route captures Auth fragments before React render, fetches with Bearer auth, and resolves 401 into a finite login/reset UI instead of an automatic redirect/loading loop.",
+        [rel(MAIN_TSX), rel(AUTH_TS), rel(APP_TSX), rel(PROFILE_API), rel(PROFILE_DETAIL)] + ([f"missing={missing}"] if missing else []),
+    )
+
 def iter_source_files() -> Iterable[Path]:
     allowed_suffixes = {".ts", ".tsx", ".js", ".jsx", ".json"}
     for root in SOURCE_SCAN_ROOTS:
@@ -225,13 +290,14 @@ def check_no_legacy_only_primary_login(checks: list[Check]) -> None:
 
 def run_checks() -> dict[str, object]:
     checks: list[Check] = []
-    for path in [AUTH_TS, REGISTRATION_FORM, JOURNEY_API, REGISTRATION_SERVICE]:
+    for path in [AUTH_TS, MAIN_TSX, APP_TSX, PROFILE_DETAIL, PROFILE_API, REGISTRATION_FORM, JOURNEY_API, REGISTRATION_SERVICE]:
         add_check(checks, f"required-file:{rel(path)}", path.exists(), "Required source file exists.", [rel(path)])
-    if all(path.exists() for path in [AUTH_TS, REGISTRATION_FORM, JOURNEY_API, REGISTRATION_SERVICE]):
+    if all(path.exists() for path in [AUTH_TS, MAIN_TSX, APP_TSX, PROFILE_DETAIL, PROFILE_API, REGISTRATION_FORM, JOURNEY_API, REGISTRATION_SERVICE]):
         check_hosted_auth_redirects(checks)
         check_fragment_handoff(checks)
         check_phone_required(checks)
         check_existing_account_ui(checks)
+        check_profile_callback_no_loop(checks)
         check_forbidden_local_passwordless(checks)
         check_no_legacy_only_primary_login(checks)
 

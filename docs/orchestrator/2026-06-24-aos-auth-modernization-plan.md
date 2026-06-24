@@ -205,3 +205,29 @@ Validation evidence:
 Remaining gates:
 - [MISSING: owner-approved live backfill apply].
 - [MISSING: owner-approved mutating user-flow smoke].
+
+## 2026-06-24 - Profile Callback No-Loop Guard
+
+Status: source contract hardened for the reported `/profile/:marathonerId` loading-loop risk; no runtime deploy, live login, DB query, backfill, secret read, payment mutation, or legacy `speakasap-portal` access was performed.
+
+IPS chain:
+- Vision: Marathon profile access returns from central Auth reliably without circular redirects or indefinite loading.
+- Goal Impact: users who land on `/profile/:marathonerId#access_token=...` can have the Auth token captured before route rendering, while unauthenticated users get a finite login/reset UI instead of an automatic loop.
+- System: Marathon frontend hosted Auth adapter, profile route, profile API client, and source contract checker.
+- Feature: deterministic profile callback no-loop guard.
+- Task: extend `scripts/check-marathon-hosted-auth-contract.py` to prove the Auth fragment capture and profile route failure path are wired together.
+- Execution Plan: checker/docs-only; preserve frontend behavior, avoid live credentials, and do not run backfill or deploy.
+- Coding Prompt: require `captureTokenFromUrl()` before React render, `/profile/:marathonerId` route registration, Bearer-backed profile fetch, finite `MarathonAuthRequiredError` UI, hosted login return to the same profile, and password reset link.
+- Code: `scripts/check-marathon-hosted-auth-contract.py` and this plan entry.
+- Validation: `PYTHONPYCACHEPREFIX=/tmp/marathon-pycache python3 -m py_compile scripts/check-marathon-hosted-auth-contract.py`; `python3 scripts/check-marathon-hosted-auth-contract.py --json-report /tmp/marathon-hosted-auth-profile-loop.json` passed with `ok=true`, `15` passed, `0` failed.
+
+Evidence:
+- `frontend/src/main.tsx` calls `captureTokenFromUrl()` before `ReactDOM.createRoot`.
+- `frontend/src/auth.ts` stores hosted `access_token`, removes hosted Auth fragment keys including `refresh_token`, and replaces browser history.
+- `frontend/src/App.tsx` registers `/profile/:marathonerId` to `ProfileDetail`.
+- `frontend/src/api/profileMarathon.ts` fetches `/api/v1/me/marathons/:marathonerId` through `authFetch` and maps HTTP `401` to `MarathonAuthRequiredError`.
+- `frontend/src/pages/ProfileDetail.tsx` resolves `MarathonAuthRequiredError` into a finite unauthenticated panel with hosted login return and password reset links, not an automatic redirect from the unauthenticated render branch.
+
+Remaining gates:
+- [MISSING: owner-approved Marathon live DB dry-run/backfill apply].
+- [MISSING: live credential/contact-code profile callback smoke with approved non-sensitive test account/contact].
