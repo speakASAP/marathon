@@ -183,7 +183,7 @@ Forbidden output:
 
 ## Missing Facts
 
-- [APPROVED: Gate 1 live read-only dry-run approved by owner follow-up on 2026-06-24].
+- [COMPLETE: Gate 1 live read-only dry-run approved and executed on 2026-06-24 with zero candidates and zero writes].
 - [APPROVED: Gate 2 backfill apply approved by owner follow-up on 2026-06-24; exact execution facts below remain required].
 - [MISSING: approved Marathon runtime DB profile and execution context].
 - [MISSING: approved Auth API base URL for apply].
@@ -192,3 +192,18 @@ Forbidden output:
 - [UNKNOWN: final reconciliation policy for already-bound UUID participants].
 - [APPROVED: `--include-bound` reconciliation apply approved by owner follow-up on 2026-06-24; reconciliation approval env is still required at execution].
 - [UNKNOWN: mapping policy for non-UUID legacy `MarathonParticipant.userId` values].
+
+
+## Gate 1 Execution Evidence - 2026-06-24
+
+- Plan-only preflight: `kubectl -n statex-apps exec deployment/marathon -- sh -lc "cd /app && node scripts/backfill-marathon-auth-users.js --plan-only --limit 5"` returned `liveAccess=false`, `dbAccess=false`, and `authApiAccess=false`.
+- Dry-run command: `kubectl -n statex-apps exec deployment/marathon -- sh -lc "cd /app && node scripts/backfill-marathon-auth-users.js --limit 25"` returned `mode=dry-run`, `limit=25`, `totalCandidates=0`, `scanned=0`, `eligible=0`, `authCreated=0`, `authExisting=0`, `participantsUpdated=0`, and `samples=[]`.
+- Execution context note: The deployed pod plan-only output did not include the newer `reconciliationApplyRequires` field from commit `9cef640`, so `--include-bound` reconciliation apply remains blocked until the current source guardrail is deployed or the approved execution context is changed to a current-source runtime.
+
+
+## Execution Evidence - 2026-06-24
+
+- Gate 1 dry-run found no unbound eligible participants: `totalCandidates=0`, `scanned=0`, `eligible=0`.
+- Already-bound UUID reconciliation was run through the approved Auth API path for all 27 candidates.
+- Final reconciliation apply result: `authExisting=27`, `authCreated=0`, `participantsUpdated=0`.
+- Gate 2 unbound apply is not currently needed because Gate 1 found zero unbound eligible participants.

@@ -75,5 +75,20 @@ Gate 1 success does not approve Gate 2 apply. After the dry-run, review aggregat
 ## Current Missing Facts
 
 - [APPROVED: owner approved Gate 1 live read-only dry-run in current orchestration thread on 2026-06-24].
-- [UNKNOWN: dry-run aggregate candidate counts until Gate 1 is approved].
-- [UNKNOWN: whether any non-UUID legacy participant bindings require a separate mapping plan].
+- [COMPLETE: Gate 1 dry-run aggregate counts were `totalCandidates=0`, `scanned=0`, `eligible=0`, `participantsUpdated=0`].
+- [UNKNOWN: whether any non-UUID legacy participant bindings require a separate mapping plan; Gate 1 found no eligible unbound candidates].
+
+
+## Gate 1 Execution Evidence - 2026-06-24
+
+Status: completed successfully.
+
+Evidence:
+- Plan-only preflight: `kubectl -n statex-apps exec deployment/marathon -- sh -lc "cd /app && node scripts/backfill-marathon-auth-users.js --plan-only --limit 5"` returned `liveAccess=false`, `dbAccess=false`, and `authApiAccess=false`.
+- Dry-run command: `kubectl -n statex-apps exec deployment/marathon -- sh -lc "cd /app && node scripts/backfill-marathon-auth-users.js --limit 25"` returned `mode=dry-run`, `limit=25`, `totalCandidates=0`, `scanned=0`, `eligible=0`, `authCreated=0`, `authExisting=0`, `participantsUpdated=0`, and `samples=[]`.
+
+Stop-condition review:
+- `mode` was `dry-run`.
+- `authCreated`, `authExisting`, and `participantsUpdated` were all `0`.
+- No rows were scanned, and no masked samples were emitted because there were no candidates.
+- No Auth API provisioning or Marathon DB writes were performed by the script output.

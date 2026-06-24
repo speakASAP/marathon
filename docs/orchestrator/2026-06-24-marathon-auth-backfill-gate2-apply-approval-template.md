@@ -89,10 +89,15 @@ Direct rollback requires a new explicit owner approval with exact target IDs kep
 
 ## Current Missing Facts
 
-- [MISSING: Gate 1 dry-run evidence].
+- [COMPLETE: Gate 1 dry-run evidence reviewed with `totalCandidates=0`, `scanned=0`, `eligible=0`, and `participantsUpdated=0`].
 - [APPROVED: Gate 2 apply approved by owner follow-up on 2026-06-24].
 - [MISSING: approved batch limit].
 - [MISSING: owner-approved ticket/change ID].
 - [MISSING: approved Auth API base URL].
 - [UNKNOWN: final policy for non-UUID legacy bindings].
 - [APPROVED: `--include-bound` already-bound UUID reconciliation apply approved by owner follow-up on 2026-06-24].
+
+
+## Execution Context Note - 2026-06-24
+
+The deployed pod plan-only output did not include the newer `reconciliationApplyRequires` field from commit `9cef640`, so `--include-bound` reconciliation apply remains blocked until the current source guardrail is deployed or the approved execution context is changed to a current-source runtime.

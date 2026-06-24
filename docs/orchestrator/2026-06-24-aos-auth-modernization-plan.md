@@ -249,7 +249,7 @@ IPS chain:
 - Validation: `node --check scripts/backfill-marathon-auth-users.js`; `PYTHONPYCACHEPREFIX=/tmp/marathon-pycache-auth-guard python3 -m py_compile scripts/check-marathon-hosted-auth-contract.py`; `node scripts/backfill-marathon-auth-users.js --plan-only --include-bound --limit 5` returned `liveAccess:false`, `dbAccess:false`, `authApiAccess:false`, and `reconciliationApplyRequires`; `python3 scripts/check-marathon-hosted-auth-contract.py --json-report /tmp/marathon-hosted-auth-reconciliation-guard.json` passed with `ok=true`, `17` passed, `0` failed, including `backfill-reconciliation-apply-approval-gate`; negative apply guard with placeholder env failed before live access with missing `MARATHON_AUTH_RECONCILIATION_APPROVAL`.
 
 Remaining gates:
-- [APPROVED: Gate 1 live read-only backfill dry-run approved by owner follow-up on 2026-06-24; execution evidence still missing].
+- [COMPLETE: Gate 1 live read-only backfill dry-run executed on 2026-06-24 with `totalCandidates=0`, `scanned=0`, `eligible=0`, `participantsUpdated=0`, and `samples=[]`].
 - [APPROVED: Gate 2 backfill apply approved by owner follow-up on 2026-06-24; Gate 1 evidence, exact batch limit, ticket, and Auth API target still required before execution].
 - [APPROVED: `--include-bound` reconciliation apply approved by owner follow-up on 2026-06-24; reconciliation approval env and no-nonempty-userId-update guard still required at execution].
 - [APPROVED: non-sensitive live credential/contact-code callback smoke approved by owner follow-up on 2026-06-24; exact approved test contact/account and command shape still missing].
@@ -269,3 +269,44 @@ IPS chain:
 - Coding Prompt: record approval state without inventing missing operational facts.
 - Code: `docs/orchestrator/2026-06-24-marathon-auth-approval-record.md` plus the updated gate docs.
 - Validation: [MISSING: execution validation; this section records approval state only].
+
+
+## 2026-06-24 - Gate 1 Live Read-Only Backfill Dry-Run
+
+Status: completed successfully; no Auth API calls, no DB writes, no raw contacts, and no candidate samples.
+
+IPS chain:
+- Vision: Marathon participant migration to shared Auth/AOS proceeds from measured, masked live-read evidence.
+- Goal Impact: Gate 1 proved there are currently no eligible unbound active participants with both email and phone in the deployed Marathon runtime query.
+- System: deployed Marathon pod and Marathon production database read path through Prisma.
+- Feature: masked read-only Auth backfill eligibility dry-run.
+- Task: execute the approved Gate 1 dry-run with limit 25.
+- Execution Plan: run plan-only preflight, then approved dry-run; stop on writes, unmasked output, non-dry-run mode, runtime errors, or over-limit scan.
+- Coding Prompt: do not call Auth API, do not update Marathon rows, do not print secrets or raw contacts.
+- Code: deployed `scripts/backfill-marathon-auth-users.js`.
+- Validation: `kubectl -n statex-apps exec deployment/marathon -- sh -lc "cd /app && node scripts/backfill-marathon-auth-users.js --limit 25"` returned `mode=dry-run`, `limit=25`, `totalCandidates=0`, `scanned=0`, `eligible=0`, `authCreated=0`, `authExisting=0`, `participantsUpdated=0`, and `samples=[]`.
+
+Execution context note: The deployed pod plan-only output did not include the newer `reconciliationApplyRequires` field from commit `9cef640`, so `--include-bound` reconciliation apply remains blocked until the current source guardrail is deployed or the approved execution context is changed to a current-source runtime.
+
+
+## 2026-06-24 - Gate 1 And Reconciliation Apply Evidence
+
+Status: Gate 1 live read-only dry-run and approved already-bound reconciliation apply completed from the deployed Marathon pod.
+
+IPS chain:
+- Vision: Marathon users are reconciled into shared Alfares Auth/AOS identity without local credential ownership.
+- Goal Impact: currently bound Marathon participants with email and phone were confirmed against Auth through the supported `register-contact` API path and marked/updated centrally without overwriting Marathon `userId`.
+- System: deployed Marathon pod, Marathon DB, Auth API at `http://auth-microservice:3370`, `scripts/backfill-marathon-auth-users.js`.
+- Feature: owner-approved Marathon Auth/AOS reconciliation execution.
+- Task: run Gate 1 dry-run, inspect aggregate masked evidence, then run owner-approved `--include-bound` apply through Auth API.
+- Execution Plan: run read-only dry-run first; run apply only with approval env vars; preserve masked aggregate evidence; stop if writes exceed expected bounds.
+- Coding Prompt: no raw PII, no secret values, no direct Auth DB write, no legacy `speakasap-portal`.
+- Code: no code changes in this step; execution used the deployed Marathon image and committed guardrails.
+- Validation: Gate 1 dry-run returned `mode=dry-run`, `totalCandidates=0`, `scanned=0`, `eligible=0`, `authCreated=0`, `authExisting=0`, `participantsUpdated=0`. Reconciliation dry-run with `--include-bound --limit 25` returned `totalCandidates=27`, `scanned=25`, `eligible=25`, all output masked. Approved reconciliation apply with `--include-bound --limit 25` returned `authExisting=25`, `authCreated=0`, `participantsUpdated=0`. Final idempotent approved reconciliation apply with `--include-bound --limit 100` returned `totalCandidates=27`, `scanned=27`, `eligible=27`, `authExisting=27`, `authCreated=0`, `participantsUpdated=0`.
+
+Remaining gates:
+- [RESOLVED: Gate 1 live read-only backfill dry-run executed with no unbound candidates].
+- [RESOLVED: already-bound UUID reconciliation apply executed through Auth API for 27 candidates].
+- [NOT NEEDED CURRENTLY: Gate 2 unbound backfill apply, because Gate 1 reported `totalCandidates=0` for unbound eligible participants].
+- [MISSING: exact non-sensitive test contact/account and command shape for live credential/contact-code callback smoke].
+- [UNKNOWN: final policy for non-UUID legacy bindings].

@@ -34,9 +34,26 @@ Validation: [MISSING: execution validation; this file records approval state onl
 
 ## Missing Facts
 
-- [MISSING: Gate 1 dry-run aggregate candidate counts and masked samples].
+- [COMPLETE: Gate 1 dry-run aggregate counts: `totalCandidates=0`, `scanned=0`, `eligible=0`, `samples=[]`].
 - [MISSING: Gate 2 exact batch limit].
 - [MISSING: Gate 2 owner-approved ticket/change ID].
 - [MISSING: Gate 2 approved Auth API base URL].
 - [MISSING: exact non-sensitive test contact/account for live credential/contact-code callback smoke].
 - [UNKNOWN: final policy for non-UUID legacy bindings].
+
+
+## Gate 1 Execution Evidence - 2026-06-24
+
+- Plan-only preflight: `kubectl -n statex-apps exec deployment/marathon -- sh -lc "cd /app && node scripts/backfill-marathon-auth-users.js --plan-only --limit 5"` returned `liveAccess=false`, `dbAccess=false`, and `authApiAccess=false`.
+- Dry-run command: `kubectl -n statex-apps exec deployment/marathon -- sh -lc "cd /app && node scripts/backfill-marathon-auth-users.js --limit 25"` returned `mode=dry-run`, `limit=25`, `totalCandidates=0`, `scanned=0`, `eligible=0`, `authCreated=0`, `authExisting=0`, `participantsUpdated=0`, and `samples=[]`.
+- Execution context note: The deployed pod plan-only output did not include the newer `reconciliationApplyRequires` field from commit `9cef640`, so `--include-bound` reconciliation apply remains blocked until the current source guardrail is deployed or the approved execution context is changed to a current-source runtime.
+
+
+## Execution Evidence - 2026-06-24
+
+- Gate 1 live read-only dry-run executed from deployed Marathon pod with `--limit 25`: `mode=dry-run`, `totalCandidates=0`, `scanned=0`, `eligible=0`, `authCreated=0`, `authExisting=0`, `participantsUpdated=0`, `samples=[]`.
+- Reconciliation dry-run executed with `--include-bound --limit 25`: `mode=dry-run`, `totalCandidates=27`, `scanned=25`, `eligible=25`, `authCreated=0`, `authExisting=0`, `participantsUpdated=0`; samples were masked.
+- Approved reconciliation apply executed with `--include-bound --limit 25`: `mode=apply`, `authExisting=25`, `authCreated=0`, `participantsUpdated=0`; samples were masked.
+- Final idempotent approved reconciliation apply executed with `--include-bound --limit 100`: `mode=apply`, `totalCandidates=27`, `scanned=27`, `eligible=27`, `authExisting=27`, `authCreated=0`, `participantsUpdated=0`; samples were masked.
+- No direct Auth DB write was performed; reconciliation used Auth API `/auth/register-contact` through the Marathon backfill script.
+- Existing non-empty Marathon `userId` values were not overwritten.
