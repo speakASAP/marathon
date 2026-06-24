@@ -7,6 +7,13 @@ export class MarathonRegistrationAuthExpiredError extends Error {
   }
 }
 
+export class MarathonRegistrationExistingAccountError extends Error {
+  constructor(message = 'Этот email или телефон уже зарегистрирован.') {
+    super(message);
+    this.name = 'MarathonRegistrationExistingAccountError';
+  }
+}
+
 export class MarathonAuthRequiredError extends Error {
   constructor() {
     super('Marathon authentication is required.');
@@ -32,10 +39,16 @@ interface ApiErrorBody {
   message?: string;
   detail?: string;
   error?: string;
+  code?: string;
+  loginRequired?: boolean;
 }
 
 function readApiError(response: Response, body: ApiErrorBody): Error {
-  return new Error(body.message || body.detail || body.error || `Request failed (${response.status})`);
+  const message = body.message || body.detail || body.error || `Request failed (${response.status})`;
+  if (response.status === 409 && (body.code === 'EXISTING_MARATHON_ACCOUNT' || body.loginRequired === true)) {
+    return new MarathonRegistrationExistingAccountError(message);
+  }
+  return new Error(message);
 }
 
 export function normalizeRegistrationRedirectUrl(redirectUrl?: string): string {

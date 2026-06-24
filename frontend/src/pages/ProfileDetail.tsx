@@ -1,7 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { redirectToLogin } from '../auth';
+import { getLoginUrl, getPasswordResetUrl, redirectToLogin } from '../auth';
 import {
   MarathonAuthRequiredError,
   MarathonNotFoundError,
@@ -127,8 +127,24 @@ export default function ProfileDetail() {
   }
 
   if (unauth) {
-    redirectToLogin(`/profile/${marathonerId}`);
-    return <div className="container"><p>Перенаправление на вход…</p></div>;
+    return (
+      <div className="container page-static">
+        <h1>Войдите в профиль марафона</h1>
+        <section className="profile-empty-panel" role="alert">
+          <p>
+            Этот профиль уже должен быть привязан к единому аккаунту Alfares. Войдите через центральный вход,
+            затем мы вернем вас на эту страницу.
+          </p>
+          <div className="profile-payment-actions">
+            <a className="btn-profile-open" href={getLoginUrl(`/profile/${marathonerId}`)}>
+              Войти с email или телефоном
+            </a>
+            <a className="btn-profile-login" href={getPasswordResetUrl()}>Восстановить пароль</a>
+            <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   if (loadError) {

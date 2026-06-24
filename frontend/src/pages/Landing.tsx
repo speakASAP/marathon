@@ -20,6 +20,7 @@ const MARATHON_IMAGES = {
   hero: '/img/marathon/runners-start-finish.png',
   dailyTask: '/img/marathon/runners-daily-task.png',
   finish: '/img/marathon/runners-finish-day30.png',
+  routeRunner: '/img/marathon/marathon-route-runner-20260624.png',
 };
 
 function formatLanguageName(marathon: MarathonSummary): string {
@@ -290,8 +291,7 @@ export default function Landing() {
             <div className="ml-route-line" aria-hidden="true">
               <span>День 1</span>
               <b className="ml-route-runner" aria-label="Бегущий участник движется к финишу">
-                <i />
-                <i />
+                <img src={MARATHON_IMAGES.routeRunner} alt="" aria-hidden="true" />
               </b>
               <span>День 30</span>
             </div>

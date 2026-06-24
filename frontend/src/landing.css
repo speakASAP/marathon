@@ -1221,6 +1221,9 @@
 .ml-register.is-form-only {
   grid-template-columns: minmax(300px, 380px);
   justify-content: center;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .ml-register-form-stack {
@@ -1336,6 +1339,47 @@
 .landing-form button[type="submit"]:disabled {
   opacity: 0.7;
   cursor: wait;
+}
+
+.landing-form-auth-panel {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(96, 118, 150, 0.24);
+  border-radius: 8px;
+  background: #f4f7fb;
+  color: #29334a;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.landing-form-auth-panel strong,
+.landing-form-auth-panel span {
+  display: block;
+}
+
+.landing-form-auth-panel div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.landing-form-auth-panel .btn-profile-open,
+.landing-form-auth-panel .btn-profile-login {
+  text-decoration: none;
+}
+
+.landing-form-login-link {
+  justify-self: center;
+  color: #5e6a80;
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.landing-form-login-link:hover {
+  color: var(--ml-blue);
+  text-decoration: underline;
 }
 
 .landing-form-note {
@@ -1863,66 +1907,23 @@ button.ml-race-status {
 .ml-route-runner {
   justify-self: center;
   display: block;
-  width: 92px;
-  height: 58px;
+  width: clamp(112px, 15vw, 156px);
+  height: 86px;
   background: transparent;
   box-shadow: none;
 }
 
-.ml-route-runner::before {
-  content: "";
+.ml-route-runner img {
   position: absolute;
-  left: 60px;
-  top: 4px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--ml-coral);
-  box-shadow: 0 8px 18px rgba(207, 47, 38, 0.22);
-}
-
-.ml-route-runner::after {
-  content: "";
-  position: absolute;
-  left: 35px;
-  top: 22px;
-  width: 34px;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--ml-ink);
-  box-shadow:
-    17px -2px 0 -3px var(--ml-blue),
-    -16px 1px 0 -4px rgba(8, 17, 38, 0.26);
-  transform: rotate(-22deg);
-  transform-origin: right center;
-}
-
-.ml-route-runner i {
-  position: absolute;
-  display: block;
-  border-radius: 999px;
-}
-
-.ml-route-runner i:first-child {
-  left: 42px;
-  top: 30px;
-  width: 39px;
-  height: 9px;
-  background: var(--ml-blue);
-  box-shadow: -34px -9px 0 -2px var(--ml-coral);
-  transform: rotate(34deg);
-  transform-origin: left center;
-}
-
-.ml-route-runner i:last-child {
-  left: 31px;
-  top: 38px;
-  width: 42px;
-  height: 9px;
-  background: var(--ml-mint);
-  box-shadow: 23px -19px 0 -2px var(--ml-blue);
-  transform: rotate(-42deg);
-  transform-origin: right center;
+  left: 50%;
+  bottom: -9px;
+  width: 100%;
+  height: auto;
+  max-height: 112px;
+  object-fit: contain;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 12px 18px rgba(8, 17, 38, 0.18));
+  pointer-events: none;
 }
 
 .ml-training-split {

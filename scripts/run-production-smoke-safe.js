@@ -102,8 +102,9 @@ async function registerSmokeParticipant(token, marathon, purpose) {
   const registration = await jsonFetch("/api/v1/registrations", {
     method: "POST",
     token,
-    label: `${purpose} phone-only marathon registration`,
+    label: `${purpose} phone/email marathon registration`,
     body: JSON.stringify({
+      email: authEmail,
       phone: smokePhone,
       name: `${smokeName} ${purpose}`,
       languageCode: marathon.languageCode,
@@ -199,7 +200,7 @@ async function verifyPaymentUnlock(token, marathon) {
 
 async function main() {
   if (process.env.MARATHON_SMOKE_EMAIL) {
-    throw new Error("MARATHON_SMOKE_EMAIL is forbidden; this runner uses phone-only Marathon registration.");
+    throw new Error("MARATHON_SMOKE_EMAIL is forbidden; this runner generates isolated email/phone registration data.");
   }
 
   const before = {
@@ -267,8 +268,8 @@ async function main() {
         surveys: after.surveys - before.surveys,
       },
       safety: {
-        marathonRegistrationUsedEmail: false,
-        notificationSendExpected: false,
+        marathonRegistrationUsedEmail: true,
+        notificationSendExpected: true,
         submissionsCreated: false,
         winnerExpected: false,
         npsExpected: false,

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getToken } from '../auth';
+import { clearToken, getToken, redirectToLogin } from '../auth';
 import {
   MarathonAuthRequiredError,
   fetchMyMarathons,
@@ -92,7 +92,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (!getToken()) {
-      setList([]);
+      redirectToLogin('/profile');
       return;
     }
 
@@ -102,7 +102,8 @@ export default function Profile() {
       .then((data) => setList(data))
       .catch((error) => {
         if (error instanceof MarathonAuthRequiredError) {
-          setList([]);
+          clearToken();
+          redirectToLogin('/profile');
           return;
         }
         setLoadError('Профиль не загрузился. Обновите страницу или обратитесь в поддержку, если проблема повторится.');

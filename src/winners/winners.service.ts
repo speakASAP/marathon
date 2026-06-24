@@ -55,6 +55,8 @@ type WinnerRecord = {
   bronzeCount: number;
 };
 
+type AvatarBucket = 'female' | 'male' | 'neutral';
+
 const DEFAULT_PAGE_SIZE = 24;
 const MAX_PAGE_SIZE = 30;
 const medalFilter = {
@@ -73,39 +75,16 @@ const legacyReviewPhotosByName = new Map<string, string>([
   ['Софья Загиезова', '/img/landing/photo-1.png'],
   ['Светлана Сливка', '/img/landing/photo-2.png'],
   ['Ирина Телесненко', '/img/landing/photo-3.png'],
-  ['Наталья Кулешова', '/static/img/landing/photo-4.png'],
-  ['Ирина Трегубова', '/static/img/landing/photo-5.png'],
-  ['Ида Горбачева', '/static/img/landing/photo-6.png'],
-  ['Елена Матвейчук', '/static/img/landing/photo-7.png'],
-  ['Олеся Черкасова', '/static/img/landing/photo-8.png'],
-  ['Надежда Золотарева', '/static/img/landing/photo-9.png'],
-  ['Анна Громова', '/static/img/landing/photo-10.png'],
+  ['Наталья Кулешова', '/img/landing/photo-4.png'],
+  ['Ирина Трегубова', '/img/landing/photo-5.png'],
+  ['Ида Горбачева', '/img/landing/photo-6.png'],
+  ['Елена Матвейчук', '/img/landing/photo-7.png'],
+  ['Олеся Черкасова', '/img/landing/photo-8.png'],
+  ['Надежда Золотарева', '/img/landing/photo-9.png'],
+  ['Анна Громова', '/img/landing/photo-10.png'],
 ]);
 
-const generatedWinnerAvatars = {
-  female: [
-    '/img/winners/winner-avatar-01.webp',
-    '/img/winners/winner-avatar-03.webp',
-    '/img/winners/winner-avatar-06.webp',
-    '/img/winners/winner-avatar-07.webp',
-    '/img/winners/winner-avatar-14.webp',
-  ],
-  male: [
-    '/img/winners/winner-avatar-02.webp',
-    '/img/winners/winner-avatar-04.webp',
-    '/img/winners/winner-avatar-05.webp',
-    '/img/winners/winner-avatar-08.webp',
-    '/img/winners/winner-avatar-12.webp',
-  ],
-  neutral: [
-    '/img/winners/winner-avatar-09.webp',
-    '/img/winners/winner-avatar-10.webp',
-    '/img/winners/winner-avatar-11.webp',
-    '/img/winners/winner-avatar-13.webp',
-    '/img/winners/winner-avatar-15.webp',
-    '/img/winners/winner-avatar-16.webp',
-  ],
-};
+const DEFAULT_AVATAR_PUBLIC_BASE_URL = 'https://minio.alfares.cz/catalog-media/marathon/avatars/default';
 
 const femaleFirstNames = new Set([
   'александра',
@@ -120,6 +99,7 @@ const femaleFirstNames = new Set([
   'ксюша',
   'лана',
   'лидия',
+  'любовь',
   'майя',
   'надежда',
   'наталья',
@@ -149,6 +129,7 @@ const maleFirstNames = new Set([
   'евгений',
   'кирилл',
   'никита',
+  'рома',
   'anton',
   'boris',
   'vladimir',
@@ -192,9 +173,9 @@ export class WinnersService {
       `Winners list (fast): total=${total}, found=${winners.length}, latency=${dbLatency}ms`,
     );
 
-    const items: WinnerSummary[] = await Promise.all((winners as WinnerRecord[]).map(async (w) => {
+    const items: WinnerSummary[] = await Promise.all((winners as WinnerRecord[]).map(async (w, index) => {
       const [userInfo, languages] = await Promise.all([
-        this.getUserInfo(w.userId),
+        this.getUserInfo(w.userId, w.id, skip + index < 1000),
         this.getWinnerLanguages(w.userId),
       ]);
       return {
@@ -254,7 +235,7 @@ export class WinnersService {
     this.logger.debug(`Fetching user info and reviews for winner: winnerId=${winnerId}`);
     const fetchStartTime = Date.now();
     const [userInfo, reviews, languages] = await Promise.all([
-      this.getUserInfo(winner.userId),
+      this.getUserInfo(winner.userId, winner.id, true),
       this.getWinnerReviews(winner.userId),
       this.getWinnerLanguages(winner.userId),
     ]);
@@ -346,7 +327,7 @@ export class WinnersService {
     };
   }
 
-  private async getUserInfo(userId: string): Promise<{ name: string; avatar: string }> {
+  private async getUserInfo(userId: string, avatarSeed: string = userId, usePreview: boolean = true): Promise<{ name: string; avatar: string }> {
     if (this.authServiceUrl) {
       const url = `${this.authServiceUrl}/api/users/${userId}`;
       this.logger.debug(`Fetching user info from auth service: userId=${userId}, url=${url}`);
@@ -368,7 +349,7 @@ export class WinnersService {
           this.logger.debug(
             `User info fetched successfully: userId=${userId}, name=${name}, hasAvatar=${!!avatar}, latency=${latency}ms`,
           );
-          return { name, avatar: avatar || this.resolveWinnerAvatar(name) };
+          return { name, avatar: avatar || await this.resolveWinnerAvatar(userId, name, avatarSeed, usePreview) };
         } else {
           this.logger.warn(
             `Auth service returned error: userId=${userId}, status=${response.status}, latency=${latency}ms`,
@@ -384,10 +365,10 @@ export class WinnersService {
       this.logger.debug(`Auth service URL not configured, using default name for userId=${userId}`);
     }
 
-    return this.getParticipantPublicProfile(userId);
+    return this.getParticipantPublicProfile(userId, avatarSeed, usePreview);
   }
 
-  private async getParticipantPublicProfile(userId: string): Promise<{ name: string; avatar: string }> {
+  private async getParticipantPublicProfile(userId: string, avatarSeed: string = userId, usePreview: boolean = true): Promise<{ name: string; avatar: string }> {
     const participant = await this.prisma.marathonParticipant.findFirst({
       where: excludeSmokeParticipants({
         userId,
@@ -405,22 +386,59 @@ export class WinnersService {
 
     return {
       name,
-      avatar: this.resolveWinnerAvatar(name),
+      avatar: await this.resolveWinnerAvatar(userId, name, avatarSeed, usePreview),
     };
   }
 
-  private resolveWinnerAvatar(name: string): string {
+  private async resolveWinnerAvatar(userId: string, name: string, _avatarSeed: string, _usePreview: boolean = true): Promise<string> {
+    const existing = await this.prisma.marathonUserProfile.findUnique({
+      where: { userId },
+      select: { avatarUrl: true },
+    });
+    if (existing?.avatarUrl) {
+      return existing.avatarUrl;
+    }
+
     const legacyPhoto = legacyReviewPhotosByName.get(name);
     if (legacyPhoto) {
+      await this.saveUserAvatarProfile(userId, name, legacyPhoto, 'legacy_review_photo');
       return legacyPhoto;
     }
 
-    const bucket = this.getAvatarBucket(name);
-    const avatars = generatedWinnerAvatars[bucket];
-    return avatars[this.stableNameIndex(name, avatars.length)];
+    const avatarUrl = this.getDefaultAvatarUrl(this.getAvatarBucket(name));
+    await this.saveUserAvatarProfile(userId, name, avatarUrl, 'default_gender');
+    return avatarUrl;
   }
 
-  private getAvatarBucket(name: string): keyof typeof generatedWinnerAvatars {
+  private async saveUserAvatarProfile(userId: string, displayName: string, avatarUrl: string, avatarSource: string): Promise<void> {
+    try {
+      await this.prisma.marathonUserProfile.upsert({
+        where: { userId },
+        create: {
+          userId,
+          displayName,
+          avatarUrl,
+          avatarSource,
+        },
+        update: {
+          displayName,
+          avatarUrl,
+          avatarSource,
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to persist marathon user avatar: userId=${userId}, error=${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  private getDefaultAvatarUrl(bucket: AvatarBucket): string {
+    const baseUrl = (process.env.MARATHON_DEFAULT_AVATAR_BASE_URL || DEFAULT_AVATAR_PUBLIC_BASE_URL).replace(/\/+$/, '');
+    return `${baseUrl}/${bucket}.svg`;
+  }
+
+  private getAvatarBucket(name: string): AvatarBucket {
     const firstName = this.normalizeFirstName(name);
     if (femaleFirstNames.has(firstName)) {
       return 'female';
@@ -460,14 +478,6 @@ export class WinnersService {
       .toLocaleLowerCase('ru-RU')
       .replace(/ё/g, 'е')
       .replace(/[^a-zа-я]/gi, '');
-  }
-
-  private stableNameIndex(name: string, size: number): number {
-    let hash = 0;
-    for (const char of name) {
-      hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
-    }
-    return Math.abs(hash) % size;
   }
 
   private async getWinnerReviews(userId: string): Promise<MarathonReview[]> {

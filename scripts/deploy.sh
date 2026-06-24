@@ -13,6 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 SERVICE_NAME="marathon"
+SKIP_MUTATING_SMOKE="${SKIP_MUTATING_SMOKE:-false}"
 NAMESPACE="${NAMESPACE:-statex-apps}"
 K8S_DIR="$PROJECT_ROOT/k8s"
 REGISTRY="localhost:5000"
@@ -52,6 +53,9 @@ fi
 deploy_timing_init "$SERVICE_NAME"
 
 preflight_cluster() {
+  echo -e "${YELLOW}Preflight: hosted Auth source contract...${NC}"
+  python3 "$PROJECT_ROOT/scripts/check-marathon-hosted-auth-contract.py"
+
   echo -e "${YELLOW}Preflight: cluster access...${NC}"
 
   if ! kubectl get namespace "$NAMESPACE" >/dev/null 2>&1; then
@@ -92,6 +96,11 @@ post_deploy_journey_readiness() {
 }
 
 post_deploy_user_flow_smoke() {
+  if [ "$SKIP_MUTATING_SMOKE" = "true" ]; then
+    echo -e "${YELLOW}Skipping public user-flow smoke because SKIP_MUTATING_SMOKE=true.${NC}"
+    return 0
+  fi
+
   echo -e "${YELLOW}Checking public user flows...${NC}"
 
   if ! kubectl exec "deployment/${SERVICE_NAME}" -n "$NAMESPACE" -- sh -lc 'cd /app && MARATHON_BASE_URL="${MARATHON_INTERNAL_BASE_URL:-http://127.0.0.1:3000}" npm run check:user-flows'; then
@@ -102,6 +111,11 @@ post_deploy_user_flow_smoke() {
 }
 
 post_deploy_production_smoke() {
+  if [ "$SKIP_MUTATING_SMOKE" = "true" ]; then
+    echo -e "${YELLOW}Skipping production smoke because SKIP_MUTATING_SMOKE=true.${NC}"
+    return 0
+  fi
+
   echo -e "${YELLOW}Checking production registration/payment/assignment smoke...${NC}"
 
   if kubectl exec "deployment/${SERVICE_NAME}" -n "$NAMESPACE" -- sh -lc 'test -n "$PAYMENT_WEBHOOK_API_KEY" && cd /app && npm run check:production-smoke'; then

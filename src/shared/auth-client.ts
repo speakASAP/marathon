@@ -9,6 +9,11 @@ const portalJwtSecret = process.env.MARATHON_PORTAL_JWT_SECRET;
 
 export type AuthUser = { id: string; email?: string; firstName?: string; lastName?: string; phone?: string; name?: string };
 
+export type AuthContactRegistrationResult = {
+  userId: string;
+  isNewUser: boolean;
+};
+
 /**
  * Validates portal-issued JWT (Phase B: session user from speakasap-portal).
  * Payload must have sub (portal user id string). Same secret as portal MARATHON_PORTAL_JWT_SECRET.
@@ -32,13 +37,21 @@ export function validatePortalToken(token: string): AuthUser | null {
  * Validates JWT via auth-microservice POST /auth/validate.
  * Returns user shape { id } on success, null on failure or missing config.
  */
+function buildAuthUrl(path: string): string | null {
+  if (!baseUrl) {
+    return null;
+  }
+  return baseUrl.endsWith('/') ? `${baseUrl}${path.replace(/^\//, '')}` : `${baseUrl}${path}`;
+}
+
 export async function validateToken(token: string): Promise<AuthUser | null> {
   if (!baseUrl || !token) {
     return null;
   }
-  const url = baseUrl.endsWith('/')
-    ? `${baseUrl}auth/validate`
-    : `${baseUrl}/auth/validate`;
+  const url = buildAuthUrl('/auth/validate');
+  if (!url) {
+    return null;
+  }
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -68,6 +81,56 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
   } catch (e) {
     clearTimeout(t);
     logger.debug(`Auth validate error: ${(e as Error).message}`);
+    return null;
+  }
+}
+
+
+export async function registerMarathonContact(input: {
+  email: string;
+  phone: string;
+  name?: string;
+}): Promise<AuthContactRegistrationResult | null> {
+  const url = buildAuthUrl('/auth/register-contact');
+  if (!url) {
+    logger.error('Auth contact registration failed: AUTH_SERVICE_URL is missing');
+    return null;
+  }
+
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const contactInfo = [
+      { type: 'email', value: input.email, isPrimary: 'true' },
+      { type: 'phone', value: input.phone },
+    ];
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: input.name || input.email,
+        contactInfo,
+        source: 'marathon',
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(t);
+    if (!res.ok) {
+      logger.error(`Auth contact registration failed: ${res.status}`);
+      return null;
+    }
+    const data = (await res.json()) as { userId?: unknown; isNewUser?: unknown };
+    if (typeof data.userId !== 'string' || !data.userId) {
+      logger.error('Auth contact registration failed: missing userId');
+      return null;
+    }
+    return {
+      userId: data.userId,
+      isNewUser: data.isNewUser === true,
+    };
+  } catch (e) {
+    clearTimeout(t);
+    logger.error(`Auth contact registration error: ${(e as Error).message}`);
     return null;
   }
 }

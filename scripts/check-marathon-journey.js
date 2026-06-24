@@ -430,13 +430,19 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   const response = await request(report, assetPath);
   assertOk(response, assetPath);
   const js = await response.text();
-  if (!js.includes('marathon_token') || !js.includes('next=') || !js.includes('/profile/')) {
-    throw new Error('Built frontend bundle does not include token-aware registration profile handoff.');
+  if (
+    !js.includes('access_token') ||
+    !js.includes('return_url') ||
+    !js.includes('auth.alfares.cz/login') ||
+    !js.includes('/profile/')
+  ) {
+    throw new Error('Built frontend bundle does not include central Auth token-aware profile handoff.');
   }
   if (
     !js.includes('Registration session expired.') ||
     !js.includes('Authorization') ||
     !js.includes('marathon_token') ||
+    !js.includes('refresh_token') ||
     !js.includes('userBound') ||
     !js.includes('tokenUsed')
   ) {
@@ -799,15 +805,21 @@ async function checkPublicRoutes(report, options) {
 
   await assertFrontendShell(
     report,
-    '/profile/smoke-participant?marathon_token=smoke-token',
-    'frontend-profile-return',
-    'Direct profile-detail login return route serves the frontend shell.',
+    '/profile#access_token=smoke-token&refresh_token=smoke-refresh&auth_method=password',
+    'frontend-profile-index-return',
+    'Direct profile index central Auth return route serves the frontend shell.',
   );
   await assertFrontendShell(
     report,
-    '/steps/smoke-step?marathonerId=smoke-participant&marathon_token=smoke-token',
+    '/profile/smoke-participant#access_token=smoke-token&refresh_token=smoke-refresh&auth_method=password',
+    'frontend-profile-return',
+    'Direct profile-detail central Auth return route serves the frontend shell.',
+  );
+  await assertFrontendShell(
+    report,
+    '/steps/smoke-step?marathonerId=smoke-participant#access_token=smoke-token&refresh_token=smoke-refresh&auth_method=password',
     'frontend-step-return',
-    'Direct assignment login return route serves the frontend shell.',
+    'Direct assignment central Auth return route serves the frontend shell.',
   );
 
   const unauthenticatedReport = await request(report, '/api/v1/me/marathons/smoke-participant/progress-report');
@@ -957,6 +969,7 @@ async function checkMutatingJourney(report, options, publicContext) {
     authToken: options.authToken,
     body: JSON.stringify({
       email: options.email,
+      phone: `+420${String(Date.now()).slice(-9)}`,
       languageCode: publicContext.marathon.languageCode,
       name: 'Marathon Smoke Test',
     }),

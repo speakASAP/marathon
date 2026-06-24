@@ -233,6 +233,7 @@ async function checkVisitorTraversal(report, options) {
     ['Start my marathon', 'Run the', '30-day route', 'Пройдите марафон', 'Маршрут на 30 дней', '30-дневный маршрут'],
     ['View registration status', 'Registration status', 'Статус регистрации', 'Посмотреть статус регистрации'],
     ['My marathon', 'Open my marathon', 'Мой марафон', 'Открыть мой марафон', '/profile'],
+    ['auth.alfares.cz/login', 'auth.alfares.cz/register', 'return_url', 'client_id', 'marathon', 'access_token', 'refresh_token'],
     ['Pay with PayPal', 'Mastercard', 'Bank transfer', 'VIP checkout', 'VIP unlock', 'Оплатить через PayPal', 'Банковский перевод', 'VIP-доступ'],
     ['Contact support', 'Связаться с поддержкой', '/support'],
     ['/register'],
@@ -278,11 +279,13 @@ async function checkRegistrationAttempt(report, options, traversalContext) {
   }
 
   const email = options.email || `marathon-user-flow-${Date.now()}-${crypto.randomBytes(3).toString('hex')}@example.invalid`;
+  const phone = `+420${String(Date.now()).slice(-9)}`;
   const registration = await requestJson(report, '/api/v1/registrations', {
     method: 'POST',
     authToken: options.authToken,
     body: JSON.stringify({
       email,
+      phone,
       name: 'Marathon User Flow Smoke',
       languageCode: marathon.languageCode,
     }),

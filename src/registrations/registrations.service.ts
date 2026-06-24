@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
 import { NotificationsService } from '../shared/notifications.service';
+import { registerMarathonContact } from '../shared/auth-client';
 
 export type RegistrationRequest = {
   email?: string;
@@ -30,8 +31,15 @@ export class RegistrationsService {
       `marathon.registration.service_requested hasEmail=${Boolean(payload.email)} hasPhone=${Boolean(payload.phone)} languageCode=${payload.languageCode || ''}`,
     );
 
-    if (!payload.email && !payload.phone) {
-      throw new BadRequestException('Email or phone is required');
+    const email = payload.email?.trim().toLowerCase() || '';
+    const phone = payload.phone?.trim() || '';
+    const name = payload.name?.trim() || undefined;
+
+    if (!email) {
+      throw new BadRequestException('Email is required');
+    }
+    if (!phone) {
+      throw new BadRequestException('Phone is required');
     }
     const languageCode = payload.languageCode?.trim();
     if (!languageCode) {
@@ -64,32 +72,69 @@ export class RegistrationsService {
     }
     this.assertRegistrationReady(marathon);
 
+    if (!userId) {
+      const existingParticipant = await this.prisma.marathonParticipant.findFirst({
+        where: {
+          active: true,
+          OR: [{ email }, { phone }],
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, marathonId: true },
+      });
+      if (existingParticipant) {
+        this.logger.warn(
+          `marathon.registration.blocked reason=existing_participant marathonerId=${existingParticipant.id} marathonId=${existingParticipant.marathonId}`,
+        );
+        throw new ConflictException({
+          code: 'EXISTING_MARATHON_ACCOUNT',
+          message: 'Этот email или телефон уже зарегистрирован. Войдите с паролем или восстановите доступ.',
+          loginRequired: true,
+          profilePath: `/profile/${existingParticipant.id}`,
+        });
+      }
+    }
+
+    let centralUserId = userId;
+    if (!centralUserId) {
+      const authRegistration = await registerMarathonContact({ email, phone, name });
+      if (!authRegistration) {
+        throw new ServiceUnavailableException('Central authentication service is unavailable');
+      }
+      if (!authRegistration.isNewUser) {
+        this.logger.warn('marathon.registration.blocked reason=existing_auth_user');
+        throw new ConflictException({
+          code: 'EXISTING_AUTH_ACCOUNT',
+          message: 'Этот email или телефон уже зарегистрирован. Войдите с паролем или восстановите доступ.',
+          loginRequired: true,
+        });
+      }
+      centralUserId = authRegistration.userId;
+    }
+
     const reportHour = new Date();
     reportHour.setMinutes(0, 0, 0);
 
     const participant = await this.prisma.marathonParticipant.create({
       data: {
         marathonId: marathon.id,
-        email: payload.email,
-        phone: payload.phone,
-        name: payload.name,
-        userId,
+        email,
+        phone,
+        name,
+        userId: centralUserId,
         isFree: true,
         vipRequired: !!marathon.vipGateDate,
         reportHour,
       },
     });
 
-    // Build redirect URL matching legacy: marathon.get_absolute_url() -> /marathon/{languageCode}
-    const base = (process.env.PUBLIC_BASE_URL || process.env.FRONTEND_URL || '').replace(/\/$/, '');
-    const redirectUrl = base ? `${base}/marathon/${marathon.languageCode}` : undefined;
+    const redirectUrl = this.buildRedirectUrl(marathon.languageCode);
 
-    if (payload.email) {
+    if (email) {
       this.logger.log(`marathon.registration.notification_requested marathonerId=${participant.id} channel=email`);
       await this.notificationsService.send({
         channel: 'email',
         type: 'custom',
-        recipient: payload.email,
+        recipient: email,
         subject: 'Marathon registration',
         message: `Registration completed for ${marathon.title}.`,
         templateData: {
@@ -101,10 +146,16 @@ export class RegistrationsService {
     }
 
     this.logger.log(
-      `marathon.registration.service_created marathonerId=${participant.id} marathonId=${marathon.id} userBound=${Boolean(userId)} notificationRequested=${Boolean(payload.email)}`,
+      `marathon.registration.service_created marathonerId=${participant.id} marathonId=${marathon.id} userBound=${Boolean(centralUserId)} notificationRequested=${Boolean(payload.email)}`,
     );
 
-    return { marathonerId: participant.id, redirectUrl, userBound: Boolean(userId) };
+    return { marathonerId: participant.id, redirectUrl, userBound: Boolean(centralUserId) };
+  }
+
+  private buildRedirectUrl(languageCode: string): string | undefined {
+    // Build redirect URL matching legacy: marathon.get_absolute_url() -> /marathon/{languageCode}
+    const base = (process.env.PUBLIC_BASE_URL || process.env.FRONTEND_URL || '').replace(/\/$/, '');
+    return base ? `${base}/marathon/${languageCode}` : undefined;
   }
 
   private assertRegistrationReady(marathon: {

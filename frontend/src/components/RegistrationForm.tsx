@@ -1,7 +1,8 @@
 import { useState, FormEvent } from 'react';
-import { clearToken, redirectToLogin } from '../auth';
+import { clearToken, getLoginUrl, getPasswordResetUrl, getRegistrationUrl, redirectToLogin } from '../auth';
 import {
   MarathonRegistrationAuthExpiredError,
+  MarathonRegistrationExistingAccountError,
   normalizeRegistrationRedirectUrl,
   submitMarathonRegistration,
 } from '../api/journeyMarathon';
@@ -26,6 +27,7 @@ export default function RegistrationForm({
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [existingAccountMessage, setExistingAccountMessage] = useState('');
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -33,8 +35,13 @@ export default function RegistrationForm({
       onError?.('Укажите email');
       return;
     }
+    if (!phone.trim()) {
+      onError?.('Укажите телефон');
+      return;
+    }
     setSubmitting(true);
     onError?.('');
+    setExistingAccountMessage('');
     try {
       const data = await submitMarathonRegistration({
         email: email.trim(),
@@ -59,6 +66,10 @@ export default function RegistrationForm({
         clearToken();
         onError?.('Сессия регистрации истекла. Войдите снова, чтобы привязать марафон к вашему профилю.');
         redirectToLogin(`/${languageCode}/#register`);
+        return;
+      }
+      if (err instanceof MarathonRegistrationExistingAccountError) {
+        setExistingAccountMessage(err.message);
         return;
       }
       onError?.(err instanceof Error ? err.message : 'Ошибка отправки');
@@ -93,18 +104,39 @@ export default function RegistrationForm({
         />
       </div>
       <div>
-        <label htmlFor="reg-phone">Телефон</label>
+        <label htmlFor="reg-phone">Телефон *</label>
         <input
           id="reg-phone"
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
+          required
           placeholder="+420 ..."
         />
       </div>
       <button type="submit" disabled={submitting}>
         {submitting ? 'Отправка...' : 'Начать марафон'}
       </button>
+      {existingAccountMessage && (
+        <div className="landing-form-auth-panel" role="alert">
+          <strong>{existingAccountMessage}</strong>
+          <span>Войдите через единый аккаунт Alfares, чтобы привязать марафон к вашему профилю. Если пароль забыт, восстановите доступ.</span>
+          <div>
+            <a href={getLoginUrl(`/${languageCode}/#register`)} className="btn-profile-open">
+              Войти с email или телефоном
+            </a>
+            <a href={getPasswordResetUrl()} className="btn-profile-login">
+              Восстановить пароль
+            </a>
+          </div>
+        </div>
+      )}
+      <a href={getLoginUrl('/profile')} className="landing-form-login-link">
+        Войти через единый аккаунт
+      </a>
+      <a href={getRegistrationUrl(`/${languageCode}/#register`)} className="landing-form-login-link">
+        Создать аккаунт в Alfares
+      </a>
     </form>
   );
 }
