@@ -1795,6 +1795,58 @@ a:hover {
   border-radius: 8px;
 }
 
+.profile-schedule-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+  gap: 1rem;
+  align-items: start;
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  border: 1px solid #dce6f2;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.profile-schedule-panel h2 {
+  margin: 0 0 0.5rem;
+}
+
+.profile-schedule-panel p {
+  margin: 0.35rem 0;
+  line-height: 1.5;
+}
+
+.profile-schedule-current {
+  color: #334158;
+}
+
+.profile-report-time-form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.profile-report-time-form label {
+  font-weight: 800;
+  color: var(--marathon-heading);
+}
+
+.profile-report-time-form input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #cdd9e8;
+  border-radius: 8px;
+  color: #172033;
+  background: #fff;
+  font: inherit;
+}
+
+.profile-report-time-form input:disabled {
+  background: #f4f6f8;
+  color: #78838f;
+}
+
 .btn-profile-open {
   display: inline-block;
   margin-top: 0.5rem;
@@ -1943,6 +1995,131 @@ a:hover {
 /* Step page */
 .page-step {
   padding: 2rem 0;
+}
+
+.step-page-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.step-profile-link {
+  color: #245d40;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.step-sequence-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.step-nav-disabled {
+  opacity: 0.52;
+  pointer-events: none;
+}
+
+.step-schedule-current {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 1rem;
+  border: 1px solid #dce6f2;
+  border-radius: 8px;
+  background: #f7fbff;
+}
+
+.step-schedule-current div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.step-schedule-current span {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.step-schedule-current strong {
+  color: #174c30;
+}
+
+.step-schedule-current p {
+  margin: 0;
+  color: #334158;
+  line-height: 1.5;
+}
+
+.step-schedule-menu {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.65rem;
+  margin: 0 0 1rem;
+}
+
+.step-schedule-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 0.1rem 0.55rem;
+  min-height: 82px;
+  padding: 0.75rem;
+  border: 1px solid #dce6f2;
+  border-radius: 8px;
+  background: #fff;
+  color: #172033;
+  text-decoration: none;
+}
+
+.step-schedule-item:hover {
+  border-color: #9fcbb0;
+  color: #172033;
+}
+
+.step-schedule-item span {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #eaf5ee;
+  color: #245d40;
+  font-weight: 900;
+}
+
+.step-schedule-item strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #172033;
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.step-schedule-item small {
+  color: #64748b;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.step-schedule-item.active {
+  border-color: #2f9f4a;
+  background: #f1fbf6;
+}
+
+.step-schedule-item.future {
+  background: #fffaf2;
+}
+
+.step-schedule-item.disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
 }
 
 .page-step .step-content-card {
@@ -2146,6 +2323,29 @@ a:hover {
 
 .btn-show-more:hover {
   background: linear-gradient(0deg, var(--marathon-green-hover-from) 0%, var(--marathon-green-hover-to) 100%);
+}
+
+@media (max-width: 720px) {
+  .profile-schedule-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .step-page-topbar,
+  .step-sequence-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .step-sequence-actions .btn-profile-login,
+  .step-sequence-actions .btn-profile-open {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .step-schedule-menu {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Support */
@@ -2529,11 +2729,9 @@ a:hover {
 }
 
 .support-chat-messages {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 10px;
   max-height: 360px;
-  scroll-behavior: smooth;
   overflow-y: auto;
   padding: 14px;
   border: 1px solid #e5edf5;
@@ -2542,7 +2740,6 @@ a:hover {
 }
 
 .support-chat-message {
-  align-self: flex-start;
   max-width: min(86%, 720px);
   padding: 12px 14px;
   border-radius: 8px;
@@ -2552,13 +2749,13 @@ a:hover {
 }
 
 .support-chat-message-agent {
-  align-self: flex-start;
+  justify-self: start;
   border: 1px solid #dfe7ef;
   background: #ffffff;
 }
 
 .support-chat-message-user {
-  align-self: flex-end;
+  justify-self: end;
   border: 1px solid #bde4cf;
   background: #eafaf1;
 }

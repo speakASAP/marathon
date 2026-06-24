@@ -9,6 +9,8 @@ export type Answer = {
   stop: string;
   state: string;
   is_late: boolean;
+  can_open: boolean;
+  is_scheduled_future: boolean;
   block_reason?: string | null;
 };
 
@@ -23,10 +25,15 @@ export type MyMarathon = {
   bonus_left: number;
   can_change_report_time: boolean;
   report_time: string | null;
+  report_time_label: string | null;
   current_step: Answer | null;
   answers: Answer[];
   finished_at: string | null;
   nps_survey: MyMarathonSurvey | null;
+};
+
+export type MarathonReportTimeInput = {
+  reportTime?: string;
 };
 
 export type MyMarathonSurvey = {
@@ -111,7 +118,7 @@ export type MyMarathonProgressReport = {
   }>;
 };
 
-const BONUS_DAYS = 0;
+const BONUS_DAYS = 7;
 
 @Injectable()
 export class MeService {
@@ -345,6 +352,71 @@ export class MeService {
     return this.mapToProgressReport(participant);
   }
 
+  async updateReportTime(
+    userId: string,
+    marathonerId: string,
+    input: MarathonReportTimeInput,
+  ): Promise<MyMarathon | null> {
+    const participant = await this.prisma.marathonParticipant.findFirst({
+      where: {
+        id: marathonerId,
+        userId,
+      },
+      include: {
+        marathon: {
+          include: {
+            steps: {
+              orderBy: { sequence: 'asc' },
+            },
+          },
+        },
+        submissions: {
+          include: {
+            step: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+        surveyResponse: true,
+      },
+    });
+
+    if (!participant) {
+      return null;
+    }
+
+    if (!participant.active || this.isWinner(participant, participant.marathon.steps)) {
+      throw new BadRequestException('Report time cannot be changed for this marathon');
+    }
+
+    const reportHour = this.applyReportTime(participant.reportHour, input.reportTime);
+    const updated = await this.prisma.marathonParticipant.update({
+      where: { id: participant.id },
+      data: { reportHour },
+      include: {
+        marathon: {
+          include: {
+            steps: {
+              orderBy: { sequence: 'asc' },
+            },
+          },
+        },
+        submissions: {
+          include: {
+            step: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+        surveyResponse: true,
+      },
+    });
+
+    return this.mapToMyMarathon(updated);
+  }
+
   async submitNps(
     userId: string,
     marathonerId: string,
@@ -440,7 +512,8 @@ export class MeService {
     const answers = this.buildSchedule(participant, steps, submissions, needsPayment);
     const currentStep =
       answers.find((answer) => answer.state === 'active') ||
-      (latestSubmission ? this.mapToAnswer(latestSubmission, latestStep) : null);
+      answers.find((answer) => answer.can_open && answer.state !== 'completed' && answer.state !== 'done') ||
+      (latestSubmission ? this.mapToAnswer(latestSubmission, latestStep, participant) : null);
 
     const canChangeReportTime = participant.active && !this.isWinner(participant, steps);
 
@@ -454,7 +527,8 @@ export class MeService {
       bonus_total: BONUS_DAYS,
       bonus_left: participant.bonusDaysLeft,
       can_change_report_time: canChangeReportTime,
-      report_time: latestSubmission ? latestSubmission.endAt.toISOString() : null,
+      report_time: participant.reportHour ? participant.reportHour.toISOString() : null,
+      report_time_label: participant.reportHour ? this.formatReportTime(participant.reportHour) : null,
       current_step: currentStep,
       answers,
       finished_at: participant.finishedAt ? participant.finishedAt.toISOString() : null,
@@ -537,13 +611,16 @@ export class MeService {
   }
 
   private getMarathonType(participant: any): 'trial' | 'free' | 'vip' {
+    if (participant.vipRequired && participant.isFree) {
+      return 'trial';
+    }
     if (participant.isFree) {
       return 'free';
     }
     return 'vip';
   }
 
-  private mapToAnswer(submission: any, step: any): Answer {
+  private mapToAnswer(submission: any, step: any, participant: any): Answer {
     return {
       id: submission.id,
       stepId: step.id,
@@ -551,7 +628,9 @@ export class MeService {
       start: submission.startAt.toISOString(),
       stop: submission.endAt.toISOString(),
       state: submission.isCompleted ? 'completed' : submission.isChecked ? 'checked' : 'active',
-      is_late: submission.endAt < new Date() && !submission.isCompleted,
+      is_late: step.isPenalized && submission.endAt > this.resolveDueAt(participant.reportHour, step.sequence),
+      can_open: true,
+      is_scheduled_future: false,
       block_reason: null,
     };
   }
@@ -565,21 +644,22 @@ export class MeService {
       }
     }
     let hasOpenStep = false;
+    const now = new Date();
 
     for (const step of steps) {
+      const startAt = this.resolveStartAt(participant.reportHour, step.sequence);
+      const dueAt = this.resolveDueAt(participant.reportHour, step.sequence);
       const submission = submissionMap.get(step.id);
       if (submission) {
-        const mapped = this.mapToAnswer(submission, step);
+        const mapped = this.mapToAnswer(submission, step, participant);
         if (mapped.state === 'active') {
           hasOpenStep = true;
         }
         schedule.push(mapped);
       } else {
-        const prevStop = schedule.length > 0 ? new Date(schedule[schedule.length - 1].stop) : new Date();
-        const nextStop = new Date(prevStop);
-        nextStop.setDate(nextStop.getDate() + 1);
-        const blockedByPayment = needsPayment;
-        const state = !hasOpenStep && !blockedByPayment ? 'active' : 'inactive';
+        const blockedByPayment = needsPayment && !step.isTrialStep;
+        const scheduledFuture = startAt > now;
+        const state = !hasOpenStep && !blockedByPayment && !scheduledFuture ? 'active' : 'inactive';
         if (state === 'active') {
           hasOpenStep = true;
         }
@@ -588,10 +668,12 @@ export class MeService {
           id: 0,
           stepId: step.id,
           title: step.title,
-          start: prevStop.toISOString(),
-          stop: nextStop.toISOString(),
+          start: startAt.toISOString(),
+          stop: dueAt.toISOString(),
           state,
           is_late: false,
+          can_open: !blockedByPayment,
+          is_scheduled_future: scheduledFuture,
           block_reason: blockedByPayment ? 'payment_required' : null,
         });
       }
@@ -638,6 +720,18 @@ export class MeService {
     return completedCount === steps.length;
   }
 
+  private resolveStartAt(reportHour: Date, sequence: number): Date {
+    const startAt = new Date(reportHour);
+    startAt.setDate(startAt.getDate() + Math.max(sequence - 1, 0));
+    return startAt;
+  }
+
+  private resolveDueAt(reportHour: Date, sequence: number): Date {
+    const dueAt = this.resolveStartAt(reportHour, sequence);
+    dueAt.setDate(dueAt.getDate() + 1);
+    return dueAt;
+  }
+
   private calculateNeedsPayment(participant: any, step: any, marathon: any): boolean {
     if (!participant.vipRequired || !participant.isFree) {
       return false;
@@ -646,5 +740,28 @@ export class MeService {
       return false;
     }
     return new Date() >= marathon.vipGateDate;
+  }
+
+  private applyReportTime(currentReportHour: Date, value: unknown): Date {
+    if (typeof value !== 'string') {
+      throw new BadRequestException('reportTime must use HH:mm format');
+    }
+
+    const match = value.trim().match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+    if (!match) {
+      throw new BadRequestException('reportTime must use HH:mm format');
+    }
+
+    const next = new Date(currentReportHour);
+    next.setHours(Number(match[1]), Number(match[2]), 0, 0);
+    return next;
+  }
+
+  private formatReportTime(value: Date): string {
+    return value.toLocaleTimeString('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
   }
 }

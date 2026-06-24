@@ -1,7 +1,15 @@
 import { Body, Controller, Get, Logger, NotFoundException, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthGuard } from '../shared/auth.guard';
-import { MeService, MyMarathon, MyMarathonProgressReport, MyMarathonSurvey, MarathonUserProfileInput, MarathonUserProfileSettings } from './me.service';
+import {
+  MeService,
+  MyMarathon,
+  MyMarathonProgressReport,
+  MyMarathonSurvey,
+  MarathonReportTimeInput,
+  MarathonUserProfileInput,
+  MarathonUserProfileSettings,
+} from './me.service';
 
 type RequestWithUser = Request & { user?: { id: string } };
 
@@ -128,6 +136,36 @@ export class MeController {
       }
       this.logger.error(
         `My marathon detail failed: userId=${userId}, marathonerId=${marathonerId}, error=${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
+  }
+
+  @Patch(':marathonerId/report-time')
+  async updateReportTime(
+    @Req() req: RequestWithUser,
+    @Param('marathonerId') marathonerId: string,
+    @Body() body: MarathonReportTimeInput,
+  ): Promise<MyMarathon> {
+    const userId = req.user!.id;
+
+    this.logger.log(`My marathon report time update received: userId=${userId}, marathonerId=${marathonerId}`);
+
+    try {
+      const marathon = await this.meService.updateReportTime(userId, marathonerId, body);
+      if (!marathon) {
+        this.logger.warn(`My marathon report time target not found: userId=${userId}, marathonerId=${marathonerId}`);
+        throw new NotFoundException('Marathon not found');
+      }
+      this.logger.log(`My marathon report time updated: userId=${userId}, marathonerId=${marathonerId}`);
+      return marathon;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        `My marathon report time update failed: userId=${userId}, marathonerId=${marathonerId}, error=${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
       throw error;

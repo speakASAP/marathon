@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, Fragment, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchCatalogReadiness, sendSupportChatMessage, type CatalogReadiness } from '../api/publicMarathon';
 
@@ -34,6 +34,7 @@ export default function Support() {
   ]);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState('');
+  const chatMessagesRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     document.title = 'Поддержка — Марафон';
@@ -48,6 +49,10 @@ export default function Support() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    chatMessagesRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [chatMessages, chatLoading]);
+
   async function handleChatSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const message = chatInput.trim();
@@ -56,19 +61,29 @@ export default function Support() {
     setChatInput('');
     setChatError('');
     setChatLoading(true);
-    setChatMessages((items) => [...items, { role: 'user', text: message }]);
+    setChatMessages((items) => [{ role: 'user', text: message }, ...items]);
     try {
       const response = await sendSupportChatMessage(message);
-      setChatMessages((items) => [...items, { role: 'agent', text: response.answer }]);
+      setChatMessages((items) => {
+        const [latest, ...older] = items;
+        if (latest?.role === 'user' && latest.text === message) {
+          return [latest, { role: 'agent', text: response.answer }, ...older];
+        }
+        return [{ role: 'agent', text: response.answer }, ...items];
+      });
     } catch {
       setChatError('Чат временно недоступен. Напишите в поддержку, если вопрос срочный.');
-      setChatMessages((items) => [
-        ...items,
-        {
+      setChatMessages((items) => {
+        const [latest, ...older] = items;
+        const fallbackMessage: ChatMessage = {
           role: 'agent',
           text: 'Сейчас не получается получить ответ чат-агента. По вопросам марафона можно написать в поддержку и указать email регистрации, язык и страницу.',
-        },
-      ]);
+        };
+        if (latest?.role === 'user' && latest.text === message) {
+          return [latest, fallbackMessage, ...older];
+        }
+        return [fallbackMessage, ...items];
+      });
     } finally {
       setChatLoading(false);
     }
@@ -100,13 +115,17 @@ export default function Support() {
           </div>
           <strong>Только Marathon</strong>
         </div>
-        <div className="support-chat-messages" aria-live="polite">
+        <div className="support-chat-messages" aria-live="polite" ref={chatMessagesRef}>
           {chatMessages.map((item, index) => (
-            <div className={`support-chat-message support-chat-message-${item.role}`} key={`${item.role}-${index}`}>
-              {item.text}
-            </div>
+            <Fragment key={`${item.role}-${index}`}>
+              <div className={`support-chat-message support-chat-message-${item.role}`}>
+                {item.text}
+              </div>
+              {chatLoading && index === 0 && (
+                <div className="support-chat-message support-chat-message-agent">Проверяю данные марафона...</div>
+              )}
+            </Fragment>
           ))}
-          {chatLoading && <div className="support-chat-message support-chat-message-agent">Проверяю данные марафона...</div>}
         </div>
         <form className="support-chat-form" onSubmit={handleChatSubmit}>
           <label htmlFor="support-chat-input">Ваш вопрос о марафоне</label>
@@ -165,44 +184,6 @@ export default function Support() {
         </div>
       </section>
 
-      <section className="support-public-grid">
-        <article>
-          <span>Профиль и вход</span>
-          <h2>Не видите свой марафон?</h2>
-          <p>
-            Войдите через SpeakASAP со страницы профиля. Если вы уже зарегистрированы, мы автоматически перенаправим вас в нужный профиль марафона.
-          </p>
-          <Link to="/profile">Открыть профиль</Link>
-        </article>
-        <article>
-          <span>Языки</span>
-          <h2>13 иностранных языков</h2>
-          <p>
-            Выберите свой языковой марафон и продолжайте обучение в профиле участника.
-          </p>
-          <Link to="/register">Выбрать язык</Link>
-        </article>
-        <article>
-          <span>Марафон</span>
-          <h2>Продолжить участие</h2>
-          <p>
-            Выполните задание и отправьте отчет, чтобы завершить этап. После каждого этапа система проверяет выполнение, и вы можете бежать марафон дальше.
-          </p>
-          <Link to="/profile">Продолжить марафон</Link>
-        </article>
-      </section>
-
-      <section className="support-public-contact">
-        <h2>Что указать</h2>
-        <ul>
-          <li>Ваш email регистрации.</li>
-          <li>Языковой марафон, который вы пытаетесь открыть.</li>
-          <li>Краткое описание страницы или действия, с которым нужна помощь.</li>
-        </ul>
-        <a className="btn-profile-login" href={`mailto:${SUPPORT_EMAIL}`}>
-          Связаться с поддержкой
-        </a>
-      </section>
     </div>
   );
 }

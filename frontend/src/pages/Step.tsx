@@ -11,6 +11,25 @@ import {
   type SavedSubmission,
   type StepInfo,
 } from '../api/assignmentMarathon';
+import { fetchMyMarathon, type Answer, type MyMarathon } from '../api/profileMarathon';
+
+function formatStepDate(value: string) {
+  return new Date(value).toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getScheduleLabel(answer: Answer) {
+  if (answer.block_reason === 'payment_required') return 'VIP';
+  if (answer.state === 'completed' || answer.state === 'done') return 'Готово';
+  if (answer.state === 'checked') return 'Проверено';
+  if (answer.state === 'active') return `До ${formatStepDate(answer.stop)}`;
+  if (answer.is_scheduled_future) return `План ${formatStepDate(answer.start)}`;
+  return 'Можно открыть заранее';
+}
 
 /**
  * Step (task) page: assignment and submission form first; peer reports unlock after submission.
@@ -33,6 +52,8 @@ export default function Step() {
   const [loadingSavedSubmission, setLoadingSavedSubmission] = useState(false);
   const [savedSubmissionError, setSavedSubmissionError] = useState('');
   const [submissionAuthRequired, setSubmissionAuthRequired] = useState(false);
+  const [marathon, setMarathon] = useState<MyMarathon | null>(null);
+  const [marathonLoadError, setMarathonLoadError] = useState('');
 
   useEffect(() => {
     if (!stepId) return;
@@ -44,6 +65,8 @@ export default function Step() {
     setSavedSubmission(null);
     setSavedSubmissionError('');
     setSubmissionAuthRequired(false);
+    setMarathon(null);
+    setMarathonLoadError('');
     setОтчет('');
     setLoadingStep(true);
     fetchStepInfo(stepId)
@@ -61,6 +84,23 @@ export default function Step() {
         setLoadingStep(false);
       });
   }, [stepId]);
+
+  useEffect(() => {
+    const participantId = marathonerId.trim();
+    if (!participantId || !getToken()) return;
+    fetchMyMarathon(participantId)
+      .then((data) => {
+        setMarathon(data);
+        setMarathonLoadError('');
+      })
+      .catch((error) => {
+        if (error instanceof MarathonAuthRequiredError) {
+          setSubmissionAuthRequired(true);
+        } else {
+          setMarathonLoadError('Навигация по этапам временно недоступна.');
+        }
+      });
+  }, [marathonerId]);
 
   useEffect(() => {
     const participantId = marathonerId.trim();
@@ -146,7 +186,7 @@ export default function Step() {
         bonus_left: typeof body.bonus_left === 'number' ? body.bonus_left : 0,
         updated_at: body.updated_at,
       });
-      setSubmitMessage(body.is_late ? 'Отчет сохранен. Он отмечен как поздний.' : 'Отчет сохранен. Ваш прогресс записан.');
+      setSubmitMessage(body.is_late ? 'Отчет сохранен. Он отмечен как поздний, использован один бонусный день.' : 'Отчет сохранен. Ваш прогресс записан.');
     } catch (error) {
       if (error instanceof MarathonAuthRequiredError) {
         redirectToLogin(`/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
@@ -166,6 +206,13 @@ export default function Step() {
   const openLogin = () => redirectToLogin(stepReturnPath);
   const submitBlockedByStatusError = Boolean(savedSubmissionError);
   const canViewPeerReports = Boolean(savedSubmission?.exists && savedSubmission.state === 'completed');
+  const currentScheduleIndex = marathon?.answers.findIndex((answer) => answer.stepId === stepId) ?? -1;
+  const currentSchedule = currentScheduleIndex >= 0 ? marathon?.answers[currentScheduleIndex] || null : null;
+  const previousSchedule = marathon && currentScheduleIndex > 0 ? marathon.answers[currentScheduleIndex - 1] : null;
+  const nextSchedule = marathon && currentScheduleIndex >= 0 && currentScheduleIndex < marathon.answers.length - 1
+    ? marathon.answers[currentScheduleIndex + 1]
+    : null;
+  const profileUrl = hasParticipantContext ? `/profile/${encodeURIComponent(marathonerId.trim())}` : '/profile';
   const submitDisabled = submitting
     || loadingSavedSubmission
     || submissionAuthRequired
@@ -218,7 +265,75 @@ export default function Step() {
 
   return (
     <div className="container page-static page-step">
+      <div className="step-page-topbar">
+        <Link to={profileUrl} className="step-profile-link">← Профиль марафона</Link>
+        {(previousSchedule || nextSchedule) && (
+          <div className="step-sequence-actions" aria-label="Навигация по этапам">
+            {previousSchedule ? (
+              <Link to={`/steps/${previousSchedule.stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`} className="btn-profile-login">
+                Предыдущий этап
+              </Link>
+            ) : (
+              <span className="btn-profile-login step-nav-disabled">Предыдущий этап</span>
+            )}
+            {nextSchedule && nextSchedule.can_open ? (
+              <Link to={`/steps/${nextSchedule.stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`} className="btn-profile-open">
+                {nextSchedule.state === 'inactive' ? 'Открыть следующий заранее' : 'Следующий этап'}
+              </Link>
+            ) : (
+              <span className="btn-profile-open step-nav-disabled">Следующий этап</span>
+            )}
+          </div>
+        )}
+      </div>
       <h1>{step?.title ?? `Этап ${stepId}`}</h1>
+      {currentSchedule && (
+        <section className="step-schedule-current" aria-label="Расписание текущего этапа">
+          <div>
+            <span>Этап {currentScheduleIndex + 1} из {marathon?.answers.length || 0}</span>
+            <strong>{getScheduleLabel(currentSchedule)}</strong>
+          </div>
+          <p>
+            План: {formatStepDate(currentSchedule.start)} → {formatStepDate(currentSchedule.stop)}.
+            {currentSchedule.is_scheduled_future ? ' Вы открыли этот этап заранее; календарный день марафона сохранится.' : ''}
+          </p>
+        </section>
+      )}
+      {marathonLoadError && <p className="ml-error">{marathonLoadError}</p>}
+      {marathon && (
+        <nav className="step-schedule-menu" aria-label="Все этапы марафона">
+          {marathon.answers.map((answer, index) => {
+            const isCurrent = answer.stepId === stepId;
+            const blocked = answer.block_reason === 'payment_required';
+            const content = (
+              <>
+                <span>{index + 1}</span>
+                <strong>{answer.title}</strong>
+                <small>{getScheduleLabel(answer)}</small>
+              </>
+            );
+            if (answer.can_open && !blocked) {
+              return (
+                <Link
+                  key={answer.stepId}
+                  to={`/steps/${answer.stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`}
+                  className={`step-schedule-item${isCurrent ? ' active' : ''}${answer.is_scheduled_future ? ' future' : ''}`}
+                >
+                  {content}
+                </Link>
+              );
+            }
+            return (
+              <span
+                key={answer.stepId}
+                className={`step-schedule-item disabled${isCurrent ? ' active' : ''}`}
+              >
+                {content}
+              </span>
+            );
+          })}
+        </nav>
+      )}
 
       <div className="step-content-card">
       <div className="step-tabs">
@@ -283,7 +398,8 @@ export default function Step() {
               <div className="step-saved-report" aria-live="polite">
                 <strong>{savedSubmission.state === 'completed' ? 'Отчет отправлен' : 'Черновик отчета загружен'}</strong>
                 <span>
-                  {savedSubmission.updated_at && `Обновлено ${new Date(savedSubmission.updated_at).toLocaleString('ru-RU')}.`}
+                  {savedSubmission.updated_at && `Обновлено ${new Date(savedSubmission.updated_at).toLocaleString('ru-RU')}. `}
+                  Бонусных дней осталось: {savedSubmission.bonus_left}.
                   {savedSubmission.is_late ? ' Отмечено как поздняя отправка.' : ''}
                 </span>
               </div>

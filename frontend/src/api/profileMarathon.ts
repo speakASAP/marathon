@@ -22,6 +22,8 @@ export interface Answer {
   stop: string;
   state: string;
   is_late: boolean;
+  can_open: boolean;
+  is_scheduled_future: boolean;
   block_reason?: string | null;
 }
 
@@ -40,6 +42,9 @@ export interface MyMarathonSummary {
   registered: boolean;
   bonus_left: number;
   bonus_total: number;
+  can_change_report_time?: boolean;
+  report_time?: string | null;
+  report_time_label?: string | null;
   current_step: Answer | null;
   answers: Answer[];
 }
@@ -54,6 +59,7 @@ export interface MyMarathon {
   bonus_total: number;
   can_change_report_time: boolean;
   report_time: string | null;
+  report_time_label: string | null;
   current_step: Answer | null;
   answers: Answer[];
   finished_at: string | null;
@@ -181,6 +187,22 @@ export async function fetchMyMarathon(marathonerId: string): Promise<MyMarathon>
   if (response.status === 404) throw new MarathonNotFoundError();
   if (!response.ok) throw new Error(`profile:${response.status}`);
   return response.json() as Promise<MyMarathon>;
+}
+
+export async function updateReportTime(marathonerId: string, reportTime: string): Promise<MyMarathon> {
+  const response = await authFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/report-time`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reportTime }),
+  });
+  if (response.status === 401) throw new MarathonAuthRequiredError();
+  if (response.status === 404) throw new MarathonNotFoundError();
+
+  const body = await readJsonBody<MyMarathon & { message?: string; error?: string }>(response);
+  if (!response.ok) {
+    throw new Error(body.message || body.error || `Report time update failed (${response.status})`);
+  }
+  return body;
 }
 
 export async function fetchMyMarathons(): Promise<MyMarathonSummary[]> {

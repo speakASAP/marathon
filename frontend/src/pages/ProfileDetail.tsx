@@ -9,6 +9,7 @@ import {
   fetchMyMarathon,
   fetchProgressReport,
   saveNpsSurvey,
+  updateReportTime,
   type Answer,
   type VipPaymentMethod,
   type MyMarathon,
@@ -37,6 +38,15 @@ function formatDateTime(value: string) {
   });
 }
 
+function formatTimeInput(value?: string | null) {
+  if (!value) return '13:00';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '13:00';
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
 function getStateLabel(answer: Answer) {
   if (answer.block_reason === 'payment_required') return 'VIP';
   if (answer.is_late) return 'Поздно';
@@ -51,7 +61,10 @@ function getStepMeta(answer: Answer) {
     return 'Для открытия этого задания нужен VIP-доступ.';
   }
   if (answer.state === 'inactive') {
-    return 'Откроется после выполнения предыдущего задания.';
+    if (answer.is_scheduled_future) {
+      return `По расписанию: ${formatDateTime(answer.start)}. Можно открыть заранее.`;
+    }
+    return 'Откроется после выполнения предыдущего задания. Можно открыть заранее.';
   }
   if (answer.state === 'completed' || answer.state === 'done') {
     return `Сохранено ${formatDateTime(answer.stop)}.`;
@@ -82,6 +95,10 @@ export default function ProfileDetail() {
   const [npsSaving, setNpsSaving] = useState(false);
   const [npsMessage, setNpsMessage] = useState('');
   const [npsError, setNpsError] = useState('');
+  const [reportTime, setReportTime] = useState('13:00');
+  const [reportTimeSaving, setReportTimeSaving] = useState(false);
+  const [reportTimeMessage, setReportTimeMessage] = useState('');
+  const [reportTimeError, setReportTimeError] = useState('');
 
   useEffect(() => {
     const payment = new URLSearchParams(window.location.search).get('payment');
@@ -120,6 +137,11 @@ export default function ProfileDetail() {
     } else if (data) {
       setNpsScore(null);
       setNpsComment('');
+    }
+    if (data) {
+      setReportTime(formatTimeInput(data.report_time));
+      setReportTimeMessage('');
+      setReportTimeError('');
     }
   }, [data]);
 
@@ -181,8 +203,6 @@ export default function ProfileDetail() {
   const current = data.current_step;
   const completedCount = data.answers.filter((answer) => answer.state === 'done' || answer.state === 'completed').length;
   const progressPct = data.answers.length ? Math.round((completedCount / data.answers.length) * 100) : 0;
-  const hasCompletedAssignments = completedCount > 0;
-  const showBonusDays = data.bonus_total > 0;
   const paymentReturnTitle = paymentReturn === 'success'
     ? (data.needs_payment ? 'Подтверждение оплаты обрабатывается' : 'VIP-доступ активен')
     : 'Оплата отменена';
@@ -271,23 +291,70 @@ export default function ProfileDetail() {
     }
   };
 
+  const submitReportTime = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!data) return;
+    setReportTimeSaving(true);
+    setReportTimeMessage('');
+    setReportTimeError('');
+    try {
+      const body = await updateReportTime(data.id, reportTime);
+      setData(body);
+      setReportTimeMessage('Время отчета сохранено. Расписание этапов пересчитано без сжатия дней.');
+    } catch (error) {
+      if (error instanceof MarathonAuthRequiredError) {
+        redirectToLogin(`/profile/${data.id}`);
+        return;
+      }
+      setReportTimeError(error instanceof Error ? error.message : 'Не удалось сохранить время отчета');
+    } finally {
+      setReportTimeSaving(false);
+    }
+  };
+
   return (
     <div className="container page-static profile-dashboard">
       <section className="profile-hero-panel">
         <div>
           <h1>{data.title}</h1>
-          {(data.type === 'trial' || showBonusDays) && (
-            <p className="profile-meta">
-              {data.type === 'trial' && 'Пробный период. '}
-              {showBonusDays && `Бонусных дней: ${data.bonus_left} из ${data.bonus_total}.`}
-            </p>
-          )}
+          <p className="profile-meta">
+            {data.type === 'trial' && 'Пробный период. '}
+            Бонусных дней: {data.bonus_left} из {data.bonus_total}.
+          </p>
         </div>
         <div className="profile-progress-card">
           <span>Прогресс</span>
           <strong>{progressPct}%</strong>
           <div className="profile-progress-track"><span style={{ width: `${progressPct}%` }} /></div>
         </div>
+      </section>
+      <section className="profile-schedule-panel">
+        <div>
+          <h2>Время отчета</h2>
+          <p>
+            Отчеты появляются каждый день в выбранное время.
+            Если пройти несколько этапов заранее, календарные дни марафона не сжимаются.
+          </p>
+          <p className="profile-schedule-current">
+            Сейчас: <strong>{data.report_time_label || formatTimeInput(data.report_time)}</strong>
+          </p>
+        </div>
+        <form onSubmit={submitReportTime} className="profile-report-time-form">
+          <label htmlFor="profile-report-time">Ежедневное время</label>
+          <input
+            id="profile-report-time"
+            type="time"
+            value={reportTime}
+            onChange={(event) => setReportTime(event.target.value)}
+            disabled={!data.can_change_report_time || reportTimeSaving}
+          />
+          <button type="submit" className="btn-profile-open" disabled={!data.can_change_report_time || reportTimeSaving}>
+            {reportTimeSaving ? 'Сохраняем...' : 'Сохранить время'}
+          </button>
+          {!data.can_change_report_time && <span className="profile-step-meta">Время нельзя менять после завершения марафона.</span>}
+          {reportTimeMessage && <p className="step-submit-success">{reportTimeMessage}</p>}
+          {reportTimeError && <p className="ml-error">{reportTimeError}</p>}
+        </form>
       </section>
       {paymentReturn && (
         <section className={`profile-payment-return profile-payment-return-${paymentReturn}`}>
@@ -402,12 +469,11 @@ export default function ProfileDetail() {
           </form>
         </section>
       )}
-      {hasCompletedAssignments && (
       <section className="profile-report-panel">
         <div className="profile-report-heading">
           <div>
-            <h2>Отчет прогресса</h2>
-            <p>Сводка по выполненным заданиям, VIP и попыткам оплаты для этого марафона.</p>
+            <h2>Прогресс report</h2>
+            <p>Сводка по заданиям, VIP, бонусным дням и попыткам оплаты для этого марафона.</p>
           </div>
           <div className="profile-payment-actions">
             <button type="button" className="btn-profile-open" onClick={loadProgressReport} disabled={reportLoading}>
@@ -426,9 +492,7 @@ export default function ProfileDetail() {
             <div><span>Выполнено</span><strong>{report.summary.completedSteps}/{report.summary.totalSteps}</strong></div>
             <div><span>Проверено</span><strong>{report.summary.checkedSteps}</strong></div>
             <div><span>Поздно</span><strong>{report.summary.lateSteps}</strong></div>
-            {report.access.bonusDaysTotal > 0 && (
-              <div><span>Бонусных дней</span><strong>{report.access.bonusDaysLeft}/{report.access.bonusDaysTotal}</strong></div>
-            )}
+            <div><span>Бонусных дней</span><strong>{report.access.bonusDaysLeft}/{report.access.bonusDaysTotal}</strong></div>
             <div><span>VIP</span><strong>{report.access.needsPayment ? 'Требуется' : report.access.type.toUpperCase()}</strong></div>
             <div><span>Оплаты</span><strong>{report.summary.paymentAttempts}</strong></div>
             {report.currentStep && (
@@ -440,13 +504,12 @@ export default function ProfileDetail() {
           </div>
         )}
       </section>
-      )}
       <section className="profile-steps">
         <h2>Этапы</h2>
         <ul className="profile-answers">
           {data.answers.map((a) => {
             const paymentBlocked = a.block_reason === 'payment_required';
-            const canOpen = a.state !== 'inactive' && !paymentBlocked;
+            const canOpen = Boolean(a.can_open) && !paymentBlocked;
             return (
               <li key={String(a.id)} className={`answer-state-${a.state}${paymentBlocked ? ' answer-state-payment-required' : ''}`}>
                 <div className="profile-step-main">
@@ -457,7 +520,9 @@ export default function ProfileDetail() {
                   <span className="profile-step-meta">{getStepMeta(a)}</span>
                 </div>
                 {canOpen && (
-                  <Link className="profile-step-action" to={`/steps/${a.stepId}?marathonerId=${encodeURIComponent(data.id)}`}>Открыть</Link>
+                  <Link className="profile-step-action" to={`/steps/${a.stepId}?marathonerId=${encodeURIComponent(data.id)}`}>
+                    {a.state === 'inactive' ? 'Открыть заранее' : 'Открыть'}
+                  </Link>
                 )}
                 {paymentBlocked && (
                   <a className="profile-step-action profile-step-action-muted" href="#vip-access">Варианты VIP</a>
