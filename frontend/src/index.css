@@ -758,6 +758,54 @@ a:hover {
 }
 
 /* Reviews page */
+.page-reviews {
+  padding: 2rem 0 3rem;
+}
+
+.page-reviews .reviews-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.page-reviews .reviews-heading p {
+  max-width: 620px;
+  margin: 0.5rem 0 0;
+  color: var(--marathon-text-muted);
+  line-height: 1.55;
+}
+
+.page-reviews .reviews-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 0.75rem;
+  min-width: 300px;
+  margin: 0;
+}
+
+.page-reviews .reviews-stats div {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--marathon-border);
+  border-radius: 8px;
+  background: var(--marathon-card-bg);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.page-reviews .reviews-stats dt {
+  margin: 0 0 0.35rem;
+  color: var(--marathon-text-muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.page-reviews .reviews-stats dd {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
 .page-reviews .reviews-list-page {
   list-style: none;
   padding: 0;
@@ -818,8 +866,61 @@ a:hover {
   min-width: 0;
 }
 
+.page-reviews .review-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+}
+
+.page-reviews .review-card-head span {
+  color: var(--marathon-text-muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
 .page-reviews .review-card .review-body p {
   margin: 0.25rem 0 0;
+  line-height: 1.55;
+}
+
+.page-reviews .review-thanks {
+  color: var(--marathon-text-muted);
+  font-style: italic;
+}
+
+.page-reviews .reviews-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--marathon-border);
+  border-radius: 8px;
+  background: var(--marathon-card-bg);
+}
+
+.page-reviews .reviews-pagination span {
+  color: var(--marathon-text-muted);
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  .page-reviews .reviews-heading,
+  .page-reviews .reviews-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .page-reviews .reviews-stats {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .page-reviews .review-card {
+    align-items: flex-start;
+  }
 }
 
 .faq-content section {
@@ -1294,12 +1395,25 @@ a:hover {
   justify-content: center;
   width: 42px;
   height: 42px;
+  border: 2px solid rgba(255, 255, 255, 0.88);
   border-radius: 50%;
+  overflow: hidden;
   background: #101832;
   color: #fff;
   text-decoration: none;
   font-weight: 900;
   box-shadow: 0 8px 22px rgba(16, 24, 50, 0.18);
+}
+
+.navbar-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.navbar-profile-avatar span {
+  line-height: 1;
 }
 
 .navbar-profile-avatar:hover {
@@ -1641,6 +1755,35 @@ a:hover {
   line-height: 1.55;
 }
 
+.profile-admin-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #c9eadf;
+  border-radius: 8px;
+  background: #f5fcf8;
+}
+
+.profile-admin-entry span {
+  display: block;
+  margin-bottom: 4px;
+  color: #137250;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.profile-admin-entry strong {
+  display: block;
+  color: #101832;
+  font-size: 1rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
 .profile-settings-form {
   display: grid;
   gap: 10px;
@@ -1730,6 +1873,11 @@ a:hover {
 @media (max-width: 820px) {
   .profile-settings-panel {
     grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .profile-admin-entry {
+    flex-wrap: wrap;
   }
 }
 
@@ -4047,6 +4195,23 @@ a:hover {
   gap: 10px;
 }
 
+.profile-payment-cta {
+  min-width: 220px;
+  padding: 0.85rem 1.5rem;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 900;
+  text-align: center;
+  cursor: pointer;
+}
+
+.profile-payment-cta:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
 @media (max-width: 820px) {
   .profile-hero-panel,
   .profile-payment-panel,
@@ -4288,4 +4453,159 @@ a:hover {
   margin-top: 3px;
   color: #5e6a80;
   line-height: 1.35;
+}
+
+.admin-pricing-page {
+  background: #f4f7f9;
+  min-height: 100vh;
+  padding: 40px 0 56px;
+}
+
+.admin-pricing-header {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.admin-pricing-kicker {
+  color: #4a6b78;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.admin-pricing-header h1 {
+  color: #173644;
+  font-size: 2rem;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.admin-pricing-header p {
+  color: #536b75;
+  margin: 0;
+  max-width: 720px;
+}
+
+.admin-pricing-panel {
+  background: #fff;
+  border: 1px solid #dbe5e9;
+  border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(23, 54, 68, 0.08);
+  overflow: hidden;
+}
+
+.admin-pricing-toolbar {
+  align-items: end;
+  border-bottom: 1px solid #e4ecef;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(180px, 1fr) minmax(120px, 160px) auto;
+  padding: 20px;
+}
+
+.admin-pricing-field {
+  display: grid;
+  gap: 7px;
+}
+
+.admin-pricing-field label {
+  color: #244b59;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.admin-pricing-field input {
+  border: 1px solid #b8c8cf;
+  border-radius: 6px;
+  color: #173644;
+  font: inherit;
+  min-height: 44px;
+  padding: 9px 12px;
+}
+
+.admin-pricing-field input:focus {
+  border-color: #158db8;
+  box-shadow: 0 0 0 3px rgba(20, 181, 234, 0.18);
+  outline: none;
+}
+
+.admin-pricing-save {
+  background: linear-gradient(0deg, var(--marathon-green-from) 0%, var(--marathon-green-to) 100%);
+  border: 0;
+  border-radius: 6px;
+  color: var(--marathon-text-on-dark);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 10px 18px;
+  white-space: nowrap;
+}
+
+.admin-pricing-save:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.admin-pricing-status {
+  border-bottom: 1px solid #e4ecef;
+  color: #3f5964;
+  margin: 0;
+  padding: 14px 20px;
+}
+
+.admin-pricing-status.error {
+  background: #fff2f2;
+  color: #a03232;
+}
+
+.admin-pricing-status.success {
+  background: #eefaf0;
+  color: #236d37;
+}
+
+.admin-pricing-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-pricing-table {
+  border-collapse: collapse;
+  min-width: 760px;
+  width: 100%;
+}
+
+.admin-pricing-table th,
+.admin-pricing-table td {
+  border-bottom: 1px solid #e8eff2;
+  padding: 13px 20px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-pricing-table th {
+  color: #4a6b78;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+}
+
+.admin-pricing-table td {
+  color: #173644;
+}
+
+.admin-pricing-muted {
+  color: #6d828b;
+}
+
+@media (max-width: 760px) {
+  .admin-pricing-page {
+    padding: 26px 0 42px;
+  }
+
+  .admin-pricing-toolbar {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
 }

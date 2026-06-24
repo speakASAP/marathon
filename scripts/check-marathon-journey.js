@@ -114,7 +114,7 @@ function usage(exitCode = 0) {
     'Mutating checks require --mutating:',
     '  --email <email>       Register a smoke participant',
     '  --auth-token <jwt>    Verify profile, checkout, or submission as this user',
-    '  --checkout            Create a VIP checkout for the smoke participant',
+    '  --checkout            Create a marathon payment checkout for the smoke participant',
     '  --submit              Submit the current active assignment for the smoke participant',
     '',
     'Environment alternatives:',
@@ -462,16 +462,16 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('Содержание задания не настроено') || !js.includes('Отправка заблокирована, пока поддержка не добавит утвержденное содержание для этого этапа.')) {
     throw new Error('Built frontend bundle does not block assignment submission when approved assignment content is missing.');
   }
-  if (!js.includes('#vip-access') || !js.includes('Открываем оплату...')) {
-    throw new Error('Built frontend bundle does not include VIP checkout login return guard.');
+  if (!js.includes('#payment-access') || !js.includes('Открываем оплату...')) {
+    throw new Error('Built frontend bundle does not include payment checkout login return guard.');
   }
   if (
     !js.includes('Оплата создана, но корректная ссылка для перехода не вернулась.') ||
     !js.includes('Подтверждение оплаты обрабатывается') ||
-    !js.includes('VIP-доступ активен') ||
+    !js.includes('Оплата подтверждена') ||
     !js.includes('Оплата отменена')
   ) {
-    throw new Error('Built frontend bundle does not include VIP checkout redirect validation and payment return states.');
+    throw new Error('Built frontend bundle does not include payment checkout redirect validation and payment return states.');
   }
   if (!js.includes('Профиль временно недоступен') || !js.includes('Профиль не загрузился.')) {
     throw new Error('Built frontend bundle does not include profile dashboard load-error state.');
@@ -666,8 +666,8 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'assignment-status-error-submit-guard', 'Assignment report UI blocks submission when saved-report status cannot be loaded.');
   addCheck(report, 'pass', 'assignment-content-submit-guard', 'Assignment report UI blocks submission when approved assignment content is missing.');
   addCheck(report, 'pass', 'gift-login-guard', 'Gift redemption UI requires profile context and token-aware login before redemption.');
-  addCheck(report, 'pass', 'checkout-login-handoff', 'VIP checkout UI preserves profile gate return path when login is required.');
-  addCheck(report, 'pass', 'checkout-return-state-ui', 'VIP checkout UI validates payment redirects and renders payment return states.');
+  addCheck(report, 'pass', 'checkout-login-handoff', 'Payment checkout UI preserves profile payment return path when login is required.');
+  addCheck(report, 'pass', 'checkout-return-state-ui', 'Payment checkout UI validates payment redirects and renders payment return states.');
   addCheck(report, 'pass', 'profile-error-state', 'Profile dashboard distinguishes load failures from login-required state.');
   addCheck(report, 'pass', 'profile-empty-readiness-state', 'Profile empty state uses registration readiness before linking new marathon actions.');
   addCheck(report, 'pass', 'profile-detail-error-state', 'Profile detail distinguishes load failures from not-found state.');
@@ -1058,12 +1058,12 @@ async function checkMutatingJourney(report, options, publicContext) {
   addCheck(report, 'pass', 'profile', 'Authenticated profile detail returned the smoke participant.');
 
   if (options.checkout) {
-    const checkout = await requestJson(report, '/api/v1/vip/checkout', {
+    const checkout = await requestJson(report, '/api/v1/payments/checkout', {
       method: 'POST',
       authToken: options.authToken,
       body: JSON.stringify({ marathonerId }),
     });
-    assertOk(checkout.response, 'POST /api/v1/vip/checkout');
+    assertOk(checkout.response, 'POST /api/v1/payments/checkout');
     if (!checkout.json?.status) {
       throw new Error('Checkout response did not include status.');
     }
@@ -1079,8 +1079,8 @@ async function checkMutatingJourney(report, options, publicContext) {
       status: checkout.json.status,
       redirectHost: new URL(checkoutRedirectUrl).host,
     };
-    addCheck(report, 'pass', 'checkout', `VIP checkout returned status ${checkout.json.status}.`);
-    addCheck(report, 'pass', 'checkout-redirect-url', 'VIP checkout returned a valid payment redirect URL.');
+    addCheck(report, 'pass', 'checkout', `Payment checkout returned status ${checkout.json.status}.`);
+    addCheck(report, 'pass', 'checkout-redirect-url', 'Payment checkout returned a valid payment redirect URL.');
   }
 
   if (options.submit) {

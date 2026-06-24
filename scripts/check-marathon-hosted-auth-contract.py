@@ -133,20 +133,30 @@ def check_phone_required(checks: list[Check]) -> None:
             "phone: phone.trim() || undefined",
         ]
     )
-    service_ok = all(
+    unauth_service_ok = all(
         needle in service
         for needle in [
-            "const phone = payload.phone?.trim() || ''",
-            "if (!phone)",
+            "const phone = (payload.phone || authUser?.phone || '').trim()",
+            "if (!userId && !phone)",
             "Phone is required",
             "registerMarathonContact({ email, phone, name })",
+        ]
+    )
+    auth_service_ok = all(
+        needle in service
+        for needle in [
+            "async register(payload: RegistrationRequest, authUser?: AuthUser)",
+            "const userId = authUser?.id",
+            "authUser?.email",
+            "authUser?.phone",
+            "This marathon is not linked to your account yet and your Auth profile has no email.",
         ]
     )
     add_check(
         checks,
         "transitional-direct-registration-phone-required",
-        form_ok and service_ok,
-        "Direct Marathon registration still requires phone in the frontend and backend contact-provisioning path.",
+        form_ok and unauth_service_ok and auth_service_ok,
+        "Direct unauthenticated Marathon registration still requires phone, while authenticated registration may use hosted Auth profile contact data without showing the local form.",
         [rel(REGISTRATION_FORM), rel(REGISTRATION_SERVICE)],
     )
 

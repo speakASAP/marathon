@@ -37,8 +37,8 @@ export interface MyMarathonSummary {
   id: string;
   title: string;
   languageCode: string;
-  type: string;
-  needs_payment: boolean;
+  payment_status: string;
+  payment_required: boolean;
   registered: boolean;
   bonus_left: number;
   bonus_total: number;
@@ -47,14 +47,15 @@ export interface MyMarathonSummary {
   report_time_label?: string | null;
   current_step: Answer | null;
   answers: Answer[];
+  can_generate_progress_report?: boolean;
 }
 
 export interface MyMarathon {
   id: string;
   title: string;
   languageCode: string;
-  type: string;
-  needs_payment: boolean;
+  payment_status: string;
+  payment_required: boolean;
   bonus_left: number;
   bonus_total: number;
   can_change_report_time: boolean;
@@ -64,6 +65,7 @@ export interface MyMarathon {
   answers: Answer[];
   finished_at: string | null;
   nps_survey: NpsSurvey | null;
+  can_generate_progress_report: boolean;
 }
 
 export interface NpsSurvey {
@@ -89,10 +91,9 @@ export interface ProgressReport {
     slug: string;
   };
   access: {
-    type: string;
-    needsPayment: boolean;
-    vipRequired: boolean;
-    paymentReported: boolean;
+    paymentStatus: string;
+    paymentRequired: boolean;
+    paid: boolean;
     bonusDaysLeft: number;
     bonusDaysTotal: number;
   };
@@ -189,11 +190,11 @@ export async function fetchMyMarathon(marathonerId: string): Promise<MyMarathon>
   return response.json() as Promise<MyMarathon>;
 }
 
-export async function updateReportTime(marathonerId: string, reportTime: string): Promise<MyMarathon> {
+export async function updateReportTime(marathonerId: string, reportTime: string, timeZone?: string): Promise<MyMarathon> {
   const response = await authFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/report-time`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ reportTime }),
+    body: JSON.stringify({ reportTime, timeZone }),
   });
   if (response.status === 401) throw new MarathonAuthRequiredError();
   if (response.status === 404) throw new MarathonNotFoundError();
@@ -214,10 +215,10 @@ export async function fetchMyMarathons(): Promise<MyMarathonSummary[]> {
   return Array.isArray(body) ? body as MyMarathonSummary[] : [];
 }
 
-export type VipPaymentMethod = 'paypal' | 'card' | 'fiobanka';
+export type PaymentMethod = 'paypal' | 'card' | 'fiobanka';
 
-export async function createVipCheckout(marathonerId: string, paymentMethod: VipPaymentMethod): Promise<string> {
-  const response = await authFetch('/api/v1/vip/checkout', {
+export async function createPaymentCheckout(marathonerId: string, paymentMethod: PaymentMethod): Promise<string> {
+  const response = await authFetch('/api/v1/payments/checkout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ marathonerId, paymentMethod }),

@@ -47,6 +47,7 @@ export default function RegistrationForm({
   const [existingAccountMessage, setExistingAccountMessage] = useState('');
   const [existingAccountLoginPath, setExistingAccountLoginPath] = useState('');
   const [handoffMessage, setHandoffMessage] = useState('');
+  const [authenticatedStatus, setAuthenticatedStatus] = useState<'idle' | 'submitting' | 'error'>('idle');
   const [availabilityStatus, setAvailabilityStatus] = useState<'idle' | 'checking' | 'available'>('idle');
   const availabilityRequestRef = useRef(0);
   const autoSubmitRef = useRef(false);
@@ -63,7 +64,7 @@ export default function RegistrationForm({
 
   const storePendingRegistration = (input: RegistrationInput) => {
     savePendingRegistration({
-      email: input.email,
+      email: input.email || '',
       phone: input.phone || '',
       name: input.name,
       languageCode: input.languageCode,
@@ -71,13 +72,18 @@ export default function RegistrationForm({
     });
   };
 
-  const finishRegistration = async (input: RegistrationInput, source: 'form' | 'auth-handoff' = 'form') => {
+  const finishRegistration = async (input: RegistrationInput, source: 'form' | 'auth-handoff' | 'authenticated' = 'form') => {
     setSubmitting(true);
+    if (source === 'authenticated') {
+      setAuthenticatedStatus('submitting');
+    }
     onError?.('');
     setExistingAccountMessage('');
     setExistingAccountLoginPath('');
     if (source === 'auth-handoff') {
       setHandoffMessage('Вход выполнен. Завершаем регистрацию на выбранный марафон...');
+    } else if (source === 'authenticated') {
+      setHandoffMessage('Проверяем ваш профиль и открываем выбранный марафон...');
     } else {
       setHandoffMessage('');
     }
@@ -98,6 +104,9 @@ export default function RegistrationForm({
         window.location.href = normalizeRegistrationRedirectUrl(data.redirectUrl);
       }
     } catch (err) {
+      if (source === 'authenticated') {
+        setAuthenticatedStatus('error');
+      }
       if (err instanceof MarathonRegistrationAuthExpiredError) {
         clearToken();
         storePendingRegistration(input);
@@ -123,6 +132,12 @@ export default function RegistrationForm({
   };
 
   useEffect(() => {
+    if (getToken()) {
+      availabilityRequestRef.current += 1;
+      setAvailabilityStatus('idle');
+      return;
+    }
+
     const normalizedEmail = email.trim();
     const normalizedPhone = phone.trim();
     const canCheckEmail = emailReadyForLookup(normalizedEmail);
@@ -168,18 +183,23 @@ export default function RegistrationForm({
   }, [email, phone, languageCode]);
 
   useEffect(() => {
+    if (!getToken() || autoSubmitRef.current) return;
     const pending = getPendingRegistration(languageCode);
-    if (!pending || !getToken() || autoSubmitRef.current) return;
     autoSubmitRef.current = true;
-    setEmail(pending.email);
-    setName(pending.name || '');
-    setPhone(pending.phone);
-    void finishRegistration({
-      email: pending.email,
-      name: pending.name,
-      phone: pending.phone,
-      languageCode: pending.languageCode,
-    }, 'auth-handoff');
+    if (pending) {
+      setEmail(pending.email);
+      setName(pending.name || '');
+      setPhone(pending.phone);
+      void finishRegistration({
+        email: pending.email,
+        name: pending.name,
+        phone: pending.phone,
+        languageCode: pending.languageCode,
+      }, 'auth-handoff');
+      return;
+    }
+
+    void finishRegistration({ languageCode }, 'authenticated');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [languageCode]);
 
@@ -206,6 +226,30 @@ export default function RegistrationForm({
   };
 
   const loginPath = existingAccountLoginPath || getRegistrationReturnPath(languageCode);
+  const isAuthenticated = Boolean(getToken());
+
+  if (isAuthenticated) {
+    return (
+      <section className="landing-form landing-form-authenticated" aria-live="polite">
+        <h4>Регистрация на марафон</h4>
+        <p className="landing-form-marathon">{marathonTitle}</p>
+        <p className="landing-form-handoff" role="status">
+          {authenticatedStatus === 'error'
+            ? 'Не удалось открыть марафон автоматически. Обновите страницу или войдите снова.'
+            : handoffMessage || 'Проверяем ваш профиль и открываем выбранный марафон...'}
+        </p>
+        {authenticatedStatus === 'error' && (
+          <div className="landing-form-auth-panel" role="alert">
+            <span>Если этот марафон уже есть в вашем аккаунте, откройте профиль. Если сессия устарела, войдите снова.</span>
+            <div>
+              <a href="/profile" className="btn-profile-open">Открыть профиль</a>
+              <a href={getLoginUrl(getRegistrationReturnPath(languageCode))} className="btn-profile-login">Войти снова</a>
+            </div>
+          </div>
+        )}
+      </section>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="landing-form">

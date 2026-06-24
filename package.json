@@ -21,6 +21,7 @@
     "audit:data-hygiene": "node scripts/check-marathon-data-hygiene.js",
     "check:production-smoke": "node scripts/run-production-smoke-safe.js",
     "smoke:production-safe": "node scripts/run-production-smoke-safe.js",
+    "check:admin-pricing": "python3 scripts/check-marathon-admin-pricing-contract.py",
     "backfill:auth-users:dry-run": "node scripts/backfill-marathon-auth-users.js",
     "backfill:auth-users:apply": "node scripts/backfill-marathon-auth-users.js --apply"
   },

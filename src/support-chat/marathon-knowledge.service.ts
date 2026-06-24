@@ -19,7 +19,7 @@ export const CANONICAL_MARATHON_FACTS = [
   'Каждый день участник выполняет языковое задание и публикует отчет.',
   'Следующее задание планируется от выбранного участником ежедневного времени отчета.',
   'Участник может открывать следующие этапы вручную и пройти задания быстрее, но календарная длительность марафона не сжимается.',
-  'Марафон открывается после оплаты VIP-доступа; пробные или бонусные бесплатные дни не используются.',
+  'Марафон открывается после оплаты; пробные или бонусные бесплатные дни не используются.',
   'При пропуске отчета вовремя этап может считаться поздним по правилам марафона.',
   'Для регистрации нужно открыть /register.',
   'Для продолжения марафона нужно открыть /profile и войти через SpeakASAP.',
@@ -63,7 +63,7 @@ export type MarathonKnowledgeSnapshot = {
   languages: Array<Pick<MarathonLanguage, 'code' | 'name' | 'full_name' | 'url' | 'payment_url'>>;
   aggregateAnalytics: Pick<MarathonAnalytics, 'participants' | 'assignments' | 'payments' | 'winners' | 'surveys'>;
   participantJourney: string[];
-  paymentGiftVip: string[];
+  paymentGift: string[];
   reportSchedule: string[];
   safeActions: string[];
   privacyBoundaries: string[];
@@ -157,7 +157,7 @@ export class MarathonKnowledgeService {
       relevantStepCatalog: relevantCatalog,
       aggregateAnalytics: snapshot.aggregateAnalytics,
       participantJourney: snapshot.participantJourney,
-      paymentGiftVip: snapshot.paymentGiftVip,
+      paymentGift: snapshot.paymentGift,
       reportSchedule: snapshot.reportSchedule,
       safeActions: snapshot.safeActions,
       privacyBoundaries: snapshot.privacyBoundaries,
@@ -213,8 +213,8 @@ export class MarathonKnowledgeService {
         'После отправки отчета открываются отчеты других участников по этому этапу, если такие примеры есть.',
         'После всех этапов участник становится финишером и может оставить приватную NPS-оценку.',
       ],
-      paymentGiftVip: [
-        'VIP-доступ открывает платные этапы марафона после подтвержденной оплаты.',
+      paymentGift: [
+        'Оплата открывает задания марафона после подтверждения платежа.',
         'Подарочный код можно использовать только в контексте профиля марафона и после входа.',
         'По конкретной оплате или подарочному коду участник должен писать в поддержку; чат не проверяет коды и платежные реквизиты.',
       ],
@@ -227,7 +227,7 @@ export class MarathonKnowledgeService {
       safeActions: [
         'Для регистрации открыть /register.',
         'Для продолжения марафона открыть /profile и войти через SpeakASAP.',
-        'Для оплаты открыть профиль марафона и использовать VIP-блок.',
+        'Для оплаты откройте профиль марафона и используйте блок оплаты.',
         'Для подарочного кода открыть /gift из профиля участника.',
         'Для вопроса с конкретным аккаунтом написать marathon@speakasap.com и указать email регистрации, язык марафона и действие/страницу.',
       ],

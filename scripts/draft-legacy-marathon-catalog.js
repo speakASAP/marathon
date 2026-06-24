@@ -128,7 +128,7 @@ function buildDraft(records, options) {
         coverImageUrl: cleanString(fields.image) || undefined,
         landingVideoUrl: cleanString(fields.landing_video) || undefined,
         rulesTemplate: cleanString(fields.rules_template) || undefined,
-        vipGateDate: cleanString(fields.vip_since) || undefined,
+        paymentStartsAt: cleanString(fields.payment_since) || undefined,
         steps: marathonSteps.map((step) => {
           const stepFields = step.fields || {};
           return {

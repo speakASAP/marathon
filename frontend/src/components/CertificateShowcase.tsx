@@ -36,6 +36,7 @@ type CertificateShowcaseProps = {
   title?: string;
   lead?: string;
   compact?: boolean;
+  showStatus?: boolean;
 };
 
 export default function CertificateShowcase({
@@ -44,6 +45,7 @@ export default function CertificateShowcase({
   title = 'Сертификат финалиста',
   lead = 'В конце марафона финалист получает именной сертификат SpeakASAP. Вид сертификата зависит от результата прохождения.',
   compact = false,
+  showStatus = true,
 }: CertificateShowcaseProps) {
   return (
     <section
@@ -52,7 +54,7 @@ export default function CertificateShowcase({
       aria-labelledby={id ? `${id}-title` : undefined}
     >
       <div className="certificate-showcase__head">
-        <span className="certificate-showcase__status">Статус: Сертификат</span>
+        {showStatus ? <span className="certificate-showcase__status">Статус: Сертификат</span> : null}
         <h2 id={id ? `${id}-title` : undefined}>{title}</h2>
         <p>{lead}</p>
       </div>

@@ -10,13 +10,14 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { AnswersModule } from './answers/answers.module';
 import { StepsModule } from './steps/steps.module';
 import { MeModule } from './me/me.module';
-import { VipModule } from './vip/vip.module';
+import { PaymentsModule } from './payments/payments.module';
 import { SubmissionsModule } from './submissions/submissions.module';
 import { RunlayerModule } from './runlayer/runlayer.module';
 import { SupportChatModule } from './support-chat/support-chat.module';
 import { RequestContextMiddleware } from './shared/request-context.middleware';
 import { NotificationsService } from './shared/notifications.service';
 import { PrismaService } from './shared/prisma.service';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -32,10 +33,11 @@ import { PrismaService } from './shared/prisma.service';
     AnswersModule,
     StepsModule,
     MeModule,
-    VipModule,
+    PaymentsModule,
     SubmissionsModule,
     RunlayerModule,
     SupportChatModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService, NotificationsService, PrismaService],

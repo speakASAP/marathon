@@ -7,7 +7,7 @@ import {
   RegistrationRequest,
   RegistrationResponse,
 } from './registrations.service';
-import { validatePortalToken, validateToken } from '../shared/auth-client';
+import { validatePortalToken, validateToken, type AuthUser } from '../shared/auth-client';
 
 @Controller('registrations')
 export class RegistrationsController {
@@ -47,8 +47,8 @@ export class RegistrationsController {
     })}`);
 
     try {
-      const userId = await this.getOptionalUserId(req);
-      const result = await this.registrationsService.register(payload, userId);
+      const authUser = await this.getOptionalUser(req);
+      const result = await this.registrationsService.register(payload, authUser);
       this.logger.log(
         `marathon.registration.created marathonerId=${result.marathonerId} hasRedirect=${!!result.redirectUrl} userBound=${result.userBound}`,
       );
@@ -69,7 +69,7 @@ export class RegistrationsController {
     }
   }
 
-  private async getOptionalUserId(req?: Request): Promise<string | undefined> {
+  private async getOptionalUser(req?: Request): Promise<AuthUser | undefined> {
     const auth = req?.headers.authorization;
     if (!auth) {
       return undefined;
@@ -82,6 +82,6 @@ export class RegistrationsController {
     if (!user) {
       throw new UnauthorizedException('Invalid or expired registration token');
     }
-    return user.id;
+    return user;
   }
 }

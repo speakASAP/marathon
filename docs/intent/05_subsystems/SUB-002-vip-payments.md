@@ -17,21 +17,21 @@ related_adrs:
 
 ## Purpose
 
-Unlock VIP-only steps through validated checkout callback or gift-code redemption while preserving payment integrity.
+Unlock paid-access steps through validated checkout callback or gift-code redemption while preserving payment integrity.
 
 ## Responsibilities
 
 - Create `MarathonPaymentAttempt` before checkout.
 - Send checkout requests with server-side price/product values.
 - Validate callback API key and match order, participant, product, amount, and currency.
-- Redeem gift codes once and mark participant as VIP.
+- Redeem gift codes once and mark participant as paid.
 
 ## Interfaces
 
-- `POST /api/v1/vip/checkout`.
-- `POST /api/v1/vip/gift-redemptions`.
+- `POST /api/v1/payments/checkout`.
+- `POST /api/v1/payments/gift-redemptions`.
 - `POST /api/v1/payments/webhook`.
-- Profile VIP panel and gift page.
+- Profile payment panel and gift page.
 
 ## Dependencies
 
@@ -41,7 +41,7 @@ Unlock VIP-only steps through validated checkout callback or gift-code redemptio
 
 ## Data Ownership
 
-Operations owns payment callback secret. Product Owner owns prices and gift codes. Marathon owns payment-attempt ledger and participant VIP state.
+Operations owns payment callback secret. Product Owner owns prices and gift codes. Marathon owns payment-attempt ledger and participant paid state.
 
 ## Failure Modes
 
@@ -52,6 +52,6 @@ Operations owns payment callback secret. Product Owner owns prices and gift code
 
 ## Validation Criteria
 
-- Payment callbacks cannot unlock VIP without matching ledger row.
-- Gift redemption marks gift used and participant VIP state consistently.
+- Payment callbacks cannot unlock paid access without matching ledger row.
+- Gift redemption marks gift used and participant paid state consistently.
 - Journey verifier requires explicit mutating inputs for live payment/gift checks.

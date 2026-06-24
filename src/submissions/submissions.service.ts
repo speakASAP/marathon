@@ -81,8 +81,8 @@ export class SubmissionsService {
       throw new ConflictException('Assignment content is not configured for this step');
     }
 
-    if (this.needsPayment(participant)) {
-      throw new ForbiddenException('VIP access is required before submitting this step');
+    if (this.isPaymentRequired(participant)) {
+      throw new ForbiddenException('Marathon payment is required before submitting this step');
     }
 
     const completed = payload.completed !== false;
@@ -260,7 +260,7 @@ export class SubmissionsService {
         OR: [{ userId }, { userId: null }],
       },
       include: {
-        marathon: true,
+        marathon: { include: { product: true } },
       },
     });
 
@@ -274,7 +274,7 @@ export class SubmissionsService {
       return this.prisma.marathonParticipant.update({
         where: { id: participant.id },
         data: { userId },
-        include: { marathon: true },
+        include: { marathon: { include: { product: true } } },
       });
     }
     return participant;
@@ -306,10 +306,7 @@ export class SubmissionsService {
     return dueAt;
   }
 
-  private needsPayment(participant: any): boolean {
-    if (!participant.vipRequired || !participant.isFree || !participant.marathon.vipGateDate) {
-      return false;
-    }
-    return new Date() >= participant.marathon.vipGateDate;
+  private isPaymentRequired(participant: any): boolean {
+    return !participant.paid;
   }
 }

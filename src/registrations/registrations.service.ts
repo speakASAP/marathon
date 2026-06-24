@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
 import { NotificationsService } from '../shared/notifications.service';
-import { registerMarathonContact } from '../shared/auth-client';
+import { registerMarathonContact, type AuthUser } from '../shared/auth-client';
 
 export type RegistrationRequest = {
   email?: string;
@@ -92,21 +92,17 @@ export class RegistrationsService {
     };
   }
 
-  async register(payload: RegistrationRequest, userId?: string): Promise<RegistrationResponse> {
+  async register(payload: RegistrationRequest, authUser?: AuthUser): Promise<RegistrationResponse> {
     this.logger.log(
       `marathon.registration.service_requested hasEmail=${Boolean(payload.email)} hasPhone=${Boolean(payload.phone)} languageCode=${payload.languageCode || ''}`,
     );
 
-    const email = payload.email?.trim().toLowerCase() || '';
-    const phone = payload.phone?.trim() || '';
-    const name = payload.name?.trim() || undefined;
+    const userId = authUser?.id;
+    const authName = [authUser?.firstName, authUser?.lastName].filter(Boolean).join(' ').trim();
+    const email = (payload.email || authUser?.email || '').trim().toLowerCase();
+    const phone = (payload.phone || authUser?.phone || '').trim();
+    const name = payload.name?.trim() || authUser?.name?.trim() || authName || undefined;
 
-    if (!email) {
-      throw new BadRequestException('Email is required');
-    }
-    if (!phone) {
-      throw new BadRequestException('Phone is required');
-    }
     const languageCode = payload.languageCode?.trim();
     if (!languageCode) {
       throw new BadRequestException('languageCode is required');
@@ -160,6 +156,17 @@ export class RegistrationsService {
           userBound: true,
         };
       }
+
+      if (!email) {
+        throw new BadRequestException('This marathon is not linked to your account yet and your Auth profile has no email.');
+      }
+    }
+
+    if (!email) {
+      throw new BadRequestException('Email is required');
+    }
+    if (!userId && !phone) {
+      throw new BadRequestException('Phone is required');
     }
 
     if (!userId) {
@@ -211,8 +218,7 @@ export class RegistrationsService {
         phone,
         name,
         userId: centralUserId,
-        isFree: true,
-        vipRequired: !!marathon.vipGateDate,
+        paid: false,
         bonusDaysLeft: 0,
         canUsePenalty: false,
         reportHour,
@@ -256,15 +262,15 @@ export class RegistrationsService {
   }): void {
     if (!marathon.product) {
       this.logger.warn('marathon.registration.blocked reason=missing_product');
-      throw new BadRequestException('Registration is not open: VIP product is not configured');
+      throw new BadRequestException('Registration is not open: payment product is not configured');
     }
     if (marathon.steps.length === 0) {
       this.logger.warn('marathon.registration.blocked reason=missing_steps');
       throw new BadRequestException('Registration is not open: marathon steps are not configured');
     }
     if (!marathon.steps.some((step) => !step.isTrialStep)) {
-      this.logger.warn('marathon.registration.blocked reason=missing_post_gate_path');
-      throw new BadRequestException('Registration is not open: post-gate assignment path is not configured');
+      this.logger.warn('marathon.registration.blocked reason=missing_assignment_path');
+      throw new BadRequestException('Registration is not open: assignment path is not configured');
     }
     const missingContent = marathon.steps.find((step) => !step.assignmentContent?.trim());
     if (missingContent) {

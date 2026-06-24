@@ -1,6 +1,6 @@
 # Marathon Catalog Import
 
-Use this path only for human-approved catalog data. It loads the rows needed to open registration, VIP checkout/gift redemption, and assignment submission without importing user progress.
+Use this path only for human-approved catalog data. It loads the rows needed to open registration, payment checkout/gift redemption, and assignment submission without importing user progress.
 
 ## Allowed Data
 
@@ -8,7 +8,7 @@ The catalog file may contain only:
 
 - `marathons`: required; one or more `Marathon` rows
 - `steps`: required either top-level or nested under a marathon; approved `MarathonStep` rows
-- `products`: required for every active launch marathon; `MarathonProduct` rows for VIP checkout
+- `products`: required for every active launch marathon; `MarathonProduct` rows for payment checkout
 - `gifts`: required for every active launch marathon; `MarathonGift` codes for gift redemption
 
 The loader rejects user/progress keys such as `marathoners`, `participants`, `answers`, `submissions`, `stepSubmissions`, `penaltyReports`, `users`, and `winners`.
@@ -17,7 +17,7 @@ Legacy full-export loaders are intentionally disabled. Do not use `scripts/load-
 
 Do not use local full-migration experiments such as `scripts/migrate-legacy-marathon-full.js` for launch. Marathon launch approval covers catalog-only JSON through the documented loader; any future participant/progress migration requires a new ADR and migration-specific validation plan.
 
-Default validation is launch-ready validation. For every active marathon, the catalog must include at least one trial step, at least one non-trial gated step, one VIP product, and one gift code. Use `--allow-incomplete` only for staged non-launch imports that must not open registration yet.
+Default validation is launch-ready validation. For every active marathon, the catalog must include at least one trial step, at least one non-trial gated step, one payment product, and one gift code. Use `--allow-incomplete` only for staged non-launch imports that must not open registration yet.
 
 ## Contract
 
@@ -34,7 +34,7 @@ Human approval must confirm:
 - Every active marathon has the intended `languageCode`, `title`, `slug`, and launch state.
 - Every active marathon has at least one trial step and one gated non-trial step.
 - Every step has approved plain-text `assignmentContent`.
-- Every active marathon has exactly one VIP product with approved price and currency.
+- Every active marathon has exactly one payment product with approved price and currency.
 - Every active marathon has approved gift codes; do not paste full code inventories into validation reports.
 - The file contains no participants, users, answers, submissions, winners, payment attempts, JWTs, or secrets.
 
@@ -77,7 +77,7 @@ Dry-run output includes `launchChecklist.marathons[]`, which reports one redacte
 
 - `active`, `languageCode`, `slug`, `title`
 - step counts, including `trialSteps` and `gatedSteps`
-- VIP product count
+- payment product count
 - gift-code count only, never gift-code values
 - `assignmentContentReady`, `launchReady`, and `missing`
 
@@ -109,7 +109,7 @@ The script is create-only. It aborts if a target marathon slug or gift code alre
 kubectl exec -n statex-apps deploy/marathon -- sh -lc 'cd /app && npm run check:readiness'
 ```
 
-The preflight must pass before the production journey can be considered ready for registration, VIP checkout, gift redemption, and assignment submission verification.
+The preflight must pass before the production journey can be considered ready for registration, payment checkout, gift redemption, and assignment submission verification.
 
 8. Run the HTTP-level journey smoke verifier:
 

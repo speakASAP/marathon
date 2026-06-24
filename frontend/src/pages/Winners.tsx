@@ -26,6 +26,8 @@ function getInitials(name?: string) {
 
 function MedalBadge({ kind, count }: { kind: MedalKind; count?: number }) {
   const value = count ?? 0;
+  if (value <= 0) return null;
+
   return (
     <li className={`medal-badge medal-badge--${kind}`} aria-label={formatMedalLabel(kind, value)}>
       <span className="medal-badge__medal" aria-hidden="true">

@@ -16,6 +16,7 @@ import SupportStep from './pages/SupportStep';
 import Register from './pages/Register';
 import Awards from './pages/Awards';
 import LeaveConfirm from './pages/LeaveConfirm';
+import AdminMarathonPrices from './pages/AdminMarathonPrices';
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
         <Route path="/support/step/:stepId" element={<SupportStep />} />
         <Route path="/landing" element={<Landing />} />
         <Route path="/marathon/:langSlug" element={<Landing />} />
+        <Route path="/admin/marathons/prices" element={<AdminMarathonPrices />} />
         <Route path="/:langSlug/" element={<Landing />} />
       </Route>
     </Routes>

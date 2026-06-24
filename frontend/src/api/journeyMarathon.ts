@@ -25,7 +25,7 @@ export class MarathonAuthRequiredError extends Error {
 }
 
 export interface RegistrationInput {
-  email: string;
+  email?: string;
   name?: string;
   phone?: string;
   languageCode: string;

@@ -37,8 +37,8 @@ const SUCCESS_STATUSES = new Set(['completed', 'complete', 'success', 'succeeded
 const PAYMENT_METHODS = new Set(['payu', 'stripe', 'paypal', 'fiobanka', 'comgate', 'card', 'webpay']);
 
 @Injectable()
-export class VipService {
-  private readonly logger = new Logger(VipService.name);
+export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -53,9 +53,9 @@ export class VipService {
     if (!participant.active) {
       throw new BadRequestException('Participant is not active');
     }
-    if (!participant.vipRequired || !participant.isFree) {
+    if (participant.paid) {
       return {
-        status: 'already_vip',
+        status: 'already_paid',
         marathonerId: participant.id,
         redirectUrl: this.profileUrl(participant.id),
       };
@@ -63,7 +63,7 @@ export class VipService {
 
     const product = participant.marathon.product;
     if (!product) {
-      throw new BadRequestException('No VIP product is configured for this marathon');
+      throw new BadRequestException('No payment product is configured for this marathon');
     }
 
     const apiKey = process.env.PAYMENT_API_KEY;
@@ -112,7 +112,7 @@ export class VipService {
     });
 
     const endpoint = `${this.paymentServiceUrl()}/payments/create`;
-    this.logger.log(`Creating VIP checkout: marathonerId=${participant.id}, orderId=${orderId}, method=${paymentMethod}`);
+    this.logger.log(`Creating marathon checkout: marathonerId=${participant.id}, orderId=${orderId}, method=${paymentMethod}`);
 
     let response: Response;
     let responseBody: any = {};
@@ -221,15 +221,15 @@ export class VipService {
         where: { id: participant.id },
         data: {
           userId,
-          isFree: false,
-          paymentReported: true,
+          paid: true,
+          
         },
       });
     });
 
     this.logger.log(`Gift redeemed: marathonerId=${participant.id}, giftId=${gift.id}, userId=${userId}`);
     return {
-      status: 'vip_unlocked',
+      status: 'payment_confirmed',
       marathonerId: participant.id,
       redirectUrl: this.profileUrl(participant.id),
     };
@@ -293,7 +293,7 @@ export class VipService {
     const confirmedCallbackSummary = this.summarizeCallbackPayload(payload, callbackAmountCurrency);
 
     if (attempt.status === 'confirmed') {
-      return { status: 'vip_unlocked', marathonerId: attempt.participantId, orderId, idempotent: true };
+      return { status: 'payment_confirmed', marathonerId: attempt.participantId, orderId, idempotent: true };
     }
 
     if (!attempt.participant.active) {
@@ -314,16 +314,16 @@ export class VipService {
       await tx.marathonParticipant.update({
         where: { id: attempt.participantId },
         data: {
-          isFree: false,
-          paymentReported: true,
+          paid: true,
+          
         },
       });
     });
 
     this.logger.log(
-      `VIP payment confirmed: marathonerId=${attempt.participantId}, paymentId=${providerPaymentId || ''}, orderId=${orderId}`,
+      `Marathon payment confirmed: marathonerId=${attempt.participantId}, paymentId=${providerPaymentId || ''}, orderId=${orderId}`,
     );
-    return { status: 'vip_unlocked', marathonerId: attempt.participantId, orderId };
+    return { status: 'payment_confirmed', marathonerId: attempt.participantId, orderId };
   }
 
   private async findAndClaimParticipant(marathonerId: string, userId: string) {

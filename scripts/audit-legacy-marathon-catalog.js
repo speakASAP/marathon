@@ -182,7 +182,7 @@ function auditFixture(filePath) {
       applyAllowed: false,
       blockers: [
         'legacy fixture has no approved assignmentContent for MarathonStep rows',
-        'legacy fixture has no MarathonProduct rows for VIP checkout',
+        'legacy fixture has no MarathonProduct rows for payment checkout',
         'legacy fixture has no MarathonGift rows for gift redemption',
         'source-owner approval is still required before any catalog apply',
       ],
@@ -326,7 +326,7 @@ function renderMarkdown(report) {
   lines.push(
     '',
     'Safe next step:',
-    '- Ask the source owner to approve which legacy marathon rows should launch, provide approved plain-text assignmentContent, VIP product price/currency, and gift-code inventory, then create a catalog-only JSON file for the existing `npm run load:catalog:pod` dry run.',
+    '- Ask the source owner to approve which legacy marathon rows should launch, provide approved plain-text assignmentContent, payment product price/currency, and gift-code inventory, then create a catalog-only JSON file for the existing `npm run load:catalog:pod` dry run.',
   );
 
   return lines.join('\n');

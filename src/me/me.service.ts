@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
 
 export type Answer = {
@@ -17,8 +17,8 @@ export type Answer = {
 export type MyMarathon = {
   title: string;
   languageCode: string;
-  type: 'trial' | 'free' | 'vip';
-  needs_payment: boolean;
+  payment_status: 'paid' | 'unpaid';
+  payment_required: boolean;
   registered: boolean;
   id: string;
   bonus_total: number;
@@ -30,10 +30,12 @@ export type MyMarathon = {
   answers: Answer[];
   finished_at: string | null;
   nps_survey: MyMarathonSurvey | null;
+  can_generate_progress_report: boolean;
 };
 
 export type MarathonReportTimeInput = {
   reportTime?: string;
+  timeZone?: string;
 };
 
 export type MyMarathonSurvey = {
@@ -85,10 +87,9 @@ export type MyMarathonProgressReport = {
     slug: string;
   };
   access: {
-    type: 'trial' | 'free' | 'vip';
-    needsPayment: boolean;
-    vipRequired: boolean;
-    paymentReported: boolean;
+    paymentStatus: 'paid' | 'unpaid';
+    paymentRequired: boolean;
+    paid: boolean;
     bonusDaysLeft: number;
     bonusDaysTotal: number;
   };
@@ -349,6 +350,14 @@ export class MeService {
       });
     }
 
+    if (this.calculatePaymentRequired(participant, this.latestStep(participant.submissions), participant.marathon)) {
+      throw new ForbiddenException('Marathon payment is required before generating a progress report');
+    }
+
+    if (!this.canGenerateProgressReport(participant)) {
+      throw new BadRequestException('Progress report is available after a checked completed step');
+    }
+
     return this.mapToProgressReport(participant);
   }
 
@@ -507,9 +516,9 @@ export class MeService {
     const latestSubmission = submissions.length > 0 ? submissions[0] : null;
     const latestStep = latestSubmission ? latestSubmission.step : null;
 
-    const needsPayment = this.calculateNeedsPayment(participant, latestStep, marathon);
-    const type = this.getMarathonType(participant);
-    const answers = this.buildSchedule(participant, steps, submissions, needsPayment);
+    const paymentRequired = this.calculatePaymentRequired(participant, latestStep, marathon);
+    const paymentStatus = this.getPaymentStatus(participant);
+    const answers = this.buildSchedule(participant, steps, submissions, paymentRequired);
     const currentStep =
       answers.find((answer) => answer.state === 'active') ||
       answers.find((answer) => answer.can_open && answer.state !== 'completed' && answer.state !== 'done') ||
@@ -520,8 +529,8 @@ export class MeService {
     return {
       title: marathon.title,
       languageCode: marathon.languageCode,
-      type,
-      needs_payment: needsPayment,
+      payment_status: paymentStatus,
+      payment_required: paymentRequired,
       registered: true,
       id: participant.id,
       bonus_total: BONUS_DAYS,
@@ -533,6 +542,7 @@ export class MeService {
       answers,
       finished_at: participant.finishedAt ? participant.finishedAt.toISOString() : null,
       nps_survey: participant.surveyResponse ? this.mapSurvey(participant.surveyResponse) : null,
+      can_generate_progress_report: this.canGenerateProgressReport(participant),
     };
   }
 
@@ -544,11 +554,18 @@ export class MeService {
     };
   }
 
+  private canGenerateProgressReport(participant: any): boolean {
+    const marathon = participant.marathon;
+    const paymentRequired = this.calculatePaymentRequired(participant, this.latestStep(participant.submissions), marathon);
+    if (paymentRequired) return false;
+    return participant.submissions.some((submission: any) => submission.isCompleted && submission.isChecked);
+  }
+
   private mapToProgressReport(participant: any): MyMarathonProgressReport {
     const marathon = participant.marathon;
-    const needsPayment = this.calculateNeedsPayment(participant, this.latestStep(participant.submissions), marathon);
-    const type = this.getMarathonType(participant);
-    const schedule = this.buildSchedule(participant, marathon.steps, participant.submissions, needsPayment);
+    const paymentRequired = this.calculatePaymentRequired(participant, this.latestStep(participant.submissions), marathon);
+    const paymentStatus = this.getPaymentStatus(participant);
+    const schedule = this.buildSchedule(participant, marathon.steps, participant.submissions, paymentRequired);
     const steps = this.mapProgressReportSteps(schedule, marathon.steps, participant.submissions);
     const totalSteps = steps.length;
     const completedSteps = steps.filter((step) => step.state === 'completed' || step.state === 'done').length;
@@ -576,10 +593,9 @@ export class MeService {
         slug: marathon.slug,
       },
       access: {
-        type,
-        needsPayment,
-        vipRequired: participant.vipRequired,
-        paymentReported: participant.paymentReported,
+        paymentStatus,
+        paymentRequired,
+        paid: participant.paid,
         bonusDaysLeft: participant.bonusDaysLeft,
         bonusDaysTotal: BONUS_DAYS,
       },
@@ -610,11 +626,8 @@ export class MeService {
     };
   }
 
-  private getMarathonType(participant: any): 'trial' | 'free' | 'vip' {
-    if (participant.isFree) {
-      return 'free';
-    }
-    return 'vip';
+  private getPaymentStatus(participant: any): 'paid' | 'unpaid' {
+    return participant.paid ? 'paid' : 'unpaid';
   }
 
   private mapToAnswer(submission: any, step: any, participant: any): Answer {
@@ -624,7 +637,7 @@ export class MeService {
       title: step.title,
       start: submission.startAt.toISOString(),
       stop: submission.endAt.toISOString(),
-      state: submission.isCompleted ? 'completed' : submission.isChecked ? 'checked' : 'active',
+      state: submission.isCompleted && submission.isChecked ? 'checked' : submission.isCompleted ? 'completed' : 'active',
       is_late: step.isPenalized && submission.endAt > this.resolveDueAt(participant.reportHour, step.sequence),
       can_open: true,
       is_scheduled_future: false,
@@ -632,7 +645,7 @@ export class MeService {
     };
   }
 
-  private buildSchedule(participant: any, steps: any[], submissions: any[], needsPayment: boolean): Answer[] {
+  private buildSchedule(participant: any, steps: any[], submissions: any[], paymentRequired: boolean): Answer[] {
     const schedule: Answer[] = [];
     const submissionMap = new Map();
     for (const submission of submissions) {
@@ -654,7 +667,7 @@ export class MeService {
         }
         schedule.push(mapped);
       } else {
-        const blockedByPayment = needsPayment;
+        const blockedByPayment = paymentRequired;
         const scheduledFuture = startAt > now;
         const state = !hasOpenStep && !blockedByPayment && !scheduledFuture ? 'active' : 'inactive';
         if (state === 'active') {
@@ -729,14 +742,8 @@ export class MeService {
     return dueAt;
   }
 
-  private calculateNeedsPayment(participant: any, step: any, marathon: any): boolean {
-    if (!participant.vipRequired || !participant.isFree) {
-      return false;
-    }
-    if (!marathon.vipGateDate) {
-      return false;
-    }
-    return new Date() >= marathon.vipGateDate;
+  private calculatePaymentRequired(participant: any, step: any, marathon: any): boolean {
+    return !participant.paid;
   }
 
   private applyReportTime(currentReportHour: Date, value: unknown): Date {

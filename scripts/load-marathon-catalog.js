@@ -37,8 +37,6 @@ const ALLOWED_MARATHON_KEYS = new Set([
   'slug',
   'steps',
   'title',
-  'vipGateDate',
-  'vip_since',
 ]);
 const ALLOWED_STEP_KEYS = new Set([
   'assignmentContent',
@@ -248,7 +246,6 @@ function normalizeMarathon(raw, index) {
     rulesTemplate: optionalString(raw.rulesTemplate ?? raw.rules_template, `marathons[${index}].rulesTemplate`),
     slug,
     title: requiredString(raw.title, `marathons[${index}].title`),
-    vipGateDate: parseDate(raw.vipGateDate ?? raw.vip_since, `marathons[${index}].vipGateDate`),
   };
 }
 
@@ -434,7 +431,7 @@ function buildApprovalPacket(catalog, options = {}) {
     '',
     '## Source-Owner Sign-Off',
     '',
-    '- [ ] Every active marathon language, slug, title, launch state, VIP product, price, currency, and assignment text matches the source of truth.',
+    '- [ ] Every active marathon language, slug, title, launch state, payment product, price, currency, and assignment text matches the source of truth.',
     '- [ ] The JSON file contains only Marathon/Product/Gift/Step catalog rows and no participant progress, users, answers, submissions, winners, payment attempts, JWTs, or secrets.',
     '- [ ] `launchReady` is `yes` for every active marathon before `--apply` is run.',
     '',

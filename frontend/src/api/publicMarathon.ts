@@ -35,9 +35,24 @@ export interface CatalogReadiness {
 }
 
 export interface PublicReview {
+  id?: string;
   name: string;
   photo?: string;
   text: string;
+  thanks?: string;
+  marathon?: string;
+  languageCode?: string;
+  completed?: string;
+}
+
+export interface PublicReviewsPage {
+  items: PublicReview[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  nextPage: number | null;
+  prevPage: number | null;
 }
 
 export interface WinnerSummary {
@@ -144,10 +159,27 @@ export function fetchCatalogReadiness(): Promise<CatalogReadiness> {
 
 export async function fetchPublicReviews(): Promise<PublicReview[]> {
   try {
-    return asArray<PublicReview>(await fetchJson<unknown>('/api/v1/reviews'));
+    const body = await fetchJson<unknown>('/api/v1/reviews?limit=24');
+    if (Array.isArray(body)) {
+      return body as PublicReview[];
+    }
+    return asArray<PublicReview>((body as Partial<PublicReviewsPage>).items);
   } catch {
     return [];
   }
+}
+
+export async function fetchPublicReviewsPage(page = 1, limit = 24): Promise<PublicReviewsPage> {
+  const body = await fetchJson<Partial<PublicReviewsPage>>(`/api/v1/reviews?page=${page}&limit=${limit}`);
+  return {
+    items: asArray<PublicReview>(body.items),
+    page: typeof body.page === 'number' ? body.page : page,
+    limit: typeof body.limit === 'number' ? body.limit : limit,
+    total: typeof body.total === 'number' ? body.total : 0,
+    totalPages: typeof body.totalPages === 'number' ? body.totalPages : 0,
+    nextPage: typeof body.nextPage === 'number' ? body.nextPage : null,
+    prevPage: typeof body.prevPage === 'number' ? body.prevPage : null,
+  };
 }
 
 export async function fetchWinnerSummaries(limit = 6): Promise<WinnerSummary[]> {

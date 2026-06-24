@@ -21,7 +21,7 @@ Confirm every item before an operator runs `npm run load:catalog:pod -- <catalog
 - [ ] Every active marathon has the intended `languageCode`, `title`, `slug`, and active state.
 - [ ] Every active marathon has at least one trial step and at least one gated non-trial step.
 - [ ] Every step has approved plain-text `assignmentContent`; do not include HTML.
-- [ ] Every active marathon has exactly one approved VIP product with the intended title, price, and currency.
+- [ ] Every active marathon has exactly one approved payment product with the intended title, price, and currency.
 - [ ] Every active marathon has approved gift codes available for launch.
 - [ ] Gift-code inventory was checked in the source-of-truth system, but full gift-code values are not pasted into this checklist or validation notes.
 - [ ] The dry run completed without unsafe-key, duplicate-slug, duplicate-gift-code, missing-reference, or launch-readiness errors.
@@ -38,7 +38,7 @@ npm run draft:legacy-catalog -- --fixture /path/to/legacy/marathon.json --output
 npm run review:catalog-draft -- /path/to/marathon-catalog-draft.json
 ```
 
-These commands do not approve or import data. The draft remains incomplete until a source owner fills assignment content, VIP product price/currency, gift-code inventory, and launch activation. The review prints counts and missing classes only.
+These commands do not approve or import data. The draft remains incomplete until a source owner fills assignment content, payment product price/currency, gift-code inventory, and launch activation. The review prints counts and missing classes only.
 
 Dry-run first:
 

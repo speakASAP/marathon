@@ -81,13 +81,13 @@ async function redeemGiftAndReplenish(token, marathon, marathonerId) {
     orderBy: { createdAt: "asc" },
   });
   if (!gift?.code) throw new Error(`no unused gift code available for ${languageCode} marathon`);
-  const giftResponse = await jsonFetch("/api/v1/vip/gift-redemptions", {
+  const giftResponse = await jsonFetch("/api/v1/payments/gift-redemptions", {
     method: "POST",
     token,
     label: "gift redemption",
     body: JSON.stringify({ marathonerId, code: gift.code }),
   });
-  if (giftResponse?.status !== "vip_unlocked") throw new Error(`gift redemption returned ${giftResponse?.status || "missing status"}`);
+  if (giftResponse?.status !== "payment_confirmed") throw new Error(`gift redemption returned ${giftResponse?.status || "missing status"}`);
   const postRedemptionReplacementGift = await ensureReplacementGift(marathon.id);
   const afterUnused = await prisma.marathonGift.count({ where: { marathonId: marathon.id, usedAt: null } });
   return {
@@ -126,22 +126,22 @@ async function verifyPaymentUnlock(token, marathon) {
     token,
     label: "payment profile before checkout",
   });
-  if (beforeProfile?.needs_payment !== true || beforeProfile?.type !== "free") {
+  if (beforeProfile?.payment_required !== true || beforeProfile?.payment_status !== "unpaid") {
     throw new Error("payment participant was not payment-gated before checkout");
   }
 
-  const checkout = await jsonFetch("/api/v1/vip/checkout", {
+  const checkout = await jsonFetch("/api/v1/payments/checkout", {
     method: "POST",
     token,
-    label: "VIP checkout",
+    label: "payment checkout",
     body: JSON.stringify({ marathonerId }),
   });
   if (checkout?.status !== "checkout_created" || !checkout?.orderId) {
-    throw new Error("VIP checkout did not create a payment order");
+    throw new Error("payment checkout did not create a payment order");
   }
   const paymentId = checkout?.payment?.data?.paymentId || checkout?.payment?.paymentId;
   if (!paymentId) {
-    throw new Error("VIP checkout did not return paymentId for callback reconciliation");
+    throw new Error("payment checkout did not return paymentId for callback reconciliation");
   }
   const checkoutAttempt = await prisma.marathonPaymentAttempt.findUnique({
     where: { orderId: checkout.orderId },
@@ -169,16 +169,16 @@ async function verifyPaymentUnlock(token, marathon) {
       },
     }),
   });
-  if (callback?.status !== "vip_unlocked") {
-    throw new Error(`payment webhook did not unlock VIP: ${callback?.status || "missing status"}`);
+  if (callback?.status !== "payment_confirmed") {
+    throw new Error(`payment webhook did not confirm payment: ${callback?.status || "missing status"}`);
   }
 
   const afterProfile = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}`, {
     token,
     label: "payment profile after webhook",
   });
-  if (afterProfile?.needs_payment !== false || afterProfile?.type !== "vip") {
-    throw new Error("payment participant did not become VIP after webhook");
+  if (afterProfile?.payment_required !== false || afterProfile?.payment_status !== "paid") {
+    throw new Error("payment participant did not become paid after webhook");
   }
 
   const attempt = await prisma.marathonPaymentAttempt.findUnique({
@@ -193,7 +193,7 @@ async function verifyPaymentUnlock(token, marathon) {
     marathonerId: mask(marathonerId),
     orderId: mask(checkout.orderId),
     status: callback.status,
-    profileType: afterProfile.type,
+    paymentStatus: afterProfile.payment_status,
     ledgerStatus: attempt.status,
   };
 }
@@ -254,7 +254,7 @@ async function main() {
       language: languageCode,
       userId: mask(userId),
       marathonerId: mask(marathonerId),
-      vipUnlockedByGift: giftUnlock.giftResponse?.status === "vip_unlocked",
+      paymentConfirmedByGift: giftUnlock.giftResponse?.status === "payment_confirmed",
       smokeUserParticipants,
       giftInventory: {
         beforeUnused: giftUnlock.beforeUnused,
@@ -301,10 +301,10 @@ async function main() {
 
   const participant = await prisma.marathonParticipant.findUnique({
     where: { id: marathonerId },
-    select: { active: true, finishedAt: true, isFree: true, paymentReported: true },
+    select: { active: true, finishedAt: true, paid: true },
   });
   if (!participant?.finishedAt || participant.active !== false) throw new Error("participant did not finish after all submissions");
-  if (participant.isFree !== false || participant.paymentReported !== true) throw new Error("gift redemption did not unlock VIP state");
+  if (participant.paid !== true) throw new Error("gift redemption did not confirm paid state");
 
   const winner = await prisma.marathonWinner.findFirst({ where: { userId }, orderBy: { createdAt: "desc" } });
   const medalCount = (winner?.goldCount || 0) + (winner?.silverCount || 0) + (winner?.bronzeCount || 0);
@@ -351,7 +351,7 @@ async function main() {
     marathonerId: mask(marathonerId),
     stepsSubmitted: submitted,
     participantFinished: Boolean(participant.finishedAt),
-    vipUnlockedByGift: participant.isFree === false && participant.paymentReported === true,
+    paymentConfirmedByGift: participant.paid === true,
     winner: { id: mask(winner.id), gold: winner.goldCount, silver: winner.silverCount, bronze: winner.bronzeCount },
     nps: { createScore: npsCreate.score, updateScore: npsUpdate.score, rowsForParticipant: surveyRowsForParticipant },
     replacementGift,

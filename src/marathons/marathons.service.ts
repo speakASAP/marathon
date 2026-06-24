@@ -53,9 +53,9 @@ export type MarathonAnalytics = {
     total: number;
     active: number;
     finished: number;
-    free: number;
-    vip: number;
-    vipRequired: number;
+    unpaid: number;
+    paid: number;
+    paymentRequired: number;
     paymentBlocked: number;
   };
   assignments: {
@@ -329,9 +329,9 @@ export class MarathonsService {
       participants,
       activeParticipants,
       finishedParticipants,
-      freeParticipants,
-      vipParticipants,
-      vipRequiredParticipants,
+      unpaidParticipants,
+      paidParticipants,
+      paymentRequiredParticipants,
       paymentBlockedParticipants,
       submissions,
       completedSubmissions,
@@ -352,10 +352,10 @@ export class MarathonsService {
       this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants() }),
       this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ active: true }) }),
       this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ finishedAt: { not: null } }) }),
-      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ isFree: true }) }),
-      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ isFree: false }) }),
-      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ vipRequired: true }) }),
-      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ vipRequired: true, isFree: true }) }),
+      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ paid: false }) }),
+      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ paid: true }) }),
+      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ paid: false }) }),
+      this.prisma.marathonParticipant.count({ where: excludeSmokeParticipants({ paid: false }) }),
       this.prisma.stepSubmission.count({ where: excludeSmokeParticipantRelation() }),
       this.prisma.stepSubmission.count({ where: excludeSmokeParticipantRelation({ isCompleted: true }) }),
       this.prisma.stepSubmission.count({ where: excludeSmokeParticipantRelation({ isChecked: true }) }),
@@ -398,9 +398,9 @@ export class MarathonsService {
         total: participants,
         active: activeParticipants,
         finished: finishedParticipants,
-        free: freeParticipants,
-        vip: vipParticipants,
-        vipRequired: vipRequiredParticipants,
+        unpaid: unpaidParticipants,
+        paid: paidParticipants,
+        paymentRequired: paymentRequiredParticipants,
         paymentBlocked: paymentBlockedParticipants,
       },
       assignments: {

@@ -80,8 +80,8 @@ function getRulesTemplate(marathon) {
   return marathon.rulesTemplate ?? marathon.rules_template;
 }
 
-function getVipGateDate(marathon) {
-  return marathon.vipGateDate ?? marathon.vip_since;
+function getPaymentStartsAt(marathon) {
+  return marathon.paymentStartsAt ?? marathon.payment_since;
 }
 
 function getStepAssignmentContent(step) {
@@ -250,7 +250,7 @@ function reviewCatalog(input, filePath) {
       slug,
       steps: rowSteps.length,
       trialSteps: rowTrialSteps,
-      vipGateDatePresent: valuePresent(getVipGateDate(marathon)),
+      paymentStartsAtPresent: valuePresent(getPaymentStartsAt(marathon)),
     });
   }
 

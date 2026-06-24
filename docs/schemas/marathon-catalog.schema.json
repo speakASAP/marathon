@@ -59,9 +59,7 @@
           "type": "array",
           "items": { "$ref": "#/definitions/step" }
         },
-        "title": { "type": "string", "minLength": 1 },
-        "vipGateDate": { "$ref": "#/definitions/isoDate" },
-        "vip_since": { "$ref": "#/definitions/isoDate" }
+        "title": { "type": "string", "minLength": 1 }
       }
     },
     "step": {

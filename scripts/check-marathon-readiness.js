@@ -71,7 +71,7 @@ function publicMarathon(marathon) {
     slug: marathon.slug,
     title: marathon.title,
     active: marathon.active,
-    vipGateDate: marathon.vipGateDate,
+    paymentStartsAt: marathon.paymentStartsAt,
     product: marathon.product
       ? {
           id: marathon.product.id,
@@ -154,7 +154,7 @@ async function buildReport() {
       addCheck(checks, 'fail', 'catalog-step-content', 'One or more MarathonStep rows have no assignmentContent; assignment pages cannot be verified.');
     }
     if (products === 0) {
-      addCheck(checks, 'fail', 'catalog-products', 'No MarathonProduct rows exist; VIP checkout cannot be verified.');
+      addCheck(checks, 'fail', 'catalog-products', 'No MarathonProduct rows exist; payment checkout cannot be verified.');
     }
 
     for (const marathon of activeCatalog) {
@@ -180,13 +180,13 @@ async function buildReport() {
 
       const gatedSteps = marathon.steps.filter((step) => !step.isTrialStep);
       if (gatedSteps.length === 0) {
-        addCheck(checks, 'fail', 'gated-steps', `${label} has no non-trial step; VIP post-gate access cannot be verified.`);
+        addCheck(checks, 'fail', 'gated-steps', `${label} has no assignment step after registration; paid access cannot be verified.`);
       } else {
         addCheck(checks, 'pass', 'gated-steps', `${label} has ${gatedSteps.length} non-trial step(s).`);
       }
 
       if (!marathon.product) {
-        addCheck(checks, 'fail', 'product', `${label} has no MarathonProduct row; VIP checkout cannot be created.`);
+        addCheck(checks, 'fail', 'product', `${label} has no MarathonProduct row; payment checkout cannot be created.`);
       } else {
         const amount = Number(marathon.product.price.toString());
         if (!Number.isFinite(amount) || amount <= 0) {
@@ -194,7 +194,7 @@ async function buildReport() {
         } else if (!/^[A-Z]{3}$/.test(marathon.product.currency)) {
           addCheck(checks, 'fail', 'product-currency', `${label} has invalid MarathonProduct.currency.`);
         } else {
-          addCheck(checks, 'pass', 'product', `${label} has VIP product ${marathon.product.currency} ${marathon.product.price.toString()}.`);
+          addCheck(checks, 'pass', 'product', `${label} has payment product ${marathon.product.currency} ${marathon.product.price.toString()}.`);
         }
       }
 

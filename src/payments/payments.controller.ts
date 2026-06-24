@@ -2,25 +2,25 @@ import { Body, Controller, Headers, HttpException, Logger, Post, Req, UseGuards 
 import { Request } from 'express';
 import { AuthGuard } from '../shared/auth.guard';
 import { AuthUser } from '../shared/auth-client';
-import { VipService } from './vip.service';
+import { PaymentsService } from './payments.service';
 
 type AuthenticatedRequest = Request & {
   user?: AuthUser;
 };
 
 @Controller()
-export class VipController {
-  private readonly logger = new Logger(VipController.name);
+export class PaymentsController {
+  private readonly logger = new Logger(PaymentsController.name);
 
-  constructor(private readonly vipService: VipService) {}
+  constructor(private readonly paymentsService: PaymentsService) {}
 
-  @Post('vip/checkout')
+  @Post('payments/checkout')
   @UseGuards(AuthGuard)
   async createCheckout(@Req() req: AuthenticatedRequest, @Body() body: { marathonerId?: string; paymentMethod?: string }) {
     const userId = req.user!.id;
-    this.logger.log(`VIP checkout requested: userId=${userId}, marathonerId=${body.marathonerId || ''}`);
+    this.logger.log(`Payment checkout requested: userId=${userId}, marathonerId=${body.marathonerId || ''}`);
     try {
-      return await this.vipService.createCheckout(req.user!, body);
+      return await this.paymentsService.createCheckout(req.user!, body);
     } catch (error) {
       const status = error instanceof HttpException ? error.getStatus() : 500;
       const reason = error instanceof Error ? error.message : String(error);
@@ -32,14 +32,14 @@ export class VipController {
     }
   }
 
-  @Post('vip/gift-redemptions')
+  @Post('payments/gift-redemptions')
   @UseGuards(AuthGuard)
   async redeemGift(@Req() req: AuthenticatedRequest, @Body() body: { marathonerId?: string; code?: string }) {
     const userId = req.user!.id;
     this.logger.log(`Gift redemption requested: userId=${userId}, marathonerId=${body.marathonerId || ''}`);
     this.logger.log('marathon.gift.requested hasMarathonerId=' + Boolean(body.marathonerId) + ' hasCode=' + Boolean(body.code));
     try {
-      const result = await this.vipService.redeemGift(userId, body.marathonerId, body.code);
+      const result = await this.paymentsService.redeemGift(userId, body.marathonerId, body.code);
       this.logger.log('marathon.gift.redeemed hasRedirect=' + Boolean(result.redirectUrl));
       return result;
     } catch (error) {
@@ -60,7 +60,7 @@ export class VipController {
     const callbackEvent = this.safeEventValue(String(body.event || ''));
     this.logger.log('marathon.payment_webhook.received hasOrderId=' + Boolean(body.orderId) + ' callbackStatus=' + callbackStatus + ' callbackEvent=' + callbackEvent);
     try {
-      const result = await this.vipService.handlePaymentCallback(apiKey, body);
+      const result = await this.paymentsService.handlePaymentCallback(apiKey, body);
       this.logger.log('marathon.payment_webhook.' + (result.status === 'ignored' ? 'ignored' : 'confirmed') + ' callbackStatus=' + callbackStatus + ' callbackEvent=' + callbackEvent + ' idempotent=' + Boolean((result as { idempotent?: boolean }).idempotent));
       return result;
     } catch (error) {

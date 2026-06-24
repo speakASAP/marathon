@@ -5,20 +5,20 @@ import { getLoginUrl, getPasswordResetUrl, redirectToLogin } from '../auth';
 import {
   MarathonAuthRequiredError,
   MarathonNotFoundError,
-  createVipCheckout,
+  createPaymentCheckout,
   fetchMyMarathon,
   fetchProgressReport,
   saveNpsSurvey,
   updateReportTime,
   type Answer,
-  type VipPaymentMethod,
+  type PaymentMethod,
   type MyMarathon,
   type ProgressReport,
 } from '../api/profileMarathon';
 
 type PaymentReturnState = 'success' | 'cancelled' | null;
 
-const PAYMENT_METHOD_OPTIONS: Array<{ value: VipPaymentMethod; label: string; detail: string; disabled?: boolean }> = [
+const PAYMENT_METHOD_OPTIONS: Array<{ value: PaymentMethod; label: string; detail: string; disabled?: boolean }> = [
   { value: 'paypal', label: 'PayPal', detail: 'Оплата через PayPal в защищенном Stripe Checkout.' },
   { value: 'card', label: 'Mastercard', detail: 'Оплата Mastercard или другой поддерживаемой картой через Stripe.' },
   {
@@ -46,8 +46,24 @@ function formatTimeInput(value?: string | null) {
   return `${hours}:${minutes}`;
 }
 
+function getBrowserTimeZone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'локальный часовой пояс';
+  } catch {
+    return 'локальный часовой пояс';
+  }
+}
+
+function formatCurrentLocalTime(value: Date) {
+  return value.toLocaleTimeString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
 function getStateLabel(answer: Answer) {
-  if (answer.block_reason === 'payment_required') return 'VIP';
+  if (answer.block_reason === 'payment_required') return 'Оплата';
   if (answer.is_late) return 'Поздно';
   if (answer.state === 'completed' || answer.state === 'done') return 'Готово';
   if (answer.state === 'checked') return 'Проверено';
@@ -57,7 +73,7 @@ function getStateLabel(answer: Answer) {
 
 function getStepMeta(answer: Answer) {
   if (answer.block_reason === 'payment_required') {
-    return 'Для открытия этого задания нужен VIP-доступ.';
+    return 'Для открытия задания нужна оплата марафона.';
   }
   if (answer.state === 'inactive') {
     if (answer.is_scheduled_future) {
@@ -84,7 +100,7 @@ export default function ProfileDetail() {
   const [loadError, setLoadError] = useState('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<VipPaymentMethod>('paypal');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paypal');
   const [paymentReturn, setPaymentReturn] = useState<PaymentReturnState>(null);
   const [report, setReport] = useState<ProgressReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
@@ -95,6 +111,8 @@ export default function ProfileDetail() {
   const [npsMessage, setNpsMessage] = useState('');
   const [npsError, setNpsError] = useState('');
   const [reportTime, setReportTime] = useState('13:00');
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+  const [browserTimeZone] = useState(getBrowserTimeZone);
   const [reportTimeSaving, setReportTimeSaving] = useState(false);
   const [reportTimeMessage, setReportTimeMessage] = useState('');
   const [reportTimeError, setReportTimeError] = useState('');
@@ -103,6 +121,11 @@ export default function ProfileDetail() {
     const payment = new URLSearchParams(window.location.search).get('payment');
     if (payment === 'success') setPaymentReturn('success');
     if (payment === 'cancelled' || payment === 'cancel') setPaymentReturn('cancelled');
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(new Date()), 30_000);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -200,17 +223,17 @@ export default function ProfileDetail() {
   }
 
   const current = data.current_step;
-  const completedCount = data.answers.filter((answer) => answer.state === 'done' || answer.state === 'completed').length;
+  const completedCount = data.answers.filter((answer) => answer.state === 'done' || answer.state === 'completed' || answer.state === 'checked').length;
   const progressPct = data.answers.length ? Math.round((completedCount / data.answers.length) * 100) : 0;
-  const hasCompletedAssignments = completedCount > 0;
+  const canGenerateProgressReport = data.can_generate_progress_report;
   const showBonusDays = data.bonus_total > 0;
   const paymentReturnTitle = paymentReturn === 'success'
-    ? (data.needs_payment ? 'Подтверждение оплаты обрабатывается' : 'VIP-доступ активен')
+    ? (data.payment_required ? 'Подтверждение оплаты обрабатывается' : 'Оплата подтверждена')
     : 'Оплата отменена';
   const paymentReturnBody = paymentReturn === 'success'
-    ? (data.needs_payment
-      ? 'Платежный провайдер вернул вас сюда. Мы ждем защищенный callback для подтверждения VIP-доступа; обновите страницу через минуту, если блокировка еще видна.'
-      : 'Оплата подтверждена, следующие VIP-задания доступны из этого профиля.')
+    ? (data.payment_required
+      ? 'Платежный провайдер вернул вас сюда. Мы ждем защищенный callback для подтверждения оплаты; обновите страницу через минуту, если блокировка еще видна.'
+      : 'Оплата подтверждена, задания доступны из этого профиля.')
     : 'Списание не выполнено. Вы можете снова открыть оплату или обратиться в поддержку с этой страницы.';
 
   const startCheckout = async () => {
@@ -223,7 +246,7 @@ export default function ProfileDetail() {
     setCheckoutLoading(true);
     setCheckoutError('');
     try {
-      const redirectUrl = await createVipCheckout(data.id, paymentMethod);
+      const redirectUrl = await createPaymentCheckout(data.id, paymentMethod);
       if (redirectUrl) {
         window.location.href = redirectUrl;
         return;
@@ -231,7 +254,7 @@ export default function ProfileDetail() {
       setCheckoutError('Оплата создана, но корректная ссылка для перехода не вернулась.');
     } catch (error) {
       if (error instanceof MarathonAuthRequiredError) {
-        redirectToLogin(`/profile/${data.id}#vip-access`);
+        redirectToLogin(`/profile/${data.id}#payment-access`);
         return;
       }
       setCheckoutError(error instanceof Error ? error.message : 'Не удалось открыть оплату');
@@ -299,7 +322,7 @@ export default function ProfileDetail() {
     setReportTimeMessage('');
     setReportTimeError('');
     try {
-      const body = await updateReportTime(data.id, reportTime);
+      const body = await updateReportTime(data.id, reportTime, browserTimeZone);
       setData(body);
       setReportTimeMessage('Время отчета сохранено. Расписание этапов пересчитано без сжатия дней.');
     } catch (error) {
@@ -318,10 +341,9 @@ export default function ProfileDetail() {
       <section className="profile-hero-panel">
         <div>
           <h1>{data.title}</h1>
-          {(data.type === 'trial' || showBonusDays) && (
+          {showBonusDays && (
             <p className="profile-meta">
-              {data.type === 'trial' && 'Пробный период. '}
-              {showBonusDays && `Бонусных дней: ${data.bonus_left} из ${data.bonus_total}.`}
+              {`Бонусных дней: ${data.bonus_left} из ${data.bonus_total}.`}
             </p>
           )}
         </div>
@@ -339,7 +361,10 @@ export default function ProfileDetail() {
             Если пройти несколько этапов заранее, календарные дни марафона не сжимаются.
           </p>
           <p className="profile-schedule-current">
-            Сейчас: <strong>{data.report_time_label || formatTimeInput(data.report_time)}</strong>
+            Сейчас у вас: <strong>{formatCurrentLocalTime(currentTime)}</strong> <span className="profile-step-meta">({browserTimeZone})</span>
+          </p>
+          <p className="profile-schedule-current">
+            Время отчетов: <strong>{data.report_time_label || formatTimeInput(data.report_time)}</strong>
           </p>
         </div>
         <form onSubmit={submitReportTime} className="profile-report-time-form">
@@ -365,18 +390,18 @@ export default function ProfileDetail() {
             <h2>{paymentReturnTitle}</h2>
             <p>{paymentReturnBody}</p>
           </div>
-          {paymentReturn === 'success' && data.needs_payment && (
+          {paymentReturn === 'success' && data.payment_required && (
             <button type="button" className="btn-profile-login" onClick={() => window.location.reload()}>
               Обновить статус
             </button>
           )}
         </section>
       )}
-      {data.needs_payment && (
-        <section className="profile-payment-panel" id="vip-access">
+      {data.payment_required && (
+        <section className="profile-payment-panel" id="payment-access">
           <div>
-            <h2>Нужен VIP-доступ</h2>
-            <p>В этом марафоне активен VIP-этап. Оплатите доступ, чтобы открыть следующие задания.</p>
+            <h2>Нужна оплата марафона</h2>
+            <p>Оплатите марафон, чтобы открыть задания и продолжить прохождение.</p>
             {checkoutError && <p className="ml-error">{checkoutError}</p>}
           </div>
           <div className="profile-payment-methods" role="radiogroup" aria-label="Способ оплаты">
@@ -407,10 +432,9 @@ export default function ProfileDetail() {
             ))}
           </div>
           <div className="profile-payment-actions">
-            <button type="button" className="btn-profile-open" onClick={startCheckout} disabled={checkoutLoading || PAYMENT_METHOD_OPTIONS.find((option) => option.value === paymentMethod)?.disabled}>
-              {checkoutLoading ? 'Открываем оплату...' : `Оплатить через ${PAYMENT_METHOD_OPTIONS.find((option) => option.value === paymentMethod)?.label || 'выбранный способ'}`}
+            <button type="button" className="btn-profile-open profile-payment-cta" onClick={startCheckout} disabled={checkoutLoading || PAYMENT_METHOD_OPTIONS.find((option) => option.value === paymentMethod)?.disabled}>
+              {checkoutLoading ? 'Открываем оплату...' : 'Оплатить'}
             </button>
-            <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
           </div>
         </section>
       )}
@@ -472,12 +496,12 @@ export default function ProfileDetail() {
           </form>
         </section>
       )}
-      {hasCompletedAssignments && (
+      {canGenerateProgressReport && (
       <section className="profile-report-panel">
         <div className="profile-report-heading">
           <div>
             <h2>Отчет прогресса</h2>
-            <p>Сводка по выполненным заданиям, VIP и попыткам оплаты для этого марафона.</p>
+            <p>Сводка по выполненным заданиям, доступу и попыткам оплаты для этого марафона.</p>
           </div>
           <div className="profile-payment-actions">
             <button type="button" className="btn-profile-open" onClick={loadProgressReport} disabled={reportLoading}>
@@ -499,7 +523,7 @@ export default function ProfileDetail() {
             {report.access.bonusDaysTotal > 0 && (
               <div><span>Бонусных дней</span><strong>{report.access.bonusDaysLeft}/{report.access.bonusDaysTotal}</strong></div>
             )}
-            <div><span>VIP</span><strong>{report.access.needsPayment ? 'Требуется' : report.access.type.toUpperCase()}</strong></div>
+            <div><span>Оплата</span><strong>{report.access.paymentRequired ? 'Требуется' : 'Подтверждена'}</strong></div>
             <div><span>Оплаты</span><strong>{report.summary.paymentAttempts}</strong></div>
             {report.currentStep && (
               <div className="profile-report-current">
@@ -532,7 +556,7 @@ export default function ProfileDetail() {
                   </Link>
                 )}
                 {paymentBlocked && (
-                  <a className="profile-step-action profile-step-action-muted" href="#vip-access">Варианты VIP</a>
+                  <a className="profile-step-action profile-step-action-muted" href="#payment-access">Оплатить</a>
                 )}
                 {!canOpen && !paymentBlocked && (
                   <span className="profile-step-action profile-step-action-disabled">Закрыто</span>

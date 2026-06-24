@@ -10,6 +10,10 @@ import {
   type MyMarathonSummary,
 } from '../api/profileMarathon';
 import {
+  AdminMarathonPricingError,
+  fetchAdminSession,
+} from '../api/adminMarathon';
+import {
   fetchActiveMarathons,
   fetchCatalogReadiness,
   fetchMarathonLanguages,
@@ -115,9 +119,8 @@ function getProgressPct(marathon: MyMarathonSummary) {
 }
 
 function getStatusLabel(marathon: MyMarathonSummary) {
-  if (marathon.needs_payment) return 'Нужен VIP';
-  if (marathon.type === 'vip') return 'VIP активен';
-  if (marathon.type === 'trial') return 'Пробный';
+  if (marathon.payment_required) return 'Нужна оплата';
+  if (marathon.payment_status === 'paid') return 'Оплачено';
   return 'Активен';
 }
 
@@ -154,6 +157,7 @@ export default function Profile() {
   const [catalog, setCatalog] = useState<MarathonSummary[]>([]);
   const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
+  const [adminAvailable, setAdminAvailable] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState('');
 
@@ -187,17 +191,29 @@ export default function Profile() {
     if (!getToken()) {
       setList([]);
       setAccountProfile(EMPTY_PROFILE);
+      setAdminAvailable(false);
       return;
     }
 
     setProfileLoading(true);
     setLoadError('');
-    Promise.all([fetchMyMarathons(), fetchMyProfile()])
-      .then(([data, profile]) => {
+    Promise.all([
+      fetchMyMarathons(),
+      fetchMyProfile(),
+      fetchAdminSession().catch((error) => {
+        if (error instanceof AdminMarathonPricingError && (error.status === 401 || error.status === 403)) {
+          return null;
+        }
+        return null;
+      }),
+    ])
+      .then(([data, profile, adminSession]) => {
         setList(data);
         setAccountProfile(profile);
+        setAdminAvailable(adminSession?.admin === true);
       })
       .catch((error) => {
+        setAdminAvailable(false);
         if (error instanceof MarathonAuthRequiredError) {
           clearToken();
           setList([]);
@@ -238,6 +254,7 @@ export default function Profile() {
     try {
       const updated = await updateMyProfile(accountProfile);
       setAccountProfile(updated);
+      window.dispatchEvent(new Event('marathon-profile-updated'));
       setProfileSaveMessage('Профиль сохранен.');
     } catch (error) {
       if (error instanceof MarathonAuthRequiredError) {
@@ -368,6 +385,17 @@ export default function Profile() {
                 <p>{accountProfile.bio || 'Добавьте аватар и короткое описание для своего профиля марафона.'}</p>
               </div>
             </div>
+            {adminAvailable && (
+              <div className="profile-admin-entry" aria-label="Администраторская секция">
+                <div>
+                  <span>Администрирование</span>
+                  <strong>Администраторская секция</strong>
+                </div>
+                <Link to="/admin/marathons/prices" className="btn-profile-open">
+                  Войти в администраторскую секцию
+                </Link>
+              </div>
+            )}
             <form className="profile-settings-form" onSubmit={handleProfileSubmit}>
               <label htmlFor="profile-display-name">Имя</label>
               <input
@@ -449,7 +477,7 @@ export default function Profile() {
                       <div className="profile-marathon-card-main">
                         <div className="profile-marathon-card-heading">
                           <h2>{m.title}</h2>
-                          <span className={m.needs_payment ? 'profile-marathon-status status-payment' : 'profile-marathon-status'}>
+                          <span className={m.payment_required ? 'profile-marathon-status status-payment' : 'profile-marathon-status'}>
                             {getStatusLabel(m)}
                           </span>
                         </div>
@@ -465,9 +493,9 @@ export default function Profile() {
                         </div>
                       </div>
                       <div className="profile-marathon-card-side">
-                        <span>{m.needs_payment ? 'VIP-доступ' : 'Статус'}</span>
-                        <strong>{m.needs_payment ? 'Требуется оплата' : getStatusLabel(m)}</strong>
-                        {m.needs_payment && <p>Оплатите доступ, чтобы начать задания.</p>}
+                        <span>{m.payment_required ? 'Оплата' : 'Статус'}</span>
+                        <strong>{m.payment_required ? 'Требуется оплата' : getStatusLabel(m)}</strong>
+                        {m.payment_required && <p>Оплатите марафон, чтобы открыть задания.</p>}
                         <Link to={`/profile/${m.id}`} className="btn-profile-open">
                           Открыть
                         </Link>

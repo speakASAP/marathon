@@ -23,7 +23,7 @@ function formatStepDate(value: string) {
 }
 
 function getScheduleLabel(answer: Answer) {
-  if (answer.block_reason === 'payment_required') return 'VIP';
+  if (answer.block_reason === 'payment_required') return 'Оплата';
   if (answer.state === 'completed' || answer.state === 'done') return 'Готово';
   if (answer.state === 'checked') return 'Проверено';
   if (answer.state === 'active') return `До ${formatStepDate(answer.stop)}`;

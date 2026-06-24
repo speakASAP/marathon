@@ -102,14 +102,14 @@ export default function Register() {
           <h2>Регистрация пока закрыта</h2>
           <p>
             Production каталог еще не готов для регистрации. Как только активный марафон, задания,
-            VIP продукт будет утвержден, здесь появятся доступные языки.
+            платежный продукт будет утвержден, здесь появятся доступные языки.
           </p>
           {readiness && (
             <dl className="registration-readiness-list">
               <div><dt>Активные марафоны</dt><dd>{readiness.counts.activeMarathons}</dd></div>
               <div><dt>Этапы</dt><dd>{readiness.counts.steps}</dd></div>
               <div><dt>Этапы с заданиями</dt><dd>{readiness.counts.stepsWithContent}</dd></div>
-              <div><dt>VIP продукты</dt><dd>{readiness.counts.products}</dd></div>
+              <div><dt>Платежные продукты</dt><dd>{readiness.counts.products}</dd></div>
               </dl>
           )}
           {readiness?.missing?.length ? (

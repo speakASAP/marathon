@@ -4,10 +4,10 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const vipServicePath = path.join(root, 'src/vip/vip.service.ts');
+const paymentsServicePath = path.join(root, 'src/payments/payments.service.ts');
 const smokePath = path.join(root, 'scripts/run-production-smoke-safe.js');
 
-const vipService = fs.readFileSync(vipServicePath, 'utf8');
+const paymentsService = fs.readFileSync(paymentsServicePath, 'utf8');
 const smoke = fs.readFileSync(smokePath, 'utf8');
 
 function assertContains(source, pattern, message) {
@@ -23,49 +23,49 @@ function assertNotContains(source, pattern, message) {
 }
 
 assertContains(
-  vipService,
+  paymentsService,
   /summarizeCheckoutResponse/,
-  'VipService must summarize checkout responses before persistence.',
+  'PaymentsService must summarize checkout responses before persistence.',
 );
 assertContains(
-  vipService,
+  paymentsService,
   /summarizeCallbackPayload/,
-  'VipService must summarize callback payloads before persistence.',
+  'PaymentsService must summarize callback payloads before persistence.',
 );
 assertNotContains(
-  vipService,
+  paymentsService,
   /checkoutResponse:\s*responseBody/,
-  'VipService must not persist raw checkout response bodies.',
+  'PaymentsService must not persist raw checkout response bodies.',
 );
 assertNotContains(
-  vipService,
+  paymentsService,
   /callbackPayload:\s*payload\s+as\s+any/,
-  'VipService must not persist raw callback payload bodies.',
+  'PaymentsService must not persist raw callback payload bodies.',
 );
 assertContains(
-  vipService,
+  paymentsService,
   /requireCallbackMarathonerId/,
   'Successful callbacks must require participant metadata.',
 );
 assertContains(
-  vipService,
+  paymentsService,
   /validateRequiredCallbackProduct/,
   'Successful callbacks must require product metadata.',
 );
 assertContains(
-  vipService,
+  paymentsService,
   /validateCallbackProviderPaymentId/,
   'Successful callbacks must reconcile provider payment identity.',
 );
 assertContains(
-  vipService,
+  paymentsService,
   /resolveCallbackAmountCurrency/,
   'Successful callbacks must reconcile amount and currency.',
 );
 assertContains(
-  vipService,
+  paymentsService,
   /fetchPaymentStatus/,
-  'VipService must support payment-status fallback for callback amount and currency.',
+  'PaymentsService must support payment-status fallback for callback amount and currency.',
 );
 assertContains(
   smoke,

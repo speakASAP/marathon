@@ -1,6 +1,6 @@
 import { FormEvent, Fragment, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchCatalogReadiness, sendSupportChatMessage, type CatalogReadiness } from '../api/publicMarathon';
+import { sendSupportChatMessage } from "../api/publicMarathon";
 
 const SUPPORT_EMAIL = 'marathon@speakasap.com';
 
@@ -9,27 +9,13 @@ type ChatMessage = {
   text: string;
 };
 
-function formatMissingLabel(value: string): string {
-  return value
-    .split('-')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-function formatCount(value: number | undefined): string {
-  if (typeof value !== 'number') return '0';
-  return new Intl.NumberFormat('ru-RU').format(value);
-}
 
 export default function Support() {
-  const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       role: 'agent',
-      text: 'Здравствуйте. Я отвечаю только на вопросы о марафонах SpeakASAP: регистрация, профиль, задания, VIP, подарочные коды и победители.',
+      text: 'Здравствуйте. Я отвечаю только на вопросы о марафонах SpeakASAP: регистрация, профиль, оплата, задания, подарочные коды и победители.',
     },
   ]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -37,16 +23,7 @@ export default function Support() {
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    document.title = 'Поддержка — Марафон';
-    setLoading(true);
-    setError('');
-    fetchCatalogReadiness()
-      .then((data: CatalogReadiness) => setReadiness(data))
-      .catch(() => {
-        setReadiness(null);
-        setError('Статус регистрации временно недоступен. Перед стартом марафона обратитесь в поддержку.');
-      })
-      .finally(() => setLoading(false));
+    document.title = "Поддержка — Марафон";
   }, []);
 
   useEffect(() => {
@@ -89,8 +66,6 @@ export default function Support() {
     }
   }
 
-  const registrationOpen = readiness?.registrationOpen === true;
-  const missing = readiness?.missing ?? [];
 
   return (
     <div className="container page-static page-support">
@@ -153,63 +128,11 @@ export default function Support() {
           <strong className="support-status-badge">Участнику</strong>
         </div>
         <p>
-          Войдите в профиль, чтобы открыть свои марафоны, оплату VIP, подарочный код, отчеты и обратную связь.
+          Войдите в профиль, чтобы открыть свои марафоны, оплату, подарочный код, отчеты и обратную связь.
         </p>
         <div className="support-public-actions">
           <Link to="/profile" className="btn-profile-login">Продолжить участие</Link>
           <Link to="/register" className="btn-profile-open">Выбрать язык</Link>
-        </div>
-      </section>
-
-      <section className="support-public-status" aria-label="Помощь с этапом">
-        <div className="support-public-status-heading">
-          <span>Выполните задание</span>
-          <strong className="support-status-badge">Этапы</strong>
-        </div>
-        <p>
-          Если этап не открывается, проверьте вход в профиль и статус VIP-доступа. Следующее задание открывается из профиля марафона.
-        </p>
-        <div className="support-public-actions">
-          <Link to="/profile" className="btn-profile-login">Открыть профиль</Link>
-          <a className="btn-profile-open" href={`mailto:${SUPPORT_EMAIL}`}>Написать в поддержку</a>
-        </div>
-      </section>
-
-      <section className="support-public-status" aria-live="polite">
-        <div className="support-public-status-heading">
-          <span>Статус регистрации</span>
-          <strong className={registrationOpen ? 'support-status-badge support-status-badge-open' : 'support-status-badge'}>
-            {loading ? 'Проверяем' : registrationOpen ? 'Регистрация открыта' : 'Пока закрыта'}
-          </strong>
-        </div>
-        {error ? (
-          <p className="ml-error">{error}</p>
-        ) : registrationOpen ? (
-          <p>Регистрация открыта. Выберите язык и начните марафон со страницы регистрации.</p>
-        ) : (
-          <p>
-            Регистрация откроется после готовности утвержденного каталога марафонов.
-          </p>
-        )}
-        {!loading && readiness && (
-          <dl className="support-public-counts">
-            <div><dt>Участники марафона</dt><dd>{formatCount(readiness.counts.registeredParticipants)}</dd></div>
-            <div><dt>Активные марафоны</dt><dd>{formatCount(readiness.counts.activeMarathons)}</dd></div>
-            <div><dt>Иностранные языки</dt><dd>{formatCount(readiness.counts.activeLanguages ?? readiness.counts.activeMarathons)}</dd></div>
-          </dl>
-        )}
-        {!loading && missing.length > 0 && (
-          <div className="support-public-missing" aria-label="Блокеры регистрации">
-            {missing.map((item) => (
-              <span key={item}>{formatMissingLabel(item)}</span>
-            ))}
-          </div>
-        )}
-        <div className="support-public-actions">
-          <Link to="/register" className="btn-profile-login">
-            {registrationOpen ? 'Начать марафон' : 'Посмотреть статус регистрации'}
-          </Link>
-          <Link to="/profile" className="btn-profile-open">Открыть профиль</Link>
         </div>
       </section>
 

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { fetchCatalogReadiness, fetchMarathonLanguages, type CatalogReadiness, type MarathonLanguage } from '../api/publicMarathon';
+import { MarathonAuthRequiredError, fetchMyMarathons, fetchMyProfile, type MarathonUserProfileSettings } from '../api/profileMarathon';
 import MarathonFooterLinks from './MarathonFooterLinks';
-import { getToken } from '../auth';
+import { clearToken, getToken } from '../auth';
 import { PUBLIC_MARATHON_LANGUAGES, formatLanguageOptionLabel } from '../languages';
 
 /** Global shell: one shared Marathon header for every route. */
@@ -12,6 +13,8 @@ export default function Layout() {
   const [readinessError, setReadinessError] = useState('');
   const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
   const [hasToken, setHasToken] = useState(() => Boolean(getToken()));
+  const [hasRegisteredMarathon, setHasRegisteredMarathon] = useState(false);
+  const [profile, setProfile] = useState<MarathonUserProfileSettings | null>(null);
   const location = useLocation();
   const hideFooter = false;
   const registrationStatusUnavailable = Boolean(readinessError);
@@ -46,11 +49,55 @@ export default function Layout() {
     const profilePathParts = location.pathname.split('/').filter(Boolean);
     return Boolean(queryMarathonerId) || (profilePathParts[0] === 'profile' && profilePathParts.length === 2);
   }, [location.pathname, location.search]);
+  const hideRegistrationNavigation = hasSelectedMarathonContext || hasRegisteredMarathon;
+  const profileAvatarUrl = profile?.avatarUrl?.trim() || '';
+  const profileInitial = (profile?.displayName?.trim().charAt(0) || 'Я').toUpperCase();
 
   useEffect(() => {
     setMenuOpen(false);
-    setHasToken(Boolean(getToken()));
+    const tokenPresent = Boolean(getToken());
+    setHasToken(tokenPresent);
+    if (!tokenPresent) {
+      setHasRegisteredMarathon(false);
+      setProfile(null);
+    }
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!hasToken) return;
+    let ignore = false;
+
+    const loadProfile = () => {
+      fetchMyProfile()
+        .then((settings) => {
+          if (!ignore) setProfile(settings);
+        })
+        .catch((error) => {
+          if (ignore) return;
+          if (error instanceof MarathonAuthRequiredError) {
+            clearToken();
+            setHasToken(false);
+            setHasRegisteredMarathon(false);
+          }
+          setProfile(null);
+        });
+    };
+
+    fetchMyMarathons()
+      .then((items) => {
+        if (!ignore) setHasRegisteredMarathon(items.length > 0);
+      })
+      .catch(() => {
+        if (!ignore) setHasRegisteredMarathon(false);
+      });
+    loadProfile();
+
+    window.addEventListener('marathon-profile-updated', loadProfile);
+    return () => {
+      ignore = true;
+      window.removeEventListener('marathon-profile-updated', loadProfile);
+    };
+  }, [hasToken]);
 
   useEffect(() => {
     setReadinessError('');
@@ -84,7 +131,7 @@ export default function Layout() {
             <Link to="/support">Поддержка</Link>
           </nav>
           <div className="header-actions">
-            {!hasSelectedMarathonContext && (
+            {!hideRegistrationNavigation && (
               <label className="navbar-language-select">
                 <span>Язык</span>
                 <select
@@ -105,9 +152,9 @@ export default function Layout() {
             )}
             {hasToken ? (
               <Link to="/profile" className="navbar-profile-avatar" aria-label="Мой профиль" title="Мой профиль">
-                <span>Я</span>
+                {profileAvatarUrl ? <img src={profileAvatarUrl} alt="" /> : <span>{profileInitial}</span>}
               </Link>
-            ) : (
+            ) : !hideRegistrationNavigation ? (
               <Link
                 to="/register"
                 className={`btn btn-landing navbar-cta ${registrationClosed || registrationStatusUnavailable ? 'navbar-cta-closed' : 'btn-green'}`}
@@ -115,7 +162,7 @@ export default function Layout() {
               >
                 {navRegistrationLabel}
               </Link>
-            )}
+            ) : null}
           </div>
           <button
             type="button"

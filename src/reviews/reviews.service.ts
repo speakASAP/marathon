@@ -1,131 +1,169 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../shared/prisma.service';
 
-/** Legacy-parity shape: ReviewSerializer (name, photo, text). */
 export type Review = {
+  id: string;
   name: string;
   photo: string;
   text: string;
+  thanks: string;
+  marathon: string;
+  languageCode: string;
+  completed: string;
 };
 
-/** Static reviews list matching legacy `marathon/reviews/__init__.py` REVIEWS. */
-const REVIEWS: Review[] = [
-  {
-    name: 'Софья Загиезова',
-    photo: '/img/landing/photo-1.png',
-    text:
-      'Дорогие друзья! Если кому-то действительно нужно выучить иностранный язык с нуля до базового ' +
-      'разговорного уровня за один месяц то вам сюда! Вам дадут грамматическую базу, минимальный словарный ' +
-      'запас, на котором вы сможете говорить (при условии, конечно что вы его вызубрите) и будут "пинать" ' +
-      'или "гладить вас по головке" в течение всего месяца! Вам подскажут как и где найти себе собеседника ' +
-      '(бесплатно или платно на ваше усмотрение) и еще в конце сделают вам подарки "просто так"! Потому ' +
-      'что там работают реально классные и щедрые люди! Стоит предупредить халявщиков, что здесь это не ' +
-      'пройдет! Придется заниматься! По два, три четыре часа!',
-  },
-  {
-    name: 'Светлана Сливка',
-    photo: '/img/landing/photo-2.png',
-    text:
-      'На сегодняшний день это лучшее с чем мне приходилось сталкиваться! За 30 дней марафона я выросла ' +
-      'больше, чем раньше по другим методикам. Интересные задания, подход, а тандем - это просто здорово! ' +
-      'Даже и не ожидала, что мне ответят. С марафоном я успевала гораздо больше делать в жизни, ' +
-      'чем раньше: самодисциплина и организация своего времени - это, пожалуй, главное, что мне не хватало. ' +
-      'Ну и, конечное, бесплатно делиться своими знаниями, ни каждый будет... СПАСИБО огромное всей ' +
-      'команде!!! Успехов вам и процветания!!!',
-  },
-  {
-    name: 'Ирина Телесненко',
-    photo: '/img/landing/photo-3.png',
-    text:
-      'Только благодаря марафону узнала про спиктандемы, теперь делаю на это главный упор. Занятия легко ' +
-      'запоминаются, мозг не засоряется лишней информацией. Кроме знания английского, появляется еще и ' +
-      'уверенность в себе и своих силах.',
-  },
-  {
-    name: 'Наталья Кулешова',
-    photo: '/img/landing/photo-4.png',
-    text:
-      'Спасибо большое за вашу интересную методику изучения языка. С другой стороны посмотрела на обучение. ' +
-      'Всё гораздо легче, чем кажется. Я слушала ваши уроки и удивлялась, почему мне раньше так не ' +
-      'объяснили теорию? Вы за 30 дней уложили в моей голове всё по полочкам. Всё стало понятнее. Я ' +
-      'получила уверенность в себе. Вы молодцы! Спасибо вам!',
-  },
-  {
-    name: 'Ирина Трегубова',
-    photo: '/img/landing/photo-5.png',
-    text:
-      'Огромнейшее спасибо за марафон по немецкому! Вы просто умнички! Это просто невероятно прекрасная и ' +
-      'настолько полезная идея! Для меня было очень интересно его проходить и узнавать что-то новое снова и ' +
-      'снова. Мой словарный запас увеличился, порядок в голове появился и главное что выработалась ' +
-      'постоянная мотивация внутри на что-то делать для себя и для улучшения своего знания языка. Это уже ' +
-      'привычка и она полезная и интересная и как-то почти не заметно сформировалась. Большое спасибо всем ' +
-      'кто придумал и реализовал.',
-  },
-  {
-    name: 'Ида Горбачева',
-    photo: '/img/landing/photo-6.png',
-    text:
-      'Огромная благодарность за созданные марафоны! Здесь можно проверить не только свои способности ' +
-      'говорить на иностранном языке, но и проанализировать жизненные ориентиры. В марафонском забеге ' +
-      'постоянно ощущалась дружеская поддержка, готовность помочь. Мне очень понравилась методическая ' +
-      'система: видеообъяснение, самостоятельный анализ изучаемого, 3 упражнения, логически продолжающие ' +
-      'друг друга. Ощущение, что само собой всё запоминается. Я узнала много нового и о языке, и себе, ' +
-      'и познакомилась с замечательными людьми. Я рада, что многие люди, благодаря вам, получат новые ' +
-      'возможности в жизни.',
-  },
-  {
-    name: 'Елена Матвейчук',
-    photo: '/img/landing/photo-7.png',
-    text:
-      'Марафон от Speakasap - это не только возможность выучить иностранный язык, но и обрести уверенность ' +
-      'в своих силах, преодолеть боязнь говорить на иностранном языке, неправильно или не с таким ' +
-      'блистательным произношением, как хотелось бы! Но я подчеркнула для себя одну главную вещь - когда ты ' +
-      'преодолеешь свои страхи, только тогда у тебя все обязательно получится!!! В марафоне нам дают основу ' +
-      'языка по отличнейшей методике, помогают приобрести уверенность в своих силах, а также узнать свою ' +
-      'индивидуальную мотивацию и не забывать о ней на протяжении всего марафона. А насколько эффективно ' +
-      'пройдут эти 30 дней зависит только от нас. Спасибо за отличную методику, за интересные занятия, ' +
-      'за позитивный настрой на протяжении всего марафона!',
-  },
-  {
-    name: 'Олеся Черкасова',
-    photo: '/img/landing/photo-8.png',
-    text:
-      'Ребята, то, что вы делаете, классно! Вы перевели изучение языка в другую плоскость - умение четко ' +
-      'ставить и достигать поставленную цель. Так что получился микс - язык и тренинг личностного роста. И ' +
-      'подача материала предельно внятная, предельно понятная. И есть грамматика, по которой можно ' +
-      'заниматься дальше. Спасибо вам огромное!',
-  },
-  {
-    name: 'Надежда Золотарева',
-    photo: '/img/landing/photo-9.png',
-    text:
-      'Когда встречаешься с людьми, которые "горят" и хотят сделать твою жизнь лучше, - это оставляет ' +
-      'след в душе. Все участники марафона находились в уютной психологической обстановке, были окружены и ' +
-      'помощью, и моральной поддержкой. Заниматься приятно, все доступно, продумано до мелочей, ' +
-      'только иногда казалось, что слишком много задано /если твой английский близок к нулю!/. Дали такую ' +
-      'хорошую возможность погрузиться в язык и испытать от этого удовольствие. Теперь надо практику ' +
-      'нарабатывать, чтобы полученные знания использовать по максимуму. Спасибо всем и особенно идейному ' +
-      'вдохновителю: Елене Шипиловой.',
-  },
-  {
-    name: 'Анна Громова',
-    photo: '/img/landing/photo-10.png',
-    text:
-      'Спасибо огромное за марафон! Во-первых, Вы очень здорово построили систему обучения - бежать ' +
-      'короткими перебежками большую дистанцию оказалось легче и в языках. Во-вторых, приучили упорно ' +
-      'трудиться каждый день. При чем трудиться так, что и устать не успеваешь, и результат есть. ' +
-      'В-третьих, Вы показали почему важно ставить цели и понимать для чего все делается. Также Вы научили ' +
-      'смотреть дальше: видеть, что будет через какое-то время, если сегодня что-то будет сделано или ' +
-      'наоборот, не сделано. Ну, и наконец, Вы научили не зацикливаться на мыслях "А вдруг, ' +
-      'я сейчас неправильно произнесу? А что обо мне тогда подумают?" Спасибо!',
-  },
-];
+export type ReviewsPaginated = {
+  items: Review[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  nextPage: number | null;
+  prevPage: number | null;
+};
+
+type ReviewRow = {
+  id: string;
+  name: string | null;
+  photo: string | null;
+  text: string | null;
+  thanks: string | null;
+  marathon: string | null;
+  languageCode: string | null;
+  completed: Date | string | null;
+};
+
+const DEFAULT_PAGE_SIZE = 24;
+const MAX_PAGE_SIZE = 60;
+const DEFAULT_AVATAR_PUBLIC_BASE_URL = 'https://minio.alfares.cz/catalog-media/marathon/avatars/default';
 
 @Injectable()
 export class ReviewsService {
   private readonly logger = new Logger(ReviewsService.name);
 
-  list(): Review[] {
-    this.logger.debug('Reviews list requested');
-    return REVIEWS;
+  constructor(private readonly prisma: PrismaService) {}
+
+  async list(page = 1, limit = DEFAULT_PAGE_SIZE): Promise<ReviewsPaginated> {
+    const safePage = Number.isFinite(page) ? Math.max(1, Math.floor(page)) : 1;
+    const safeLimit = Number.isFinite(limit)
+      ? Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(limit)))
+      : DEFAULT_PAGE_SIZE;
+    const offset = (safePage - 1) * safeLimit;
+
+    this.logger.debug(`Reviews list requested: page=${safePage}, limit=${safeLimit}`);
+
+    const [countRow] = await this.prisma.$queryRawUnsafe<Array<{ total: bigint | number | string }>>(
+      this.reviewCountSql(),
+    );
+    const total = Number(countRow?.total || 0);
+    const rows = await this.prisma.$queryRawUnsafe<ReviewRow[]>(
+      `${this.reviewRowsSql()} LIMIT ${safeLimit} OFFSET ${offset}`,
+    );
+    const totalPages = total > 0 ? Math.ceil(total / safeLimit) : 0;
+
+    return {
+      items: rows.map((row) => this.mapRow(row)),
+      page: safePage,
+      limit: safeLimit,
+      total,
+      totalPages,
+      nextPage: safePage < totalPages ? safePage + 1 : null,
+      prevPage: safePage > 1 && totalPages > 0 ? safePage - 1 : null,
+    };
+  }
+
+  private reviewCountSql(): string {
+    return `
+      WITH public_reviews AS (${this.publicReviewsSql()})
+      SELECT COUNT(*)::int AS total FROM public_reviews
+    `;
+  }
+
+  private reviewRowsSql(): string {
+    return `
+      WITH public_reviews AS (${this.publicReviewsSql()})
+      SELECT
+        id,
+        name,
+        photo,
+        text,
+        thanks,
+        marathon,
+        "languageCode",
+        completed
+      FROM public_reviews
+      ORDER BY completed DESC NULLS LAST, id ASC
+    `;
+  }
+
+  private publicReviewsSql(): string {
+    const defaultAvatarBase = (process.env.MARATHON_DEFAULT_AVATAR_BASE_URL || DEFAULT_AVATAR_PUBLIC_BASE_URL)
+      .replace(/'/g, "''")
+      .replace(/\/+$/, '');
+
+    return `
+      SELECT *
+      FROM (
+        SELECT DISTINCT ON (participant.id)
+          submission.id,
+          COALESCE(
+            NULLIF(TRIM(profile."displayName"), ''),
+            NULLIF(TRIM(participant.name), ''),
+            'Участник марафона'
+          ) AS name,
+          COALESCE(NULLIF(TRIM(profile."avatarUrl"), ''), '${defaultAvatarBase}/neutral.svg') AS photo,
+          NULLIF(TRIM(COALESCE(submission."payloadJson"->>'q14', '')), '') AS text,
+          NULLIF(TRIM(COALESCE(submission."payloadJson"->>'q15', '')), '') AS thanks,
+          marathon.title AS marathon,
+          marathon."languageCode",
+          participant."finishedAt" AS completed
+        FROM "StepSubmission" submission
+        INNER JOIN "MarathonParticipant" participant ON participant.id = submission."participantId"
+        INNER JOIN "Marathon" marathon ON marathon.id = participant."marathonId"
+        LEFT JOIN "MarathonStep" step ON step.id = submission."stepId"
+        LEFT JOIN "MarathonUserProfile" profile ON profile."userId" = participant."userId"
+        WHERE
+          submission."isCompleted" = true
+          AND submission."payloadJson" IS NOT NULL
+          AND participant."finishedAt" IS NOT NULL
+          AND (
+            participant.name IS NULL
+            OR (
+              participant.name NOT LIKE 'Marathon Prod Smoke%'
+              AND participant.name <> 'Marathon Smoke Test'
+            )
+          )
+          AND (
+            participant.email IS NULL
+            OR participant.email NOT LIKE '%@example.invalid'
+          )
+          AND (
+            LENGTH(TRIM(COALESCE(submission."payloadJson"->>'q14', ''))) >= 12
+            OR LENGTH(TRIM(COALESCE(submission."payloadJson"->>'q15', ''))) >= 12
+          )
+          AND NOT (
+            TRIM(COALESCE(submission."payloadJson"->>'q14', '')) ~ '^[0-9]+$'
+            AND LENGTH(TRIM(COALESCE(submission."payloadJson"->>'q15', ''))) = 0
+          )
+        ORDER BY participant.id, step.sequence DESC NULLS LAST, submission."updatedAt" DESC
+      ) selected_reviews
+    `;
+  }
+
+  private mapRow(row: ReviewRow): Review {
+    const completed = row.completed instanceof Date
+      ? row.completed.toISOString()
+      : row.completed || new Date(0).toISOString();
+
+    return {
+      id: row.id,
+      name: row.name?.trim() || 'Участник марафона',
+      photo: row.photo?.trim() || `${DEFAULT_AVATAR_PUBLIC_BASE_URL}/neutral.svg`,
+      text: row.text?.trim() || '',
+      thanks: row.thanks?.trim() || '',
+      marathon: row.marathon?.trim() || 'Марафон',
+      languageCode: row.languageCode?.trim() || '',
+      completed,
+    };
   }
 }

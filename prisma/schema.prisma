@@ -16,7 +16,6 @@ model Marathon {
   rulesTemplate   String?
   active          Boolean             @default(false)
   landingVideoUrl String?
-  vipGateDate     DateTime?
   discountEndsAt  DateTime?
   coverImageUrl   String?
   createdAt       DateTime            @default(now())
@@ -52,9 +51,7 @@ model MarathonParticipant {
   email            String?
   phone            String?
   name             String?
-  isFree           Boolean  @default(true)
-  vipRequired      Boolean  @default(false)
-  paymentReported  Boolean  @default(false)
+  paid             Boolean  @default(false)
   bonusDaysLeft    Int      @default(0)
   canUsePenalty    Boolean  @default(true)
   active           Boolean  @default(true)

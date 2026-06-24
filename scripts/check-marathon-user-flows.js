@@ -5,7 +5,7 @@
  * Covers:
  * 1. A visitor traverses every public page and user-entry route.
  * 2. A new participant chooses a language/marathon and attempts registration.
- * 3. A registered participant reaches the VIP checkout boundary.
+ * 3. A registered participant reaches the marathon payment checkout boundary.
  * 4. Payment return URLs land back on the Marathon dashboard.
  * 5. The dashboard exposes post-payment actions: current assignment, report, and feedback.
  *
@@ -234,7 +234,7 @@ async function checkVisitorTraversal(report, options) {
     ['View registration status', 'Registration status', 'Статус регистрации', 'Посмотреть статус регистрации'],
     ['My marathon', 'Open my marathon', 'Мой марафон', 'Открыть мой марафон', '/profile'],
     ['auth.alfares.cz/login', 'auth.alfares.cz/register', 'return_url', 'client_id', 'marathon', 'access_token', 'refresh_token'],
-    ['Pay with PayPal', 'Mastercard', 'Bank transfer', 'VIP checkout', 'VIP unlock', 'Оплатить через PayPal', 'Банковский перевод', 'VIP-доступ'],
+    ['Pay with PayPal', 'Mastercard', 'Bank transfer', 'Оплатить', 'Банковский перевод', 'Нужна оплата марафона'],
     ['Contact support', 'Связаться с поддержкой', '/support'],
     ['Спросите чат-агента о марафоне', 'support-chat-panel', 'Чат отвечает только по марафонам'],
     ['/register'],
@@ -316,11 +316,11 @@ async function checkRegistrationAttempt(report, options, traversalContext) {
 function checkDashboardBundleContract(report, bundle) {
   const markerGroups = [
     ['Payment confirmation is processing', 'Подтверждение оплаты обрабатывается'],
-    ['VIP access is active', 'VIP-доступ активен'],
+    ['Payment confirmed', 'Оплата подтверждена'],
     ['Payment was cancelled', 'Оплата отменена'],
     ['Refresh status', 'Обновить статус'],
-    ['VIP access required', 'Нужен VIP-доступ'],
-    ['Pay with', 'Оплатить через'],
+    ['Payment required', 'Нужна оплата марафона'],
+    ['Pay', 'Оплатить'],
     ['PayPal'],
     ['Mastercard'],
     ['Bank transfer', 'Банковский перевод'],
@@ -332,7 +332,7 @@ function checkDashboardBundleContract(report, bundle) {
     ['Save feedback', 'Update feedback', 'Сохранить отзыв', 'Обновить отзыв'],
   ];
   assertBundleMarkerGroups(bundle, markerGroups, 'Frontend bundle dashboard/payment contract');
-  addCheck(report, 'pass', 'dashboard-payment-action-markers', 'Dashboard bundle contains payment return, VIP checkout, current assignment, report, and feedback action markers.');
+  addCheck(report, 'pass', 'dashboard-payment-action-markers', 'Dashboard bundle contains payment return, checkout, current assignment, report, and feedback action markers.');
 }
 
 async function checkAuthenticatedDashboard(report, options, marathonerId) {
@@ -354,7 +354,7 @@ async function checkAuthenticatedDashboard(report, options, marathonerId) {
 
   report.context.dashboard = {
     type: profile.json.type || '',
-    needsPayment: Boolean(profile.json.needs_payment),
+    paymentRequired: Boolean(profile.json.payment_required),
     hasCurrentStep: Boolean(profile.json.current_step?.stepId),
     assignmentCount: profile.json.answers.length,
     finished: Boolean(profile.json.finished_at),
@@ -367,11 +367,17 @@ async function checkAuthenticatedDashboard(report, options, marathonerId) {
   const reportResponse = await requestJson(report, `/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/progress-report`, {
     authToken: options.authToken,
   });
-  assertOk(reportResponse.response, 'GET /api/v1/me/marathons/:marathonerId/progress-report');
-  if (!reportResponse.json?.summary || !reportResponse.json?.access) {
-    throw new Error('Progress report did not include summary/access dashboard data.');
+  if (profile.json.can_generate_progress_report) {
+    assertOk(reportResponse.response, "GET /api/v1/me/marathons/:marathonerId/progress-report");
+    if (!reportResponse.json?.summary || !reportResponse.json?.access) {
+      throw new Error("Progress report did not include summary/access dashboard data.");
+    }
+    addCheck(report, "pass", "dashboard-progress-report-ready", "Eligible authenticated dashboard can generate a progress report.");
+  } else {
+    assertResponse(reportResponse.response, profile.json.payment_required ? 403 : 400, "pre-eligibility progress report");
+    addCheck(report, "pass", "dashboard-progress-report-gated", "Progress report generation is blocked until payment and checked-step eligibility are satisfied.");
   }
-  addCheck(report, 'pass', 'dashboard-post-payment-actions', 'Authenticated dashboard exposes assignment state, current-step route when available, and progress report actions after payment return.');
+  addCheck(report, "pass", "dashboard-post-payment-actions", "Authenticated dashboard exposes assignment state, current-step route when available, and gates progress report actions by eligibility.");
 }
 
 async function checkPaymentAttempt(report, options, marathonerId) {
@@ -380,9 +386,9 @@ async function checkPaymentAttempt(report, options, marathonerId) {
     return;
   }
 
-  await assertFrontendRoute(report, `/profile/${encodeURIComponent(marathonerId)}#vip-access`);
+  await assertFrontendRoute(report, `/profile/${encodeURIComponent(marathonerId)}#payment-access`);
 
-  const unauthenticatedCheckout = await request(report, '/api/v1/vip/checkout', {
+  const unauthenticatedCheckout = await request(report, '/api/v1/payments/checkout', {
     method: 'POST',
     body: JSON.stringify({ marathonerId }),
   });
@@ -399,12 +405,12 @@ async function checkPaymentAttempt(report, options, marathonerId) {
     return;
   }
 
-  const checkout = await requestJson(report, '/api/v1/vip/checkout', {
+  const checkout = await requestJson(report, '/api/v1/payments/checkout', {
     method: 'POST',
     authToken: options.authToken,
     body: JSON.stringify({ marathonerId }),
   });
-  assertOk(checkout.response, 'POST /api/v1/vip/checkout');
+  assertOk(checkout.response, 'POST /api/v1/payments/checkout');
   if (!checkout.json?.status) {
     throw new Error('Checkout response did not include status.');
   }

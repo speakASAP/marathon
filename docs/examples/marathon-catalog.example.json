@@ -5,9 +5,8 @@
       "title": "APPROVED_MARATHON_TITLE",
       "slug": "approved-marathon-slug",
       "active": true,
-      "vipGateDate": "2026-07-01T00:00:00.000Z",
       "product": {
-        "title": "APPROVED_VIP_PRODUCT_TITLE",
+        "title": "APPROVED_PAYMENT_PRODUCT_TITLE",
         "price": "29.00",
         "currency": "EUR",
         "totalHours": 50
