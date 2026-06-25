@@ -418,9 +418,9 @@ async function assertFrontendHandoffSource(report, rootHtml) {
     }
   }
   if (
-    !css.includes('support-public-status') ||
+    !css.includes('support-public-hero') ||
     !css.includes('support-chat-panel') ||
-    !css.includes('support-public-actions')
+    !css.includes('btn-profile-login')
   ) {
     throw new Error('Built frontend CSS does not include participant-safe support page layout.');
   }
