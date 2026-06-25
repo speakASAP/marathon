@@ -16,6 +16,21 @@ export const PUBLIC_MARATHON_LANGUAGES = [
 
 export const LANDING_LANGUAGE_SLUGS = PUBLIC_MARATHON_LANGUAGES.map((language) => language.slug);
 
+const LANDING_LANGUAGE_CODE_ALIASES: Record<string, string> = {
+  cs: 'cz',
+  da: 'dk',
+  nb: 'no',
+  nn: 'no',
+  sv: 'se',
+};
+
+export function getMarathonLandingPath(code: string): string | null {
+  const normalized = code.toLowerCase();
+  const landingCode = LANDING_LANGUAGE_CODE_ALIASES[normalized] || normalized;
+  const language = PUBLIC_MARATHON_LANGUAGES.find((item) => item.code === landingCode);
+  return language ? `/marathon/${language.slug}` : null;
+}
+
 export const LANGUAGE_LABELS: Record<string, string> = {
   de: 'Немецкий',
   en: 'Английский',

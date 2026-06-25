@@ -1,7 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { fetchWinnerDetail, type WinnerLanguage, type WinnerDetail as WinnerDetailData } from '../api/publicMarathon';
-import { formatLanguageFlag, formatLanguageLabel } from '../languages';
+import { formatLanguageFlag, formatLanguageLabel, getMarathonLandingPath } from '../languages';
 
 type MedalKind = 'gold' | 'silver' | 'bronze';
 
@@ -45,11 +45,19 @@ function WinnerLanguageFlags({ languages }: { languages?: WinnerLanguage[] }) {
     <ul className="winner-language-flags winner-language-flags--detail" aria-label="Пройденные языковые марафоны">
       {languages.map((language) => {
         const label = formatLanguageLabel(language.code, language.title);
+        const marathonPath = getMarathonLandingPath(language.code);
+        const ariaLabel = `Открыть марафон: ${label}`;
         return (
           <li key={language.code}>
-            <span className="winner-language-flag" title={label} aria-label={label}>
-              {formatLanguageFlag(language.code)}
-            </span>
+            {marathonPath ? (
+              <Link className="winner-language-flag" to={marathonPath} title={label} aria-label={ariaLabel}>
+                {formatLanguageFlag(language.code)}
+              </Link>
+            ) : (
+              <span className="winner-language-flag" title={label} aria-label={label}>
+                {formatLanguageFlag(language.code)}
+              </span>
+            )}
           </li>
         );
       })}
