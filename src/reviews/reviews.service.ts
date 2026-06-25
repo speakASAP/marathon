@@ -126,6 +126,11 @@ export class ReviewsService {
           submission."isCompleted" = true
           AND submission."payloadJson" IS NOT NULL
           AND participant."finishedAt" IS NOT NULL
+          AND step.sequence = (
+            SELECT MAX(final_step.sequence)
+            FROM "MarathonStep" final_step
+            WHERE final_step."marathonId" = participant."marathonId"
+          )
           AND (
             participant.name IS NULL
             OR (
