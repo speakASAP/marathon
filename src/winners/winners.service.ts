@@ -492,6 +492,16 @@ export class WinnersService {
       },
     });
 
+    participants.sort((a, b) => {
+      const completedDelta = (a.finishedAt?.getTime() || 0) - (b.finishedAt?.getTime() || 0);
+      if (completedDelta !== 0) return completedDelta;
+
+      const createdDelta = a.createdAt.getTime() - b.createdAt.getTime();
+      if (createdDelta !== 0) return createdDelta;
+
+      return a.id.localeCompare(b.id);
+    });
+
     const reviews: MarathonReview[] = [];
 
     for (const participant of participants) {
@@ -517,7 +527,7 @@ export class WinnersService {
       });
     }
 
-    return reviews.sort((a, b) => new Date(b.completed).getTime() - new Date(a.completed).getTime());
+    return reviews.sort((a, b) => new Date(a.completed).getTime() - new Date(b.completed).getTime());
   }
 
   private async getWinnerLanguages(userId: string): Promise<WinnerLanguage[]> {
