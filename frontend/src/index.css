@@ -3237,10 +3237,15 @@ a:hover {
   padding: 0 18px;
   border: 0;
   border-radius: 8px;
-  background: #1f9f62;
+  background: #ef3f34;
   color: #ffffff;
   font-weight: 800;
+  box-shadow: 0 12px 26px rgba(255, 90, 79, 0.28);
   cursor: pointer;
+}
+
+.support-chat-form button:not(:disabled):hover {
+  background: #cf2f26;
 }
 
 .support-chat-form button:disabled {
@@ -3364,6 +3369,19 @@ a:hover {
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+}
+
+.page-support .btn-profile-login,
+.page-support .btn-profile-open {
+  background: #ef3f34;
+  color: #ffffff;
+  box-shadow: 0 12px 26px rgba(255, 90, 79, 0.28);
+}
+
+.page-support .btn-profile-login:hover,
+.page-support .btn-profile-open:hover {
+  background: #cf2f26;
+  color: #ffffff;
 }
 
 .support-public-grid {
