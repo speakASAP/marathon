@@ -1302,17 +1302,18 @@ a:hover {
 }
 
 .about-route__visual {
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--about-soft);
-  box-shadow: 0 24px 70px rgba(8, 17, 38, 0.14);
+  display: grid;
+  align-items: center;
+  min-height: 460px;
+  overflow: visible;
 }
 
 .about-route__visual img {
-  width: 100%;
-  min-height: 460px;
+  width: min(100%, 520px);
+  margin: 0 auto;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
+  filter: drop-shadow(0 22px 32px rgba(8, 17, 38, 0.16));
 }
 
 .about-route-steps {
