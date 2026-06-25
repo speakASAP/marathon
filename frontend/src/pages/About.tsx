@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import CertificateShowcase from '../components/CertificateShowcase';
 
 const ABOUT_IMAGES = {
@@ -40,9 +40,19 @@ const routeSteps = [
  * Static page: О языковых марафонах.
  */
 export default function About() {
+  const location = useLocation();
+
   useEffect(() => {
     document.title = 'О марафоне — языковые марафоны SpeakASAP®';
   }, []);
+
+  useEffect(() => {
+    if (!location.hash) return;
+    const targetId = location.hash.slice(1);
+    window.requestAnimationFrame(() => {
+      document.getElementById(targetId)?.scrollIntoView({ block: 'start' });
+    });
+  }, [location.hash]);
 
   return (
     <main className="about-landing">
