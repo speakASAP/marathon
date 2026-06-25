@@ -174,13 +174,13 @@ export default function Home() {
               <div className="home-phone-list">
                 <span>Практическое задание</span>
                 <span>Отчет сохранен</span>
-                <span>Оплата подтверждена</span>
+                <span>Отчет проверен</span>
               </div>
             </div>
             <div className="home-notebook">
               <span>Языковой марафон</span>
               <strong>Регистрация. Практика. Финиш A1.</strong>
-              <p>Ежедневная работа связана с профилем участника.</p>
+              <p>Каждый день вы закрепляете грамматику, расширяете словарь и видите реальный прогресс в языке.</p>
             </div>
           </div>
         </div>
