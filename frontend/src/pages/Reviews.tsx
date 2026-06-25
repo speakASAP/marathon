@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   fetchPublicReviewsPage,
   type PublicReview,
   type PublicReviewsPage,
 } from '../api/publicMarathon';
-import { formatLanguageFlag, formatLanguageLabel } from '../languages';
+import { formatLanguageFlag, formatLanguageLabel, getMarathonLandingPath } from '../languages';
 
 const PAGE_SIZE = 24;
 const PAGE_QUERY_PARAM = 'page';
@@ -39,15 +39,23 @@ function buildPageButtons(currentPage: number, totalPages: number): PageButton[]
   });
 }
 
-function ReviewLanguageBadge({ review }: { review: PublicReview }) {
+function ReviewMarathonLink({ review }: { review: PublicReview }) {
   if (!review.languageCode) return null;
+
+  const landingPath = getMarathonLandingPath(review.languageCode);
+  if (!landingPath) return null;
 
   const label = formatLanguageLabel(review.languageCode, review.marathon);
   return (
-    <span className="review-language-badge" title={label} aria-label={label}>
+    <Link
+      className="review-language-badge"
+      to={landingPath}
+      title={`Открыть марафон: ${label}`}
+      aria-label={`Открыть марафон: ${label}`}
+    >
       <span aria-hidden="true">{formatLanguageFlag(review.languageCode)}</span>
       {label}
-    </span>
+    </Link>
   );
 }
 
@@ -158,8 +166,7 @@ export default function Reviews() {
                   <div className="review-card-head">
                     <strong>{review.name}</strong>
                     <div className="review-card-meta">
-                      <ReviewLanguageBadge review={review} />
-                      {review.marathon && <span>{review.marathon}</span>}
+                      <ReviewMarathonLink review={review} />
                     </div>
                   </div>
                   {review.text && <p>{review.text}</p>}
