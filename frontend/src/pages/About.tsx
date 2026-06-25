@@ -58,7 +58,10 @@ export default function About() {
     <main className="about-landing">
       <section className="about-hero">
         <div className="about-hero__copy">
-          <h1>30 дней, чтобы заговорить</h1>
+          <h1>
+            <span>30 дней, чтобы</span>
+            <span>заговорить</span>
+          </h1>
           <p>
             Языковой марафон SpeakASAP — это короткий маршрут от старта до финиша:
             каждый день вы делаете одно понятное задание и видите, как двигаетесь вперед.

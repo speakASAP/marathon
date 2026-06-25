@@ -1041,15 +1041,15 @@ a:hover {
 
 /* Modern About landing */
 .about-landing {
-  --about-ink: #081126;
-  --about-muted: #58677c;
-  --about-line: #dbe6f2;
-  --about-soft: #f4f9ff;
-  --about-blue: #1257b8;
-  --about-coral: #ef3f34;
-  --about-coral-dark: #cf2f26;
-  --about-mint: #20a67a;
-  background: #fff;
+  --about-ink: #173a68;
+  --about-muted: #50647f;
+  --about-line: #cfe0ef;
+  --about-soft: #f2fbff;
+  --about-blue: #0b70d8;
+  --about-coral: #ff4338;
+  --about-coral-dark: #e42d24;
+  --about-mint: #13a983;
+  background: #fbfdff;
   color: var(--about-ink);
   overflow: hidden;
 }
@@ -1073,8 +1073,8 @@ a:hover {
 .about-hero {
   min-height: min(760px, calc(100vh - 76px));
   display: grid;
-  grid-template-columns: minmax(0, 0.82fr) minmax(480px, 1.18fr);
-  gap: clamp(28px, 5vw, 64px);
+  grid-template-columns: minmax(0, 0.96fr) minmax(460px, 1.04fr);
+  gap: clamp(28px, 4vw, 52px);
   align-items: center;
   padding: clamp(40px, 6vw, 76px) 0 clamp(26px, 4vw, 48px);
 }
@@ -1082,10 +1082,14 @@ a:hover {
 .about-hero__copy h1 {
   max-width: 780px;
   margin: 0;
-  color: var(--about-ink);
-  font-size: clamp(3.1rem, 7vw, 7.4rem);
-  line-height: 0.9;
+  color: var(--about-blue);
+  font-size: clamp(3rem, 5.2vw, 5.35rem);
+  line-height: 0.96;
   letter-spacing: 0;
+}
+
+.about-hero__copy h1 span {
+  display: block;
 }
 
 .about-hero__copy p {
@@ -1149,7 +1153,7 @@ a:hover {
   border-radius: 8px;
   overflow: hidden;
   background: var(--about-soft);
-  box-shadow: 0 30px 80px rgba(8, 17, 38, 0.18);
+  box-shadow: 0 24px 70px rgba(16, 75, 145, 0.16);
 }
 
 .about-hero__media img {
@@ -1159,6 +1163,7 @@ a:hover {
   display: block;
   object-fit: cover;
   object-position: 58% center;
+  filter: saturate(1.12) brightness(1.05);
 }
 
 .about-hero__media::after {
@@ -1166,8 +1171,8 @@ a:hover {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(8, 17, 38, 0.16), rgba(8, 17, 38, 0.02) 46%, rgba(8, 17, 38, 0.18)),
-    linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(8, 17, 38, 0.18));
+    linear-gradient(90deg, rgba(11, 112, 216, 0.08), rgba(255, 255, 255, 0) 46%, rgba(255, 67, 56, 0.08)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.06));
   pointer-events: none;
 }
 
@@ -1181,7 +1186,7 @@ a:hover {
   border: 1px solid rgba(255, 255, 255, 0.56);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 20px 50px rgba(8, 17, 38, 0.18);
+  box-shadow: 0 18px 46px rgba(16, 75, 145, 0.16);
   backdrop-filter: blur(14px);
 }
 
@@ -1461,7 +1466,7 @@ a:hover {
   }
 
   .about-hero__copy h1 {
-    font-size: clamp(3rem, 17vw, 4.8rem);
+    font-size: clamp(3rem, 15vw, 4.2rem);
   }
 
   .about-hero__actions {
