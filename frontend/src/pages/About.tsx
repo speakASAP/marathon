@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import CertificateShowcase from '../components/CertificateShowcase';
 
 const ABOUT_IMAGES = {
   hero: '/img/marathon/runners-start-finish.png',
@@ -121,6 +122,24 @@ export default function About() {
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="about-awards" id="awards" aria-labelledby="about-awards-title">
+        <div className="about-section-heading about-awards__heading">
+          <h2 id="about-awards-title">Награды и сертификаты финалиста</h2>
+          <p>
+            По завершении марафона финалисты получают сертификат SpeakASAP. Вид сертификата
+            зависит от результата прохождения: золотой, серебряный или бронзовый.
+          </p>
+        </div>
+        <CertificateShowcase
+          id="about-awards-certificate"
+          className="about-awards__showcase"
+          title="Примеры сертификатов финалиста"
+          lead="Финалист видит статус «Сертификат» и получает одну из трех медальных версий."
+          compact
+          showStatus={false}
+        />
       </section>
 
       <section className="about-final">

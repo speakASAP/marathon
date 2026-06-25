@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { fetchCatalogReadiness, fetchMarathonLanguages, type CatalogReadiness, type MarathonLanguage } from '../api/publicMarathon';
 import { MarathonAuthRequiredError, fetchMyMarathons, fetchMyProfile, type MarathonUserProfileSettings } from '../api/profileMarathon';
@@ -15,6 +15,8 @@ export default function Layout() {
   const [hasToken, setHasToken] = useState(() => Boolean(getToken()));
   const [hasRegisteredMarathon, setHasRegisteredMarathon] = useState(false);
   const [profile, setProfile] = useState<MarathonUserProfileSettings | null>(null);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const hideFooter = false;
@@ -60,11 +62,13 @@ export default function Layout() {
     setHasRegisteredMarathon(false);
     setProfile(null);
     setMenuOpen(false);
+    setProfileMenuOpen(false);
     navigate('/', { replace: true });
   };
 
   useEffect(() => {
     setMenuOpen(false);
+    setProfileMenuOpen(false);
     const tokenPresent = Boolean(getToken());
     setHasToken(tokenPresent);
     if (!tokenPresent) {
@@ -72,6 +76,28 @@ export default function Layout() {
       setProfile(null);
     }
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!profileMenuOpen) return undefined;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Node && profileMenuRef.current && !profileMenuRef.current.contains(target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setProfileMenuOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [profileMenuOpen]);
 
   useEffect(() => {
     if (!hasToken) return;
@@ -148,8 +174,6 @@ export default function Layout() {
             <Link to="/about">О марафоне</Link>
             <Link to="/rules">Правила</Link>
             <Link to="/faq">Помощь</Link>
-            <Link to="/profile">Мой профиль</Link>
-            <Link to="/awards">Награды</Link>
             <Link to="/support">Поддержка</Link>
           </nav>
           <div className="header-actions">
@@ -173,13 +197,26 @@ export default function Layout() {
               </label>
             )}
             {hasToken ? (
-              <div className="navbar-profile-actions">
-                <Link to="/profile" className="navbar-profile-avatar" aria-label="Мой профиль" title="Мой профиль">
+              <div className={`navbar-profile-actions ${profileMenuOpen ? 'navbar-profile-actions--open' : ''}`} ref={profileMenuRef}>
+                <button
+                  type="button"
+                  className="navbar-profile-avatar"
+                  aria-label="Открыть меню профиля"
+                  aria-haspopup="menu"
+                  aria-expanded={profileMenuOpen}
+                  title="Меню профиля"
+                  onClick={() => setProfileMenuOpen((open) => !open)}
+                >
                   {profileAvatarUrl ? <img src={profileAvatarUrl} alt="" /> : <span>{profileInitial}</span>}
-                </Link>
-                <button type="button" className="navbar-logout-button" onClick={handleLogout}>
-                  Выйти
                 </button>
+                <div className="navbar-profile-menu" role="menu">
+                  <Link to="/profile" role="menuitem" onClick={() => setProfileMenuOpen(false)}>
+                    Мой профиль
+                  </Link>
+                  <button type="button" role="menuitem" onClick={handleLogout}>
+                    Выйти
+                  </button>
+                </div>
               </div>
             ) : !hideRegistrationNavigation ? (
               <Link
