@@ -32,7 +32,7 @@ export function getMarathonLandingPath(code: string): string | null {
   const normalized = code.toLowerCase();
   const landingCode = LANDING_LANGUAGE_CODE_ALIASES[normalized] || normalized;
   const language = PUBLIC_MARATHON_LANGUAGES.find((item) => item.code === landingCode);
-  return language ? getMarathonLandingPathFromSlug(language.slug) : null;
+  return language ? getMarathonLandingPathFromSlug(language.slug) : getMarathonLandingPathFromSlug(encodeURIComponent(normalized));
 }
 
 export const LANGUAGE_LABELS: Record<string, string> = {

@@ -65,6 +65,23 @@ function WinnerLanguageFlags({ languages }: { languages?: WinnerLanguage[] }) {
   );
 }
 
+function ReviewMarathonLink({ languageCode, fallback }: { languageCode: string; fallback?: string }) {
+  const label = formatLanguageLabel(languageCode, fallback);
+  const marathonPath = getMarathonLandingPath(languageCode);
+  const ariaLabel = `Открыть марафон: ${label}`;
+
+  if (!marathonPath) {
+    return null;
+  }
+
+  return (
+    <Link className="review-item__language" to={marathonPath} title={label} aria-label={ariaLabel}>
+      <span aria-hidden="true">{formatLanguageFlag(languageCode)}</span>
+      <span>{label}</span>
+    </Link>
+  );
+}
+
 /**
  * Winner detail: GET /api/v1/winners/:winnerId. Shows name, medals, reviews.
  */
@@ -154,7 +171,7 @@ export default function WinnerDetail() {
                     <div className="review-item__meta">
                       <strong>{r.marathon}</strong>
                       {r.languageCode && (
-                        <span className="review-item__language">{formatLanguageFlag(r.languageCode)} {formatLanguageLabel(r.languageCode, r.marathon)}</span>
+                        <ReviewMarathonLink languageCode={r.languageCode} fallback={r.marathon} />
                       )}
                       {r.state && <span>{r.state}</span>}
                     </div>

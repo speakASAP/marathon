@@ -59,7 +59,7 @@ export default function About() {
       <section className="about-hero">
         <div className="about-hero__copy">
           <h1>
-            <span>30 дней, чтобы</span>
+            <span>30 дней, чтобы</span>{" "}
             <span>заговорить</span>
           </h1>
           <p>

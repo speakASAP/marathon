@@ -736,7 +736,8 @@ a:hover {
   gap: 0.5rem;
 }
 
-.review-item__meta span {
+.review-item__meta span,
+.review-item__language {
   display: inline-flex;
   align-items: center;
   min-height: 26px;
@@ -746,6 +747,21 @@ a:hover {
   color: #2d6b38;
   font-size: 0.82rem;
   font-weight: 800;
+}
+
+.review-item__language {
+  gap: 0.25rem;
+  text-decoration: none;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.review-item__language:hover,
+.review-item__language:focus-visible {
+  background: #e1f3e5;
+  color: #245a31;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(70, 156, 92, 0.16);
+  transform: translateY(-1px);
 }
 
 .review-item p {
@@ -1163,7 +1179,7 @@ a:hover {
   display: block;
   object-fit: cover;
   object-position: 58% center;
-  filter: saturate(1.12) brightness(1.05);
+  filter: saturate(1.14) brightness(1.06);
 }
 
 .about-hero__media::after {
