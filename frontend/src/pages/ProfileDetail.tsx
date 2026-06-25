@@ -353,37 +353,39 @@ export default function ProfileDetail() {
           <div className="profile-progress-track"><span style={{ width: `${progressPct}%` }} /></div>
         </div>
       </section>
-      <section className="profile-schedule-panel">
-        <div>
-          <h2>Время отчета</h2>
-          <p>
-            Отчеты появляются каждый день в выбранное время.
-            Если пройти несколько этапов заранее, календарные дни марафона не сжимаются.
-          </p>
-          <p className="profile-schedule-current">
-            Сейчас у вас: <strong>{formatCurrentLocalTime(currentTime)}</strong> <span className="profile-step-meta">({browserTimeZone})</span>
-          </p>
-          <p className="profile-schedule-current">
-            Время отчетов: <strong>{data.report_time_label || formatTimeInput(data.report_time)}</strong>
-          </p>
-        </div>
-        <form onSubmit={submitReportTime} className="profile-report-time-form">
-          <label htmlFor="profile-report-time">Ежедневное время</label>
-          <input
-            id="profile-report-time"
-            type="time"
-            value={reportTime}
-            onChange={(event) => setReportTime(event.target.value)}
-            disabled={!data.can_change_report_time || reportTimeSaving}
-          />
-          <button type="submit" className="btn-profile-open" disabled={!data.can_change_report_time || reportTimeSaving}>
-            {reportTimeSaving ? 'Сохраняем...' : 'Сохранить время'}
-          </button>
-          {!data.can_change_report_time && <span className="profile-step-meta">Время нельзя менять после завершения марафона.</span>}
-          {reportTimeMessage && <p className="step-submit-success">{reportTimeMessage}</p>}
-          {reportTimeError && <p className="ml-error">{reportTimeError}</p>}
-        </form>
-      </section>
+      {!data.payment_required && (
+        <section className="profile-schedule-panel">
+          <div>
+            <h2>Время отчета</h2>
+            <p>
+              Отчеты появляются каждый день в выбранное время.
+              Если пройти несколько этапов заранее, календарные дни марафона не сжимаются.
+            </p>
+            <p className="profile-schedule-current">
+              Сейчас у вас: <strong>{formatCurrentLocalTime(currentTime)}</strong> <span className="profile-step-meta">({browserTimeZone})</span>
+            </p>
+            <p className="profile-schedule-current">
+              Время отчетов: <strong>{data.report_time_label || formatTimeInput(data.report_time)}</strong>
+            </p>
+          </div>
+          <form onSubmit={submitReportTime} className="profile-report-time-form">
+            <label htmlFor="profile-report-time">Ежедневное время</label>
+            <input
+              id="profile-report-time"
+              type="time"
+              value={reportTime}
+              onChange={(event) => setReportTime(event.target.value)}
+              disabled={!data.can_change_report_time || reportTimeSaving}
+            />
+            <button type="submit" className="btn-profile-open" disabled={!data.can_change_report_time || reportTimeSaving}>
+              {reportTimeSaving ? 'Сохраняем...' : 'Сохранить время'}
+            </button>
+            {!data.can_change_report_time && <span className="profile-step-meta">Время нельзя менять после завершения марафона.</span>}
+            {reportTimeMessage && <p className="step-submit-success">{reportTimeMessage}</p>}
+            {reportTimeError && <p className="ml-error">{reportTimeError}</p>}
+          </form>
+        </section>
+      )}
       {paymentReturn && (
         <section className={`profile-payment-return profile-payment-return-${paymentReturn}`}>
           <div>
