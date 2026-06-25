@@ -77,7 +77,6 @@ function ReviewMarathonLink({ languageCode, fallback }: { languageCode: string; 
   return (
     <Link className="review-item__language" to={marathonPath} title={label} aria-label={ariaLabel}>
       <span aria-hidden="true">{formatLanguageFlag(languageCode)}</span>
-      <span>{label}</span>
     </Link>
   );
 }
