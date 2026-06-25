@@ -189,7 +189,7 @@ export default function ProfileDetail() {
               Войти с email или телефоном
             </a>
             <a className="btn-profile-login" href={getPasswordResetUrl()}>Восстановить пароль</a>
-            <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
+            <Link to="/faq" className="btn-profile-login">Связаться с поддержкой</Link>
           </div>
         </section>
       </div>
@@ -206,7 +206,7 @@ export default function ProfileDetail() {
             <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
               Обновить
             </button>
-            <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
+            <Link to="/faq" className="btn-profile-login">Связаться с поддержкой</Link>
           </div>
         </section>
       </div>

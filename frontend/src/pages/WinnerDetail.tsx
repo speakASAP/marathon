@@ -122,7 +122,7 @@ export default function WinnerDetail() {
               <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
                 Обновить
               </button>
-              <Link to="/support" className="btn-profile-login">
+              <Link to="/faq" className="btn-profile-login">
                 Связаться с поддержкой
               </Link>
             </div>

@@ -331,7 +331,7 @@ export default function Profile() {
               <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
                 Обновить
               </button>
-              <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
+              <Link to="/faq" className="btn-profile-login">Связаться с поддержкой</Link>
             </div>
           </section>
         )}
@@ -484,7 +484,7 @@ export default function Profile() {
                 <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
                   Обновить
                 </button>
-                <Link to="/support" className="btn-profile-login">Поддержка</Link>
+                <Link to="/faq" className="btn-profile-login">Поддержка</Link>
               </div>
             </section>
           )}
@@ -493,7 +493,7 @@ export default function Profile() {
             <section className="profile-empty-panel">
               <h2>{cards.length === 0 ? 'Активных марафонов пока нет' : 'Все доступные марафоны уже в вашем профиле'}</h2>
               <p>{cards.length === 0 ? 'Как только каталог будет доступен, здесь появится список языков для участия.' : 'Новые языки появятся здесь, когда откроется следующий марафон.'}</p>
-              {cards.length === 0 && <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>}
+              {cards.length === 0 && <Link to="/faq" className="btn-profile-login">Связаться с поддержкой</Link>}
             </section>
           )}
 

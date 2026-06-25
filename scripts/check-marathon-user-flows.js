@@ -27,7 +27,6 @@ const STATIC_ROUTES = [
   '/rules',
   '/faq',
   '/profile',
-  '/support',
 ];
 
 function parseArgs(argv) {
@@ -235,7 +234,7 @@ async function checkVisitorTraversal(report, options) {
     ['My marathon', 'Open my marathon', 'Мой марафон', 'Открыть мой марафон', '/profile'],
     ['auth.alfares.cz/login', 'auth.alfares.cz/register', 'return_url', 'client_id', 'marathon', 'access_token', 'refresh_token'],
     ['Pay with PayPal', 'Mastercard', 'Bank transfer', 'Оплатить', 'Банковский перевод', 'Нужна оплата марафона'],
-    ['Contact support', 'Связаться с поддержкой', '/support'],
+    ['Contact support', 'Связаться с поддержкой', '/faq'],
     ['Спросите чат-агента о марафоне', 'support-chat-panel', 'Чат отвечает только по марафонам'],
     ['/register'],
     ['/awards'],
@@ -245,7 +244,6 @@ async function checkVisitorTraversal(report, options) {
     ['/rules'],
     ['/faq'],
     ['/profile'],
-    ['/support'],
   ];
   assertBundleMarkerGroups(bundle, markerGroups, 'Frontend bundle visitor navigation/action contract');
   addCheck(report, 'pass', 'visitor-navigation-actions', 'Primary visitor navigation and CTA markers are present in the frontend bundle.');

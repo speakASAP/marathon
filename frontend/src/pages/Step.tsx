@@ -377,7 +377,7 @@ export default function Step() {
               <div className="step-submit-auth-panel" role="alert">
                 <strong>Содержание задания не настроено</strong>
                 <span>Отправка заблокирована, пока поддержка не добавит утвержденное содержание для этого этапа.</span>
-                <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
+                <Link to="/faq" className="btn-profile-login">Связаться с поддержкой</Link>
               </div>
             )}
             {!hasParticipantContext && (

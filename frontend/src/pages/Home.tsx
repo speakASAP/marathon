@@ -113,7 +113,7 @@ export default function Home() {
             <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
               Обновить
             </button>
-            <Link to="/support" className="btn-profile-login">
+            <Link to="/faq" className="btn-profile-login">
               Связаться с поддержкой
             </Link>
           </div>
@@ -215,7 +215,7 @@ export default function Home() {
               <span key={item}>{formatMissingGate(item)}</span>
             ))}
           </div>
-          <Link to="/support" className="ml-outline-action">Открыть инструкции поддержки</Link>
+          <Link to="/faq" className="ml-outline-action">Открыть инструкции поддержки</Link>
         </section>
       )}
 

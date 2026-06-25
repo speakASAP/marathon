@@ -174,7 +174,6 @@ export default function Layout() {
             <Link to="/about">О марафоне</Link>
             <Link to="/rules">Правила</Link>
             <Link to="/faq">Помощь</Link>
-            <Link to="/support">Поддержка</Link>
           </nav>
           <div className="header-actions">
             {!hideRegistrationNavigation && (

@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Navigate, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Landing from './pages/Landing';
 import Home from './pages/Home';
@@ -11,7 +11,6 @@ import Faq from './pages/Faq';
 import Profile from './pages/Profile';
 import ProfileDetail from './pages/ProfileDetail';
 import Step from './pages/Step';
-import Support from './pages/Support';
 import SupportStep from './pages/SupportStep';
 import Register from './pages/Register';
 import Awards from './pages/Awards';
@@ -35,7 +34,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/:marathonerId" element={<ProfileDetail />} />
         <Route path="/steps/:stepId" element={<Step />} />
-        <Route path="/support" element={<Support />} />
+        <Route path="/support" element={<Navigate to="/faq" replace />} />
         <Route path="/support/step/:stepId" element={<SupportStep />} />
         <Route path="/landing" element={<Landing />} />
         <Route path="/marathon/:langSlug" element={<Landing />} />

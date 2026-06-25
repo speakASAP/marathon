@@ -112,7 +112,7 @@ export default function Winners() {
             <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
               Обновить
             </button>
-            <Link to="/support" className="btn-profile-login">
+            <Link to="/faq" className="btn-profile-login">
               Связаться с поддержкой
             </Link>
           </div>
@@ -129,7 +129,7 @@ export default function Winners() {
             <Link to="/register" className="btn btn-landing navbar-cta navbar-cta-closed">
               Статус регистрации
             </Link>
-            <Link to="/support" className="btn btn-winner-link">
+            <Link to="/faq" className="btn btn-winner-link">
               Поддержка
             </Link>
           </div>

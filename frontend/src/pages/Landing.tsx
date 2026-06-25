@@ -150,7 +150,7 @@ export default function Landing() {
             <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
               Обновить
             </button>
-            <Link to="/support" className="btn-profile-login">
+            <Link to="/faq" className="btn-profile-login">
               Связаться с поддержкой
             </Link>
           </div>
@@ -163,7 +163,7 @@ export default function Landing() {
     return (
       <div className="container page-static">
         <p>Данные марафона временно недоступны.</p>
-        <Link to="/support">Связаться с поддержкой</Link>
+        <Link to="/faq">Связаться с поддержкой</Link>
       </div>
     );
   }
@@ -180,7 +180,7 @@ export default function Landing() {
   const heroCtaLabel = registrationOpen ? 'Начать 30-дневный марафон' : 'Посмотреть маршрут на 30 дней';
   const heroSecondary = registrationOpen
     ? { to: '/profile', label: 'Открыть мой марафон' }
-    : { to: '/support', label: 'Связаться с поддержкой' };
+    : { to: '/faq', label: 'Связаться с поддержкой' };
   const pricingIntro = `Марафон устроен как забег: начните со старта, каждый день выполняйте одно задание и придите к финишу с результатом уровня ${resultLevel}.`;
   const heroTitle = registrationOpen
     ? `Пройдите марафон ${raceLanguageName} за 30 дней`
@@ -396,7 +396,7 @@ export default function Landing() {
                   Карточки финалистов и отзывы участников появятся после того, как реальные участники завершат
                   утвержденные production-марафоны.
                 </p>
-                <Link to="/support" className="ml-outline-action">Статус запуска</Link>
+                <Link to="/faq" className="ml-outline-action">Статус запуска</Link>
               </article>
             )}
           </div>
@@ -418,7 +418,7 @@ export default function Landing() {
           <aside>
             <h3>Остались вопросы?</h3>
             <p>Поддержка поможет с регистрацией, доступом к профилю, оплатой и вопросами по заданиям.</p>
-            <Link to="/support" className="ml-outline-action">Связаться с поддержкой</Link>
+            <Link to="/faq" className="ml-outline-action">Связаться с поддержкой</Link>
           </aside>
         </section>
 
@@ -455,7 +455,7 @@ export default function Landing() {
                     </div>
                   </div>
                 ) : null}
-                <Link to="/support" className="ml-outline-action">Связаться с поддержкой</Link>
+                <Link to="/faq" className="ml-outline-action">Связаться с поддержкой</Link>
               </div>
             </>
           )}
@@ -469,7 +469,6 @@ export default function Landing() {
         <nav aria-label="Подвал">
           <Link to="/rules">Правила</Link>
           <Link to="/faq">FAQ</Link>
-          <Link to="/support">Поддержка</Link>
           <Link to="/profile">Мой марафон</Link>
         </nav>
       </footer>

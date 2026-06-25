@@ -41,7 +41,7 @@ export default function SupportStep() {
             <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
               Обновить
             </button>
-            <Link to="/support" className="btn-profile-login">
+            <Link to="/faq" className="btn-profile-login">
               Связаться с поддержкой
             </Link>
           </div>
@@ -53,7 +53,7 @@ export default function SupportStep() {
     return (
       <div className="container">
         <p>Этап не найден.</p>
-        <Link to="/support">← Поддержка</Link>
+        <Link to="/faq">← Поддержка</Link>
       </div>
     );
   }

@@ -422,7 +422,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
     !css.includes('support-chat-panel') ||
     !css.includes('btn-profile-login')
   ) {
-    throw new Error('Built frontend CSS does not include participant-safe support page layout.');
+    throw new Error('Built frontend CSS does not include participant-safe FAQ support layout.');
   }
   await assertPublicLandingAssetsServed(report);
 
@@ -634,7 +634,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
     !js.includes('marathon@speakasap.com') ||
     !js.includes('Онлайн-чат')
   ) {
-    throw new Error('Built frontend bundle does not include participant-safe public support content.');
+    throw new Error('Built frontend bundle does not include participant-safe FAQ support content.');
   }
   for (const forbiddenSupportMarker of [
     'Operational dashboard',
@@ -692,8 +692,8 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   ) {
     throw new Error('Built frontend bundle does not include the Marathon-only support chat UI.');
   }
-  addCheck(report, 'pass', 'support-public-participant-ui', 'Public support page contains participant-safe help and contact content.');
-  addCheck(report, 'pass', 'support-chat-ui', 'Public support page contains Marathon-only chat UI markers.');
+  addCheck(report, 'pass', 'support-public-participant-ui', 'FAQ support block contains participant-safe help and contact content.');
+  addCheck(report, 'pass', 'support-chat-ui', 'FAQ support block contains Marathon-only chat UI markers.');
   addCheck(report, 'pass', 'support-operator-markers-hidden', 'Public support bundle does not expose operator runbook commands or smoke placeholders.');
   addCheck(report, 'pass', 'landing-assets-resolved', 'Built frontend CSS references existing legacy landing assets instead of missing adv/support images.');
   addCheck(report, 'pass', 'gift-readiness-error-state', 'Gift redemption blocks redemption when readiness status cannot be loaded.');

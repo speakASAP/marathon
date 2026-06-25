@@ -91,7 +91,7 @@ export default function Register() {
             <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
               Обновить
             </button>
-            <Link to="/support" className="btn-profile-login">
+            <Link to="/faq" className="btn-profile-login">
               Связаться с поддержкой
             </Link>
           </div>
@@ -122,7 +122,7 @@ export default function Register() {
               </div>
             </div>
           ) : null}
-          <Link to="/support" className="btn-profile-login">Связаться с поддержкой</Link>
+          <Link to="/faq" className="btn-profile-login">Связаться с поддержкой</Link>
         </section>
       )}
       {visibleLanguages.length > 0 && (
