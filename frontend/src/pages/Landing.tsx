@@ -360,6 +360,7 @@ export default function Landing() {
         <CertificateShowcase
           id="landing-certificate"
           className="home-certificate-band"
+          showStatus={false}
           title="Что получает финалист"
           lead="После финиша марафона участник получает статус «Сертификат» и медальную версию сертификата по результату прохождения."
         />
