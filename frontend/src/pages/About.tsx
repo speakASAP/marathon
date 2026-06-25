@@ -5,6 +5,7 @@ import CertificateShowcase from '../components/CertificateShowcase';
 const ABOUT_IMAGES = {
   hero: '/img/marathon/runners-start-finish.png',
   dailyTask: '/img/marathon/runners-daily-task.png',
+  rhythm: '/img/marathon/runners-start-finish.png',
   route: '/img/marathon/marathon-route-runner-20260624.png',
   finish: '/img/marathon/runners-finish-day30.png',
 };
@@ -19,8 +20,8 @@ const benefitBlocks = [
   {
     title: 'Не просто уроки, а ритм',
     text: 'Марафон держит темп и помогает не откладывать язык на завтра.',
-    image: ABOUT_IMAGES.route,
-    alt: 'Маршрут языкового марафона на 30 дней',
+    image: ABOUT_IMAGES.rhythm,
+    alt: 'Участники языкового марафона бегут к финишу',
   },
   {
     title: 'Финиш с видимым результатом',
@@ -94,7 +95,7 @@ export default function About() {
           <span>понятное задание каждый день</span>
         </div>
         <div>
-          <strong>2 часа</strong>
+          <strong>1 час</strong>
           <span>рекомендованное время занятий</span>
         </div>
       </section>
