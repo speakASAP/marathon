@@ -1495,6 +1495,12 @@ a:hover {
 
 
 
+.navbar-profile-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
 .navbar-profile-avatar {
   display: inline-flex;
   align-items: center;
@@ -1524,6 +1530,47 @@ a:hover {
 
 .navbar-profile-avatar:hover {
   background: #216782;
+}
+
+.navbar-logout-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid #dce6f2;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #24324f;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.navbar-logout-button:hover,
+.navbar-logout-button:focus {
+  border-color: #ef3f34;
+  color: #cf2f26;
+}
+
+@media (max-width: 480px) {
+  .navbar-profile-actions {
+    gap: 0.3rem;
+  }
+
+  .navbar-profile-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .navbar-logout-button {
+    min-height: 32px;
+    padding: 0 9px;
+    font-size: 0.76rem;
+  }
 }
 
 .profile-catalog-page {

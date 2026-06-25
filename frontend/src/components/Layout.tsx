@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { fetchCatalogReadiness, fetchMarathonLanguages, type CatalogReadiness, type MarathonLanguage } from '../api/publicMarathon';
 import { MarathonAuthRequiredError, fetchMyMarathons, fetchMyProfile, type MarathonUserProfileSettings } from '../api/profileMarathon';
 import MarathonFooterLinks from './MarathonFooterLinks';
@@ -17,6 +17,7 @@ export default function Layout() {
   const [selectedPaymentRequiredProfile, setSelectedPaymentRequiredProfile] = useState('');
   const [profile, setProfile] = useState<MarathonUserProfileSettings | null>(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const hideFooter = false;
   const registrationStatusUnavailable = Boolean(readinessError);
   const registrationClosed = !registrationStatusUnavailable && readiness?.registrationOpen !== true;
@@ -61,6 +62,16 @@ export default function Layout() {
   const showSelectedPaymentAction = Boolean(selectedPaymentRequiredProfile);
   const profileAvatarUrl = profile?.avatarUrl?.trim() || '';
   const profileInitial = (profile?.displayName?.trim().charAt(0) || 'Я').toUpperCase();
+
+  const handleLogout = () => {
+    clearToken();
+    setHasToken(false);
+    setHasRegisteredMarathon(false);
+    setSelectedPaymentRequiredProfile('');
+    setProfile(null);
+    setMenuOpen(false);
+    navigate('/', { replace: true });
+  };
 
   useEffect(() => {
     setMenuOpen(false);
@@ -181,9 +192,14 @@ export default function Layout() {
               </a>
             )}
             {hasToken ? (
-              <Link to="/profile" className="navbar-profile-avatar" aria-label="Мой профиль" title="Мой профиль">
-                {profileAvatarUrl ? <img src={profileAvatarUrl} alt="" /> : <span>{profileInitial}</span>}
-              </Link>
+              <div className="navbar-profile-actions">
+                <Link to="/profile" className="navbar-profile-avatar" aria-label="Мой профиль" title="Мой профиль">
+                  {profileAvatarUrl ? <img src={profileAvatarUrl} alt="" /> : <span>{profileInitial}</span>}
+                </Link>
+                <button type="button" className="navbar-logout-button" onClick={handleLogout}>
+                  Выйти
+                </button>
+              </div>
             ) : !hideRegistrationNavigation ? (
               <Link
                 to="/register"
