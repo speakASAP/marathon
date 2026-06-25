@@ -24,11 +24,15 @@ const LANDING_LANGUAGE_CODE_ALIASES: Record<string, string> = {
   sv: 'se',
 };
 
+export function getMarathonLandingPathFromSlug(slug: string): string {
+  return `/marathon/${slug.replace(/^\/+|\/+$/g, '')}`;
+}
+
 export function getMarathonLandingPath(code: string): string | null {
   const normalized = code.toLowerCase();
   const landingCode = LANDING_LANGUAGE_CODE_ALIASES[normalized] || normalized;
   const language = PUBLIC_MARATHON_LANGUAGES.find((item) => item.code === landingCode);
-  return language ? `/marathon/${language.slug}` : null;
+  return language ? getMarathonLandingPathFromSlug(language.slug) : null;
 }
 
 export const LANGUAGE_LABELS: Record<string, string> = {

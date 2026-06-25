@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { PUBLIC_MARATHON_LANGUAGES } from '../languages';
+import { PUBLIC_MARATHON_LANGUAGES, getMarathonLandingPathFromSlug } from '../languages';
 
 interface MarathonFooterLinksProps {
   className?: string;
@@ -15,7 +15,7 @@ export default function MarathonFooterLinks({ className = '' }: MarathonFooterLi
       </Link>
       <nav className="marathon-footer-links__nav" aria-label="Марафоны по иностранным языкам">
         {PUBLIC_MARATHON_LANGUAGES.map((language) => (
-          <Link key={language.slug} to={'/' + language.slug}>
+          <Link key={language.slug} to={getMarathonLandingPathFromSlug(language.slug)}>
             {language.label}
           </Link>
         ))}

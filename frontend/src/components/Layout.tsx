@@ -4,7 +4,7 @@ import { fetchCatalogReadiness, fetchMarathonLanguages, type CatalogReadiness, t
 import { MarathonAuthRequiredError, fetchMyMarathons, fetchMyProfile, type MarathonUserProfileSettings } from '../api/profileMarathon';
 import MarathonFooterLinks from './MarathonFooterLinks';
 import { clearToken, getToken } from '../auth';
-import { PUBLIC_MARATHON_LANGUAGES, formatLanguageOptionLabel } from '../languages';
+import { PUBLIC_MARATHON_LANGUAGES, formatLanguageOptionLabel, getMarathonLandingPathFromSlug } from '../languages';
 
 /** Global shell: one shared Marathon header for every route. */
 export default function Layout() {
@@ -32,16 +32,16 @@ export default function Layout() {
     return PUBLIC_MARATHON_LANGUAGES.map((language) => ({
       code: language.code,
       name: language.label.replace(/\s+A1$/, ''),
-      url: `/${language.slug}/`,
+      url: getMarathonLandingPathFromSlug(language.slug),
     }));
   }, [languages]);
   const currentLanguagePath = useMemo(() => {
     const normalizedPath = location.pathname.replace(/\/$/, '') || '/';
     const match = languageOptions.find((language) => {
-      const href = language.url || `/${language.code}/`;
+      const href = language.url || getMarathonLandingPathFromSlug(language.code);
       const pathname = href.startsWith('http') ? new URL(href).pathname : href;
       const normalizedLanguagePath = pathname.replace(/\/$/, '') || '/';
-      return normalizedPath === normalizedLanguagePath || normalizedPath === `/${language.code}`;
+      return normalizedPath === normalizedLanguagePath;
     });
     if (!match) return '';
     return match.url || `/${match.code}/`;
@@ -189,7 +189,7 @@ export default function Layout() {
                 >
                   <option value="">Выберите язык</option>
                   {languageOptions.map((language) => (
-                    <option key={language.code} value={language.url || `/${language.code}/`}>
+                    <option key={language.code} value={language.url || getMarathonLandingPathFromSlug(language.code)}>
                       {formatLanguageOptionLabel(language.code, language.name)}
                     </option>
                   ))}
