@@ -630,9 +630,8 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   }
   if (
     !js.includes('Поддержка марафона') ||
-    !js.includes('support-public-status') ||
-    !js.includes('Профиль и вход') ||
-    !js.includes('Продолжить участие') ||
+    !js.includes('Связаться с поддержкой') ||
+    !js.includes('marathon@speakasap.com') ||
     !js.includes('Онлайн-чат')
   ) {
     throw new Error('Built frontend bundle does not include participant-safe public support content.');
@@ -693,7 +692,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   ) {
     throw new Error('Built frontend bundle does not include the Marathon-only support chat UI.');
   }
-  addCheck(report, 'pass', 'support-public-participant-ui', 'Public support page contains participant-safe status and help content.');
+  addCheck(report, 'pass', 'support-public-participant-ui', 'Public support page contains participant-safe help and contact content.');
   addCheck(report, 'pass', 'support-chat-ui', 'Public support page contains Marathon-only chat UI markers.');
   addCheck(report, 'pass', 'support-operator-markers-hidden', 'Public support bundle does not expose operator runbook commands or smoke placeholders.');
   addCheck(report, 'pass', 'landing-assets-resolved', 'Built frontend CSS references existing legacy landing assets instead of missing adv/support images.');

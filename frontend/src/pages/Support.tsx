@@ -1,5 +1,4 @@
 import { FormEvent, Fragment, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { sendSupportChatMessage } from "../api/publicMarathon";
 
 const SUPPORT_EMAIL = 'marathon@speakasap.com';
@@ -119,21 +118,6 @@ export default function Support() {
           {chatError && <p className="ml-error">{chatError}</p>}
           <p>Чат отвечает только по марафонам и не обрабатывает вопросы вне этой темы.</p>
         </form>
-      </section>
-
-
-      <section className="support-public-status" aria-label="Быстрые действия">
-        <div className="support-public-status-heading">
-          <span>Профиль и вход</span>
-          <strong className="support-status-badge">Участнику</strong>
-        </div>
-        <p>
-          Войдите в профиль, чтобы открыть свои марафоны, оплату, подарочный код, отчеты и обратную связь.
-        </p>
-        <div className="support-public-actions">
-          <Link to="/profile" className="btn-profile-login">Продолжить участие</Link>
-          <Link to="/register" className="btn-profile-open">Выбрать язык</Link>
-        </div>
       </section>
 
     </div>
