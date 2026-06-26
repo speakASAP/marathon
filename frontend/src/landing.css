@@ -1522,7 +1522,7 @@
 }
 
 .ml-hero {
-  grid-template-columns: minmax(0, 0.64fr) minmax(620px, 1.36fr);
+  grid-template-columns: minmax(0, 0.78fr) minmax(560px, 1.22fr);
   align-items: stretch;
   gap: clamp(42px, 6vw, 96px);
   min-height: calc(100vh - 76px);
@@ -1531,12 +1531,15 @@
 
 .ml-hero-copy {
   align-self: center;
+  min-width: 0;
 }
 
 .ml-hero h1 {
-  max-width: 600px;
-  font-size: 4.65rem;
+  max-width: 640px;
+  font-size: clamp(3.85rem, 3.8vw, 4.25rem);
   line-height: 1.02;
+  overflow-wrap: break-word;
+  text-wrap: balance;
 }
 
 .ml-hero-actions .ml-primary-action,
@@ -1546,7 +1549,7 @@
 
 @media (max-width: 1280px) {
   .ml-hero h1 {
-    font-size: 4rem;
+    font-size: clamp(3.35rem, 5vw, 4rem);
   }
 }
 
@@ -2105,6 +2108,7 @@ button.ml-race-status {
 @media (max-width: 720px) {
   .ml-hero h1 {
     font-size: clamp(2.7rem, 13vw, 3.5rem);
+    text-wrap: auto;
   }
 
   .ml-race-hero,

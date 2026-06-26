@@ -17,10 +17,10 @@ import '../landing.css';
 
 
 const MARATHON_IMAGES = {
-  hero: '/img/marathon/runners-start-finish.png',
-  dailyTask: '/img/marathon/runners-daily-task.png',
-  finish: '/img/marathon/runners-finish-day30.png',
-  routeRunner: '/img/marathon/marathon-route-runner-20260624.png',
+  hero: '/img/marathon/runners-start-finish.webp',
+  dailyTask: '/img/marathon/runners-daily-task.webp',
+  finish: '/img/marathon/runners-finish-day30.webp',
+  routeRunner: '/img/marathon/marathon-route-runner-20260624.webp',
 };
 
 function formatLanguageName(marathon: MarathonSummary): string {
