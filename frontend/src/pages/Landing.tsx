@@ -464,7 +464,7 @@ export default function Landing() {
 
       <footer className="ml-footer">
         <div>
-          <strong>Марафон <span>от Спикаса</span></strong>
+          <strong>Марафон <span>от Спикасап</span></strong>
         </div>
         <nav aria-label="Подвал">
           <Link to="/rules">Правила</Link>
