@@ -2624,6 +2624,18 @@ a:hover {
   margin-top: 0.35rem;
 }
 
+.step-peer-report-action {
+  display: flex;
+  justify-content: flex-start;
+  margin: 1rem 0 0.75rem;
+}
+
+.step-peer-report-action .btn-profile-login {
+  min-height: 44px;
+  margin-top: 0;
+  justify-content: center;
+}
+
 .step-schedule-current {
   display: grid;
   gap: 0.5rem;

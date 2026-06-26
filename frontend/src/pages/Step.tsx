@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { getToken, redirectToLogin } from '../auth';
 import {
   MarathonAuthRequiredError,
@@ -212,6 +212,7 @@ export default function Step() {
   const [reportTimeSaving, setReportTimeSaving] = useState(false);
   const [reportTimeMessage, setReportTimeMessage] = useState('');
   const [reportTimeError, setReportTimeError] = useState('');
+  const contentCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!stepId) return;
@@ -518,6 +519,13 @@ export default function Step() {
     || isFinalSubmission;
   const peerОтчетEmpty = tab === 'report' && !loadingRandom && !randomAnswer;
 
+  const openPeerReports = () => {
+    setTab('report');
+    window.requestAnimationFrame(() => {
+      contentCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
   useEffect(() => {
     if (tab === 'report' && !canViewPeerReports) {
       setTab('task');
@@ -586,7 +594,7 @@ export default function Step() {
         )}
       </div>
       <h1>{step?.title ?? `Этап ${stepId}`}</h1>
-      <div className="step-content-card">
+      <div className="step-content-card" ref={contentCardRef}>
       {canViewPeerReports && (
         <div className="step-tabs">
           <button
@@ -705,6 +713,13 @@ export default function Step() {
             </form>
             {submitMessage && <p className="step-submit-success">{submitMessage}</p>}
             {submitError && <p className="ml-error">{submitError}</p>}
+            {canViewPeerReports && (
+              <div className="step-peer-report-action" aria-label="Отчеты других участников">
+                <button type="button" className="btn-profile-login" onClick={openPeerReports}>
+                  Отчёты других участников
+                </button>
+              </div>
+            )}
             {nextSchedule && marathon && (
               <section className="step-next-control" aria-label="Следующий этап">
                 <div className="step-next-control-main">
