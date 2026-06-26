@@ -77,10 +77,18 @@ function isOptionalStep1Note(text: string) {
   return /^\(дальше\s+заполнять\s+необязательно\)\.?$/i.test(text);
 }
 
+function isSentenceContinuation(previousText: string, text: string) {
+  const previous = previousText.trim();
+  if (!previous || /[.!?…:;]$/.test(previous)) return false;
+  if (/^(?:[-–—*•]|\d+[.)])\s*/.test(text)) return false;
+  return /^[а-яёa-z]/.test(text);
+}
+
 function shouldJoinWithPrevious(previous: AssignmentBlock | undefined, text: string) {
-  if (!previous || previous.type !== 'text') return false;
+  if (!previous || previous.type !== "text") return false;
   return /^[.!?,;:]+$/.test(text)
-    || /^настроек\.?$/i.test(text) && /^Сформируйте отчет\./i.test(previous.text);
+    || /^настроек\.?$/i.test(text) && /^Сформируйте отчет\./i.test(previous.text)
+    || isSentenceContinuation(previous.text, text);
 }
 
 function normalizeTextBlockSequence(blocks: AssignmentBlock[]): AssignmentBlock[] {
@@ -91,10 +99,17 @@ function normalizeTextBlockSequence(blocks: AssignmentBlock[]): AssignmentBlock[
       continue;
     }
 
-    const text = block.text.trim();
+    let text = block.text.trim();
     if (!text || isOptionalStep1Note(text)) continue;
 
     const previous = normalized[normalized.length - 1];
+    const leadingPunctuation = text.match(/^([.!?,;:]+)\s+([\s\S]+)$/);
+    if (leadingPunctuation && previous?.type === "text" && sameBranch(previous, block)) {
+      previous.text = `${previous.text}${leadingPunctuation[1]}`;
+      text = leadingPunctuation[2].trim();
+      if (!text || isOptionalStep1Note(text)) continue;
+    }
+
     if (/^Отвечайте\s+🇷🇺\s+по-русски\.?$/i.test(text)) {
       let joined = false;
       for (let index = normalized.length - 1; index >= 0; index -= 1) {
