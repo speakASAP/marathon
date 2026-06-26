@@ -15,7 +15,11 @@ export interface AssignmentChoice {
 }
 
 export type AssignmentBlock =
-  | { id: string; type: 'text'; text: string; branch?: AssignmentBranch }
+  | { id: string; type: 'text'; text: string; style?: 'paragraph' | 'heading' | 'lead'; branch?: AssignmentBranch }
+  | { id: string; type: 'quote'; text: string; branch?: AssignmentBranch }
+  | { id: string; type: 'list'; title?: string; items: string[]; branch?: AssignmentBranch }
+  | { id: string; type: 'knownWords'; name: string; paragraphs: string[]; label?: string; sourceForm?: string; sourceName?: string; branch?: AssignmentBranch }
+  | { id: string; type: 'link'; href: string; text: string; branch?: AssignmentBranch }
   | { id: string; type: 'video'; code: string; title?: string; branch?: AssignmentBranch }
   | { id: string; type: 'audio'; code: string; title?: string; branch?: AssignmentBranch }
   | {

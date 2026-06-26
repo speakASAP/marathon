@@ -522,24 +522,24 @@ export default function Step() {
 
   const stepUrl = (targetStepId: string) => `/steps/${targetStepId}?marathonerId=${participantStepQuery}`;
 
-  const renderStepNavigation = (placement: 'top' | 'footer' | 'report' = 'top') => {
+  const renderStepNavigation = (placement: 'top' | 'footer' = 'top') => {
     if (!previousSchedule && !nextSchedule) return null;
 
     return (
       <nav className={`step-sequence-actions step-sequence-actions-${placement}`} aria-label="Навигация по этапам">
         {previousSchedule ? (
-          <Link to={stepUrl(previousSchedule.stepId)} className="btn-profile-login">
+          <Link to={stepUrl(previousSchedule.stepId)} className="step-nav-link">
             Предыдущий этап
           </Link>
         ) : (
-          <span className="btn-profile-login step-nav-disabled">Предыдущий этап</span>
+          <span className="step-nav-link step-nav-disabled">Предыдущий этап</span>
         )}
         {nextSchedule ? (
-          <Link to={stepUrl(nextSchedule.stepId)} className="btn-profile-open">
+          <Link to={stepUrl(nextSchedule.stepId)} className="step-nav-link">
             Следующий этап
           </Link>
         ) : (
-          <span className="btn-profile-open step-nav-disabled">Следующий этап</span>
+          <span className="step-nav-link step-nav-disabled">Следующий этап</span>
         )}
       </nav>
     );
@@ -609,7 +609,6 @@ export default function Step() {
             Показать ещё
           </button>
         )}
-        {renderStepNavigation('report')}
       </div>
       {peerОтчетEmpty && (
         <div className="step-peer-empty" aria-live="polite">
@@ -806,16 +805,13 @@ export default function Step() {
             </form>
             {submitMessage && <p className="step-submit-success">{submitMessage}</p>}
             {submitError && <p className="ml-error">{submitError}</p>}
-            <div className="step-footer-navigation-row">
-              {canViewPeerReports && (
-                <div className="step-peer-report-action" aria-label="Отчеты других участников">
-                  <button type="button" className="btn-profile-login" onClick={openPeerReports}>
-                    Отчёты других участников
-                  </button>
-                </div>
-              )}
-              {renderStepNavigation('footer')}
-            </div>
+            {canViewPeerReports && (
+              <div className="step-peer-report-action" aria-label="Отчеты других участников">
+                <button type="button" className="btn-profile-login" onClick={openPeerReports}>
+                  Отчёты других участников
+                </button>
+              </div>
+            )}
             {renderNextControl()}
             {canViewPeerReports && renderPeerReports(true)}
           </section>
@@ -829,6 +825,7 @@ export default function Step() {
         </>
       )}
       </div>
+      {renderStepNavigation('footer')}
     </div>
   );
 }
