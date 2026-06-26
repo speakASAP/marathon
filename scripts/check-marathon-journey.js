@@ -961,6 +961,18 @@ async function checkPublicRoutes(report, options) {
     throw new Error('Step detail did not include assignmentContent.');
   }
   addCheck(report, 'pass', 'step-content-api', 'Step detail API returned assignment content.');
+  if (!Array.isArray(step.json.assignmentBlocks) || step.json.assignmentBlocks.length === 0) {
+    throw new Error('Step detail did not include structured assignmentBlocks.');
+  }
+  const hasVideo = step.json.assignmentBlocks.some((block) => block?.type === 'video' && block.code);
+  const q1 = step.json.assignmentBlocks.find((block) => block?.type === 'field' && block.name === 'q1');
+  if (!hasVideo) {
+    throw new Error('Step detail assignmentBlocks did not include a video block.');
+  }
+  if (!q1 || !Array.isArray(q1.choices) || q1.choices.length < 3) {
+    throw new Error('Step detail assignmentBlocks did not include legacy q1 choices.');
+  }
+  addCheck(report, 'pass', 'step-assignment-blocks-api', 'Step detail API returned structured video and q1 field blocks.');
   return { marathon: marathon.json, steps: steps.json };
 }
 

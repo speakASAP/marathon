@@ -2,7 +2,11 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   AdminMarathonPricingError,
   AdminMarathonPricesResponse,
+  AdminTestPaymentParticipant,
+  AdminTestPaymentResponse,
   fetchAdminMarathonPrices,
+  fetchAdminTestPaymentParticipants,
+  updateAdminTestPayment,
   updateAllAdminMarathonPrices,
 } from '../api/adminMarathon';
 import { getLoginUrl } from '../auth';
@@ -28,7 +32,7 @@ function statusForError(error: unknown): StatusState {
     }
     return { kind: 'error', message: error.message };
   }
-  return { kind: 'error', message: 'Не удалось загрузить админку цен.' };
+  return { kind: 'error', message: 'Не удалось загрузить админку.' };
 }
 
 export default function AdminMarathonPrices() {
@@ -38,6 +42,9 @@ export default function AdminMarathonPrices() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<StatusState>({ kind: 'idle', message: '' });
+  const [testPayments, setTestPayments] = useState<AdminTestPaymentResponse | null>(null);
+  const [paymentSavingId, setPaymentSavingId] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<StatusState>({ kind: 'idle', message: '' });
 
   useEffect(() => {
     let alive = true;
@@ -55,10 +62,26 @@ export default function AdminMarathonPrices() {
       })
       .catch((error: unknown) => {
         if (!alive) return;
+        setTestPayments(null);
         setStatus(statusForError(error));
       })
       .finally(() => {
         if (alive) setLoading(false);
+      });
+
+    fetchAdminTestPaymentParticipants()
+      .then((paymentResult) => {
+        if (!alive) return;
+        setTestPayments(paymentResult);
+        setPaymentStatus({ kind: 'idle', message: '' });
+      })
+      .catch((error: unknown) => {
+        if (!alive) return;
+        if (error instanceof AdminMarathonPricingError && (error.status === 401 || error.status === 403)) {
+          setTestPayments(null);
+          return;
+        }
+        setPaymentStatus(statusForError(error));
       });
 
     return () => {
@@ -108,6 +131,30 @@ export default function AdminMarathonPrices() {
       setStatus(statusForError(error));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleTestPaymentToggle(participant: AdminTestPaymentParticipant) {
+    const nextPaid = !participant.paid;
+    setPaymentSavingId(participant.id);
+    setPaymentStatus({ kind: 'idle', message: '' });
+    try {
+      const updated = await updateAdminTestPayment({
+        participantId: participant.id,
+        paid: nextPaid,
+        expectedPaid: participant.paid,
+      });
+      setTestPayments(updated);
+      setPaymentStatus({
+        kind: 'success',
+        message: nextPaid
+          ? 'Тестовая оплата отмечена. Доступ к заданиям открыт.'
+          : 'Тестовая оплата снята. Доступ снова требует оплаты.',
+      });
+    } catch (error) {
+      setPaymentStatus(statusForError(error));
+    } finally {
+      setPaymentSavingId(null);
     }
   }
 
@@ -190,6 +237,75 @@ export default function AdminMarathonPrices() {
             </table>
           </div>
         </section>
+
+        {(testPayments || paymentStatus.message) && <section className="admin-pricing-panel" aria-label="Тестовая оплата">
+          <header className="admin-pricing-header">
+            <p className="admin-pricing-kicker">Тестирование доступа</p>
+            <h2>Оплата для test@example.com</h2>
+            <p>
+              Переключатель меняет только флаг доступа участника с email {testPayments?.testEmail || 'test@example.com'}.
+              Платежная попытка, возврат или внешний платеж не создаются.
+            </p>
+          </header>
+
+          {paymentStatus.message ? (
+            <p
+              className={`admin-pricing-status ${paymentStatus.kind}`}
+              role={paymentStatus.kind === 'error' ? 'alert' : 'status'}
+            >
+              {paymentStatus.message}
+            </p>
+          ) : null}
+
+          <div className="admin-pricing-table-wrap">
+            <table className="admin-pricing-table">
+              <thead>
+                <tr>
+                  <th>Марафон</th>
+                  <th>Email</th>
+                  <th>Статус</th>
+                  <th>Действие</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(testPayments?.participants || []).map((participant) => (
+                  <tr key={participant.id}>
+                    <td>
+                      {participant.marathon.title}
+                      <br />
+                      <span className="admin-pricing-muted">{participant.marathon.slug}</span>
+                    </td>
+                    <td>{participant.email || testPayments?.testEmail}</td>
+                    <td>
+                      {participant.paid ? 'Оплачено' : 'Требуется оплата'}
+                      {!participant.active ? (
+                        <>
+                          <br />
+                          <span className="admin-pricing-muted">неактивен</span>
+                        </>
+                      ) : null}
+                    </td>
+                    <td>
+                      <button
+                        className="admin-pricing-save"
+                        disabled={Boolean(paymentSavingId) || !participant.active}
+                        onClick={() => handleTestPaymentToggle(participant)}
+                        type="button"
+                      >
+                        {paymentSavingId === participant.id
+                          ? 'Сохраняем...'
+                          : participant.paid ? 'Снять оплату' : 'Отметить оплату'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {!loading && testPayments && testPayments.participants.length === 0 ? (
+            <p className="admin-pricing-status">Участник test@example.com не найден.</p>
+          ) : null}
+        </section>}
       </div>
     </main>
   );

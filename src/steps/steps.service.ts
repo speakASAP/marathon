@@ -1,11 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
+import { AssignmentBlock, normalizeAssignmentBlocks } from "./assignment-blocks";
 
 export type StepSummary = {
   id: string;
   title: string;
   sequence: number;
   assignmentContent: string | null;
+  assignmentBlocks: AssignmentBlock[];
   formKey: string | null;
   socialLink: string | null;
   isTrialStep: boolean;
@@ -29,6 +31,7 @@ export class StepsService {
       title: step.title,
       sequence: step.sequence,
       assignmentContent: step.assignmentContent,
+      assignmentBlocks: normalizeAssignmentBlocks(step.assignmentBlocks),
       formKey: step.formKey,
       socialLink: step.socialLink,
       isTrialStep: step.isTrialStep,
@@ -47,6 +50,7 @@ export class StepsService {
       title: s.title,
       sequence: s.sequence,
       assignmentContent: s.assignmentContent,
+      assignmentBlocks: normalizeAssignmentBlocks(s.assignmentBlocks),
       formKey: s.formKey,
       socialLink: s.socialLink,
       isTrialStep: s.isTrialStep,

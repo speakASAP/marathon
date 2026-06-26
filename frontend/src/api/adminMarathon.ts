@@ -28,6 +28,32 @@ export type AdminMarathonPricesResponse = {
   items: AdminMarathonPriceItem[];
 };
 
+export type AdminTestPaymentParticipant = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  active: boolean;
+  paid: boolean;
+  createdAt: string;
+  marathon: {
+    id: string;
+    title: string;
+    languageCode: string;
+    slug: string;
+  };
+};
+
+export type AdminTestPaymentResponse = {
+  testEmail: string;
+  participants: AdminTestPaymentParticipant[];
+};
+
+export type UpdateAdminTestPaymentInput = {
+  participantId: string;
+  paid: boolean;
+  expectedPaid: boolean;
+};
+
 export type AdminSession = {
   admin: boolean;
   userId: string;
@@ -81,4 +107,22 @@ export async function updateAllAdminMarathonPrices(
     body: JSON.stringify(input),
   });
   return parseResponse<AdminMarathonPricesResponse>(response);
+}
+
+export async function fetchAdminTestPaymentParticipants(): Promise<AdminTestPaymentResponse> {
+  const response = await authFetch('/api/v1/admin/marathons/testing/payment');
+  return parseResponse<AdminTestPaymentResponse>(response);
+}
+
+export async function updateAdminTestPayment(
+  input: UpdateAdminTestPaymentInput,
+): Promise<AdminTestPaymentResponse> {
+  const response = await authFetch('/api/v1/admin/marathons/testing/payment', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+  return parseResponse<AdminTestPaymentResponse>(response);
 }

@@ -78,8 +78,9 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, []);
 
-  const registrationOpen = readiness?.registrationOpen === true;
-  const missingLaunchGates = readiness?.missing ?? [];
+  const hasReadiness = readiness !== null;
+  const registrationOpen = readiness?.registrationOpen !== false;
+  const missingLaunchGates = hasReadiness ? readiness.missing ?? [] : [];
   const fallbackLanguages = useMemo<MarathonLanguage[]>(
     () => PUBLIC_MARATHON_LANGUAGES.map((language) => ({
       code: language.code,
@@ -193,8 +194,7 @@ export default function Home() {
           <p>Выберите любой доступный языковой марафон. Если регистрация еще закрыта, страница языка покажет маршрут и статус запуска.</p>
         </div>
         <div className="home-language-rail">
-          {loading && <span className="home-language-loading">Загрузка языков...</span>}
-          {!loading && featuredLanguages.map((language) => (
+          {featuredLanguages.map((language) => (
             <Link key={language.code} to={getMarathonRegisterPath(language)} className="home-language-chip">
               {formatLanguageOptionLabel(language.code, language.name)}
             </Link>

@@ -6,13 +6,21 @@
 :root {
   /* Legacy colors */
   --marathon-bg: #ecf0f1;
-  --marathon-green-from: #29a55e;
-  --marathon-green-to: #6fc400;
-  --marathon-green-hover-from: #29a55e;
-  --marathon-green-hover-to: #4eb52d;
   --marathon-stripe: #14b5ea;
   --marathon-nav-accent: #50d0de;
   --marathon-text-on-dark: #fff;
+  --marathon-button-primary: #ef3f34;
+  --marathon-button-primary-hover: #cf2f26;
+  --marathon-button-primary-shadow: 0 14px 30px rgba(239, 63, 52, 0.24);
+  --marathon-button-secondary-bg: #fff;
+  --marathon-button-secondary-text: #1b2a48;
+  --marathon-button-secondary-border: #d8e3ef;
+  --marathon-button-secondary-hover-border: #b7c8df;
+  --marathon-button-secondary-hover-text: #1257b8;
+  --marathon-button-muted: #566987;
+  --marathon-button-muted-hover: #42536e;
+  --marathon-button-radius: 8px;
+  --marathon-button-min-height: 44px;
   --marathon-muted: #757575;
   --marathon-card-bg: #fff;
   --marathon-border: #e0e0e0;

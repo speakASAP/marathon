@@ -21,7 +21,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const hideFooter = false;
   const registrationStatusUnavailable = Boolean(readinessError);
-  const registrationClosed = !registrationStatusUnavailable && readiness?.registrationOpen !== true;
+  const registrationClosed = !registrationStatusUnavailable && readiness?.registrationOpen === false;
   const navRegistrationLabel = 'Регистрация';
   const navRegistrationTitle = registrationStatusUnavailable
     ? 'Статус регистрации недоступен. Откройте страницу регистрации для подробностей.'
@@ -220,7 +220,7 @@ export default function Layout() {
             ) : !hideRegistrationNavigation ? (
               <Link
                 to="/register"
-                className={`btn btn-landing navbar-cta ${registrationClosed || registrationStatusUnavailable ? 'navbar-cta-closed' : 'btn-green'}`}
+                className={`btn btn-landing navbar-cta ${registrationClosed || registrationStatusUnavailable ? 'navbar-cta-closed' : 'btn-primary'}`}
                 title={navRegistrationTitle}
               >
                 {navRegistrationLabel}

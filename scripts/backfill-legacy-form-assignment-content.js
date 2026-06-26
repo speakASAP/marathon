@@ -33,8 +33,8 @@ function usage(exitCode = 0) {
     '  node scripts/backfill-legacy-form-assignment-content.js [--apply] [--legacy-root <path>] [--forms-json <path>]',
     '  node scripts/backfill-legacy-form-assignment-content.js --dump-forms-json <path> [--legacy-root <path>]',
     '',
-    'Dry-run by default. Reads legacy Django marathon form templates and form labels,',
-    'then updates MarathonStep.assignmentContent so assignment pages contain the full task text.',
+    'Dry-run by default. Reads legacy Django marathon form templates and form metadata,',
+    'then updates MarathonStep.assignmentContent fallback and assignmentBlocks structured JSON.',
   ].join('\n');
   (exitCode ? process.stderr : process.stdout).write(`${out}\n`);
   process.exit(exitCode);
@@ -88,31 +88,128 @@ function stripHtmlToText(html) {
     .replace(/<[^>]+>/g, ' '));
 }
 
-function fieldText(field) {
-  if (!field || field.hidden || !field.label || field.label.toLowerCase() === 'text') return '';
-  const parts = [`Вопрос: ${stripHtmlToText(field.label)}`];
-  if (Array.isArray(field.choices) && field.choices.length) {
-    parts.push(`Варианты: ${field.choices.map((choice) => stripHtmlToText(choice)).join('; ')}`);
-  }
-  if (field.required === false) parts.push('Необязательное поле.');
-  return parts.join('\n');
+function choiceLabel(choice) {
+  if (choice && typeof choice === 'object') return stripHtmlToText(choice.label || choice.value || '');
+  return stripHtmlToText(String(choice || ''));
 }
 
-function renderTemplate(templatePath, fields) {
-  let html = fs.readFileSync(templatePath, 'utf8');
-  html = html
-    .replace(/\{%\s*video\s+['"]([^'"]+)['"]\s*%\}/g, '\nВидео: $1\n')
-    .replace(/\{%\s*audio\s+['"]([^'"]+)['"]\s*%\}/g, '\nАудио: $1\n')
-    .replace(/\{%\s*load_answer\s+[^%]+%\}/g, 'ранее выделенные слова')
-    .replace(/\{%\s*render_field\s+form\.([A-Za-z0-9_]+)[^%]*%\}/g, (_, fieldName) => {
-      const rendered = fieldText(fields[fieldName]);
-      return rendered ? `\n${rendered}\n` : '\n';
-    })
-    .replace(/\{#[\s\S]*?#\}/g, '\n')
-    .replace(/\{%\s*[^%]+%\}/g, '\n')
-    .replace(/\{\{[\s\S]*?\}\}/g, '\n');
+function choiceValue(choice) {
+  if (choice && typeof choice === 'object') return stripHtmlToText(choice.value || choice.label || '');
+  return stripHtmlToText(String(choice || ''));
+}
 
-  return stripHtmlToText(html);
+function branchFromClass(classValue) {
+  const normalized = String(classValue || '').trim().split(/\s+/);
+  if (normalized.includes('js-beginner-medium')) return 'beginner-medium';
+  if (normalized.includes('js-beginner')) return 'beginner';
+  if (normalized.includes('js-medium')) return 'medium';
+  if (normalized.includes('js-advanced')) return 'advanced';
+  return null;
+}
+
+function fieldBlock(fieldName, field, branch, index) {
+  if (!field || field.hidden || !field.label || field.label.toLowerCase() === 'text') return null;
+  const choices = Array.isArray(field.choices)
+    ? field.choices.map((choice) => ({ value: choiceValue(choice), label: choiceLabel(choice) })).filter((choice) => choice.value && choice.label)
+    : [];
+  const fieldType = field.fieldType || (choices.length ? 'radio' : 'textarea');
+  return {
+    id: `field-${index}-${fieldName}`,
+    type: 'field',
+    name: fieldName,
+    label: stripHtmlToText(field.label),
+    fieldType,
+    required: field.required !== false,
+    choices,
+    ...(branch ? { branch } : {}),
+  };
+}
+
+function currentBranch(stack) {
+  for (let i = stack.length - 1; i >= 0; i -= 1) {
+    if (stack[i].branch) return stack[i].branch;
+  }
+  return null;
+}
+
+function pushTextBlock(blocks, rawText, branch) {
+  const text = stripHtmlToText(rawText);
+  if (!text) return;
+  blocks.push({
+    id: `text-${blocks.length}`,
+    type: 'text',
+    text,
+    ...(branch ? { branch } : {}),
+  });
+}
+
+function renderTemplateBlocks(templatePath, fields) {
+  const html = fs.readFileSync(templatePath, 'utf8')
+    .replace(/\{#[\s\S]*?#\}/g, '\n')
+    .replace(/\{%\s*load_answer\s+[^%]+%\}/g, 'ранее выделенные слова');
+  const tokenPattern = /(\{%[\s\S]*?%\}|<\/?[A-Za-z][^>]*>)/g;
+  const blocks = [];
+  const stack = [];
+  let lastIndex = 0;
+  let match;
+
+  const appendText = (text) => pushTextBlock(blocks, text, currentBranch(stack));
+
+  while ((match = tokenPattern.exec(html)) !== null) {
+    appendText(html.slice(lastIndex, match.index));
+    const token = match[0];
+
+    const video = token.match(/^\{%\s*video\s+['"]([^'"]+)['"]\s*%\}$/);
+    const audio = token.match(/^\{%\s*audio\s+['"]([^'"]+)['"]\s*%\}$/);
+    const field = token.match(/^\{%\s*render_field\s+form\.([A-Za-z0-9_]+)[^%]*%\}$/);
+    const branch = currentBranch(stack);
+    if (video) {
+      blocks.push({ id: `video-${blocks.length}`, type: 'video', code: video[1], ...(branch ? { branch } : {}) });
+    } else if (audio) {
+      blocks.push({ id: `audio-${blocks.length}`, type: 'audio', code: audio[1], ...(branch ? { branch } : {}) });
+    } else if (field) {
+      const block = fieldBlock(field[1], fields[field[1]], branch, blocks.length);
+      if (block) blocks.push(block);
+    } else if (token.startsWith('{%')) {
+      // Other Django tags control template flow/includes and are not user-visible blocks.
+    } else {
+      const close = token.match(/^<\/([A-Za-z0-9]+)>/);
+      const open = token.match(/^<([A-Za-z0-9]+)\b([^>]*)>/);
+      if (close) {
+        const tag = close[1].toLowerCase();
+        for (let i = stack.length - 1; i >= 0; i -= 1) {
+          const item = stack.pop();
+          if (item.tag === tag) break;
+        }
+      } else if (open && !/\/\s*>$/.test(token)) {
+        const tag = open[1].toLowerCase();
+        const classMatch = open[2].match(/class=["']([^"']+)["']/i);
+        stack.push({ tag, branch: branchFromClass(classMatch ? classMatch[1] : '') });
+      }
+    }
+    lastIndex = tokenPattern.lastIndex;
+  }
+  appendText(html.slice(lastIndex));
+
+  return blocks;
+}
+
+function blocksToText(blocks) {
+  const parts = [];
+  for (const block of blocks) {
+    if (block.type === 'text') parts.push(block.text);
+    else if (block.type === 'video') parts.push(`Видео: ${block.code}`);
+    else if (block.type === 'audio') parts.push(`Аудио: ${block.code}`);
+    else if (block.type === 'field') {
+      const fieldParts = [`Вопрос: ${block.label}`];
+      if (Array.isArray(block.choices) && block.choices.length) {
+        fieldParts.push(`Варианты: ${block.choices.map((choice) => choice.label).join('; ')}`);
+      }
+      if (block.required === false) fieldParts.push('Необязательное поле.');
+      parts.push(fieldParts.join('\n'));
+    }
+  }
+  return cleanText(parts.join('\n\n'));
 }
 
 function legacyFolderForStep(step) {
@@ -146,9 +243,10 @@ def choices_from_tuple(node):
     result = []
     for item in node.elts:
         if isinstance(item, (ast.Tuple, ast.List)) and len(item.elts) >= 2:
+            value = const_string(item.elts[0])
             label = const_string(item.elts[1])
             if label:
-                result.append(label)
+                result.append({"value": value or label, "label": label})
     return result
 
 def call_name(node):
@@ -188,10 +286,20 @@ def parse_forms(file_path):
             if "required" in kwargs and isinstance(kwargs["required"], ast.Constant):
                 required = bool(kwargs["required"].value)
             widget_name = call_name(kwargs.get("widget")) if "widget" in kwargs else ""
+            field_call = call_name(stmt.value.func)
+            if field_call == "MdlRadioField":
+                field_type = "radio"
+            elif field_call == "MultipleChoiceField" or widget_name == "CheckboxMultiple":
+                field_type = "checkbox"
+            elif widget_name == "MdlTextarea":
+                field_type = "textarea"
+            else:
+                field_type = "text"
             fields[name] = {
                 "label": label or name,
                 "choices": choices,
                 "required": required,
+                "fieldType": field_type,
                 "hidden": widget_name == "HiddenInput" or name.startswith("known_words"),
             }
         if fields:
@@ -246,11 +354,13 @@ async function main() {
       summary.missing.push({ id: step.id, title: step.title, languageCode: step.marathon.languageCode, formKey: step.formKey, folder });
       continue;
     }
-    const content = renderTemplate(templatePath, fields);
+    const blocks = renderTemplateBlocks(templatePath, fields);
+    const content = blocksToText(blocks);
     summary.generated += 1;
-    if (content && content !== (step.assignmentContent || '').trim()) {
+    const currentBlocks = Array.isArray(step.assignmentBlocks) ? JSON.stringify(step.assignmentBlocks) : '';
+    if (content && (content !== (step.assignmentContent || '').trim() || JSON.stringify(blocks) !== currentBlocks)) {
       summary.changed += 1;
-      updates.push({ id: step.id, title: step.title, languageCode: step.marathon.languageCode, formKey: step.formKey, content });
+      updates.push({ id: step.id, title: step.title, languageCode: step.marathon.languageCode, formKey: step.formKey, content, blocks });
     }
   }
 
@@ -258,7 +368,7 @@ async function main() {
     for (const update of updates) {
       await prisma.marathonStep.update({
         where: { id: update.id },
-        data: { assignmentContent: update.content },
+        data: { assignmentContent: update.content, assignmentBlocks: update.blocks },
       });
     }
   }
@@ -274,11 +384,12 @@ async function main() {
       languageCode: item.languageCode,
       formKey: item.formKey,
       chars: item.content.length,
+      blocks: item.blocks.length,
     })),
   }, null, 2)}\n`);
 }
 
-main().catch(async (error) => {
-  process.stderr.write(`Backfill failed: ${error.message}\n`);
+main().catch((error) => {
+  console.error(error);
   process.exit(1);
 });

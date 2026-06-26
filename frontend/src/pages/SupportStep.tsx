@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { fetchStepInfo, type StepInfo } from '../api/assignmentMarathon';
+import StepAssignmentRenderer from '../components/StepAssignmentRenderer';
 
 /**
  * Support view of one step: content only (no report tab, no other marathoners).
@@ -64,7 +65,11 @@ export default function SupportStep() {
     <div className="container page-static">
       <h1>{step.title}</h1>
       {assignmentContent ? (
-        <div className="step-assignment-content">{assignmentContent}</div>
+        <StepAssignmentRenderer
+          blocks={step.assignmentBlocks}
+          fallbackContent={assignmentContent}
+          readOnly
+        />
       ) : (
         <div className="step-content-missing" role="alert">
           Содержание задания для этого этапа не настроено.

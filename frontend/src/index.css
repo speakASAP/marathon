@@ -144,7 +144,7 @@ a:hover {
   justify-content: center;
   min-height: 34px;
   padding: 0 15px;
-  border-radius: 8px;
+  border-radius: var(--marathon-button-radius);
   font-size: 0.82rem;
   font-weight: 800;
   line-height: 1;
@@ -152,26 +152,26 @@ a:hover {
   text-decoration: none;
   border: 1px solid transparent;
   cursor: pointer;
-  background: #ef3f34;
-  box-shadow: 0 12px 26px rgba(255, 90, 79, 0.28);
+  background: var(--marathon-button-primary);
+  box-shadow: var(--marathon-button-primary-shadow);
   white-space: nowrap;
 }
 
 .navbar-cta:hover {
-  background: #cf2f26;
+  background: var(--marathon-button-primary-hover);
   color: #fff;
 }
 
 .navbar-cta.navbar-cta-closed,
 .home-hero-cta.is-closed {
-  background: #566987;
+  background: var(--marathon-button-muted);
   color: #fff;
   box-shadow: none;
 }
 
 .navbar-cta.navbar-cta-closed:hover,
 .home-hero-cta.is-closed:hover {
-  background: #42536e;
+  background: var(--marathon-button-muted-hover);
   color: #fff;
 }
 
@@ -291,37 +291,55 @@ a:hover {
   }
 }
 
-/* Buttons (legacy .btn-green, .btn-landing) */
-.btn-landing {
-  border-radius: 20px;
-  text-transform: uppercase;
-  font-size: 14px;
-  font-weight: 600;
+/* Unified Marathon button system. Legacy classes remain as aliases for older pages. */
+.btn-landing,
+.btn-primary,
+.btn-profile-login,
+.btn-profile-open,
+.btn-show-more,
+.admin-pricing-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--marathon-button-min-height);
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: var(--marathon-button-radius);
+  background: var(--marathon-button-primary);
   color: var(--marathon-text-on-dark);
-  min-width: 120px;
+  box-shadow: var(--marathon-button-primary-shadow);
+  font: inherit;
+  font-size: 0.94rem;
+  font-weight: 800;
+  line-height: 1;
   text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
-.btn-green {
-  background: linear-gradient(0deg, var(--marathon-green-from) 0%, var(--marathon-green-to) 100%);
-  border: none;
+.btn-landing {
+  min-width: 120px;
+  text-transform: uppercase;
+}
+
+.btn-primary:hover,
+.btn-profile-login:hover,
+.btn-profile-open:hover,
+.btn-show-more:hover,
+.admin-pricing-save:hover:not(:disabled) {
+  background: var(--marathon-button-primary-hover);
   color: var(--marathon-text-on-dark);
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.16);
 }
 
-.btn-green:hover {
-  background: linear-gradient(0deg, var(--marathon-green-hover-from) 0%, var(--marathon-green-hover-to) 100%);
-}
-
-.main-header .navbar-cta.btn-green {
-  background: #ef3f34;
-  box-shadow: 0 12px 26px rgba(239, 63, 52, 0.24);
-  color: #fff;
-}
-
-.main-header .navbar-cta.btn-green:hover {
-  background: #cf2f26;
-  color: #fff;
+.btn-landing:disabled,
+.btn-primary:disabled,
+.btn-profile-login:disabled,
+.btn-profile-open:disabled,
+.btn-show-more:disabled,
+.admin-pricing-save:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .certificate-showcase {
@@ -982,18 +1000,24 @@ a:hover {
   min-width: 38px;
   min-height: 38px;
   padding: 0.45rem 0.65rem;
-  border: 1px solid var(--marathon-border);
-  border-radius: 8px;
-  background: #fff;
-  color: var(--marathon-text-main);
+  border: 1px solid var(--marathon-button-secondary-border);
+  border-radius: var(--marathon-button-radius);
+  background: var(--marathon-button-secondary-bg);
+  color: var(--marathon-button-secondary-text);
   font-weight: 900;
   cursor: pointer;
 }
 
+.page-reviews .reviews-page-button:hover:not(:disabled):not([aria-current="page"]) {
+  border-color: var(--marathon-button-secondary-hover-border);
+  color: var(--marathon-button-secondary-hover-text);
+}
+
 .page-reviews .reviews-page-button[aria-current="page"] {
-  border-color: #2d6b38;
-  background: #2d6b38;
+  border-color: transparent;
+  background: var(--marathon-button-primary);
   color: #fff;
+  box-shadow: var(--marathon-button-primary-shadow);
 }
 
 .page-reviews .reviews-page-button:disabled {
@@ -1982,8 +2006,8 @@ a:hover {
 
 .profile-avatar-menu button:hover,
 .profile-avatar-menu button:focus-visible {
-  background: #f1fbf6;
-  color: #137250;
+  background: #f4f9ff;
+  color: var(--marathon-button-secondary-hover-text);
   outline: none;
 }
 
@@ -2092,17 +2116,7 @@ a:hover {
 
 /* Profile */
 .btn-profile-login {
-  padding: 0.75rem 1.25rem;
-  background: linear-gradient(0deg, var(--marathon-green-from) 0%, var(--marathon-green-to) 100%);
-  color: var(--marathon-text-on-dark);
-  border: none;
-  border-radius: 20px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-profile-login:hover {
-  background: linear-gradient(0deg, var(--marathon-green-hover-from) 0%, var(--marathon-green-hover-to) 100%);
+  padding-inline: 20px;
 }
 
 .profile-marathon-list {
@@ -2279,19 +2293,8 @@ a:hover {
 }
 
 .btn-profile-open {
-  display: inline-block;
   margin-top: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(0deg, var(--marathon-green-from) 0%, var(--marathon-green-to) 100%);
-  color: var(--marathon-text-on-dark);
-  border-radius: 20px;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.btn-profile-open:hover {
-  background: linear-gradient(0deg, var(--marathon-green-hover-from) 0%, var(--marathon-green-hover-to) 100%);
-  color: var(--marathon-text-on-dark);
+  padding-inline: 18px;
 }
 
 .profile-steps h2 {
@@ -2568,17 +2571,27 @@ a:hover {
 }
 
 .page-step .step-tabs button {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ccc;
-  background: var(--marathon-card-bg);
-  border-radius: 6px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--marathon-button-secondary-border);
+  background: var(--marathon-button-secondary-bg);
+  color: var(--marathon-button-secondary-text);
+  border-radius: var(--marathon-button-radius);
   cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.page-step .step-tabs button:hover:not(.active) {
+  border-color: var(--marathon-button-secondary-hover-border);
+  color: var(--marathon-button-secondary-hover-text);
 }
 
 .page-step .step-tabs button.active {
-  background: linear-gradient(0deg, var(--marathon-green-from) 0%, var(--marathon-green-to) 100%);
+  background: var(--marathon-button-primary);
   color: var(--marathon-text-on-dark);
   border-color: transparent;
+  box-shadow: var(--marathon-button-primary-shadow);
 }
 
 .step-report-note {
@@ -2743,17 +2756,6 @@ a:hover {
 
 .btn-show-more {
   margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(0deg, var(--marathon-green-from) 0%, var(--marathon-green-to) 100%);
-  color: var(--marathon-text-on-dark);
-  border: none;
-  border-radius: 20px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.btn-show-more:hover {
-  background: linear-gradient(0deg, var(--marathon-green-hover-from) 0%, var(--marathon-green-hover-to) 100%);
 }
 
 @media (max-width: 720px) {
@@ -3250,16 +3252,16 @@ a:hover {
   min-height: 46px;
   padding: 0 18px;
   border: 0;
-  border-radius: 8px;
-  background: #ef3f34;
+  border-radius: var(--marathon-button-radius);
+  background: var(--marathon-button-primary);
   color: #ffffff;
   font-weight: 800;
-  box-shadow: 0 12px 26px rgba(255, 90, 79, 0.28);
+  box-shadow: var(--marathon-button-primary-shadow);
   cursor: pointer;
 }
 
 .support-chat-form button:not(:disabled):hover {
-  background: #cf2f26;
+  background: var(--marathon-button-primary-hover);
 }
 
 .support-chat-form button:disabled {
@@ -3329,14 +3331,14 @@ a:hover {
 
 .page-support .btn-profile-login,
 .page-support .btn-profile-open {
-  background: #ef3f34;
+  background: var(--marathon-button-primary);
   color: #ffffff;
-  box-shadow: 0 12px 26px rgba(255, 90, 79, 0.28);
+  box-shadow: var(--marathon-button-primary-shadow);
 }
 
 .page-support .btn-profile-login:hover,
 .page-support .btn-profile-open:hover {
-  background: #cf2f26;
+  background: var(--marathon-button-primary-hover);
   color: #ffffff;
 }
 
@@ -4005,19 +4007,23 @@ a:hover {
 }
 
 .btn-winner-link {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  background: #ef3f34;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--marathon-button-min-height);
+  padding: 0 18px;
+  background: var(--marathon-button-primary);
   color: #fff;
-  box-shadow: 0 12px 26px rgba(239, 63, 52, 0.24);
-  border-radius: 20px;
+  box-shadow: var(--marathon-button-primary-shadow);
+  border-radius: var(--marathon-button-radius);
   text-decoration: none;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 0.94rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .btn-winner-link:hover {
-  background: #cf2f26;
+  background: var(--marathon-button-primary-hover);
   color: #fff;
 }
 
@@ -4029,15 +4035,6 @@ a:hover {
 .winners-load-more .btn {
   padding: 0.75rem 1.5rem;
   cursor: pointer;
-}
-
-.winners-load-more .btn-green {
-  background: #ef3f34;
-  box-shadow: 0 12px 26px rgba(239, 63, 52, 0.24);
-}
-
-.winners-load-more .btn-green:hover {
-  background: #cf2f26;
 }
 
 @media (max-width: 980px) {
@@ -4713,21 +4710,7 @@ a:hover {
 }
 
 .admin-pricing-save {
-  background: linear-gradient(0deg, var(--marathon-green-from) 0%, var(--marathon-green-to) 100%);
-  border: 0;
-  border-radius: 6px;
-  color: var(--marathon-text-on-dark);
-  cursor: pointer;
-  font: inherit;
-  font-weight: 700;
-  min-height: 44px;
   padding: 10px 18px;
-  white-space: nowrap;
-}
-
-.admin-pricing-save:disabled {
-  cursor: not-allowed;
-  opacity: 0.58;
 }
 
 .admin-pricing-status {
@@ -4788,4 +4771,132 @@ a:hover {
     align-items: stretch;
     grid-template-columns: 1fr;
   }
+}
+
+.step-assignment-content.structured {
+  display: grid;
+  gap: 1rem;
+  white-space: normal;
+}
+
+.step-video-block {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #0f172a;
+  aspect-ratio: 16 / 9;
+}
+
+.step-video-block iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.step-audio-block {
+  padding: 0.85rem 1rem;
+  border: 1px solid #d8e2ec;
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.step-assignment-paragraph {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.step-question-block {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid #d8e2ec;
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.step-question-block legend {
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 0;
+  color: #172033;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.step-question-block legend span {
+  color: #6b7280;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.step-question-block textarea,
+.step-question-block input[type="text"] {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: #fff;
+  color: #172033;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.step-question-block textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.step-choice-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.step-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #172033;
+  font-weight: 700;
+  line-height: 1.25;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.step-choice input {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.step-choice span {
+  overflow-wrap: anywhere;
+}
+
+.step-choice.selected {
+  border-color: #2f8f5b;
+  background: #ecf8f0;
+  box-shadow: 0 0 0 2px rgba(47, 143, 91, 0.16);
+}
+
+.step-choice:focus-within {
+  outline: 2px solid rgba(47, 143, 91, 0.35);
+  outline-offset: 2px;
+}
+
+.step-choice:has(input:disabled),
+.step-question-block textarea:disabled,
+.step-question-block input[type="text"]:disabled {
+  cursor: default;
+  opacity: 0.82;
 }

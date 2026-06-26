@@ -172,7 +172,7 @@ export default function Winners() {
         <div className="winners-load-more">
           <button
             type="button"
-            className="btn btn-landing btn-green"
+            className="btn btn-landing btn-primary"
             onClick={() => setPage((p) => p + 1)}
             disabled={loading}
           >

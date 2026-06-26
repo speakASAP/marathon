@@ -7,11 +7,36 @@ export class MarathonAuthRequiredError extends Error {
   }
 }
 
+export type AssignmentBranch = 'beginner' | 'medium' | 'advanced' | 'beginner-medium';
+
+export interface AssignmentChoice {
+  value: string;
+  label: string;
+}
+
+export type AssignmentBlock =
+  | { id: string; type: 'text'; text: string; branch?: AssignmentBranch }
+  | { id: string; type: 'video'; code: string; title?: string; branch?: AssignmentBranch }
+  | { id: string; type: 'audio'; code: string; title?: string; branch?: AssignmentBranch }
+  | {
+      id: string;
+      type: 'field';
+      name: string;
+      label: string;
+      fieldType: 'text' | 'textarea' | 'radio' | 'checkbox';
+      required: boolean;
+      choices?: AssignmentChoice[];
+      branch?: AssignmentBranch;
+    };
+
+export type SubmissionPayload = Record<string, unknown>;
+
 export interface StepInfo {
   id: string;
   title: string;
   sequence: number;
   assignmentContent: string | null;
+  assignmentBlocks?: AssignmentBlock[] | null;
   formKey: string | null;
   socialLink: string | null;
 }
@@ -26,6 +51,7 @@ export interface SavedSubmission {
   exists: boolean;
   id?: string;
   report: string;
+  payload: SubmissionPayload;
   state: 'completed' | 'active';
   is_late: boolean;
   bonus_left: number;
@@ -70,13 +96,19 @@ export async function fetchRandomAnswer(stepId: string, excludeMarathonerId?: st
   return response.ok ? response.json() as Promise<RandomAnswer | null> : null;
 }
 
-export async function submitStepReport(participantId: string, stepId: string, report: string): Promise<SubmittedStepReport> {
+export async function submitStepReport(
+  participantId: string,
+  stepId: string,
+  report: string,
+  payload: SubmissionPayload = {},
+): Promise<SubmittedStepReport> {
   const response = await authFetch(`/api/v1/me/marathons/${encodeURIComponent(participantId)}/submissions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       stepId,
       report,
+      payload,
       completed: true,
     }),
   });

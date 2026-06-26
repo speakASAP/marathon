@@ -10,26 +10,10 @@ import {
   type RandomAnswer,
   type SavedSubmission,
   type StepInfo,
+  type SubmissionPayload,
 } from '../api/assignmentMarathon';
-import { fetchMyMarathon, type Answer, type MyMarathon } from '../api/profileMarathon';
-
-function formatStepDate(value: string) {
-  return new Date(value).toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function getScheduleLabel(answer: Answer) {
-  if (answer.block_reason === 'payment_required') return 'Оплата';
-  if (answer.state === 'completed' || answer.state === 'done') return 'Готово';
-  if (answer.state === 'checked') return 'Проверено';
-  if (answer.state === 'active') return `До ${formatStepDate(answer.stop)}`;
-  if (answer.is_scheduled_future) return `План ${formatStepDate(answer.start)}`;
-  return 'Можно открыть заранее';
-}
+import StepAssignmentRenderer from '../components/StepAssignmentRenderer';
+import { fetchMyMarathon, type MyMarathon } from '../api/profileMarathon';
 
 /**
  * Step (task) page: assignment and submission form first; peer reports unlock after submission.
@@ -45,6 +29,7 @@ export default function Step() {
   const [loadingRandom, setLoadingRandom] = useState(false);
   const [marathonerId, setMarathonerId] = useState('');
   const [report, setОтчет] = useState('');
+  const [assignmentPayload, setAssignmentPayload] = useState<SubmissionPayload>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const [submitError, setSubmitError] = useState('');
@@ -53,7 +38,7 @@ export default function Step() {
   const [savedSubmissionError, setSavedSubmissionError] = useState('');
   const [submissionAuthRequired, setSubmissionAuthRequired] = useState(false);
   const [marathon, setMarathon] = useState<MyMarathon | null>(null);
-  const [marathonLoadError, setMarathonLoadError] = useState('');
+  const [, setMarathonLoadError] = useState('');
 
   useEffect(() => {
     if (!stepId) return;
@@ -68,6 +53,7 @@ export default function Step() {
     setMarathon(null);
     setMarathonLoadError('');
     setОтчет('');
+    setAssignmentPayload({});
     setLoadingStep(true);
     fetchStepInfo(stepId)
       .then((data) => {
@@ -118,6 +104,9 @@ export default function Step() {
         setSavedSubmission(data);
         if (data.exists && typeof data.report === 'string') {
           setОтчет(data.report);
+        }
+        if (data.exists && data.payload && typeof data.payload === 'object') {
+          setAssignmentPayload(data.payload);
         }
         setLoadingSavedSubmission(false);
       })
@@ -176,11 +165,12 @@ export default function Step() {
 
     setSubmitting(true);
     try {
-      const body = await submitStepReport(marathonerId.trim(), stepId, report.trim());
+      const body = await submitStepReport(marathonerId.trim(), stepId, report.trim(), assignmentPayload);
       setSavedSubmission({
         exists: true,
         id: body.id,
         report: report.trim(),
+        payload: assignmentPayload,
         state: body.state || 'completed',
         is_late: Boolean(body.is_late),
         bonus_left: typeof body.bonus_left === 'number' ? body.bonus_left : 0,
@@ -207,7 +197,6 @@ export default function Step() {
   const submitBlockedByStatusError = Boolean(savedSubmissionError);
   const canViewPeerReports = Boolean(savedSubmission?.exists && savedSubmission.state === 'completed');
   const currentScheduleIndex = marathon?.answers.findIndex((answer) => answer.stepId === stepId) ?? -1;
-  const currentSchedule = currentScheduleIndex >= 0 ? marathon?.answers[currentScheduleIndex] || null : null;
   const previousSchedule = marathon && currentScheduleIndex > 0 ? marathon.answers[currentScheduleIndex - 1] : null;
   const nextSchedule = marathon && currentScheduleIndex >= 0 && currentScheduleIndex < marathon.answers.length - 1
     ? marathon.answers[currentScheduleIndex + 1]
@@ -287,54 +276,6 @@ export default function Step() {
         )}
       </div>
       <h1>{step?.title ?? `Этап ${stepId}`}</h1>
-      {currentSchedule && (
-        <section className="step-schedule-current" aria-label="Расписание текущего этапа">
-          <div>
-            <span>Этап {currentScheduleIndex + 1} из {marathon?.answers.length || 0}</span>
-            <strong>{getScheduleLabel(currentSchedule)}</strong>
-          </div>
-          <p>
-            План: {formatStepDate(currentSchedule.start)} → {formatStepDate(currentSchedule.stop)}.
-            {currentSchedule.is_scheduled_future ? ' Вы открыли этот этап заранее; календарный день марафона сохранится.' : ''}
-          </p>
-        </section>
-      )}
-      {marathonLoadError && <p className="ml-error">{marathonLoadError}</p>}
-      {marathon && (
-        <nav className="step-schedule-menu" aria-label="Все этапы марафона">
-          {marathon.answers.map((answer, index) => {
-            const isCurrent = answer.stepId === stepId;
-            const blocked = answer.block_reason === 'payment_required';
-            const content = (
-              <>
-                <span>{index + 1}</span>
-                <strong>{answer.title}</strong>
-                <small>{getScheduleLabel(answer)}</small>
-              </>
-            );
-            if (answer.can_open && !blocked) {
-              return (
-                <Link
-                  key={answer.stepId}
-                  to={`/steps/${answer.stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`}
-                  className={`step-schedule-item${isCurrent ? ' active' : ''}${answer.is_scheduled_future ? ' future' : ''}`}
-                >
-                  {content}
-                </Link>
-              );
-            }
-            return (
-              <span
-                key={answer.stepId}
-                className={`step-schedule-item disabled${isCurrent ? ' active' : ''}`}
-              >
-                {content}
-              </span>
-            );
-          })}
-        </nav>
-      )}
-
       <div className="step-content-card">
       <div className="step-tabs">
         <button
@@ -358,7 +299,15 @@ export default function Step() {
       {tab === 'task' && (
         <section className="step-task">
           {assignmentContent ? (
-            <div className="step-assignment-content">{assignmentContent}</div>
+            <StepAssignmentRenderer
+              blocks={step?.assignmentBlocks}
+              fallbackContent={assignmentContent}
+              initialPayload={assignmentPayload}
+              onPayloadChange={(payload, draft) => {
+                setAssignmentPayload(payload);
+                setОтчет(draft);
+              }}
+            />
           ) : (
             <div className="step-content-missing" role="alert">
               Содержание задания не настроено для этого этапа. Свяжитесь с поддержкой перед отправкой отчета.

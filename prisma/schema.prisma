@@ -31,6 +31,7 @@ model MarathonStep {
   marathonId        String
   title             String
   assignmentContent String?
+  assignmentBlocks  Json?
   sequence          Int
   isPenalized       Boolean  @default(true)
   formKey           String?
