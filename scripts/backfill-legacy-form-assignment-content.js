@@ -107,11 +107,28 @@ function branchFromClass(classValue) {
   return null;
 }
 
+const FIRST_STEP_PLATFORM_PROGRAM_CHOICE = { value: 'Программы', label: 'Программы' };
+
+function normalizeFirstStepPlatformChoices(fieldName, field, choices) {
+  if (
+    fieldName !== 'm3'
+    || !/Какие площадки для изучения вам больше всего нравятся/i.test(String(field?.label || ''))
+    || choices.some((choice) => choice.value === FIRST_STEP_PLATFORM_PROGRAM_CHOICE.value)
+  ) {
+    return choices;
+  }
+  return [...choices, FIRST_STEP_PLATFORM_PROGRAM_CHOICE];
+}
+
 function fieldBlock(fieldName, field, branch, index) {
   if (!field || field.hidden || !field.label || field.label.toLowerCase() === 'text') return null;
-  const choices = Array.isArray(field.choices)
-    ? field.choices.map((choice) => ({ value: choiceValue(choice), label: choiceLabel(choice) })).filter((choice) => choice.value && choice.label)
-    : [];
+  const choices = normalizeFirstStepPlatformChoices(
+    fieldName,
+    field,
+    Array.isArray(field.choices)
+      ? field.choices.map((choice) => ({ value: choiceValue(choice), label: choiceLabel(choice) })).filter((choice) => choice.value && choice.label)
+      : [],
+  );
   const fieldType = field.fieldType || (choices.length ? 'radio' : 'textarea');
   return {
     id: `field-${index}-${fieldName}`,
@@ -154,6 +171,10 @@ function isSentenceContinuation(previousText, text) {
   return /^[а-яёa-z]/.test(text);
 }
 
+function normalizeTextBlockText(text) {
+  return String(text || "").replace(/\s+/g, " ").trim();
+}
+
 function shouldJoinWithPrevious(previous, text) {
   if (!previous || previous.type !== "text") return false;
   return /^[.!?,;:]+$/.test(text)
@@ -169,7 +190,7 @@ function normalizeTextBlockSequence(blocks) {
       continue;
     }
 
-    let text = String(block.text || "").trim();
+    let text = normalizeTextBlockText(block.text);
     if (!text || isOptionalStep1Note(text)) continue;
 
     const previous = normalized[normalized.length - 1];

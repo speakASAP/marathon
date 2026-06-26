@@ -509,7 +509,8 @@ export default function Step() {
   const nextAvailabilityText = nextSchedule
     ? `Появится ${formatDateTime(nextSchedule.start)}.`
     : '';
-  const profileUrl = hasParticipantContext ? `/profile/${encodeURIComponent(marathonerId.trim())}` : '/profile';
+  const participantStepQuery = encodeURIComponent(marathonerId.trim());
+  const profileUrl = hasParticipantContext ? `/profile/${participantStepQuery}` : '/profile';
   const submitDisabled = submitting
     || loadingSavedSubmission
     || submissionAuthRequired
@@ -517,7 +518,113 @@ export default function Step() {
     || !assignmentContent
     || submitBlockedByStatusError
     || isFinalSubmission;
-  const peerОтчетEmpty = tab === 'report' && !loadingRandom && !randomAnswer;
+  const peerОтчетEmpty = canViewPeerReports && !loadingRandom && !randomAnswer;
+
+  const stepUrl = (targetStepId: string) => `/steps/${targetStepId}?marathonerId=${participantStepQuery}`;
+
+  const renderStepNavigation = (placement: 'top' | 'footer' | 'report' = 'top') => {
+    if (!previousSchedule && !nextSchedule) return null;
+
+    return (
+      <nav className={`step-sequence-actions step-sequence-actions-${placement}`} aria-label="Навигация по этапам">
+        {previousSchedule ? (
+          <Link to={stepUrl(previousSchedule.stepId)} className="btn-profile-login">
+            Предыдущий этап
+          </Link>
+        ) : (
+          <span className="btn-profile-login step-nav-disabled">Предыдущий этап</span>
+        )}
+        {nextSchedule ? (
+          <Link to={stepUrl(nextSchedule.stepId)} className="btn-profile-open">
+            Следующий этап
+          </Link>
+        ) : (
+          <span className="btn-profile-open step-nav-disabled">Следующий этап</span>
+        )}
+      </nav>
+    );
+  };
+
+  const renderNextControl = () => {
+    if (!nextSchedule || !marathon) return null;
+
+    return (
+      <section className="step-next-control" aria-label="Следующий этап">
+        <div className="step-next-control-main">
+          <p><strong>Следующий этап, {nextSchedule.title}.</strong></p>
+          <p>{nextAvailabilityText}</p>
+          {nextOpenAllowed && (
+            <Link to={stepUrl(nextSchedule.stepId)} className="btn-profile-open step-next-now">
+              Открыть следующий сейчас
+            </Link>
+          )}
+        </div>
+        <form className="step-next-time-form" onSubmit={submitReportTime}>
+          <label htmlFor="step-report-time">Время появления следующих этапов</label>
+          <div className="step-next-time-row">
+            <input
+              id="step-report-time"
+              type="time"
+              value={reportTime}
+              onChange={(event) => setReportTime(event.target.value)}
+              disabled={!marathon.can_change_report_time || reportTimeSaving}
+            />
+            <button type="submit" className="btn-profile-login" disabled={!marathon.can_change_report_time || reportTimeSaving}>
+              {reportTimeSaving ? 'Сохраняем...' : 'Сохранить'}
+            </button>
+          </div>
+          {!marathon.can_change_report_time && <span className="profile-step-meta">Время нельзя менять после завершения марафона.</span>}
+          {reportTimeMessage && <p className="step-submit-success">{reportTimeMessage}</p>}
+          {reportTimeError && <p className="ml-error">{reportTimeError}</p>}
+        </form>
+      </section>
+    );
+  };
+
+  const renderPeerReports = (inline = false) => (
+    <section className={`step-report${inline ? ' step-report-inline' : ''}`}>
+      <h2>Отчёты других участников</h2>
+      <p className="step-report-note">Пример отчёта участника по этому этапу (случайный выбор).</p>
+      {loadingRandom && !randomAnswer && <p>Загрузка…</p>}
+      {randomAnswer && (
+        <div className="random-report">
+          <p className="random-report-meta">{randomAnswer.marathoner.name}</p>
+          {peerAnswerRows.length ? (
+            <dl className="random-report-body">
+              {peerAnswerRows.map((row) => (
+                <div className="step-answer-row" key={row.id}>
+                  <dt>{row.question}</dt>
+                  <dd>{row.answer}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <div className="random-report-body">{randomAnswer.report}</div>
+          )}
+        </div>
+      )}
+      <div className="step-report-actions">
+        {!loadingRandom && randomAnswer && (
+          <button type="button" className="btn-show-more" onClick={loadRandomОтчет}>
+            Показать ещё
+          </button>
+        )}
+        {renderStepNavigation('report')}
+      </div>
+      {peerОтчетEmpty && (
+        <div className="step-peer-empty" aria-live="polite">
+          <strong>Пока нет примеров отчетов</strong>
+          <span>
+            Когда участники сохранят первые отчеты по этому этапу, здесь появится случайный пример
+            для самопроверки.
+          </span>
+          <button type="button" className="btn-show-more" onClick={loadRandomОтчет}>
+            Проверить еще раз
+          </button>
+        </div>
+      )}
+    </section>
+  );
 
   const openPeerReports = () => {
     setTab('report');
@@ -531,6 +638,11 @@ export default function Step() {
       setTab('task');
     }
   }, [tab, canViewPeerReports]);
+
+  useEffect(() => {
+    if (!canViewPeerReports || !stepId || randomAnswer || loadingRandom) return;
+    loadRandomОтчет();
+  }, [canViewPeerReports, stepId, marathonerId]);
 
   if (loadingStep && !step) {
     return (
@@ -572,26 +684,7 @@ export default function Step() {
     <div className="container page-static page-step">
       <div className="step-page-topbar">
         <Link to={profileUrl} className="step-profile-link">← Профиль марафона</Link>
-        {(previousSchedule || nextSchedule) && (
-          <div className="step-sequence-actions" aria-label="Навигация по этапам">
-            {previousSchedule ? (
-              <Link to={`/steps/${previousSchedule.stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`} className="btn-profile-login">
-                Предыдущий этап
-              </Link>
-            ) : (
-              <span className="btn-profile-login step-nav-disabled">Предыдущий этап</span>
-            )}
-            {nextSchedule && nextOpenAllowed ? (
-              <Link to={`/steps/${nextSchedule.stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`} className="btn-profile-open">
-                {nextSchedule.state === 'inactive' ? 'Открыть следующий сейчас' : 'Следующий этап'}
-              </Link>
-            ) : (
-              <span className="btn-profile-open step-nav-disabled">
-                Следующий этап
-              </span>
-            )}
-          </div>
-        )}
+        {renderStepNavigation()}
       </div>
       <h1>{step?.title ?? `Этап ${stepId}`}</h1>
       <div className="step-content-card" ref={contentCardRef}>
@@ -713,88 +806,27 @@ export default function Step() {
             </form>
             {submitMessage && <p className="step-submit-success">{submitMessage}</p>}
             {submitError && <p className="ml-error">{submitError}</p>}
-            {canViewPeerReports && (
-              <div className="step-peer-report-action" aria-label="Отчеты других участников">
-                <button type="button" className="btn-profile-login" onClick={openPeerReports}>
-                  Отчёты других участников
-                </button>
-              </div>
-            )}
-            {nextSchedule && marathon && (
-              <section className="step-next-control" aria-label="Следующий этап">
-                <div className="step-next-control-main">
-                  <p><strong>Следующий этап, {nextSchedule.title}.</strong></p>
-                  <p>{nextAvailabilityText}</p>
-                  {nextOpenAllowed && (
-                    <Link to={`/steps/${nextSchedule.stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`} className="btn-profile-open step-next-now">
-                      Открыть следующий сейчас
-                    </Link>
-                  )}
+            <div className="step-footer-navigation-row">
+              {canViewPeerReports && (
+                <div className="step-peer-report-action" aria-label="Отчеты других участников">
+                  <button type="button" className="btn-profile-login" onClick={openPeerReports}>
+                    Отчёты других участников
+                  </button>
                 </div>
-                <form className="step-next-time-form" onSubmit={submitReportTime}>
-                  <label htmlFor="step-report-time">Время появления следующих этапов</label>
-                  <div className="step-next-time-row">
-                    <input
-                      id="step-report-time"
-                      type="time"
-                      value={reportTime}
-                      onChange={(event) => setReportTime(event.target.value)}
-                      disabled={!marathon.can_change_report_time || reportTimeSaving}
-                    />
-                    <button type="submit" className="btn-profile-login" disabled={!marathon.can_change_report_time || reportTimeSaving}>
-                      {reportTimeSaving ? 'Сохраняем...' : 'Сохранить'}
-                    </button>
-                  </div>
-                  {!marathon.can_change_report_time && <span className="profile-step-meta">Время нельзя менять после завершения марафона.</span>}
-                  {reportTimeMessage && <p className="step-submit-success">{reportTimeMessage}</p>}
-                  {reportTimeError && <p className="ml-error">{reportTimeError}</p>}
-                </form>
-              </section>
-            )}
+              )}
+              {renderStepNavigation('footer')}
+            </div>
+            {renderNextControl()}
+            {canViewPeerReports && renderPeerReports(true)}
           </section>
         </section>
       )}
 
       {tab === 'report' && (
-        <section className="step-report">
-          <h2>Отчёты других участников</h2>
-          <p className="step-report-note">Пример отчёта участника по этому этапу (случайный выбор).</p>
-          {loadingRandom && !randomAnswer && <p>Загрузка…</p>}
-          {randomAnswer && (
-            <div className="random-report">
-              <p className="random-report-meta">{randomAnswer.marathoner.name}</p>
-              {peerAnswerRows.length ? (
-                <dl className="random-report-body">
-                  {peerAnswerRows.map((row) => (
-                    <div className="step-answer-row" key={row.id}>
-                      <dt>{row.question}</dt>
-                      <dd>{row.answer}</dd>
-                    </div>
-                  ))}
-                </dl>
-              ) : (
-                <div className="random-report-body">{randomAnswer.report}</div>
-              )}
-            </div>
-          )}
-          {!loadingRandom && randomAnswer && (
-            <button type="button" className="btn-show-more" onClick={loadRandomОтчет}>
-              Показать ещё
-            </button>
-          )}
-          {peerОтчетEmpty && (
-            <div className="step-peer-empty" aria-live="polite">
-              <strong>Пока нет примеров отчетов</strong>
-              <span>
-                Когда участники сохранят первые отчеты по этому этапу, здесь появится случайный пример
-                для самопроверки.
-              </span>
-              <button type="button" className="btn-show-more" onClick={loadRandomОтчет}>
-                Проверить еще раз
-              </button>
-            </div>
-          )}
-        </section>
+        <>
+          {renderPeerReports()}
+          {renderNextControl()}
+        </>
       )}
       </div>
     </div>

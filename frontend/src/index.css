@@ -2636,6 +2636,37 @@ a:hover {
   justify-content: center;
 }
 
+.step-footer-navigation-row {
+  display: grid;
+  grid-template-columns: minmax(180px, auto) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: stretch;
+  margin: 1rem 0 0.75rem;
+}
+
+.step-footer-navigation-row .step-peer-report-action {
+  margin: 0;
+}
+
+.step-sequence-actions-footer,
+.step-sequence-actions-report {
+  width: 100%;
+}
+
+.step-report-actions {
+  display: grid;
+  grid-template-columns: minmax(150px, auto) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: stretch;
+  margin-top: 1rem;
+}
+
+.step-report-actions .btn-show-more {
+  min-height: 64px;
+  margin-top: 0;
+  justify-content: center;
+}
+
 .step-schedule-current {
   display: grid;
   gap: 0.5rem;
@@ -3038,6 +3069,11 @@ a:hover {
   .step-sequence-actions {
     grid-template-columns: 1fr;
     width: 100%;
+  }
+
+  .step-footer-navigation-row,
+  .step-report-actions {
+    grid-template-columns: 1fr;
   }
 
   .step-next-control,

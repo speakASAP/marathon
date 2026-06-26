@@ -69,6 +69,19 @@ function normalizeChoices(value: unknown): AssignmentChoice[] {
     .filter((choice): choice is AssignmentChoice => Boolean(choice));
 }
 
+const FIRST_STEP_PLATFORM_PROGRAM_CHOICE: AssignmentChoice = { value: 'Программы', label: 'Программы' };
+
+function normalizeFieldChoices(name: string, label: string, choices: AssignmentChoice[]): AssignmentChoice[] {
+  if (
+    name !== 'm3'
+    || !/Какие площадки для изучения вам больше всего нравятся/i.test(label)
+    || choices.some((choice) => choice.value === FIRST_STEP_PLATFORM_PROGRAM_CHOICE.value)
+  ) {
+    return choices;
+  }
+  return [...choices, FIRST_STEP_PLATFORM_PROGRAM_CHOICE];
+}
+
 function sameBranch(left: AssignmentBlock, right: AssignmentBlock) {
   return left.branch === right.branch;
 }
@@ -82,6 +95,10 @@ function isSentenceContinuation(previousText: string, text: string) {
   if (!previous || /[.!?…:;]$/.test(previous)) return false;
   if (/^(?:[-–—*•]|\d+[.)])\s*/.test(text)) return false;
   return /^[а-яёa-z]/.test(text);
+}
+
+function normalizeTextBlockText(text: string) {
+  return text.replace(/\s+/g, " ").trim();
 }
 
 function shouldJoinWithPrevious(previous: AssignmentBlock | undefined, text: string) {
@@ -99,7 +116,7 @@ function normalizeTextBlockSequence(blocks: AssignmentBlock[]): AssignmentBlock[
       continue;
     }
 
-    let text = block.text.trim();
+    let text = normalizeTextBlockText(block.text);
     if (!text || isOptionalStep1Note(text)) continue;
 
     const previous = normalized[normalized.length - 1];
@@ -173,7 +190,7 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
           label,
           fieldType,
           required: raw.required !== false,
-          choices: normalizeChoices(raw.choices),
+          choices: normalizeFieldChoices(name, label, normalizeChoices(raw.choices)),
           ...(branch ? { branch } : {}),
         };
       }
