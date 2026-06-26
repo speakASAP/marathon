@@ -1656,6 +1656,8 @@ a:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  box-sizing: border-box;
   width: 42px;
   height: 42px;
   border: 2px solid rgba(255, 255, 255, 0.88);
@@ -1675,6 +1677,8 @@ a:hover {
   height: 100%;
   display: block;
   object-fit: cover;
+  object-position: center;
+  border-radius: inherit;
 }
 
 .navbar-profile-avatar span {
