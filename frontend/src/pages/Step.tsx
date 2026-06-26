@@ -15,7 +15,7 @@ import {
   type SubmissionPayload,
 } from '../api/assignmentMarathon';
 import StepAssignmentRenderer from '../components/StepAssignmentRenderer';
-import { fetchMyMarathon, type MyMarathon } from '../api/profileMarathon';
+import { fetchMyMarathon, updateReportTime, type MyMarathon } from '../api/profileMarathon';
 
 const DRAFT_SAVE_DELAY_MS = 900;
 
@@ -25,6 +25,46 @@ type AnswerRow = { id: string; question: string; answer: string };
 
 function normalizeText(value: string) {
   return value.toLowerCase().replace(/ё/g, 'е').trim();
+}
+
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatTimeInput(value?: string | null) {
+  if (!value) return '13:00';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '13:00';
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+function getBrowserTimeZone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'локальный часовой пояс';
+  } catch {
+    return 'локальный часовой пояс';
+  }
+}
+
+function stripGenericNextScheduleInstruction(value: string) {
+  return value
+    .replace(/Сформируйте отчет,?\s*новый этап появится в то время, которое вы указали на странице настроек\.?/gi, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function isGenericNextScheduleInstruction(block: AssignmentBlock) {
+  return block.type === 'text'
+    && /Сформируйте отчет/i.test(block.text)
+    && /новый этап появится/i.test(block.text)
+    && /странице настроек/i.test(block.text);
 }
 
 function isPayloadRecord(value: unknown): value is SubmissionPayload {
@@ -142,6 +182,11 @@ export default function Step() {
   const [submissionAuthRequired, setSubmissionAuthRequired] = useState(false);
   const [marathon, setMarathon] = useState<MyMarathon | null>(null);
   const [, setMarathonLoadError] = useState('');
+  const [reportTime, setReportTime] = useState('13:00');
+  const [browserTimeZone] = useState(getBrowserTimeZone);
+  const [reportTimeSaving, setReportTimeSaving] = useState(false);
+  const [reportTimeMessage, setReportTimeMessage] = useState('');
+  const [reportTimeError, setReportTimeError] = useState('');
 
   useEffect(() => {
     if (!stepId) return;
@@ -182,6 +227,9 @@ export default function Step() {
     fetchMyMarathon(participantId)
       .then((data) => {
         setMarathon(data);
+        setReportTime(formatTimeInput(data.report_time));
+        setReportTimeMessage('');
+        setReportTimeError('');
         setMarathonLoadError('');
       })
       .catch((error) => {
@@ -231,6 +279,14 @@ export default function Step() {
   const hasStructuredFields = Boolean(step?.assignmentBlocks?.some((block) => block.type === 'field'));
   const displayedPayload = isFinalSubmission && savedSubmission?.payload ? savedSubmission.payload : assignmentPayload;
   const displayedReport = isFinalSubmission && savedSubmission?.report ? savedSubmission.report : report;
+  const filteredAssignmentBlocks = useMemo(
+    () => step?.assignmentBlocks?.filter((block) => !isGenericNextScheduleInstruction(block)),
+    [step?.assignmentBlocks],
+  );
+  const filteredAssignmentContent = useMemo(
+    () => stripGenericNextScheduleInstruction(assignmentContent || ''),
+    [assignmentContent],
+  );
   const answerRows = useMemo(
     () => answerRowsFromPayload(step?.assignmentBlocks, displayedPayload, displayedReport),
     [step?.assignmentBlocks, displayedPayload, displayedReport],
@@ -384,6 +440,28 @@ export default function Step() {
     }
   };
 
+  const submitReportTime = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!marathon) return;
+    setReportTimeSaving(true);
+    setReportTimeMessage('');
+    setReportTimeError('');
+    try {
+      const body = await updateReportTime(marathon.id, reportTime, browserTimeZone);
+      setMarathon(body);
+      setReportTime(formatTimeInput(body.report_time));
+      setReportTimeMessage('Время сохранено. Новый этап появится по обновленному расписанию.');
+    } catch (error) {
+      if (error instanceof MarathonAuthRequiredError) {
+        redirectToLogin(`/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
+        return;
+      }
+      setReportTimeError(error instanceof Error ? error.message : 'Не удалось сохранить время следующего этапа');
+    } finally {
+      setReportTimeSaving(false);
+    }
+  };
+
   const stepReturnPath = stepId && hasParticipantContext
     ? `/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`
     : '/profile';
@@ -395,6 +473,11 @@ export default function Step() {
   const nextSchedule = marathon && currentScheduleIndex >= 0 && currentScheduleIndex < marathon.answers.length - 1
     ? marathon.answers[currentScheduleIndex + 1]
     : null;
+  const nextOpenAllowed = Boolean(isFinalSubmission && nextSchedule?.can_open && nextSchedule.block_reason !== 'payment_required');
+  const nextAvailabilityText = nextSchedule
+    ? `Следующий этап «${nextSchedule.title}» появится ${formatDateTime(nextSchedule.start)}.`
+    : '';
+  const nextReportTimeLabel = marathon?.report_time_label || formatTimeInput(marathon?.report_time);
   const profileUrl = hasParticipantContext ? `/profile/${encodeURIComponent(marathonerId.trim())}` : '/profile';
   const submitDisabled = submitting
     || loadingSavedSubmission
@@ -460,12 +543,14 @@ export default function Step() {
             ) : (
               <span className="btn-profile-login step-nav-disabled">Предыдущий этап</span>
             )}
-            {nextSchedule && nextSchedule.can_open ? (
+            {nextSchedule && nextOpenAllowed ? (
               <Link to={`/steps/${nextSchedule.stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`} className="btn-profile-open">
-                {nextSchedule.state === 'inactive' ? 'Открыть следующий заранее' : 'Следующий этап'}
+                {nextSchedule.state === 'inactive' ? 'Открыть следующий сейчас' : 'Следующий этап'}
               </Link>
             ) : (
-              <span className="btn-profile-open step-nav-disabled">Следующий этап</span>
+              <span className="btn-profile-open step-nav-disabled">
+                {isFinalSubmission ? 'Следующий этап' : 'Сначала сформируйте отчет'}
+              </span>
             )}
           </div>
         )}
@@ -496,8 +581,8 @@ export default function Step() {
           {assignmentContent ? (
             <>
               <StepAssignmentRenderer
-                blocks={step?.assignmentBlocks}
-                fallbackContent={assignmentContent}
+                blocks={filteredAssignmentBlocks}
+                fallbackContent={filteredAssignmentContent}
                 initialPayload={assignmentPayload}
                 readOnly={isFinalSubmission}
                 onPayloadChange={(payload, draft) => {
@@ -571,6 +656,43 @@ export default function Step() {
                   {savedSubmission.is_late ? ' Отмечено как поздняя отправка.' : ''}
                 </span>
               </div>
+            )}
+            {nextSchedule && marathon && (
+              <section className="step-next-control" aria-label="Следующий этап">
+                <div className="step-next-control-main">
+                  <span>Следующий этап</span>
+                  <strong>{nextSchedule.title}</strong>
+                  <p>{nextAvailabilityText}</p>
+                  <p>Текущее время появления этапов: <strong>{nextReportTimeLabel}</strong>.</p>
+                </div>
+                <form className="step-next-time-form" onSubmit={submitReportTime}>
+                  <label htmlFor="step-report-time">Время появления следующих этапов</label>
+                  <div className="step-next-time-row">
+                    <input
+                      id="step-report-time"
+                      type="time"
+                      value={reportTime}
+                      onChange={(event) => setReportTime(event.target.value)}
+                      disabled={!marathon.can_change_report_time || reportTimeSaving}
+                    />
+                    <button type="submit" className="btn-profile-login" disabled={!marathon.can_change_report_time || reportTimeSaving}>
+                      {reportTimeSaving ? 'Сохраняем...' : 'Сохранить'}
+                    </button>
+                  </div>
+                  {!marathon.can_change_report_time && <span className="profile-step-meta">Время нельзя менять после завершения марафона.</span>}
+                  {reportTimeMessage && <p className="step-submit-success">{reportTimeMessage}</p>}
+                  {reportTimeError && <p className="ml-error">{reportTimeError}</p>}
+                </form>
+                {nextOpenAllowed ? (
+                  <Link to={`/steps/${nextSchedule.stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`} className="btn-profile-open step-next-now">
+                    {nextSchedule.state === 'inactive' ? 'Открыть следующий сейчас' : 'Перейти к следующему этапу'}
+                  </Link>
+                ) : (
+                  <span className="btn-profile-open step-nav-disabled step-next-now">
+                    Сначала сформируйте отчет
+                  </span>
+                )}
+              </section>
             )}
             <form onSubmit={submitОтчет} className="step-submit-form">
               <div className="step-answer-summary" aria-live="polite">

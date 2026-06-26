@@ -2550,6 +2550,75 @@ a:hover {
   pointer-events: none;
 }
 
+.step-next-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 320px) auto;
+  gap: 0.85rem;
+  align-items: center;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #cfe1d7;
+  border-radius: 8px;
+  background: #f6fbf8;
+}
+
+.step-next-control-main {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.step-next-control-main span,
+.step-next-time-form label {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.step-next-control-main strong {
+  color: #174c30;
+}
+
+.step-next-control-main p {
+  margin: 0;
+  color: #334158;
+  line-height: 1.45;
+}
+
+.step-next-time-form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.step-next-time-row {
+  display: grid;
+  grid-template-columns: minmax(116px, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.step-next-time-row input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #cdd9e8;
+  border-radius: 8px;
+  color: #172033;
+  background: #fff;
+  font: inherit;
+}
+
+.step-next-time-row input:disabled {
+  background: #f4f6f8;
+  color: #78838f;
+}
+
+.step-next-time-row .btn-profile-login,
+.step-next-now {
+  min-height: 44px;
+  margin-top: 0;
+  justify-content: center;
+  white-space: nowrap;
+}
+
 .step-schedule-current {
   display: grid;
   gap: 0.5rem;
@@ -2952,6 +3021,11 @@ a:hover {
   .step-sequence-actions {
     grid-template-columns: 1fr;
     width: 100%;
+  }
+
+  .step-next-control,
+  .step-next-time-row {
+    grid-template-columns: 1fr;
   }
 
   .step-sequence-actions .btn-profile-login,
