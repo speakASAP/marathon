@@ -1490,7 +1490,7 @@
 
 /* Marathon race landing refresh */
 .marathon-landing {
-  --ml-ink: #081126;
+  --ml-ink: #173a68;
   --ml-muted: #59667a;
   --ml-soft: #eef6ff;
   --ml-line: #d8e3ef;
@@ -1561,7 +1561,7 @@
 }
 
 .ml-hero-points dt {
-  color: var(--ml-coral-dark);
+  color: var(--ml-ink);
 }
 
 .ml-race-hero {

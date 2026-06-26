@@ -1098,7 +1098,7 @@ a:hover {
 .about-hero__copy h1 {
   max-width: 780px;
   margin: 0;
-  color: var(--about-blue);
+  color: var(--about-ink);
   font-size: clamp(3rem, 5.2vw, 5.35rem);
   line-height: 0.96;
   letter-spacing: 0;
@@ -1208,7 +1208,7 @@ a:hover {
 
 .about-hero-card strong {
   display: block;
-  color: var(--about-coral-dark);
+  color: var(--about-ink);
   font-size: clamp(2.4rem, 5vw, 4.5rem);
   line-height: 0.9;
 }
@@ -1239,7 +1239,7 @@ a:hover {
 }
 
 .about-strip strong {
-  color: var(--about-blue);
+  color: var(--about-ink);
   font-size: clamp(2.1rem, 4vw, 4rem);
   line-height: 0.95;
 }
@@ -3996,8 +3996,9 @@ a:hover {
 .btn-winner-link {
   display: inline-block;
   padding: 0.5rem 1rem;
-  background: linear-gradient(0deg, var(--marathon-green-from) 0%, var(--marathon-green-to) 100%);
+  background: #ef3f34;
   color: #fff;
+  box-shadow: 0 12px 26px rgba(239, 63, 52, 0.24);
   border-radius: 20px;
   text-decoration: none;
   font-size: 14px;
@@ -4005,7 +4006,7 @@ a:hover {
 }
 
 .btn-winner-link:hover {
-  background: linear-gradient(0deg, var(--marathon-green-hover-from) 0%, var(--marathon-green-hover-to) 100%);
+  background: #cf2f26;
   color: #fff;
 }
 
@@ -4017,6 +4018,15 @@ a:hover {
 .winners-load-more .btn {
   padding: 0.75rem 1.5rem;
   cursor: pointer;
+}
+
+.winners-load-more .btn-green {
+  background: #ef3f34;
+  box-shadow: 0 12px 26px rgba(239, 63, 52, 0.24);
+}
+
+.winners-load-more .btn-green:hover {
+  background: #cf2f26;
 }
 
 @media (max-width: 980px) {
