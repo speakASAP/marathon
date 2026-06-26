@@ -557,15 +557,15 @@ export default function Step() {
       </div>
       <h1>{step?.title ?? `Этап ${stepId}`}</h1>
       <div className="step-content-card">
-      <div className="step-tabs">
-        <button
-          type="button"
-          className={tab === 'task' ? 'active' : ''}
-          onClick={() => setTab('task')}
-        >
-          Задание
-        </button>
-        {canViewPeerReports && (
+      {canViewPeerReports && (
+        <div className="step-tabs">
+          <button
+            type="button"
+            className={tab === 'task' ? 'active' : ''}
+            onClick={() => setTab('task')}
+          >
+            Задание
+          </button>
           <button
             type="button"
             className={tab === 'report' ? 'active' : ''}
@@ -573,8 +573,8 @@ export default function Step() {
           >
             Отчёты других участников
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {tab === 'task' && (
         <section className="step-task">
