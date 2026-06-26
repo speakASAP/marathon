@@ -14,6 +14,8 @@ export type Answer = {
   block_reason?: string | null;
 };
 
+export type MarathonMedal = 'gold' | 'silver' | 'bronze';
+
 export type MyMarathon = {
   title: string;
   languageCode: string;
@@ -29,6 +31,7 @@ export type MyMarathon = {
   current_step: Answer | null;
   answers: Answer[];
   finished_at: string | null;
+  medal: MarathonMedal | null;
   nps_survey: MyMarathonSurvey | null;
   can_generate_progress_report: boolean;
 };
@@ -200,6 +203,7 @@ export class MeService {
           },
         },
         surveyResponse: true,
+        penaltyReports: true,
       },
     });
 
@@ -238,6 +242,8 @@ export class MeService {
             createdAt: 'desc',
           },
         },
+        surveyResponse: true,
+        penaltyReports: true,
       },
     });
 
@@ -266,6 +272,7 @@ export class MeService {
             },
           },
           surveyResponse: true,
+          penaltyReports: true,
         },
       });
     }
@@ -388,6 +395,7 @@ export class MeService {
           },
         },
         surveyResponse: true,
+        penaltyReports: true,
       },
     });
 
@@ -420,6 +428,7 @@ export class MeService {
           },
         },
         surveyResponse: true,
+        penaltyReports: true,
       },
     });
 
@@ -541,6 +550,7 @@ export class MeService {
       current_step: currentStep,
       answers,
       finished_at: participant.finishedAt ? participant.finishedAt.toISOString() : null,
+      medal: this.getParticipantMedal(participant, steps),
       nps_survey: participant.surveyResponse ? this.mapSurvey(participant.surveyResponse) : null,
       can_generate_progress_report: this.canGenerateProgressReport(participant),
     };
@@ -728,6 +738,33 @@ export class MeService {
   private isWinner(participant: any, steps: any[]): boolean {
     const completedCount = participant.submissions.filter((s: any) => s.isCompleted && s.isChecked).length;
     return completedCount === steps.length;
+  }
+
+  private getParticipantMedal(participant: any, steps: any[]): MarathonMedal | null {
+    if (!this.hasCompletedAllSteps(participant, steps)) {
+      return null;
+    }
+    if (participant.canUsePenalty && participant.bonusDaysLeft >= 7) {
+      return 'gold';
+    }
+    if (participant.bonusDaysLeft >= 7) {
+      const penaltyReports = participant.penaltyReports || [];
+      const hasIncompletePenalty = penaltyReports.some((report: any) => !report.completed);
+      if (!hasIncompletePenalty) {
+        return 'silver';
+      }
+    }
+    return 'bronze';
+  }
+
+  private hasCompletedAllSteps(participant: any, steps: any[]): boolean {
+    const stepIds = new Set(steps.map((step: any) => step.id));
+    const completedStepIds = new Set(
+      participant.submissions
+        .filter((submission: any) => submission.isCompleted)
+        .map((submission: any) => submission.stepId),
+    );
+    return stepIds.size > 0 && Array.from(stepIds).every((stepId) => completedStepIds.has(stepId));
   }
 
   private resolveStartAt(reportHour: Date, sequence: number): Date {

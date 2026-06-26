@@ -1586,6 +1586,72 @@ a:hover {
   position: relative;
 }
 
+.navbar-marathon-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  max-width: min(360px, 34vw);
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.navbar-marathon-progress::-webkit-scrollbar {
+  display: none;
+}
+
+.navbar-progress-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.18rem;
+  min-width: 58px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid #dce6f2;
+  border-radius: 999px;
+  background: #f8fbff;
+  color: #24324f;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navbar-progress-badge:hover,
+.navbar-progress-badge:focus-visible {
+  border-color: #9fd7c1;
+  background: #eefaf5;
+  color: #0d5d41;
+}
+
+.navbar-progress-badge--gold {
+  border-color: #e3c15b;
+  background: #fff9e8;
+}
+
+.navbar-progress-badge--silver {
+  border-color: #bdc7d4;
+  background: #f6f8fb;
+}
+
+.navbar-progress-badge--bronze {
+  border-color: #d7a07a;
+  background: #fff3eb;
+}
+
+.navbar-progress-flag,
+.navbar-progress-medal {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.navbar-progress-percent {
+  min-width: 24px;
+  text-align: right;
+}
+
 .navbar-profile-avatar {
   display: inline-flex;
   align-items: center;
@@ -1680,6 +1746,18 @@ a:hover {
 @media (max-width: 480px) {
   .navbar-profile-actions {
     gap: 0.3rem;
+  }
+
+  .navbar-marathon-progress {
+    max-width: 35vw;
+    gap: 0.22rem;
+  }
+
+  .navbar-progress-badge {
+    min-width: 52px;
+    height: 26px;
+    padding: 0 6px;
+    font-size: 0.72rem;
   }
 
   .navbar-profile-avatar {

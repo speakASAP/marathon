@@ -47,6 +47,7 @@ export interface MyMarathonSummary {
   report_time_label?: string | null;
   current_step: Answer | null;
   answers: Answer[];
+  medal: 'gold' | 'silver' | 'bronze' | null;
   can_generate_progress_report?: boolean;
 }
 
@@ -64,6 +65,7 @@ export interface MyMarathon {
   current_step: Answer | null;
   answers: Answer[];
   finished_at: string | null;
+  medal: 'gold' | 'silver' | 'bronze' | null;
   nps_survey: NpsSurvey | null;
   can_generate_progress_report: boolean;
 }

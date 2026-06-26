@@ -1,10 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { fetchCatalogReadiness, fetchMarathonLanguages, type CatalogReadiness, type MarathonLanguage } from '../api/publicMarathon';
-import { MarathonAuthRequiredError, fetchMyMarathons, fetchMyProfile, type MarathonUserProfileSettings } from '../api/profileMarathon';
+import { MarathonAuthRequiredError, fetchMyMarathons, fetchMyProfile, type MarathonUserProfileSettings, type MyMarathonSummary } from '../api/profileMarathon';
 import MarathonFooterLinks from './MarathonFooterLinks';
 import { clearToken, getToken } from '../auth';
-import { PUBLIC_MARATHON_LANGUAGES, formatLanguageOptionLabel, getMarathonLandingPathFromSlug } from '../languages';
+import { PUBLIC_MARATHON_LANGUAGES, formatLanguageFlag, formatLanguageLabel, formatLanguageOptionLabel, getMarathonLandingPathFromSlug } from '../languages';
+
+function getCompletedCount(marathon: MyMarathonSummary) {
+  return marathon.answers.filter((answer) => answer.state === 'completed' || answer.state === 'done' || answer.state === 'checked').length;
+}
+
+function getProgressPct(marathon: MyMarathonSummary) {
+  return marathon.answers.length ? Math.round((getCompletedCount(marathon) / marathon.answers.length) * 100) : 0;
+}
+
+function getMedalIcon(medal: MyMarathonSummary['medal']) {
+  if (medal === 'gold') return '🥇';
+  if (medal === 'silver') return '🥈';
+  if (medal === 'bronze') return '🥉';
+  return '';
+}
+
+function getMedalLabel(medal: MyMarathonSummary['medal']) {
+  if (medal === 'gold') return 'золотая медаль';
+  if (medal === 'silver') return 'серебряная медаль';
+  if (medal === 'bronze') return 'бронзовая медаль';
+  return '';
+}
 
 /** Global shell: one shared Marathon header for every route. */
 export default function Layout() {
@@ -13,7 +35,7 @@ export default function Layout() {
   const [readinessError, setReadinessError] = useState('');
   const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
   const [hasToken, setHasToken] = useState(() => Boolean(getToken()));
-  const [hasRegisteredMarathon, setHasRegisteredMarathon] = useState(false);
+  const [myMarathons, setMyMarathons] = useState<MyMarathonSummary[]>([]);
   const [profile, setProfile] = useState<MarathonUserProfileSettings | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
@@ -52,6 +74,7 @@ export default function Layout() {
     const profilePathParts = location.pathname.split('/').filter(Boolean);
     return Boolean(queryMarathonerId) || (profilePathParts[0] === 'profile' && profilePathParts.length === 2);
   }, [location.pathname, location.search]);
+  const hasRegisteredMarathon = myMarathons.length > 0;
   const hideRegistrationNavigation = hasSelectedMarathonContext || hasRegisteredMarathon;
   const profileAvatarUrl = profile?.avatarUrl?.trim() || '';
   const profileInitial = (profile?.displayName?.trim().charAt(0) || 'Я').toUpperCase();
@@ -59,7 +82,7 @@ export default function Layout() {
   const handleLogout = () => {
     clearToken();
     setHasToken(false);
-    setHasRegisteredMarathon(false);
+    setMyMarathons([]);
     setProfile(null);
     setMenuOpen(false);
     setProfileMenuOpen(false);
@@ -72,7 +95,7 @@ export default function Layout() {
     const tokenPresent = Boolean(getToken());
     setHasToken(tokenPresent);
     if (!tokenPresent) {
-      setHasRegisteredMarathon(false);
+      setMyMarathons([]);
       setProfile(null);
     }
   }, [location.pathname]);
@@ -113,7 +136,7 @@ export default function Layout() {
           if (error instanceof MarathonAuthRequiredError) {
             clearToken();
             setHasToken(false);
-            setHasRegisteredMarathon(false);
+            setMyMarathons([]);
           }
           setProfile(null);
         });
@@ -122,11 +145,11 @@ export default function Layout() {
     fetchMyMarathons()
       .then((items) => {
         if (ignore) return;
-        setHasRegisteredMarathon(items.length > 0);
+        setMyMarathons(items);
       })
       .catch(() => {
         if (!ignore) {
-          setHasRegisteredMarathon(false);
+          setMyMarathons([]);
         }
       });
     loadProfile();
@@ -197,6 +220,30 @@ export default function Layout() {
             )}
             {hasToken ? (
               <div className={`navbar-profile-actions ${profileMenuOpen ? 'navbar-profile-actions--open' : ''}`} ref={profileMenuRef}>
+                {myMarathons.length > 0 && (
+                  <div className="navbar-marathon-progress" aria-label="Прогресс по марафонам">
+                    {myMarathons.map((marathon) => {
+                      const progressPct = getProgressPct(marathon);
+                      const medalIcon = getMedalIcon(marathon.medal);
+                      const medalLabel = getMedalLabel(marathon.medal);
+                      const languageLabel = formatLanguageLabel(marathon.languageCode, marathon.title);
+                      return (
+                        <Link
+                          key={marathon.id}
+                          to={`/profile/${marathon.id}`}
+                          className={`navbar-progress-badge${marathon.medal ? ` navbar-progress-badge--${marathon.medal}` : ''}`}
+                          aria-label={`${languageLabel}: ${progressPct}%${medalLabel ? `, ${medalLabel}` : ''}`}
+                          title={`${languageLabel}: ${progressPct}%${medalLabel ? `, ${medalLabel}` : ''}`}
+                          onClick={() => setProfileMenuOpen(false)}
+                        >
+                          <span className="navbar-progress-flag" aria-hidden="true">{formatLanguageFlag(marathon.languageCode)}</span>
+                          <span className="navbar-progress-percent">{progressPct}%</span>
+                          {medalIcon && <span className="navbar-progress-medal" aria-hidden="true">{medalIcon}</span>}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
                 <button
                   type="button"
                   className="navbar-profile-avatar"
