@@ -83,7 +83,7 @@ function payloadFromAnswers(blocks: AssignmentBlock[], answers: Answers, level: 
     if (Array.isArray(value)) {
       if (value.length) payload[block.name] = value;
     } else if (value?.trim()) {
-      payload[block.name] = value.trim();
+      payload[block.name] = value;
     }
   });
   return payload;
