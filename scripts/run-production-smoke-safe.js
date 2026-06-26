@@ -116,6 +116,29 @@ async function registerSmokeParticipant(token, marathon, purpose) {
   return registration.marathonerId;
 }
 
+function smokeValueForField(block, step) {
+  const choices = Array.isArray(block.choices) ? block.choices : [];
+  if (block.name === "q1" && choices.length) {
+    const advanced = choices.find((choice) => /полугода/i.test(`${choice.value} ${choice.label}`));
+    return advanced?.value || choices[choices.length - 1].value;
+  }
+  if (block.fieldType === "checkbox") {
+    return choices.length ? [choices[0].value] : [`smoke answer ${step.sequence}`];
+  }
+  if (choices.length) return choices[0].value;
+  return `Synthetic production smoke answer ${stamp} step ${step.sequence} ${block.name}`;
+}
+
+function smokePayloadForStep(step) {
+  const payload = { smoke: true, stamp, stepSequence: step.sequence };
+  const blocks = Array.isArray(step.assignmentBlocks) ? step.assignmentBlocks : [];
+  for (const block of blocks) {
+    if (block?.type !== "field" || block.required === false || !block.name) continue;
+    payload[block.name] = smokeValueForField(block, step);
+  }
+  return payload;
+}
+
 async function verifyPaymentUnlock(token, marathon) {
   if (!process.env.PAYMENT_WEBHOOK_API_KEY) {
     throw new Error("PAYMENT_WEBHOOK_API_KEY is required for payment unlock proof");
@@ -283,6 +306,7 @@ async function main() {
 
   let submitted = 0;
   for (const step of steps) {
+    const payload = smokePayloadForStep(step);
     const submission = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/submissions`, {
       method: "POST",
       token,
@@ -291,7 +315,7 @@ async function main() {
         stepId: step.id,
         completed: true,
         report: `Synthetic production smoke report ${stamp} step ${step.sequence}`,
-        payload: { smoke: true, stamp, stepSequence: step.sequence },
+        payload,
         rating: 10,
       }),
     });

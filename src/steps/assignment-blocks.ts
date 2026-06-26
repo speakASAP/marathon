@@ -69,9 +69,58 @@ function normalizeChoices(value: unknown): AssignmentChoice[] {
     .filter((choice): choice is AssignmentChoice => Boolean(choice));
 }
 
+function sameBranch(left: AssignmentBlock, right: AssignmentBlock) {
+  return left.branch === right.branch;
+}
+
+function isOptionalStep1Note(text: string) {
+  return /^\(дальше\s+заполнять\s+необязательно\)\.?$/i.test(text);
+}
+
+function shouldJoinWithPrevious(previous: AssignmentBlock | undefined, text: string) {
+  if (!previous || previous.type !== 'text') return false;
+  return /^[.!?,;:]+$/.test(text)
+    || /^настроек\.?$/i.test(text) && /^Сформируйте отчет\./i.test(previous.text);
+}
+
+function normalizeTextBlockSequence(blocks: AssignmentBlock[]): AssignmentBlock[] {
+  const normalized: AssignmentBlock[] = [];
+  for (const block of blocks) {
+    if (block.type !== 'text') {
+      normalized.push(block);
+      continue;
+    }
+
+    const text = block.text.trim();
+    if (!text || isOptionalStep1Note(text)) continue;
+
+    const previous = normalized[normalized.length - 1];
+    if (/^Отвечайте\s+🇷🇺\s+по-русски\.?$/i.test(text)) {
+      let joined = false;
+      for (let index = normalized.length - 1; index >= 0; index -= 1) {
+        const candidate = normalized[index];
+        if (candidate.type !== 'text') break;
+        if (candidate.branch !== 'advanced' && candidate.branch !== 'beginner-medium') continue;
+        candidate.text = `${candidate.text} ${text.replace(/\.$/, '')}`;
+        joined = true;
+      }
+      if (joined) continue;
+    }
+
+    if (shouldJoinWithPrevious(previous, text) && previous?.type === 'text' && sameBranch(previous, block)) {
+      previous.text = /^[.!?,;:]+$/.test(text) ? `${previous.text}${text}` : `${previous.text} ${text.replace(/\.$/, '')}`;
+      continue;
+    }
+
+    if (/^[.!?,;:]+$/.test(text)) continue;
+    normalized.push({ ...block, text });
+  }
+  return normalized;
+}
+
 export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
   if (!Array.isArray(value)) return [];
-  return value
+  const blocks = value
     .map((raw, index): AssignmentBlock | null => {
       if (!isRecord(raw)) return null;
       const type = raw.type;
@@ -117,4 +166,5 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
       return null;
     })
     .filter((block): block is AssignmentBlock => Boolean(block));
+  return normalizeTextBlockSequence(blocks);
 }

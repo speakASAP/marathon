@@ -143,6 +143,51 @@ function pushTextBlock(blocks, rawText, branch) {
   });
 }
 
+function isOptionalStep1Note(text) {
+  return /^\(дальше\s+заполнять\s+необязательно\)\.?$/i.test(text);
+}
+
+function shouldJoinWithPrevious(previous, text) {
+  if (!previous || previous.type !== 'text') return false;
+  return /^[.!?,;:]+$/.test(text)
+    || (/^настроек\.?$/i.test(text) && /^Сформируйте отчет\./i.test(previous.text));
+}
+
+function normalizeTextBlockSequence(blocks) {
+  const normalized = [];
+  for (const block of blocks) {
+    if (block.type !== 'text') {
+      normalized.push(block);
+      continue;
+    }
+
+    const text = String(block.text || '').trim();
+    if (!text || isOptionalStep1Note(text)) continue;
+
+    const previous = normalized[normalized.length - 1];
+    if (/^Отвечайте\s+🇷🇺\s+по-русски\.?$/i.test(text)) {
+      let joined = false;
+      for (let index = normalized.length - 1; index >= 0; index -= 1) {
+        const candidate = normalized[index];
+        if (candidate.type !== 'text') break;
+        if (candidate.branch !== 'advanced' && candidate.branch !== 'beginner-medium') continue;
+        candidate.text = `${candidate.text} ${text.replace(/\.$/, '')}`;
+        joined = true;
+      }
+      if (joined) continue;
+    }
+
+    if (shouldJoinWithPrevious(previous, text) && previous?.type === 'text' && previous.branch === block.branch) {
+      previous.text = /^[.!?,;:]+$/.test(text) ? `${previous.text}${text}` : `${previous.text} ${text.replace(/\.$/, '')}`;
+      continue;
+    }
+
+    if (/^[.!?,;:]+$/.test(text)) continue;
+    normalized.push({ ...block, text });
+  }
+  return normalized;
+}
+
 function renderTemplateBlocks(templatePath, fields) {
   const html = fs.readFileSync(templatePath, 'utf8')
     .replace(/\{#[\s\S]*?#\}/g, '\n')
@@ -191,7 +236,7 @@ function renderTemplateBlocks(templatePath, fields) {
   }
   appendText(html.slice(lastIndex));
 
-  return blocks;
+  return normalizeTextBlockSequence(blocks);
 }
 
 function blocksToText(blocks) {

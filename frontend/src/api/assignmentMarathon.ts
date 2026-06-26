@@ -96,11 +96,12 @@ export async function fetchRandomAnswer(stepId: string, excludeMarathonerId?: st
   return response.ok ? response.json() as Promise<RandomAnswer | null> : null;
 }
 
-export async function submitStepReport(
+async function sendStepReport(
   participantId: string,
   stepId: string,
   report: string,
-  payload: SubmissionPayload = {},
+  payload: SubmissionPayload,
+  completed: boolean,
 ): Promise<SubmittedStepReport> {
   const response = await authFetch(`/api/v1/me/marathons/${encodeURIComponent(participantId)}/submissions`, {
     method: 'POST',
@@ -109,7 +110,7 @@ export async function submitStepReport(
       stepId,
       report,
       payload,
-      completed: true,
+      completed,
     }),
   });
 
@@ -122,4 +123,22 @@ export async function submitStepReport(
     throw new Error(body.message || body.error || `Submission failed (${response.status})`);
   }
   return body;
+}
+
+export async function saveStepDraft(
+  participantId: string,
+  stepId: string,
+  report: string,
+  payload: SubmissionPayload = {},
+): Promise<SubmittedStepReport> {
+  return sendStepReport(participantId, stepId, report, payload, false);
+}
+
+export async function submitStepReport(
+  participantId: string,
+  stepId: string,
+  report: string,
+  payload: SubmissionPayload = {},
+): Promise<SubmittedStepReport> {
+  return sendStepReport(participantId, stepId, report, payload, true);
 }

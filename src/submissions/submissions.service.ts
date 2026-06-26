@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
+import { AssignmentBlock, normalizeAssignmentBlocks } from '../steps/assignment-blocks';
 import { WinnersService } from '../winners/winners.service';
 
 export type SubmissionRequest = {
@@ -95,6 +96,10 @@ export class SubmissionsService {
       orderBy: { createdAt: 'desc' },
     });
 
+    if (existing?.isCompleted) {
+      throw new ConflictException('Этот отчет уже отправлен и больше не редактируется');
+    }
+
     const startAt = existing?.startAt || this.resolveStartAt(participant.reportHour, step.sequence);
     const endAt = now;
     const isLate = step.isPenalized && endAt > this.resolveDueAt(participant.reportHour, step.sequence);
@@ -103,6 +108,10 @@ export class SubmissionsService {
       ...extraPayload,
       ...(report ? { report } : {}),
     };
+
+    if (completed) {
+      this.assertRequiredAnswers(normalizeAssignmentBlocks(step.assignmentBlocks), payloadJson);
+    }
 
     const result = await this.prisma.$transaction(async (tx) => {
       const submission = existing
@@ -278,6 +287,54 @@ export class SubmissionsService {
       });
     }
     return participant;
+  }
+
+  private assertRequiredAnswers(blocks: AssignmentBlock[], payload: Record<string, unknown>) {
+    const levelField = this.findLevelField(blocks);
+    const level = levelField ? this.getLevel(payload[levelField.name]) : null;
+    const missing = blocks.filter((block): block is Extract<AssignmentBlock, { type: 'field' }> => {
+      if (block.type !== 'field' || !block.required || !this.branchVisible(block.branch, level)) {
+        return false;
+      }
+      return !this.answerFilled(payload[block.name]);
+    });
+
+    if (missing.length) {
+      throw new BadRequestException('Заполните обязательные ответы: ' + missing.map((block) => block.label).join(', '));
+    }
+  }
+
+  private findLevelField(blocks: AssignmentBlock[]): Extract<AssignmentBlock, { type: 'field' }> | undefined {
+    const fields = blocks.filter((block): block is Extract<AssignmentBlock, { type: 'field' }> => block.type === 'field');
+    return fields.find((block) => block.name === 'q1')
+      || fields.find((block) => this.normalizeText(block.label).startsWith('как долго вы учите'));
+  }
+
+  private getLevel(value: unknown): 'beginner' | 'medium' | 'advanced' | null {
+    if (typeof value !== 'string') return null;
+    const normalized = this.normalizeText(value);
+    if (!normalized) return null;
+    if (normalized.includes('только')) return 'beginner';
+    if (normalized.includes('несколько')) return 'medium';
+    if (normalized.includes('полугода')) return 'advanced';
+    return null;
+  }
+
+  private branchVisible(branch: AssignmentBlock['branch'], level: 'beginner' | 'medium' | 'advanced' | null): boolean {
+    if (!branch) return true;
+    if (!level) return false;
+    if (branch === 'beginner-medium') return level === 'beginner' || level === 'medium';
+    return branch === level;
+  }
+
+  private answerFilled(value: unknown): boolean {
+    if (typeof value === 'string') return Boolean(value.trim());
+    if (Array.isArray(value)) return value.some((item) => typeof item === 'string' && Boolean(item.trim()));
+    return false;
+  }
+
+  private normalizeText(value: string): string {
+    return value.toLowerCase().replace(/ё/g, 'е').trim();
   }
 
   private normalizeRating(value?: number, fallback = 0): number {

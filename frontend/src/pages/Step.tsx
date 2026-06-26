@@ -1,12 +1,14 @@
 import { useParams, Link } from 'react-router-dom';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { getToken, redirectToLogin } from '../auth';
 import {
   MarathonAuthRequiredError,
   fetchRandomAnswer,
   fetchSavedSubmission,
   fetchStepInfo,
+  saveStepDraft,
   submitStepReport,
+  type AssignmentBlock,
   type RandomAnswer,
   type SavedSubmission,
   type StepInfo,
@@ -14,6 +16,104 @@ import {
 } from '../api/assignmentMarathon';
 import StepAssignmentRenderer from '../components/StepAssignmentRenderer';
 import { fetchMyMarathon, type MyMarathon } from '../api/profileMarathon';
+
+const DRAFT_SAVE_DELAY_MS = 900;
+
+type Level = 'beginner' | 'medium' | 'advanced' | null;
+type AssignmentFieldBlock = Extract<AssignmentBlock, { type: 'field' }>;
+type AnswerRow = { id: string; question: string; answer: string };
+
+function normalizeText(value: string) {
+  return value.toLowerCase().replace(/ё/g, 'е').trim();
+}
+
+function isPayloadRecord(value: unknown): value is SubmissionPayload {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isFieldBlock(block: AssignmentBlock): block is AssignmentFieldBlock {
+  return block.type === 'field';
+}
+
+function findLevelField(blocks: AssignmentBlock[]): AssignmentFieldBlock | undefined {
+  return blocks.find((block): block is AssignmentFieldBlock => isFieldBlock(block) && block.name === 'q1')
+    || blocks.find((block): block is AssignmentFieldBlock => (
+      isFieldBlock(block) && normalizeText(block.label).startsWith('как долго вы учите')
+    ));
+}
+
+function getLevel(value: unknown): Level {
+  if (typeof value !== 'string') return null;
+  const normalized = normalizeText(value);
+  if (!normalized) return null;
+  if (normalized.includes('только')) return 'beginner';
+  if (normalized.includes('несколько')) return 'medium';
+  if (normalized.includes('полугода')) return 'advanced';
+  return null;
+}
+
+function branchVisible(branch: AssignmentBlock['branch'], level: Level) {
+  if (!branch) return true;
+  if (!level) return false;
+  if (branch === 'beginner-medium') return level === 'beginner' || level === 'medium';
+  return branch === level;
+}
+
+function answerFilled(value: unknown) {
+  if (typeof value === 'string') return Boolean(value.trim());
+  if (Array.isArray(value)) return value.some((item) => typeof item === 'string' && Boolean(item.trim()));
+  return false;
+}
+
+function missingRequiredAnswers(blocks: AssignmentBlock[] | null | undefined, payload: SubmissionPayload) {
+  const assignmentBlocks = Array.isArray(blocks) ? blocks : [];
+  const levelField = findLevelField(assignmentBlocks);
+  const level = levelField ? getLevel(payload[levelField.name]) : null;
+  return assignmentBlocks
+    .filter((block): block is Extract<AssignmentBlock, { type: 'field' }> => (
+      isFieldBlock(block) && block.required && branchVisible(block.branch, level)
+    ))
+    .filter((block) => !answerFilled(payload[block.name]));
+}
+
+function formatAnswerValue(block: AssignmentFieldBlock, value: unknown) {
+  const choiceLabel = (raw: string) => block.choices?.find((choice) => choice.value === raw)?.label || raw;
+  if (Array.isArray(value)) {
+    return value.map((item) => choiceLabel(String(item))).filter(Boolean).join(', ');
+  }
+  if (typeof value === 'string') return choiceLabel(value).trim();
+  return '';
+}
+
+function answerRowsFromPayload(
+  blocks: AssignmentBlock[] | null | undefined,
+  payload: SubmissionPayload,
+  report: string,
+): AnswerRow[] {
+  const assignmentBlocks = Array.isArray(blocks) ? blocks : [];
+  const rows = assignmentBlocks
+    .filter(isFieldBlock)
+    .map((block) => ({
+      id: block.id || block.name,
+      question: block.label,
+      answer: formatAnswerValue(block, payload[block.name]),
+    }))
+    .filter((row) => row.answer.trim());
+
+  if (!rows.length && report.trim()) {
+    return [{ id: 'report', question: 'Ответ', answer: report.trim() }];
+  }
+
+  return rows;
+}
+
+function makeDraftKey(report: string, payload: SubmissionPayload) {
+  return JSON.stringify({ report: report.trim(), payload });
+}
+
+function hasMeaningfulDraft(report: string, payload: SubmissionPayload) {
+  return Boolean(report.trim()) || Object.keys(payload).length > 0;
+}
 
 /**
  * Step (task) page: assignment and submission form first; peer reports unlock after submission.
@@ -33,6 +133,9 @@ export default function Step() {
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const [submitError, setSubmitError] = useState('');
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [draftStatus, setDraftStatus] = useState('');
+  const [lastSavedDraftKey, setLastSavedDraftKey] = useState(makeDraftKey('', {}));
   const [savedSubmission, setSavedSubmission] = useState<SavedSubmission | null>(null);
   const [loadingSavedSubmission, setLoadingSavedSubmission] = useState(false);
   const [savedSubmissionError, setSavedSubmissionError] = useState('');
@@ -54,6 +157,8 @@ export default function Step() {
     setMarathonLoadError('');
     setОтчет('');
     setAssignmentPayload({});
+    setDraftStatus('');
+    setLastSavedDraftKey(makeDraftKey('', {}));
     setLoadingStep(true);
     fetchStepInfo(stepId)
       .then((data) => {
@@ -101,13 +206,13 @@ export default function Step() {
     }
     fetchSavedSubmission(participantId, stepId)
       .then((data) => {
+        const nextPayload = data.exists && isPayloadRecord(data.payload) ? data.payload : {};
+        const nextReport = data.exists && typeof data.report === 'string' ? data.report : '';
         setSavedSubmission(data);
-        if (data.exists && typeof data.report === 'string') {
-          setОтчет(data.report);
-        }
-        if (data.exists && data.payload && typeof data.payload === 'object') {
-          setAssignmentPayload(data.payload);
-        }
+        setОтчет(nextReport);
+        setAssignmentPayload(nextPayload);
+        setDraftStatus('');
+        setLastSavedDraftKey(makeDraftKey(nextReport, nextPayload));
         setLoadingSavedSubmission(false);
       })
       .catch((error) => {
@@ -119,6 +224,18 @@ export default function Step() {
         setLoadingSavedSubmission(false);
       });
   }, [stepId, marathonerId]);
+
+  const assignmentContent = step?.assignmentContent?.trim();
+  const hasParticipantContext = Boolean(marathonerId.trim());
+  const isFinalSubmission = Boolean(savedSubmission?.exists && savedSubmission.state === 'completed');
+  const hasStructuredFields = Boolean(step?.assignmentBlocks?.some((block) => block.type === 'field'));
+  const displayedPayload = isFinalSubmission && savedSubmission?.payload ? savedSubmission.payload : assignmentPayload;
+  const displayedReport = isFinalSubmission && savedSubmission?.report ? savedSubmission.report : report;
+  const answerRows = useMemo(
+    () => answerRowsFromPayload(step?.assignmentBlocks, displayedPayload, displayedReport),
+    [step?.assignmentBlocks, displayedPayload, displayedReport],
+  );
+  const draftKey = useMemo(() => makeDraftKey(report, assignmentPayload), [report, assignmentPayload]);
 
   const loadRandomОтчет = () => {
     if (!stepId) return;
@@ -141,11 +258,78 @@ export default function Step() {
     if (step) document.title = `${step.title} — Марафон`;
   }, [step]);
 
+  useEffect(() => {
+    const participantId = marathonerId.trim();
+    if (
+      !stepId
+      || !participantId
+      || !getToken()
+      || !assignmentContent
+      || submissionAuthRequired
+      || loadingSavedSubmission
+      || submitting
+      || isFinalSubmission
+      || draftKey === lastSavedDraftKey
+      || !hasMeaningfulDraft(report, assignmentPayload)
+    ) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      const reportToSave = report.trim();
+      const payloadToSave = assignmentPayload;
+      const savedKey = draftKey;
+      setDraftSaving(true);
+      setDraftStatus('Сохраняем черновик...');
+      saveStepDraft(participantId, stepId, reportToSave, payloadToSave)
+        .then((body) => {
+          setSavedSubmission({
+            exists: true,
+            id: body.id,
+            report: reportToSave,
+            payload: payloadToSave,
+            state: body.state || 'active',
+            is_late: Boolean(body.is_late),
+            bonus_left: typeof body.bonus_left === 'number' ? body.bonus_left : 0,
+            updated_at: body.updated_at,
+          });
+          setLastSavedDraftKey(savedKey);
+          setDraftStatus('Черновик сохранен');
+        })
+        .catch((error) => {
+          if (error instanceof MarathonAuthRequiredError) {
+            setSubmissionAuthRequired(true);
+          } else {
+            setDraftStatus(error instanceof Error ? error.message : 'Черновик временно не сохранился');
+          }
+        })
+        .finally(() => setDraftSaving(false));
+    }, DRAFT_SAVE_DELAY_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    assignmentContent,
+    assignmentPayload,
+    draftKey,
+    isFinalSubmission,
+    lastSavedDraftKey,
+    loadingSavedSubmission,
+    marathonerId,
+    report,
+    stepId,
+    submissionAuthRequired,
+    submitting,
+  ]);
+
   const submitОтчет = async (event: FormEvent) => {
     event.preventDefault();
     setSubmitMessage('');
     setSubmitError('');
     if (!stepId) return;
+    if (isFinalSubmission) {
+      setSubmitError('Этот отчет уже отправлен и больше не редактируется.');
+      return;
+    }
     if (!marathonerId.trim()) {
       setSubmitError('Откройте это задание из профиля марафона перед отправкой отчета.');
       return;
@@ -158,25 +342,37 @@ export default function Step() {
       setSubmitError('Содержание задания не настроено. Отправка заблокирована, пока поддержка не добавит утвержденное задание.');
       return;
     }
-    if (!report.trim()) {
-      setSubmitError('Напишите отчет перед отправкой.');
+
+    const missing = missingRequiredAnswers(step?.assignmentBlocks, assignmentPayload);
+    if (missing.length) {
+      setSubmitError(`Заполните обязательные ответы: ${missing.map((block) => block.label).join(', ')}`);
+      return;
+    }
+
+    const reportToSubmit = report.trim();
+    if (!hasMeaningfulDraft(reportToSubmit, assignmentPayload)) {
+      setSubmitError('Заполните ответы перед отправкой.');
       return;
     }
 
     setSubmitting(true);
     try {
-      const body = await submitStepReport(marathonerId.trim(), stepId, report.trim(), assignmentPayload);
+      const body = await submitStepReport(marathonerId.trim(), stepId, reportToSubmit, assignmentPayload);
       setSavedSubmission({
         exists: true,
         id: body.id,
-        report: report.trim(),
+        report: reportToSubmit,
         payload: assignmentPayload,
         state: body.state || 'completed',
         is_late: Boolean(body.is_late),
         bonus_left: typeof body.bonus_left === 'number' ? body.bonus_left : 0,
         updated_at: body.updated_at,
       });
-      setSubmitMessage(body.is_late ? 'Отчет сохранен. Он отмечен как поздний.' : 'Отчет сохранен. Ваш прогресс записан.');
+      setLastSavedDraftKey(makeDraftKey(reportToSubmit, assignmentPayload));
+      setDraftStatus('');
+      setSubmitMessage(body.is_late
+        ? 'Отчет отправлен. Он отмечен как поздний, ответы зафиксированы и больше не редактируются.'
+        : 'Отчет отправлен. Ответы зафиксированы и больше не редактируются.');
     } catch (error) {
       if (error instanceof MarathonAuthRequiredError) {
         redirectToLogin(`/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
@@ -188,14 +384,12 @@ export default function Step() {
     }
   };
 
-  const assignmentContent = step?.assignmentContent?.trim();
-  const hasParticipantContext = Boolean(marathonerId.trim());
   const stepReturnPath = stepId && hasParticipantContext
     ? `/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`
     : '/profile';
   const openLogin = () => redirectToLogin(stepReturnPath);
   const submitBlockedByStatusError = Boolean(savedSubmissionError);
-  const canViewPeerReports = Boolean(savedSubmission?.exists && savedSubmission.state === 'completed');
+  const canViewPeerReports = isFinalSubmission;
   const currentScheduleIndex = marathon?.answers.findIndex((answer) => answer.stepId === stepId) ?? -1;
   const previousSchedule = marathon && currentScheduleIndex > 0 ? marathon.answers[currentScheduleIndex - 1] : null;
   const nextSchedule = marathon && currentScheduleIndex >= 0 && currentScheduleIndex < marathon.answers.length - 1
@@ -207,7 +401,8 @@ export default function Step() {
     || submissionAuthRequired
     || !hasParticipantContext
     || !assignmentContent
-    || submitBlockedByStatusError;
+    || submitBlockedByStatusError
+    || isFinalSubmission;
   const peerОтчетEmpty = tab === 'report' && !loadingRandom && !randomAnswer;
 
   useEffect(() => {
@@ -299,15 +494,33 @@ export default function Step() {
       {tab === 'task' && (
         <section className="step-task">
           {assignmentContent ? (
-            <StepAssignmentRenderer
-              blocks={step?.assignmentBlocks}
-              fallbackContent={assignmentContent}
-              initialPayload={assignmentPayload}
-              onPayloadChange={(payload, draft) => {
-                setAssignmentPayload(payload);
-                setОтчет(draft);
-              }}
-            />
+            <>
+              <StepAssignmentRenderer
+                blocks={step?.assignmentBlocks}
+                fallbackContent={assignmentContent}
+                initialPayload={assignmentPayload}
+                readOnly={isFinalSubmission}
+                onPayloadChange={(payload, draft) => {
+                  setAssignmentPayload(payload);
+                  setОтчет(draft);
+                  setDraftStatus('');
+                }}
+              />
+              {!hasStructuredFields && (
+                <label className="step-manual-answer">
+                  <span>Ответ на задание</span>
+                  <textarea
+                    value={report}
+                    onChange={(event) => {
+                      setОтчет(event.target.value);
+                      setDraftStatus('');
+                    }}
+                    rows={6}
+                    disabled={isFinalSubmission || !hasParticipantContext || submissionAuthRequired || submitBlockedByStatusError}
+                  />
+                </label>
+              )}
+            </>
           ) : (
             <div className="step-content-missing" role="alert">
               Содержание задания не настроено для этого этапа. Свяжитесь с поддержкой перед отправкой отчета.
@@ -315,8 +528,15 @@ export default function Step() {
           )}
           <section className="step-submit" aria-labelledby="step-submit-title">
             <h2 id="step-submit-title">Отправка отчета</h2>
-            <p className="step-report-note">Ответьте на вопросы задания и отправьте отчет внизу этой страницы. После отправки откроются отчеты других участников.</p>
+            <p className="step-report-note">
+              {isFinalSubmission
+                ? 'Отчет уже отправлен. Ответы ниже сохранены из базы данных и больше не редактируются.'
+                : 'Ответьте на вопросы задания. Черновик сохраняется автоматически, а финальная отправка произойдет после нажатия «Сформировать отчет».'}
+            </p>
             {loadingSavedSubmission && <p className="step-report-note">Проверяем сохраненный отчет...</p>}
+            {(draftSaving || draftStatus) && !isFinalSubmission && (
+              <p className={`step-draft-status${draftSaving ? ' saving' : ''}`}>{draftStatus || 'Сохраняем черновик...'}</p>
+            )}
             {savedSubmissionError && (
               <p className="ml-error">
                 {savedSubmissionError} Отправка приостановлена, пока статус задания не будет проверен.
@@ -345,26 +565,34 @@ export default function Step() {
             )}
             {savedSubmission?.exists && (
               <div className="step-saved-report" aria-live="polite">
-                <strong>{savedSubmission.state === 'completed' ? 'Отчет отправлен' : 'Черновик отчета загружен'}</strong>
+                <strong>{isFinalSubmission ? 'Отчет отправлен' : 'Черновик отчета сохранен'}</strong>
                 <span>
-                  {savedSubmission.updated_at && `Обновлено ${new Date(savedSubmission.updated_at).toLocaleString('ru-RU')}.`}
+                  {savedSubmission.updated_at && `${isFinalSubmission ? 'Отправлено' : 'Черновик обновлен'} ${new Date(savedSubmission.updated_at).toLocaleString('ru-RU')}.`}
                   {savedSubmission.is_late ? ' Отмечено как поздняя отправка.' : ''}
                 </span>
               </div>
             )}
             <form onSubmit={submitОтчет} className="step-submit-form">
-              <label htmlFor="step-report">Ваши ответы</label>
-              <textarea
-                id="step-report"
-                value={report}
-                onChange={(event) => setОтчет(event.target.value)}
-                placeholder="Заполните ответы по заданию, ссылки, заметки или результат практики..."
-                rows={8}
-                disabled={!hasParticipantContext || submissionAuthRequired || submitBlockedByStatusError || !assignmentContent}
-              />
-              <button type="submit" className="btn-show-more" disabled={submitDisabled}>
-                {submitting ? 'Сохранение...' : submissionAuthRequired ? 'Войти' : 'Отправить отчет'}
-              </button>
+              <div className="step-answer-summary" aria-live="polite">
+                <h3>Ваши ответы</h3>
+                {answerRows.length ? (
+                  <dl>
+                    {answerRows.map((row) => (
+                      <div className="step-answer-row" key={row.id}>
+                        <dt>{row.question}</dt>
+                        <dd>{row.answer}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  <p>Ответы появятся здесь после заполнения полей задания.</p>
+                )}
+              </div>
+              {!isFinalSubmission && (
+                <button type="submit" className="btn-show-more" disabled={submitDisabled}>
+                  {submitting ? 'Отправка...' : submissionAuthRequired ? 'Войти' : 'Сформировать отчет'}
+                </button>
+              )}
             </form>
             {submitMessage && <p className="step-submit-success">{submitMessage}</p>}
             {submitError && <p className="ml-error">{submitError}</p>}

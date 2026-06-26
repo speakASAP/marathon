@@ -2827,6 +2827,93 @@ a:hover {
   line-height: 1.5;
 }
 
+
+.step-draft-status {
+  margin: -0.35rem 0 0;
+  color: #456077;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.step-draft-status.saving {
+  color: #6a4a00;
+}
+
+.step-manual-answer {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1rem;
+  color: var(--marathon-heading);
+  font-weight: 800;
+}
+
+.step-manual-answer textarea {
+  width: 100%;
+  min-height: 9rem;
+  resize: vertical;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  color: #172033;
+  font: inherit;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.step-manual-answer textarea:disabled {
+  background: #f4f6f8;
+  color: #667384;
+  cursor: not-allowed;
+}
+
+.step-answer-summary {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid #d7e2ef;
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.step-answer-summary h3 {
+  margin: 0;
+  color: var(--marathon-heading);
+  font-size: 1rem;
+}
+
+.step-answer-summary dl {
+  display: grid;
+  gap: 0.9rem;
+  margin: 0;
+}
+
+.step-answer-row {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.step-answer-row dt {
+  color: #3d4856;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.step-answer-row dd {
+  margin: 0;
+  color: #172033;
+  font-weight: 800;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.step-answer-summary p {
+  margin: 0;
+  color: #667384;
+  line-height: 1.5;
+}
+
 .step-submit-success {
   margin: 0;
   padding: 0.75rem 1rem;
