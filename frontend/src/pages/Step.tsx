@@ -54,9 +54,12 @@ function getBrowserTimeZone() {
   }
 }
 
+const GENERIC_NEXT_SCHEDULE_INSTRUCTION = /Сформируйте отчет[,.]?\s*Новый этап появится в то\s*(?:⏰\s*)?время,\s*которое вы указали на странице\s*(?:⚙️?\s*)?настроек\.?/gi;
+
 function stripGenericNextScheduleInstruction(value: string) {
   return value
-    .replace(/Сформируйте отчет[,.]?\s*новый этап появится в то время, которое вы указали на странице настроек\.?/gi, '')
+    .replace(GENERIC_NEXT_SCHEDULE_INSTRUCTION, '')
+    .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
@@ -64,8 +67,16 @@ function stripGenericNextScheduleInstruction(value: string) {
 function isGenericNextScheduleInstruction(block: AssignmentBlock) {
   return block.type === 'text'
     && /Сформируйте отчет/i.test(block.text)
-    && /новый этап появится/i.test(block.text)
-    && /странице настроек/i.test(block.text);
+    && /Новый этап появится/i.test(block.text)
+    && /странице\s*(?:⚙️?\s*)?настроек/i.test(block.text);
+}
+
+function sanitizeAssignmentBlock(block: AssignmentBlock): AssignmentBlock | null {
+  if (isGenericNextScheduleInstruction(block)) return null;
+  if (block.type !== 'text') return block;
+
+  const text = stripGenericNextScheduleInstruction(block.text);
+  return text ? { ...block, text } : null;
 }
 
 function isPayloadRecord(value: unknown): value is SubmissionPayload {
@@ -281,7 +292,7 @@ export default function Step() {
   const displayedPayload = isFinalSubmission && savedSubmission?.payload ? savedSubmission.payload : assignmentPayload;
   const displayedReport = isFinalSubmission && savedSubmission?.report ? savedSubmission.report : report;
   const filteredAssignmentBlocks = useMemo(
-    () => step?.assignmentBlocks?.filter((block) => !isGenericNextScheduleInstruction(block)),
+    () => step?.assignmentBlocks?.map(sanitizeAssignmentBlock).filter((block): block is AssignmentBlock => Boolean(block)),
     [step?.assignmentBlocks],
   );
   const filteredAssignmentContent = useMemo(
@@ -612,11 +623,6 @@ export default function Step() {
             </div>
           )}
           <section className="step-submit" aria-label="Форма отчета">
-            <p className="step-report-note">
-              {isFinalSubmission
-                ? 'Отчет уже отправлен. Ответы ниже сохранены из базы данных и больше не редактируются.'
-                : 'Ответьте на вопросы задания. Черновик сохраняется автоматически, а финальная отправка произойдет после нажатия «Сформировать отчет».'}
-            </p>
             {loadingSavedSubmission && <p className="step-report-note">Проверяем сохраненный отчет...</p>}
             {(draftSaving || draftStatus) && !isFinalSubmission && (
               <p className={`step-draft-status${draftSaving ? ' saving' : ''}`}>{draftStatus || 'Сохраняем черновик...'}</p>
