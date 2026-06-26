@@ -313,6 +313,17 @@ a:hover {
   background: linear-gradient(0deg, var(--marathon-green-hover-from) 0%, var(--marathon-green-hover-to) 100%);
 }
 
+.main-header .navbar-cta.btn-green {
+  background: #ef3f34;
+  box-shadow: 0 12px 26px rgba(239, 63, 52, 0.24);
+  color: #fff;
+}
+
+.main-header .navbar-cta.btn-green:hover {
+  background: #cf2f26;
+  color: #fff;
+}
+
 .certificate-showcase {
   max-width: 1240px;
   margin: 0 auto;
