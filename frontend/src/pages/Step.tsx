@@ -143,8 +143,14 @@ function answerRowsFromPayload(
   report: string,
 ): AnswerRow[] {
   const assignmentBlocks = Array.isArray(blocks) ? blocks : [];
+  const levelField = findLevelField(assignmentBlocks);
+  const level = levelField ? getLevel(payload[levelField.name]) : null;
   const rows = assignmentBlocks
     .filter(isFieldBlock)
+    .filter((block) => (
+      branchVisible(block.branch, level)
+      && hasPublicQuestionLabel(block)
+    ))
     .map((block) => ({
       id: block.id || block.name,
       question: block.label,
@@ -157,6 +163,13 @@ function answerRowsFromPayload(
   }
 
   return rows;
+}
+
+function hasPublicQuestionLabel(block: AssignmentFieldBlock) {
+  const label = block.label.trim();
+  if (!label) return false;
+  if (label === block.name) return false;
+  return !/^(?:[a-zа-я]+\d+|field\d+)$/i.test(label);
 }
 
 function makeDraftKey(report: string, payload: SubmissionPayload) {
