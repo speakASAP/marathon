@@ -2529,9 +2529,18 @@ a:hover {
 }
 
 .step-sequence-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: min(100%, 43rem);
+}
+
+.step-sequence-actions .btn-profile-login,
+.step-sequence-actions .btn-profile-open {
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+  text-align: center;
 }
 
 .step-nav-disabled {
@@ -2936,6 +2945,11 @@ a:hover {
   .step-sequence-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .step-sequence-actions {
+    grid-template-columns: 1fr;
+    width: 100%;
   }
 
   .step-sequence-actions .btn-profile-login,
