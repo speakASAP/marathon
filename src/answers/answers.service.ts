@@ -15,6 +15,7 @@ export type RandomAnswer = {
     name: string;
   };
   report: string;
+  payload: Record<string, unknown>;
   complete_time: string;
 };
 
@@ -97,7 +98,7 @@ export class AnswersService {
     const payload = submission.payloadJson as Record<string, any> | null;
     const assignmentBlocks = Array.isArray(step.assignmentBlocks) ? step.assignmentBlocks as AssignmentBlock[] : [];
     const reportStartTime = Date.now();
-    const report = this.generateReport(marathon.title, step.title, payload, assignmentBlocks);
+    const report = this.generateReport(payload, assignmentBlocks);
     const reportLatency = Date.now() - reportStartTime;
 
     this.logger.log(
@@ -109,44 +110,48 @@ export class AnswersService {
         name,
       },
       report,
+      payload: this.filterPayloadForAssignment(payload, assignmentBlocks),
       complete_time: submission.endAt.toISOString(),
     };
   }
 
   /**
-   * Generates a plain-text report from submission payload.
-   * The frontend renders this as text with preserved line breaks.
+   * Generates a plain-text report from fields that belong to the current assignment form only.
+   * Legacy payload keys from other forms/stages are intentionally ignored.
    */
   private generateReport(
-    marathonTitle: string,
-    stepTitle: string,
     payload: Record<string, any> | null,
     assignmentBlocks: AssignmentBlock[],
   ): string {
-    const lines = [`Марафон: ${marathonTitle}`, `Этап: ${stepTitle}`];
-    if (!payload) {
-      return lines.join('\n');
-    }
+    if (!payload) return '';
 
-    const renderedKeys = new Set<string>();
+    const lines: string[] = [];
     const fieldBlocks = assignmentBlocks.filter((block): block is AssignmentFieldBlock => block.type === 'field');
 
     for (const block of fieldBlocks) {
       if (!Object.prototype.hasOwnProperty.call(payload, block.name)) continue;
       const value = this.stringifyPayloadValue(payload[block.name], block.choices);
       if (!value) continue;
-      renderedKeys.add(block.name);
-      lines.push('', `${block.label || block.name}:`, value);
+      lines.push(`${block.label || block.name}:`, value);
     }
 
-    for (const [key, value] of Object.entries(payload)) {
-      if (renderedKeys.has(key)) continue;
-      const renderedValue = this.stringifyPayloadValue(value);
-      if (!renderedValue) continue;
-      lines.push('', `${key}:`, renderedValue);
-    }
+    return lines.join('\n\n');
+  }
 
-    return lines.join('\n');
+  private filterPayloadForAssignment(
+    payload: Record<string, any> | null,
+    assignmentBlocks: AssignmentBlock[],
+  ): Record<string, unknown> {
+    if (!payload) return {};
+
+    const filtered: Record<string, unknown> = {};
+    const fieldBlocks = assignmentBlocks.filter((block): block is AssignmentFieldBlock => block.type === 'field');
+    for (const block of fieldBlocks) {
+      if (!Object.prototype.hasOwnProperty.call(payload, block.name)) continue;
+      if (!this.stringifyPayloadValue(payload[block.name], block.choices)) continue;
+      filtered[block.name] = payload[block.name];
+    }
+    return filtered;
   }
 
   private stringifyPayloadValue(value: unknown, choices: Array<{ value: string; label: string }> = []): string {

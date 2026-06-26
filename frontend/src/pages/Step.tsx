@@ -303,6 +303,12 @@ export default function Step() {
     () => answerRowsFromPayload(step?.assignmentBlocks, displayedPayload, displayedReport),
     [step?.assignmentBlocks, displayedPayload, displayedReport],
   );
+  const peerAnswerRows = useMemo(
+    () => randomAnswer
+      ? answerRowsFromPayload(step?.assignmentBlocks, randomAnswer.payload || {}, randomAnswer.report)
+      : [],
+    [randomAnswer, step?.assignmentBlocks],
+  );
   const draftKey = useMemo(() => makeDraftKey(report, assignmentPayload), [report, assignmentPayload]);
 
   const loadRandomОтчет = () => {
@@ -728,13 +734,19 @@ export default function Step() {
           {loadingRandom && !randomAnswer && <p>Загрузка…</p>}
           {randomAnswer && (
             <div className="random-report">
-              <p className="random-report-meta">
-                {randomAnswer.marathoner.name}
-                {randomAnswer.complete_time && (
-                  <span> — {new Date(randomAnswer.complete_time).toLocaleString('ru-RU')}</span>
-                )}
-              </p>
-              <div className="random-report-body">{randomAnswer.report}</div>
+              <p className="random-report-meta">{randomAnswer.marathoner.name}</p>
+              {peerAnswerRows.length ? (
+                <dl className="random-report-body">
+                  {peerAnswerRows.map((row) => (
+                    <div className="step-answer-row" key={row.id}>
+                      <dt>{row.question}</dt>
+                      <dd>{row.answer}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : (
+                <div className="random-report-body">{randomAnswer.report}</div>
+              )}
             </div>
           )}
           {!loadingRandom && randomAnswer && (

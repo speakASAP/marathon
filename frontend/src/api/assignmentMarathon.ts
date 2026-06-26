@@ -44,6 +44,7 @@ export interface StepInfo {
 export interface RandomAnswer {
   marathoner: { name: string };
   report: string;
+  payload?: SubmissionPayload | null;
   complete_time: string;
 }
 
