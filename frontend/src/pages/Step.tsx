@@ -28,12 +28,13 @@ function normalizeText(value: string) {
 }
 
 function formatDateTime(value: string) {
-  return new Date(value).toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: 'short',
+  const formatted = new Date(value).toLocaleString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
     hour: '2-digit',
     minute: '2-digit',
   });
+  return formatted.replace(',', ' в');
 }
 
 function formatTimeInput(value?: string | null) {
@@ -55,7 +56,7 @@ function getBrowserTimeZone() {
 
 function stripGenericNextScheduleInstruction(value: string) {
   return value
-    .replace(/Сформируйте отчет,?\s*новый этап появится в то время, которое вы указали на странице настроек\.?/gi, '')
+    .replace(/Сформируйте отчет[,.]?\s*новый этап появится в то время, которое вы указали на странице настроек\.?/gi, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
@@ -350,7 +351,7 @@ export default function Step() {
             updated_at: body.updated_at,
           });
           setLastSavedDraftKey(savedKey);
-          setDraftStatus('Черновик сохранен');
+          setDraftStatus('');
         })
         .catch((error) => {
           if (error instanceof MarathonAuthRequiredError) {
@@ -450,7 +451,7 @@ export default function Step() {
       const body = await updateReportTime(marathon.id, reportTime, browserTimeZone);
       setMarathon(body);
       setReportTime(formatTimeInput(body.report_time));
-      setReportTimeMessage('Время сохранено. Новый этап появится по обновленному расписанию.');
+      setReportTimeMessage('Время сохранено.');
     } catch (error) {
       if (error instanceof MarathonAuthRequiredError) {
         redirectToLogin(`/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
@@ -475,9 +476,8 @@ export default function Step() {
     : null;
   const nextOpenAllowed = Boolean(isFinalSubmission && nextSchedule?.can_open && nextSchedule.block_reason !== 'payment_required');
   const nextAvailabilityText = nextSchedule
-    ? `Следующий этап «${nextSchedule.title}» появится ${formatDateTime(nextSchedule.start)}.`
+    ? `Появится ${formatDateTime(nextSchedule.start)}.`
     : '';
-  const nextReportTimeLabel = marathon?.report_time_label || formatTimeInput(marathon?.report_time);
   const profileUrl = hasParticipantContext ? `/profile/${encodeURIComponent(marathonerId.trim())}` : '/profile';
   const submitDisabled = submitting
     || loadingSavedSubmission
@@ -549,7 +549,7 @@ export default function Step() {
               </Link>
             ) : (
               <span className="btn-profile-open step-nav-disabled">
-                {isFinalSubmission ? 'Следующий этап' : 'Сначала сформируйте отчет'}
+                Следующий этап
               </span>
             )}
           </div>
@@ -611,8 +611,7 @@ export default function Step() {
               Содержание задания не настроено для этого этапа. Свяжитесь с поддержкой перед отправкой отчета.
             </div>
           )}
-          <section className="step-submit" aria-labelledby="step-submit-title">
-            <h2 id="step-submit-title">Отправка отчета</h2>
+          <section className="step-submit" aria-label="Форма отчета">
             <p className="step-report-note">
               {isFinalSubmission
                 ? 'Отчет уже отправлен. Ответы ниже сохранены из базы данных и больше не редактируются.'
@@ -650,49 +649,12 @@ export default function Step() {
             )}
             {savedSubmission?.exists && (
               <div className="step-saved-report" aria-live="polite">
-                <strong>{isFinalSubmission ? 'Отчет отправлен' : 'Черновик отчета сохранен'}</strong>
+                {isFinalSubmission && <strong>Отчет отправлен</strong>}
                 <span>
                   {savedSubmission.updated_at && `${isFinalSubmission ? 'Отправлено' : 'Черновик обновлен'} ${new Date(savedSubmission.updated_at).toLocaleString('ru-RU')}.`}
                   {savedSubmission.is_late ? ' Отмечено как поздняя отправка.' : ''}
                 </span>
               </div>
-            )}
-            {nextSchedule && marathon && (
-              <section className="step-next-control" aria-label="Следующий этап">
-                <div className="step-next-control-main">
-                  <span>Следующий этап</span>
-                  <strong>{nextSchedule.title}</strong>
-                  <p>{nextAvailabilityText}</p>
-                  <p>Текущее время появления этапов: <strong>{nextReportTimeLabel}</strong>.</p>
-                </div>
-                <form className="step-next-time-form" onSubmit={submitReportTime}>
-                  <label htmlFor="step-report-time">Время появления следующих этапов</label>
-                  <div className="step-next-time-row">
-                    <input
-                      id="step-report-time"
-                      type="time"
-                      value={reportTime}
-                      onChange={(event) => setReportTime(event.target.value)}
-                      disabled={!marathon.can_change_report_time || reportTimeSaving}
-                    />
-                    <button type="submit" className="btn-profile-login" disabled={!marathon.can_change_report_time || reportTimeSaving}>
-                      {reportTimeSaving ? 'Сохраняем...' : 'Сохранить'}
-                    </button>
-                  </div>
-                  {!marathon.can_change_report_time && <span className="profile-step-meta">Время нельзя менять после завершения марафона.</span>}
-                  {reportTimeMessage && <p className="step-submit-success">{reportTimeMessage}</p>}
-                  {reportTimeError && <p className="ml-error">{reportTimeError}</p>}
-                </form>
-                {nextOpenAllowed ? (
-                  <Link to={`/steps/${nextSchedule.stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`} className="btn-profile-open step-next-now">
-                    {nextSchedule.state === 'inactive' ? 'Открыть следующий сейчас' : 'Перейти к следующему этапу'}
-                  </Link>
-                ) : (
-                  <span className="btn-profile-open step-nav-disabled step-next-now">
-                    Сначала сформируйте отчет
-                  </span>
-                )}
-              </section>
             )}
             <form onSubmit={submitОтчет} className="step-submit-form">
               <div className="step-answer-summary" aria-live="polite">
@@ -718,6 +680,37 @@ export default function Step() {
             </form>
             {submitMessage && <p className="step-submit-success">{submitMessage}</p>}
             {submitError && <p className="ml-error">{submitError}</p>}
+            {nextSchedule && marathon && (
+              <section className="step-next-control" aria-label="Следующий этап">
+                <div className="step-next-control-main">
+                  <p><strong>Следующий этап, {nextSchedule.title}.</strong></p>
+                  <p>{nextAvailabilityText}</p>
+                </div>
+                <form className="step-next-time-form" onSubmit={submitReportTime}>
+                  <label htmlFor="step-report-time">Время появления следующих этапов</label>
+                  <div className="step-next-time-row">
+                    <input
+                      id="step-report-time"
+                      type="time"
+                      value={reportTime}
+                      onChange={(event) => setReportTime(event.target.value)}
+                      disabled={!marathon.can_change_report_time || reportTimeSaving}
+                    />
+                    <button type="submit" className="btn-profile-login" disabled={!marathon.can_change_report_time || reportTimeSaving}>
+                      {reportTimeSaving ? 'Сохраняем...' : 'Сохранить'}
+                    </button>
+                  </div>
+                  {!marathon.can_change_report_time && <span className="profile-step-meta">Время нельзя менять после завершения марафона.</span>}
+                  {reportTimeMessage && <p className="step-submit-success">{reportTimeMessage}</p>}
+                  {reportTimeError && <p className="ml-error">{reportTimeError}</p>}
+                </form>
+                {nextOpenAllowed && (
+                  <Link to={`/steps/${nextSchedule.stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`} className="btn-profile-open step-next-now">
+                    {nextSchedule.state === 'inactive' ? 'Открыть следующий сейчас' : 'Перейти к следующему этапу'}
+                  </Link>
+                )}
+              </section>
+            )}
           </section>
         </section>
       )}
