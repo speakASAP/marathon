@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
 import { AuthUser } from '../shared/auth-client';
+import { NotificationsService } from '../shared/notifications.service';
 
 type CheckoutRequest = {
   marathonerId?: string;
@@ -40,7 +41,10 @@ const PAYMENT_METHODS = new Set(['payu', 'stripe', 'paypal', 'fiobanka', 'comgat
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async createCheckout(user: AuthUser, payload: CheckoutRequest) {
     const userId = user.id;
@@ -248,7 +252,18 @@ export class PaymentsService {
     const attempt = await this.prisma.marathonPaymentAttempt.findUnique({
       where: { orderId },
       include: {
-        participant: true,
+        participant: {
+          include: {
+            marathon: {
+              include: {
+                steps: {
+                  orderBy: { sequence: 'asc' },
+                  select: { id: true, sequence: true, title: true },
+                },
+              },
+            },
+          },
+        },
         product: true,
       },
     });
@@ -320,10 +335,51 @@ export class PaymentsService {
       });
     });
 
+    await this.sendPaymentConfirmedNotification(attempt.participant);
+
     this.logger.log(
       `Marathon payment confirmed: marathonerId=${attempt.participantId}, paymentId=${providerPaymentId || ''}, orderId=${orderId}`,
     );
     return { status: 'payment_confirmed', marathonerId: attempt.participantId, orderId };
+  }
+
+  private async sendPaymentConfirmedNotification(participant: any): Promise<void> {
+    const email = participant.email?.trim();
+    if (!email || email.endsWith('@example.invalid')) {
+      this.logger.log(
+        `Skipping payment confirmation notification: marathonerId=${participant.id}, hasEmail=${Boolean(email)}, smoke=${Boolean(email?.endsWith('@example.invalid'))}`,
+      );
+      return;
+    }
+
+    const firstStep = participant.marathon?.steps?.[0];
+    const profileUrl = this.profileUrl(participant.id);
+    const firstStepUrl = firstStep
+      ? `${this.publicBaseUrl()}/steps/${encodeURIComponent(firstStep.id)}?marathonerId=${encodeURIComponent(participant.id)}`
+      : profileUrl;
+    const greeting = participant.name?.trim() ? `${participant.name.trim()}, спасибо за покупку!` : 'Спасибо за покупку!';
+    const marathonTitle = participant.marathon?.title || 'марафона';
+    const firstStepLine = firstStep
+      ? `Первый этап уже открыт: ${firstStep.title}. Откройте его здесь: ${firstStepUrl}`
+      : `Марафон уже открыт в вашем профиле: ${profileUrl}`;
+
+    this.logger.log(`marathon.payment.notification_requested marathonerId=${participant.id} channel=email`);
+    await this.notificationsService.send({
+      channel: 'email',
+      type: 'custom',
+      recipient: email,
+      subject: 'Оплата марафона подтверждена',
+      message: `${greeting}\n\nОплата ${marathonTitle} прошла успешно. ${firstStepLine}\n\nЕсли система попросит войти, используйте ваш обычный логин и пароль - после входа мы вернем вас на эту же страницу.`,
+      templateData: {
+        marathonId: participant.marathonId,
+        marathonerId: participant.id,
+        marathonTitle,
+        firstStepId: firstStep?.id || null,
+        firstStepTitle: firstStep?.title || null,
+        firstStepUrl,
+        profileUrl,
+      },
+    });
   }
 
   private async findAndClaimParticipant(marathonerId: string, userId: string) {
