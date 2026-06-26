@@ -2539,6 +2539,8 @@ a:hover {
 .step-sequence-actions .btn-profile-open {
   width: 100%;
   min-width: 0;
+  min-height: 64px;
+  margin-top: 0;
   justify-content: center;
   text-align: center;
 }

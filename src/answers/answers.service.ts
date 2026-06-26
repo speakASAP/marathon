@@ -1,6 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
 
+type AssignmentFieldBlock = {
+  type: 'field';
+  name: string;
+  label?: string;
+  choices?: Array<{ value: string; label: string }>;
+};
+
+type AssignmentBlock = AssignmentFieldBlock | { type: string; [key: string]: unknown };
+
 export type RandomAnswer = {
   marathoner: {
     name: string;
@@ -28,10 +37,27 @@ export class AnswersService {
       this.logger.debug(`Excluding marathoner from results: excludeMarathonerId=${excludeMarathonerId}`);
     }
 
-    this.logger.debug(`Database query filters: ${JSON.stringify(where)}`);
+    this.logger.debug(`Database count filters: ${JSON.stringify(where)}`);
     const dbStartTime = Date.now();
+    const count = await this.prisma.stepSubmission.count({ where });
+    const countLatency = Date.now() - dbStartTime;
+
+    this.logger.log(
+      `Random answer database count completed: found=${count}, latency=${countLatency}ms`,
+    );
+
+    if (count === 0) {
+      this.logger.warn(`No completed submissions found: stepId=${stepId}, excludeMarathonerId=${excludeMarathonerId || 'none'}`);
+      return null;
+    }
+
+    const randomIndex = Math.floor(Math.random() * count);
+    const fetchStartTime = Date.now();
     const submissions = await this.prisma.stepSubmission.findMany({
       where,
+      skip: randomIndex,
+      take: 1,
+      orderBy: { id: 'asc' },
       include: {
         participant: {
           include: {
@@ -45,20 +71,17 @@ export class AnswersService {
         },
       },
     });
-    const dbLatency = Date.now() - dbStartTime;
+    const fetchLatency = Date.now() - fetchStartTime;
+    const submission = submissions[0];
 
-    this.logger.log(
-      `Random answer database query completed: found=${submissions.length}, latency=${dbLatency}ms`,
-    );
-
-    if (submissions.length === 0) {
-      this.logger.warn(`No completed submissions found: stepId=${stepId}, excludeMarathonerId=${excludeMarathonerId || 'none'}`);
+    if (!submission) {
+      this.logger.warn(`Random answer vanished after count: stepId=${stepId}, randomIndex=${randomIndex}, count=${count}`);
       return null;
     }
 
-    const randomIndex = Math.floor(Math.random() * submissions.length);
-    const submission = submissions[randomIndex];
-    this.logger.debug(`Selected random submission: index=${randomIndex} of ${submissions.length}, submissionId=${submission.id}`);
+    this.logger.debug(
+      `Selected random submission: index=${randomIndex} of ${count}, submissionId=${submission.id}, latency=${fetchLatency}ms`,
+    );
 
     const participant = submission.participant;
     const marathon = participant.marathon;
@@ -68,16 +91,17 @@ export class AnswersService {
       `Processing submission: participantId=${participant.id}, marathonId=${marathon.id}, stepId=${step.id}`,
     );
 
-    const name = participant.name || `${participant.email || participant.phone || 'Anonymous'}`;
+    const name = participant.name?.trim() || 'Участник марафона';
     this.logger.debug(`Marathoner name resolved: name=${name}`);
 
     const payload = submission.payloadJson as Record<string, any> | null;
+    const assignmentBlocks = Array.isArray(step.assignmentBlocks) ? step.assignmentBlocks as AssignmentBlock[] : [];
     const reportStartTime = Date.now();
-    const report = this.generateReport(marathon.title, step.title, payload);
+    const report = this.generateReport(marathon.title, step.title, payload, assignmentBlocks);
     const reportLatency = Date.now() - reportStartTime;
 
     this.logger.log(
-      `Random answer generated: stepId=${stepId}, marathonerName=${name}, reportLength=${report.length}, latency=${reportLatency}ms`,
+      `Random answer generated: stepId=${stepId}, resultCount=${count}, marathonerName=${name}, reportLength=${report.length}, latency=${reportLatency}ms`,
     );
 
     return {
@@ -93,21 +117,47 @@ export class AnswersService {
    * Generates a plain-text report from submission payload.
    * The frontend renders this as text with preserved line breaks.
    */
-  private generateReport(marathonTitle: string, stepTitle: string, payload: Record<string, any> | null): string {
-    const lines = [`Marathon: ${marathonTitle}`, `Step: ${stepTitle}`];
+  private generateReport(
+    marathonTitle: string,
+    stepTitle: string,
+    payload: Record<string, any> | null,
+    assignmentBlocks: AssignmentBlock[],
+  ): string {
+    const lines = [`Марафон: ${marathonTitle}`, `Этап: ${stepTitle}`];
     if (!payload) {
       return lines.join('\n');
     }
 
-    for (const [key, value] of Object.entries(payload)) {
-      lines.push(`${key}: ${this.stringifyPayloadValue(value)}`);
+    const renderedKeys = new Set<string>();
+    const fieldBlocks = assignmentBlocks.filter((block): block is AssignmentFieldBlock => block.type === 'field');
+
+    for (const block of fieldBlocks) {
+      if (!Object.prototype.hasOwnProperty.call(payload, block.name)) continue;
+      const value = this.stringifyPayloadValue(payload[block.name], block.choices);
+      if (!value) continue;
+      renderedKeys.add(block.name);
+      lines.push('', `${block.label || block.name}:`, value);
     }
+
+    for (const [key, value] of Object.entries(payload)) {
+      if (renderedKeys.has(key)) continue;
+      const renderedValue = this.stringifyPayloadValue(value);
+      if (!renderedValue) continue;
+      lines.push('', `${key}:`, renderedValue);
+    }
+
     return lines.join('\n');
   }
 
-  private stringifyPayloadValue(value: unknown): string {
+  private stringifyPayloadValue(value: unknown, choices: Array<{ value: string; label: string }> = []): string {
     if (value == null) return '';
-    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) {
+      return value.map((item) => this.stringifyPayloadValue(item, choices)).filter(Boolean).join(', ');
+    }
+    if (typeof value === 'string') {
+      const choice = choices.find((item) => item.value === value);
+      return choice?.label || value;
+    }
     if (typeof value === 'number' || typeof value === 'boolean') return String(value);
     return JSON.stringify(value);
   }

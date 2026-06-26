@@ -13,4 +13,4 @@ else
   echo "DATABASE_URL not set, skipping Prisma migrations."
 fi
 
-exec node dist/main.js
+exec node ${NODE_OPTIONS:-} dist/main.js
