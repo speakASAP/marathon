@@ -122,7 +122,8 @@ export type MyMarathonProgressReport = {
   }>;
 };
 
-const BONUS_DAYS = 0;
+const BONUS_DAYS = 7;
+const MIN_NEXT_STEP_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class MeService {
@@ -277,6 +278,7 @@ export class MeService {
       });
     }
 
+    participant = await this.reconcileMissedDeadlines(participant);
     return this.mapToMyMarathon(participant);
   }
 
@@ -407,7 +409,7 @@ export class MeService {
       throw new BadRequestException('Report time cannot be changed for this marathon');
     }
 
-    const reportHour = this.applyReportTime(participant.reportHour, input.reportTime);
+    const reportHour = this.applyReportTime(participant.reportHour, input.reportTime, participant);
     const updated = await this.prisma.marathonParticipant.update({
       where: { id: participant.id },
       data: { reportHour },
@@ -515,6 +517,104 @@ export class MeService {
       // Fall through to a user-facing validation error.
     }
     throw new BadRequestException('Avatar image must be a compressed image upload, an http(s) URL, or an internal path');
+  }
+
+  private async reconcileMissedDeadlines(participant: any): Promise<any> {
+    if (!participant.active || this.isWinner(participant, participant.marathon.steps)) {
+      return participant;
+    }
+
+    const now = new Date();
+    const completedStepIds = new Set(
+      participant.submissions
+        .filter((submission: any) => submission.isCompleted)
+        .map((submission: any) => submission.stepId),
+    );
+
+    let changed = false;
+    let canUsePenalty = participant.canUsePenalty;
+    let bonusDaysLeft = participant.bonusDaysLeft;
+
+    for (const step of participant.marathon.steps) {
+      if (completedStepIds.has(step.id)) continue;
+      const dueAt = this.resolveDueAt(participant.reportHour, step.sequence);
+      if (dueAt > now) break;
+
+      const alreadyReported = participant.penaltyReports.some((report: any) => {
+        const value = report.value && typeof report.value === 'object' ? report.value : {};
+        return value.stepId === step.id && (value.reason === 'missed_deadline' || value.reason === 'late_submission');
+      });
+      if (alreadyReported) continue;
+
+      const penaltyValue = {
+        stepId: step.id,
+        reason: 'missed_deadline',
+        dueAt: dueAt.toISOString(),
+      };
+
+      if (canUsePenalty) {
+        await this.prisma.penaltyReport.create({
+          data: {
+            participantId: participant.id,
+            completed: false,
+            value: penaltyValue,
+          },
+        });
+        await this.prisma.marathonParticipant.update({
+          where: { id: participant.id },
+          data: { canUsePenalty: false },
+        });
+        canUsePenalty = false;
+      } else {
+        bonusDaysLeft = Math.max(0, bonusDaysLeft - 1);
+        await this.prisma.penaltyReport.create({
+          data: {
+            participantId: participant.id,
+            completed: true,
+            completeTime: now,
+            value: penaltyValue,
+          },
+        });
+        await this.prisma.marathonParticipant.update({
+          where: { id: participant.id },
+          data: { bonusDaysLeft },
+        });
+      }
+      changed = true;
+    }
+
+    if (!changed) return participant;
+    return this.prisma.marathonParticipant.findUnique({
+      where: { id: participant.id },
+      include: {
+              marathon: {
+                include: {
+                  steps: {
+                    orderBy: { sequence: 'asc' },
+                  },
+                },
+              },
+              submissions: {
+                include: {
+                  step: true,
+                },
+                orderBy: {
+                  createdAt: 'desc',
+                },
+              },
+              surveyResponse: true,
+              penaltyReports: true,
+            },
+    });
+  }
+
+  private findNextUncompletedStep(participant: any): any | null {
+    const completedStepIds = new Set(
+      participant.submissions
+        .filter((submission: any) => submission.isCompleted)
+        .map((submission: any) => submission.stepId),
+    );
+    return participant.marathon.steps.find((step: any) => !completedStepIds.has(step.id)) || null;
   }
 
   private mapToMyMarathon(participant: any): MyMarathon {
@@ -783,7 +883,7 @@ export class MeService {
     return !participant.paid;
   }
 
-  private applyReportTime(currentReportHour: Date, value: unknown): Date {
+  private applyReportTime(currentReportHour: Date, value: unknown, participant?: any): Date {
     if (typeof value !== 'string') {
       throw new BadRequestException('reportTime must use HH:mm format');
     }
@@ -793,9 +893,35 @@ export class MeService {
       throw new BadRequestException('reportTime must use HH:mm format');
     }
 
-    const next = new Date(currentReportHour);
-    next.setHours(Number(match[1]), Number(match[2]), 0, 0);
-    return next;
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (!participant) {
+      const next = new Date(currentReportHour);
+      next.setHours(hours, minutes, 0, 0);
+      return next;
+    }
+
+    const nextStep = this.findNextUncompletedStep(participant);
+    if (!nextStep) {
+      const next = new Date(currentReportHour);
+      next.setHours(hours, minutes, 0, 0);
+      return next;
+    }
+
+    const now = new Date();
+    const minStartAt = new Date(now.getTime() + MIN_NEXT_STEP_WINDOW_MS);
+    const nextStartAt = new Date(now);
+    nextStartAt.setHours(hours, minutes, 0, 0);
+    if (nextStartAt <= now) {
+      nextStartAt.setDate(nextStartAt.getDate() + 1);
+    }
+    while (nextStartAt < minStartAt) {
+      nextStartAt.setDate(nextStartAt.getDate() + 1);
+    }
+
+    const reportHour = new Date(nextStartAt);
+    reportHour.setDate(reportHour.getDate() - Math.max(nextStep.sequence - 1, 0));
+    return reportHour;
   }
 
   private formatReportTime(value: Date): string {

@@ -468,7 +468,7 @@ export default function Step() {
       const body = await updateReportTime(marathon.id, reportTime, browserTimeZone);
       setMarathon(body);
       setReportTime(formatTimeInput(body.report_time));
-      setReportTimeMessage('Время сохранено.');
+      setReportTimeMessage('Время сохранено. Следующий этап будет не раньше чем через 24 часа.');
     } catch (error) {
       if (error instanceof MarathonAuthRequiredError) {
         redirectToLogin(`/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
@@ -697,6 +697,11 @@ export default function Step() {
                 <div className="step-next-control-main">
                   <p><strong>Следующий этап, {nextSchedule.title}.</strong></p>
                   <p>{nextAvailabilityText}</p>
+                  {nextOpenAllowed && (
+                    <Link to={`/steps/${nextSchedule.stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`} className="btn-profile-open step-next-now">
+                      Открыть следующий сейчас
+                    </Link>
+                  )}
                 </div>
                 <form className="step-next-time-form" onSubmit={submitReportTime}>
                   <label htmlFor="step-report-time">Время появления следующих этапов</label>
@@ -716,11 +721,6 @@ export default function Step() {
                   {reportTimeMessage && <p className="step-submit-success">{reportTimeMessage}</p>}
                   {reportTimeError && <p className="ml-error">{reportTimeError}</p>}
                 </form>
-                {nextOpenAllowed && (
-                  <Link to={`/steps/${nextSchedule.stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`} className="btn-profile-open step-next-now">
-                    {nextSchedule.state === 'inactive' ? 'Открыть следующий сейчас' : 'Перейти к следующему этапу'}
-                  </Link>
-                )}
               </section>
             )}
           </section>

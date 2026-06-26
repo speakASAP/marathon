@@ -2552,9 +2552,9 @@ a:hover {
 
 .step-next-control {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(230px, 320px) auto;
-  gap: 0.85rem;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 320px);
+  gap: 1rem;
+  align-items: start;
   margin: 1rem 0;
   padding: 1rem;
   border: 1px solid #cfe1d7;
@@ -2617,6 +2617,11 @@ a:hover {
   margin-top: 0;
   justify-content: center;
   white-space: nowrap;
+}
+
+.step-next-control-main .step-next-now {
+  width: fit-content;
+  margin-top: 0.35rem;
 }
 
 .step-schedule-current {

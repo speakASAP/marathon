@@ -102,7 +102,7 @@ export class SubmissionsService {
 
     const startAt = existing?.startAt || this.resolveStartAt(participant.reportHour, step.sequence);
     const endAt = now;
-    const isLate = step.isPenalized && endAt > this.resolveDueAt(participant.reportHour, step.sequence);
+    const isLate = endAt > this.resolveDueAt(participant.reportHour, step.sequence);
     const payloadJson = {
       ...(existing?.payloadJson && typeof existing.payloadJson === 'object' ? existing.payloadJson as Record<string, unknown> : {}),
       ...extraPayload,
@@ -144,31 +144,47 @@ export class SubmissionsService {
           where: {
             participantId: participant.id,
             value: {
-              path: ['submissionId'],
-              equals: submission.id,
+              path: ['stepId'],
+              equals: step.id,
             },
           },
         });
 
         if (!existingPenalty) {
-          await tx.penaltyReport.create({
-            data: {
-              participantId: participant.id,
-              completed: true,
-              completeTime: endAt,
-              value: {
-                stepId: step.id,
-                submissionId: submission.id,
-                reason: 'late_submission',
+          const penaltyValue = {
+            stepId: step.id,
+            submissionId: submission.id,
+            reason: 'late_submission',
+            dueAt: this.resolveDueAt(participant.reportHour, step.sequence).toISOString(),
+          };
+          if (participant.canUsePenalty) {
+            await tx.penaltyReport.create({
+              data: {
+                participantId: participant.id,
+                completed: false,
+                value: penaltyValue,
               },
-            },
-          });
+            });
+            await tx.marathonParticipant.update({
+              where: { id: participant.id },
+              data: { canUsePenalty: false },
+            });
+          } else {
+            await tx.penaltyReport.create({
+              data: {
+                participantId: participant.id,
+                completed: true,
+                completeTime: endAt,
+                value: penaltyValue,
+              },
+            });
+            bonusDaysLeft = Math.max(0, participant.bonusDaysLeft - 1);
+            await tx.marathonParticipant.update({
+              where: { id: participant.id },
+              data: { bonusDaysLeft },
+            });
+          }
           penaltyReported = true;
-          bonusDaysLeft = Math.max(0, participant.bonusDaysLeft - 1);
-          await tx.marathonParticipant.update({
-            where: { id: participant.id },
-            data: { bonusDaysLeft },
-          });
         }
       }
 
@@ -256,7 +272,7 @@ export class SubmissionsService {
       report,
       payload: payloadJson,
       state: submission.isCompleted ? 'completed' : 'active',
-      is_late: step.isPenalized && submission.endAt > this.resolveDueAt(participant.reportHour, step.sequence),
+      is_late: submission.endAt > this.resolveDueAt(participant.reportHour, step.sequence),
       bonus_left: participant.bonusDaysLeft,
       updated_at: submission.updatedAt.toISOString(),
     };
