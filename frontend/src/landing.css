@@ -1522,8 +1522,9 @@
 }
 
 .ml-hero {
-  grid-template-columns: minmax(0, 0.7fr) minmax(560px, 1.3fr);
+  grid-template-columns: minmax(0, 0.64fr) minmax(620px, 1.36fr);
   align-items: stretch;
+  gap: clamp(42px, 6vw, 96px);
   min-height: calc(100vh - 76px);
   padding-top: clamp(38px, 5vw, 66px);
 }
@@ -1533,14 +1534,19 @@
 }
 
 .ml-hero h1 {
-  max-width: 660px;
-  font-size: 5.35rem;
-  line-height: 1;
+  max-width: 600px;
+  font-size: 4.65rem;
+  line-height: 1.02;
+}
+
+.ml-hero-actions .ml-primary-action,
+.ml-hero-actions .ml-outline-action {
+  white-space: nowrap;
 }
 
 @media (max-width: 1280px) {
   .ml-hero h1 {
-    font-size: 4.45rem;
+    font-size: 4rem;
   }
 }
 
