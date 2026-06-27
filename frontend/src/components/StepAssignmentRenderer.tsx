@@ -160,6 +160,40 @@ function readingRuleParts(item: string) {
   return { symbol: normalized, sound: '', example: '' };
 }
 
+function isTextBlock(block: AssignmentBlock | undefined): block is Extract<AssignmentBlock, { type: 'text' }> {
+  return block != null && block.type === 'text';
+}
+
+function shouldMergeTextParagraph(previous: Extract<AssignmentBlock, { type: 'text' }>, current: Extract<AssignmentBlock, { type: 'text' }>) {
+  if (previous.branch !== current.branch) return false;
+  if (previous.style === 'heading' || current.style === 'heading') return false;
+
+  const previousText = previous.text.trim();
+  const currentText = current.text.trim();
+  if (!previousText || !currentText) return false;
+  if (isNumberedHeading(previousText) || isNumberedHeading(currentText)) return false;
+  if (/^(?:[-–—]|[.!?,;:])\s*/.test(currentText)) return true;
+  if (/^[а-яёa-z]/.test(currentText)) return true;
+  if (/[,:;]$/.test(previousText) && !/^(?:\d+[.)]|[-–—*•])\s*/.test(currentText)) return true;
+
+  return false;
+}
+
+function mergeAdjacentTextParagraphs(blocks: AssignmentBlock[]): AssignmentBlock[] {
+  const merged: AssignmentBlock[] = [];
+
+  for (const block of blocks) {
+    const previous = merged[merged.length - 1];
+    if (isTextBlock(previous) && isTextBlock(block) && shouldMergeTextParagraph(previous, block)) {
+      previous.text = `${previous.text.trim()} ${block.text.trim()}`;
+      continue;
+    }
+    merged.push(block);
+  }
+
+  return merged;
+}
+
 function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
   const decorated: AssignmentBlock[] = [];
 
@@ -269,7 +303,7 @@ function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
     decorated.push(block);
   }
 
-  return decorated;
+  return mergeAdjacentTextParagraphs(decorated);
 }
 
 function compactReadingRules(items: string[]) {
