@@ -2,7 +2,7 @@
 id: VAL-TASK-MAR-070
 task: TASK-MAR-070
 feature: FEAT-001
-status: implementation-validated-predeploy
+status: deployed-validated
 ---
 
 # Validation: TASK-MAR-070
@@ -13,7 +13,7 @@ status: implementation-validated-predeploy
 git diff --check
 ```
 
-Implementation validation has landed for documentation, backend contract enforcement, read-only auditor syntax, and frontend renderer extraction. Pod-level catalog validation remains deployment-gated because the current deployed image does not yet contain `scripts/check-assignment-contract.js`.
+Implementation validation has landed for documentation, backend contract enforcement, read-only auditor syntax, frontend renderer extraction, deployment, pod-level assignment-contract auditing, readiness, user-flow smoke, and production-safe smoke.
 
 ## Implementation Validation
 
@@ -25,9 +25,25 @@ Implementation validation has landed for documentation, backend contract enforce
 | Auditor syntax | Pass | 2026-06-27 `node --check scripts/check-assignment-contract.js` exited `0`. |
 | Whitespace | Pass | 2026-06-27 `git diff --check` exited `0`. |
 | Direct assignment-contract runtime | Blocked by environment | 2026-06-27 direct checkout run returned a redacted database-connection failure because `db-server-postgres:5432` is only reachable in-cluster. |
-| Pod assignment-contract runtime | Deployment-gated | The current deployed pod does not yet contain the new auditor script; run after deploy from `/app`. |
+| Deploy | Pass | 2026-06-27 `./scripts/deploy.sh 467ccc5` completed successfully and rolled out image `localhost:5000/marathon:467ccc5`. |
+| Pod assignment-contract runtime | Pass | 2026-06-27 `kubectl exec -n statex-apps deploy/marathon -- sh -lc 'cd /app && npm run check:assignment-contract -- --json'` returned `ok:true` across 13 active marathons and 377 steps after the catalog metadata repair below. |
+| Readiness | Pass | 2026-06-27 in-pod `npm run check:readiness -- --json` returned `ok:true`, `activeMarathons:13`, `steps:377`, and `stepsWithContent:377`. |
+| User flow smoke | Pass | 2026-06-27 deploy user-flow smoke passed 15 visitor routes, registration handoff, payment return routes, payment auth gate, and dashboard markers. |
+| Production-safe smoke | Pass | 2026-06-27 deploy production-safe smoke completed payment/gift/winner/finished/NPS flow with masked identifiers and no printed tokens, gift codes, or payment webhook key. |
+| Live bundle | Pass | 2026-06-27 `https://marathon.alfares.cz/` references `/assets/index-BZaGjM8N.js`, and that asset returned HTTP 200. |
 
-Final implementation closure still needs sanitized pod evidence for:
+## Catalog Metadata Repair
+
+The first deployed assignment-contract auditor run found one contract defect in the production catalog: `tr/turkish-9`, sequence 21, `formKey=Step9Form1`, field `q7` was a textarea with no persisted label. The legacy Django template placed the question text outside `{% render_field form.q7 %}`, which was acceptable in the old template system but invalid in the structured block contract.
+
+Repair performed on 2026-06-27:
+
+- Dry-run identified exactly one target block: Turkish step 21, block index 52, field `q7`.
+- Applied one `MarathonStep.assignmentBlocks` metadata update to set label `Объясните выбранные темы урока своими словами`.
+- No participant rows, submissions, reports, payments, gifts, winners, or NPS rows were modified.
+- Re-running the pod auditor returned `ok:true`, with no violations or warnings.
+
+Final implementation closure includes sanitized pod evidence for:
 
 - All active marathons. Current expected baseline: 13 active marathons.
 - All current steps. Current expected baseline: 377 steps.
@@ -54,5 +70,4 @@ This validation record contains only task names, route/surface categories, aggre
 
 ## Blockers
 
-- Runtime catalog validation with `npm run check:assignment-contract -- --json` must run inside the deployed pod after deployment, because the remote checkout cannot reach `db-server-postgres:5432`.
-- Browser/rendered route QA is [MISSING: post-deploy rendered route validation].
+- Browser pixel-level rendered route QA is [MISSING: not run in this pass]. Public user-flow smoke and live bundle verification passed.
