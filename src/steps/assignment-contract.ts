@@ -29,6 +29,41 @@ function isLegacyDiagnosticField(block: AssignmentFieldBlock): boolean {
   return /^c\d+$/i.test(block.name);
 }
 
+function legacyPayloadQuestionLabel(name: string): string {
+  if (/^known_words\d*$/i.test(name) || /^known_words_audio_/i.test(name)) {
+    return 'Какие знакомые слова вы выделили в тексте?';
+  }
+  if (name === 'thoughts') {
+    return 'Какие мысли и переживания появились во время работы над заданием?';
+  }
+  if (name === 'report') {
+    return 'Ответ участника';
+  }
+  return `Ответ на предыдущую версию вопроса (${name})`;
+}
+
+function shouldPublishLegacyPayloadValue(name: string, value: string): boolean {
+  if (!value) return false;
+  if (/^c\d+$/i.test(name)) return false;
+  if (name === 'level' || name === 'assignmentLevel') return false;
+  return value.length >= 12;
+}
+
+function legacyPublicAssignmentFields(
+  payload: AssignmentPayload,
+  visibleFields: AssignmentFieldBlock[],
+): Array<{ name: string; label: string; value: string }> {
+  const visibleNames = new Set(visibleFields.map((block) => block.name));
+  return Object.entries(payload)
+    .filter(([name]) => !visibleNames.has(name))
+    .map(([name, rawValue]) => ({
+      name,
+      label: legacyPayloadQuestionLabel(name),
+      value: stringifyPayloadValue(rawValue),
+    }))
+    .filter((entry) => shouldPublishLegacyPayloadValue(entry.name, entry.value));
+}
+
 export function isAssignmentFieldBlock(block: AssignmentBlock): block is AssignmentFieldBlock {
   return block.type === 'field';
 }
@@ -85,11 +120,18 @@ export function generateAssignmentReport(payload: AssignmentPayload | null, bloc
   if (!payload) return '';
 
   const lines: string[] = [];
-  for (const block of visiblePublicAssignmentFields(blocks, payload)) {
+  const visibleFields = visiblePublicAssignmentFields(blocks, payload);
+  for (const block of visibleFields) {
     if (!Object.prototype.hasOwnProperty.call(payload, block.name)) continue;
     const value = stringifyPayloadValue(payload[block.name], block.choices);
     if (!value) continue;
     lines.push(`${block.label}:`, value);
+  }
+
+  if (!lines.length) {
+    for (const entry of legacyPublicAssignmentFields(payload, visibleFields)) {
+      lines.push(`${entry.label}:`, entry.value);
+    }
   }
 
   return lines.join('\n\n');
@@ -102,11 +144,19 @@ export function filterAssignmentPayloadForPublicReport(
   if (!payload) return {};
 
   const filtered: AssignmentPayload = {};
-  for (const block of visiblePublicAssignmentFields(blocks, payload)) {
+  const visibleFields = visiblePublicAssignmentFields(blocks, payload);
+  for (const block of visibleFields) {
     if (!Object.prototype.hasOwnProperty.call(payload, block.name)) continue;
     if (!stringifyPayloadValue(payload[block.name], block.choices)) continue;
     filtered[block.name] = payload[block.name];
   }
+
+  if (!Object.keys(filtered).length) {
+    for (const entry of legacyPublicAssignmentFields(payload, visibleFields)) {
+      filtered[entry.name] = payload[entry.name];
+    }
+  }
+
   return filtered;
 }
 

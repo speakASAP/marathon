@@ -35,25 +35,9 @@ export class AnswersService {
     }
 
     this.logger.debug(`Database count filters: ${JSON.stringify(where)}`);
-    const dbStartTime = Date.now();
-    const count = await this.prisma.stepSubmission.count({ where });
-    const countLatency = Date.now() - dbStartTime;
-
-    this.logger.log(
-      `Random answer database count completed: found=${count}, latency=${countLatency}ms`,
-    );
-
-    if (count === 0) {
-      this.logger.warn(`No completed submissions found: stepId=${stepId}, excludeMarathonerId=${excludeMarathonerId || 'none'}`);
-      return null;
-    }
-
-    const randomIndex = Math.floor(Math.random() * count);
     const fetchStartTime = Date.now();
     const submissions = await this.prisma.stepSubmission.findMany({
       where,
-      skip: randomIndex,
-      take: 1,
       orderBy: { id: 'asc' },
       include: {
         participant: {
@@ -69,15 +53,43 @@ export class AnswersService {
       },
     });
     const fetchLatency = Date.now() - fetchStartTime;
-    const submission = submissions[0];
 
-    if (!submission) {
-      this.logger.warn(`Random answer vanished after count: stepId=${stepId}, randomIndex=${randomIndex}, count=${count}`);
+    this.logger.log(
+      `Random answer database fetch completed: found=${submissions.length}, latency=${fetchLatency}ms`,
+    );
+
+    if (!submissions.length) {
+      this.logger.warn(`No completed submissions found: stepId=${stepId}, excludeMarathonerId=${excludeMarathonerId || 'none'}`);
       return null;
     }
 
+    const candidates = submissions
+      .map((submission) => {
+        const payload = submission.payloadJson as Record<string, unknown> | null;
+        const assignmentBlocks = normalizeAssignmentBlocks(submission.step.assignmentBlocks);
+        const report = generateAssignmentReport(payload, assignmentBlocks);
+        return {
+          submission,
+          payload,
+          assignmentBlocks,
+          report,
+        };
+      })
+      .filter((candidate) => candidate.report.trim());
+
+    if (!candidates.length) {
+      this.logger.warn(
+        `No public report text found: stepId=${stepId}, completedSubmissions=${submissions.length}, excludeMarathonerId=${excludeMarathonerId || 'none'}`,
+      );
+      return null;
+    }
+
+    const randomIndex = Math.floor(Math.random() * candidates.length);
+    const candidate = candidates[randomIndex];
+    const submission = candidate.submission;
+
     this.logger.debug(
-      `Selected random submission: index=${randomIndex} of ${count}, submissionId=${submission.id}, latency=${fetchLatency}ms`,
+      `Selected random submission: index=${randomIndex} of ${candidates.length}, submissionId=${submission.id}, latency=${fetchLatency}ms`,
     );
 
     const participant = submission.participant;
@@ -91,14 +103,12 @@ export class AnswersService {
     const name = participant.name?.trim() || 'Участник марафона';
     this.logger.debug(`Marathoner name resolved: name=${name}`);
 
-    const payload = submission.payloadJson as Record<string, unknown> | null;
-    const assignmentBlocks = normalizeAssignmentBlocks(step.assignmentBlocks);
     const reportStartTime = Date.now();
-    const report = generateAssignmentReport(payload, assignmentBlocks);
+    const report = candidate.report;
     const reportLatency = Date.now() - reportStartTime;
 
     this.logger.log(
-      `Random answer generated: stepId=${stepId}, resultCount=${count}, marathonerName=${name}, reportLength=${report.length}, latency=${reportLatency}ms`,
+      `Random answer generated: stepId=${stepId}, completedSubmissions=${submissions.length}, publicCandidates=${candidates.length}, marathonerName=${name}, reportLength=${report.length}, latency=${reportLatency}ms`,
     );
 
     return {
@@ -106,7 +116,7 @@ export class AnswersService {
         name,
       },
       report,
-      payload: filterAssignmentPayloadForPublicReport(payload, assignmentBlocks),
+      payload: filterAssignmentPayloadForPublicReport(candidate.payload, candidate.assignmentBlocks),
       complete_time: submission.endAt.toISOString(),
     };
   }
