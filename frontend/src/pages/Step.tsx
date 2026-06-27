@@ -625,12 +625,6 @@ export default function Step() {
     </section>
   );
 
-  const openPeerReports = () => {
-    setTab('report');
-    window.requestAnimationFrame(() => {
-      contentCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  };
 
   useEffect(() => {
     if (tab === 'report' && !canViewPeerReports) {
@@ -805,15 +799,8 @@ export default function Step() {
             </form>
             {submitMessage && <p className="step-submit-success">{submitMessage}</p>}
             {submitError && <p className="ml-error">{submitError}</p>}
-            {canViewPeerReports && (
-              <div className="step-peer-report-action" aria-label="Отчеты других участников">
-                <button type="button" className="btn-profile-login" onClick={openPeerReports}>
-                  Отчёты других участников
-                </button>
-              </div>
-            )}
-            {renderNextControl()}
             {canViewPeerReports && renderPeerReports(true)}
+            {renderNextControl()}
           </section>
         </section>
       )}
