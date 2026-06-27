@@ -5118,7 +5118,14 @@ a:hover {
 
 .step-assignment-paragraph {
   margin: 0;
+  padding: 0.95rem 1rem;
+  border: 1px solid #cfe0f3;
+  border-radius: 8px;
+  background: #f7fbff;
+  color: #24324f;
+  line-height: 1.65;
   white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .step-question-block {
@@ -5227,10 +5234,15 @@ a:hover {
 
 .step-assignment-lead {
   margin: 0;
+  padding: 0.95rem 1rem;
+  border: 1px solid #cfe0f3;
+  border-radius: 8px;
+  background: #f7fbff;
   color: #24324f;
   font-size: 1.05rem;
   font-weight: 700;
   line-height: 1.65;
+  overflow-wrap: anywhere;
 }
 
 .step-assignment-list-panel {
@@ -5264,6 +5276,49 @@ a:hover {
   background: #fff;
   color: #24324f;
   line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.step-assignment-list-panel.reading-rules {
+  gap: 0.9rem;
+}
+
+.step-reading-rule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.65rem;
+}
+
+.step-reading-rule {
+  display: grid;
+  grid-template-columns: minmax(3.6rem, 0.45fr) minmax(4.2rem, 0.55fr) minmax(0, 1.25fr);
+  gap: 0.65rem;
+  align-items: start;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid #d8e2ec;
+  border-radius: 8px;
+  background: #fff;
+  color: #24324f;
+  line-height: 1.45;
+}
+
+.step-reading-rule strong {
+  color: #172033;
+  font-size: 1.05rem;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.step-reading-rule span {
+  color: #2f7bdc;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.step-reading-rule em {
+  color: #43546c;
+  font-style: normal;
+  overflow-wrap: anywhere;
 }
 
 .step-assignment-quote {
@@ -5301,6 +5356,17 @@ a:hover {
 
 .step-audio-block audio {
   width: 100%;
+}
+
+@media (max-width: 560px) {
+  .step-reading-rule-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .step-reading-rule {
+    grid-template-columns: 1fr;
+    gap: 0.3rem;
+  }
 }
 
 .step-known-words {

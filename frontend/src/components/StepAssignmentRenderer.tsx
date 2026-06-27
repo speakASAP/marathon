@@ -21,10 +21,16 @@ function youtubeEmbedUrl(code: string) {
   return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(code)}`;
 }
 
-function mediaAudioUrl(code: string, extension: 'mp3' | 'ogg') {
+const MARATHON_AUDIO_BASE_URL = "https://minio.alfares.cz/catalog-media/marathon/audio";
+
+function encodeMediaPath(value: string) {
+  return value.split("/").map((segment) => encodeURIComponent(segment)).join("/");
+}
+
+function mediaAudioUrl(code: string, extension: "mp3" | "ogg") {
   if (/^https?:\/\//i.test(code)) return code;
-  const normalized = code.replace(/^\/+/, '').replace(/\.(mp3|ogg)$/i, '');
-  return `/media/${normalized}.${extension}`;
+  const normalized = code.replace(/^\/+/, "").replace(/\.(mp3|ogg)$/i, "");
+  return `${MARATHON_AUDIO_BASE_URL}/${encodeMediaPath(normalized)}.${extension}`;
 }
 
 function getLevel(value: AnswerValue | undefined): Level {
@@ -123,6 +129,37 @@ function shouldBecomeBookLink(text: string) {
   return /^Книга\s+"Немецкий язык вместе с SpeakASAP/i.test(text.trim());
 }
 
+function isBookFeatureItem(text: string) {
+  return /^(?:Упражнения с ответами|QR\s*-?\s*коды с озвучкой носителя|Схема изучения языка|Советы по организации обучения|Большой словарный запас)$/i.test(text.trim());
+}
+
+function isParticipantQuoteStart(text: string) {
+  return /^(?:…|Раньше песни на английском)/i.test(text.trim());
+}
+
+function isParticipantQuoteStop(text: string) {
+  return /^(?:И перед|Через|И, кстати|Вопрос:|Завтра|Нам с вами|Давайте|Скачайте|Сказано|Также|К тому же|Эта книга|Нажмите)/i.test(text.trim());
+}
+
+function isReadingRulesTitle(text: string) {
+  return /^Подробнее о правилах чтения/i.test(text.trim());
+}
+
+function readingRuleParts(item: string) {
+  const normalized = item.replace(/\s+/g, ' ').trim();
+  const pronounced = normalized.match(/^(.+?)\s+читается\s+как\s+([^,]+),?\s*(.*)$/i);
+  if (pronounced) {
+    return { symbol: pronounced[1].trim(), sound: `читается как ${pronounced[2].trim()}`, example: pronounced[3].trim() };
+  }
+
+  const dashed = normalized.match(/^(.+?)\s+-\s+(\[[^\]]+\])\s*-?\s*(.*)$/);
+  if (dashed) {
+    return { symbol: dashed[1].trim(), sound: dashed[2].trim(), example: dashed[3].trim() };
+  }
+
+  return { symbol: normalized, sound: '', example: '' };
+}
+
 function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
   const decorated: AssignmentBlock[] = [];
 
@@ -144,7 +181,7 @@ function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
       continue;
     }
 
-    if (block.type === 'text' && /^Подробнее о правилах чтения/i.test(block.text)) {
+    if (block.type === 'text' && isReadingRulesTitle(block.text)) {
       const items: string[] = [];
       let cursor = index + 1;
       while (cursor < blocks.length) {
@@ -164,6 +201,26 @@ function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
         index = cursor - 1;
         continue;
       }
+    }
+
+    if (block.type === 'text' && isBookFeatureItem(block.text)) {
+      const items = [block.text];
+      let cursor = index + 1;
+      while (cursor < blocks.length) {
+        const candidate = blocks[cursor];
+        if (candidate.type !== 'text' || !isBookFeatureItem(candidate.text)) break;
+        items.push(candidate.text);
+        cursor += 1;
+      }
+      decorated.push({
+        id: `${block.id}-book-features`,
+        type: 'list',
+        title: 'В книге даны:',
+        items,
+        ...(block.branch ? { branch: block.branch } : {}),
+      });
+      index = cursor - 1;
+      continue;
     }
 
     if (block.type === 'audio') {
@@ -190,12 +247,12 @@ function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
       continue;
     }
 
-    if (block.type === 'text' && /^…/.test(block.text)) {
+    if (block.type === 'text' && isParticipantQuoteStart(block.text)) {
       const quoteLines = [block.text];
       let cursor = index + 1;
       while (cursor < blocks.length) {
         const candidate = blocks[cursor];
-        if (candidate.type !== 'text' || /^(?:И перед|Через|И, кстати|Вопрос:)/i.test(candidate.text)) break;
+        if (candidate.type !== 'text' || isParticipantQuoteStop(candidate.text)) break;
         quoteLines.push(candidate.text);
         cursor += 1;
       }
@@ -216,21 +273,21 @@ function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
 }
 
 function compactReadingRules(items: string[]) {
-  const result: string[] = [];
-  let current = '';
-  for (const item of items) {
-    const text = item.trim();
-    if (!text) continue;
-    const startsRule = /^[A-Za-zÄÖÜäöüß, ]{1,34}\s+(?:-|–|\[|читается)/.test(text);
-    if (startsRule && current) {
-      result.push(current);
-      current = text;
-    } else {
-      current = current ? `${current} ${text}` : text;
-    }
+  const joined = items.map((item) => item.trim()).filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  if (!joined) return items;
+
+  const ruleStartPattern = /(?:^|\s)([A-Za-zÄÖÜäöüß]{1,4}(?:,\s*[A-Za-zÄÖÜäöüß]{1,4})*)\s+(?:-|читается)/g;
+  const starts: number[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = ruleStartPattern.exec(joined))) {
+    starts.push(match.index + (match[0].startsWith(' ') ? 1 : 0));
   }
-  if (current) result.push(current);
-  return result.length ? result : items;
+
+  if (!starts.length) return items;
+
+  return starts
+    .map((start, index) => joined.slice(start, starts[index + 1] ?? joined.length).trim())
+    .filter(Boolean);
 }
 
 type KnownWordsBlockProps = {
@@ -265,7 +322,10 @@ function KnownWordsBlock({ block, value, readOnly, onChange }: KnownWordsBlockPr
                 className={`step-known-word${isSelected ? ' selected' : ''}`}
                 disabled={readOnly}
                 key={key}
-                onClick={() => toggle(key)}
+                onClick={(event) => {
+                  toggle(key);
+                  event.currentTarget.blur();
+                }}
                 type="button"
               >
                 {token}
@@ -332,12 +392,28 @@ export default function StepAssignmentRenderer({
         }
 
         if (block.type === 'list') {
+          const isReadingRules = Boolean(block.title && isReadingRulesTitle(block.title));
           return (
-            <section className="step-assignment-list-panel" key={block.id}>
+            <section className={`step-assignment-list-panel${isReadingRules ? ' reading-rules' : ''}`} key={block.id}>
               {block.title && <h3>{block.title}</h3>}
-              <ul>
-                {block.items.map((item, index) => <li key={`${block.id}-${index}`}>{item}</li>)}
-              </ul>
+              {isReadingRules ? (
+                <div className="step-reading-rule-grid">
+                  {block.items.map((item, index) => {
+                    const parts = readingRuleParts(item);
+                    return (
+                      <div className="step-reading-rule" key={`${block.id}-${index}`}>
+                        <strong>{parts.symbol}</strong>
+                        {parts.sound && <span>{parts.sound}</span>}
+                        {parts.example && <em>{parts.example}</em>}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <ul>
+                  {block.items.map((item, index) => <li key={`${block.id}-${index}`}>{item}</li>)}
+                </ul>
+              )}
             </section>
           );
         }
@@ -411,16 +487,18 @@ export default function StepAssignmentRenderer({
               </div>
             ) : block.fieldType === 'textarea' ? (
               <textarea
-                value={typeof value === 'string' ? value : ''}
+                value={typeof value === "string" ? value : ""}
                 onChange={(event) => updateAnswer(block.name, event.target.value)}
+                onKeyDown={(event) => event.stopPropagation()}
                 rows={4}
                 disabled={controlDisabled}
               />
             ) : (
               <input
                 type="text"
-                value={typeof value === 'string' ? value : ''}
+                value={typeof value === "string" ? value : ""}
                 onChange={(event) => updateAnswer(block.name, event.target.value)}
+                onKeyDown={(event) => event.stopPropagation()}
                 disabled={controlDisabled}
               />
             )}
