@@ -5347,14 +5347,42 @@ a:hover {
   margin: 0;
 }
 
-.step-assignment-link-row a,
+.step-assignment-download-button {
+  align-items: center;
+  background: #2f7bdc;
+  border-radius: 8px;
+  box-shadow: 0 10px 20px rgba(47, 123, 220, 0.18);
+  color: #ffffff;
+  display: inline-flex;
+  font-weight: 900;
+  gap: 0.65rem;
+  justify-content: center;
+  line-height: 1.2;
+  max-width: 100%;
+  min-height: 48px;
+  padding: 0.85rem 1.1rem;
+  text-align: center;
+  text-decoration: none;
+}
+
+.step-assignment-download-button:hover,
+.step-assignment-download-button:focus-visible {
+  background: #1f68c2;
+  color: #ffffff;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.step-assignment-download-button span {
+  overflow-wrap: anywhere;
+}
+
 .step-audio-block a {
   color: #2f7bdc;
   font-weight: 900;
   text-decoration: none;
 }
 
-.step-assignment-link-row a:hover,
 .step-audio-block a:hover {
   text-decoration: underline;
 }

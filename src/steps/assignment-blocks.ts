@@ -28,6 +28,15 @@ export type AssignmentAudioBlock = {
   branch?: AssignmentBranch;
 };
 
+export type AssignmentLinkBlock = {
+  id: string;
+  type: 'link';
+  href: string;
+  text: string;
+  download?: boolean;
+  branch?: AssignmentBranch;
+};
+
 export type AssignmentFieldBlock = {
   id: string;
   type: 'field';
@@ -39,7 +48,7 @@ export type AssignmentFieldBlock = {
   branch?: AssignmentBranch;
 };
 
-export type AssignmentBlock = AssignmentTextBlock | AssignmentVideoBlock | AssignmentAudioBlock | AssignmentFieldBlock;
+export type AssignmentBlock = AssignmentTextBlock | AssignmentVideoBlock | AssignmentAudioBlock | AssignmentLinkBlock | AssignmentFieldBlock;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -176,6 +185,13 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
         if (!code) return null;
         const title = cleanString(raw.title);
         return { id, type, code, ...(title ? { title } : {}), ...(branch ? { branch } : {}) };
+      }
+
+      if (type === 'link') {
+        const href = cleanString(raw.href);
+        const text = cleanString(raw.text) || cleanString(raw.label) || href;
+        if (!href || !text) return null;
+        return { id, type, href, text, ...(raw.download === true ? { download: true } : {}), ...(branch ? { branch } : {}) };
       }
 
       if (type === 'field') {

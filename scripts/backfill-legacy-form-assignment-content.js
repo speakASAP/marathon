@@ -107,6 +107,21 @@ function branchFromClass(classValue) {
   return null;
 }
 
+function currentLink(stack) {
+  for (let index = stack.length - 1; index >= 0; index -= 1) {
+    if (stack[index].tag === 'a' && stack[index].href) return stack[index].href;
+  }
+  return null;
+}
+
+function resolveTemplateHref(rawHref) {
+  const href = decodeEntities(String(rawHref || '').trim());
+  if (!href) return '';
+  return href
+    .replace(/\{%\s*get_media_prefix\s*%\}/g, 'https://speakasap.com/media/')
+    .replace(/\s+/g, '');
+}
+
 const FIRST_STEP_PLATFORM_PROGRAM_CHOICE = { value: 'Программы', label: 'Программы' };
 
 function normalizeFirstStepPlatformChoices(fieldName, field, choices) {
@@ -149,9 +164,20 @@ function currentBranch(stack) {
   return null;
 }
 
-function pushTextBlock(blocks, rawText, branch) {
+function pushTextBlock(blocks, rawText, branch, href = null) {
   const text = stripHtmlToText(rawText);
   if (!text) return;
+  if (href) {
+    blocks.push({
+      id: `link-${blocks.length}`,
+      type: 'link',
+      text,
+      href,
+      download: /\.pdf(?:[?#]|$)/i.test(href),
+      ...(branch ? { branch } : {}),
+    });
+    return;
+  }
   blocks.push({
     id: `text-${blocks.length}`,
     type: 'text',
@@ -234,7 +260,7 @@ function renderTemplateBlocks(templatePath, fields) {
   let lastIndex = 0;
   let match;
 
-  const appendText = (text) => pushTextBlock(blocks, text, currentBranch(stack));
+  const appendText = (text) => pushTextBlock(blocks, text, currentBranch(stack), currentLink(stack));
 
   while ((match = tokenPattern.exec(html)) !== null) {
     appendText(html.slice(lastIndex, match.index));
@@ -264,8 +290,10 @@ function renderTemplateBlocks(templatePath, fields) {
         }
       } else if (open && !/\/\s*>$/.test(token)) {
         const tag = open[1].toLowerCase();
-        const classMatch = open[2].match(/class=["']([^"']+)["']/i);
-        stack.push({ tag, branch: branchFromClass(classMatch ? classMatch[1] : '') });
+        const attrs = open[2];
+        const classMatch = attrs.match(/class=["']([^"']+)["']/i);
+        const hrefMatch = attrs.match(/href=["']([^"']+)["']/i);
+        stack.push({ tag, branch: branchFromClass(classMatch ? classMatch[1] : ''), href: tag === 'a' && hrefMatch ? resolveTemplateHref(hrefMatch[1]) : null });
       }
     }
     lastIndex = tokenPattern.lastIndex;
@@ -281,6 +309,7 @@ function blocksToText(blocks) {
     if (block.type === 'text') parts.push(block.text);
     else if (block.type === 'video') parts.push(`Видео: ${block.code}`);
     else if (block.type === 'audio') parts.push(`Аудио: ${block.code}`);
+    else if (block.type === 'link') parts.push(block.text);
     else if (block.type === 'field') {
       const fieldParts = [`Вопрос: ${block.label}`];
       if (Array.isArray(block.choices) && block.choices.length) {

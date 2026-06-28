@@ -6,8 +6,8 @@
  * field labels, report payloads, participant data, payment data, tokens, or secrets.
  */
 
-const SUPPORTED_PERSISTED_TYPES = new Set(['text', 'video', 'audio', 'field']);
-const RENDERER_DERIVED_TYPES = new Set(['quote', 'list', 'knownWords', 'link']);
+const SUPPORTED_PERSISTED_TYPES = new Set(['text', 'video', 'audio', 'link', 'field']);
+const RENDERER_DERIVED_TYPES = new Set(['quote', 'list', 'knownWords']);
 const SUPPORTED_FIELD_TYPES = new Set(['text', 'textarea', 'radio', 'checkbox']);
 
 function hasArg(name) {
@@ -95,6 +95,11 @@ function validateSupportedBlock(block, aggregate) {
     aggregate.mediaCounts.audio += 1;
     aggregate.mediaCounts.total += 1;
     if (!hasText(block.code)) aggregate.invalidSupportedBlockCount += 1;
+    return;
+  }
+
+  if (block.type === 'link') {
+    if (!hasText(block.href) || !hasText(block.text)) aggregate.invalidSupportedBlockCount += 1;
     return;
   }
 

@@ -65,7 +65,14 @@ export function AssignmentBlockRenderer({ block, answers, readOnly, onAnswerChan
   }
 
   if (block.type === "link") {
-    return <p className="step-assignment-link-row"><a href={block.href} target="_blank" rel="noreferrer">{block.text}</a></p>;
+    return (
+      <p className="step-assignment-link-row">
+        <a className="step-assignment-download-button" href={block.href} target="_blank" rel="noreferrer" download={block.download || undefined}>
+          <i className="fa fa-download" aria-hidden="true" />
+          <span>{block.text}</span>
+        </a>
+      </p>
+    );
   }
 
   if (block.type === "knownWords") {
