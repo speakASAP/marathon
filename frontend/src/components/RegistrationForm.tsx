@@ -115,13 +115,8 @@ export default function RegistrationForm({
         return;
       }
       if (err instanceof MarathonRegistrationExistingAccountError) {
-        if (err.profilePath) {
-          clearPendingRegistration();
-          setExistingAccountLoginPath(err.profilePath);
-        } else {
-          storePendingRegistration(input);
-          setExistingAccountLoginPath(getRegistrationReturnPath(languageCode));
-        }
+        storePendingRegistration(input);
+        setExistingAccountLoginPath(getRegistrationReturnPath(languageCode));
         setExistingAccountMessage(err.message);
         return;
       }
@@ -162,7 +157,7 @@ export default function RegistrationForm({
         .then((result) => {
           if (availabilityRequestRef.current !== requestId) return;
           if (result.registered) {
-            setExistingAccountLoginPath(result.profilePath || getRegistrationReturnPath(languageCode));
+            setExistingAccountLoginPath(getRegistrationReturnPath(languageCode));
             setExistingAccountMessage(result.message || 'Этот email или телефон уже зарегистрирован.');
             setAvailabilityStatus('idle');
             return;
@@ -226,6 +221,15 @@ export default function RegistrationForm({
   };
 
   const loginPath = existingAccountLoginPath || getRegistrationReturnPath(languageCode);
+  const saveCurrentPendingRegistration = () => {
+    savePendingRegistration({
+      email: email.trim(),
+      phone: phone.trim(),
+      name: name.trim() || undefined,
+      languageCode,
+      returnPath: getRegistrationReturnPath(languageCode),
+    });
+  };
   const isAuthenticated = Boolean(getToken());
 
   if (isAuthenticated) {
@@ -299,7 +303,7 @@ export default function RegistrationForm({
           <strong>{existingAccountMessage}</strong>
           <span>Войдите через единый аккаунт Alfares. Мы вернем вас к выбранному марафону или откроем уже созданный профиль участника.</span>
           <div>
-            <a href={getLoginUrl(loginPath, getAuthPrefill())} className="btn-profile-open">
+            <a href={getLoginUrl(loginPath, getAuthPrefill())} className="btn-profile-open" onClick={saveCurrentPendingRegistration}>
               Войти с email или телефоном
             </a>
             <a href={getPasswordResetUrl()} className="btn-profile-login">
@@ -308,7 +312,7 @@ export default function RegistrationForm({
           </div>
         </div>
       )}
-      <a href={getLoginUrl('/profile', getAuthPrefill())} className="landing-form-login-link">
+      <a href={getLoginUrl(getRegistrationReturnPath(languageCode), getAuthPrefill())} className="landing-form-login-link" onClick={saveCurrentPendingRegistration}>
         Войти через единый аккаунт
       </a>
       <a href={getRegistrationUrl(getRegistrationReturnPath(languageCode), getAuthPrefill())} className="landing-form-login-link">
