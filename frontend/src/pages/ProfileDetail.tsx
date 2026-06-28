@@ -19,8 +19,8 @@ import {
 type PaymentReturnState = 'success' | 'cancelled' | null;
 
 const PAYMENT_METHOD_OPTIONS: Array<{ value: PaymentMethod; label: string; detail: string; disabled?: boolean }> = [
-  { value: 'paypal', label: 'PayPal', detail: 'Оплата через PayPal в защищенном Stripe Checkout.' },
-  { value: 'card', label: 'Mastercard', detail: 'Оплата Mastercard или другой поддерживаемой картой через Stripe.' },
+  { value: 'paypal', label: 'PayPal', detail: 'Оплата напрямую через PayPal на paypal@speakasap.com.' },
+  { value: 'card', label: 'Оплата банковской картой', detail: 'Visa, Mastercard или другая банковская карта через защищенный Stripe Checkout.' },
   {
     value: 'fiobanka',
     label: 'Банковский перевод',
@@ -240,7 +240,7 @@ export default function ProfileDetail() {
     if (!data) return;
     const selectedMethod = PAYMENT_METHOD_OPTIONS.find((option) => option.value === paymentMethod);
     if (selectedMethod?.disabled) {
-      setCheckoutError('Банковский перевод временно недоступен. Используйте PayPal или Mastercard.');
+      setCheckoutError('Банковский перевод временно недоступен. Используйте PayPal или оплату банковской картой.');
       return;
     }
     setCheckoutLoading(true);
