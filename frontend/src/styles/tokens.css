@@ -33,6 +33,6 @@
   /* Section spacing */
   --marathon-section-padding: 3rem 0;
   --marathon-promo-min-height: 523px;
-  --marathon-container-max: 960px;
+  --marathon-container-max: 90vw;
   --marathon-container-padding: 0 15px;
 }
