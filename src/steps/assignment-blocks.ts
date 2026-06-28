@@ -45,6 +45,8 @@ export type AssignmentFieldBlock = {
   fieldType: 'text' | 'textarea' | 'radio' | 'checkbox';
   required: boolean;
   choices?: AssignmentChoice[];
+  correctAnswers?: string[];
+  hint?: string;
   branch?: AssignmentBranch;
 };
 
@@ -63,6 +65,11 @@ function normalizeBranch(value: unknown): AssignmentBranch | undefined {
     return value;
   }
   return undefined;
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map(cleanString).filter(Boolean);
 }
 
 function normalizeChoices(value: unknown): AssignmentChoice[] {
@@ -199,6 +206,8 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
         const label = cleanString(raw.label) || name;
         const fieldType = raw.fieldType === 'radio' || raw.fieldType === 'checkbox' || raw.fieldType === 'textarea' ? raw.fieldType : 'text';
         if (!name || !label) return null;
+        const correctAnswers = normalizeStringList(raw.correctAnswers);
+        const hint = cleanString(raw.hint);
         return {
           id,
           type,
@@ -207,6 +216,8 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
           fieldType,
           required: raw.required !== false,
           choices: normalizeFieldChoices(name, label, normalizeChoices(raw.choices)),
+          ...(correctAnswers.length ? { correctAnswers } : {}),
+          ...(hint ? { hint } : {}),
           ...(branch ? { branch } : {}),
         };
       }
