@@ -30,6 +30,8 @@ export type AssignmentBlock =
       fieldType: 'text' | 'textarea' | 'radio' | 'checkbox';
       required: boolean;
       choices?: AssignmentChoice[];
+      correctAnswers?: string[];
+      hint?: string;
       branch?: AssignmentBranch;
     };
 

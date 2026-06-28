@@ -2882,6 +2882,44 @@ a:hover {
   white-space: pre-wrap;
 }
 
+
+.step-question-block-error input,
+.step-question-block-error textarea {
+  border-color: #c43b3b;
+  box-shadow: 0 0 0 2px rgba(196, 59, 59, 0.12);
+}
+
+.step-answer-hint-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.65rem;
+  color: #7a2f2f;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.step-answer-hint-toggle {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #243244;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 0.35rem 0.65rem;
+}
+
+.step-answer-hint-toggle:hover {
+  border-color: #8aa1b8;
+}
+
+.step-answer-hint-panel strong {
+  flex-basis: 100%;
+  color: #172033;
+}
+
 .step-content-missing {
   padding: 1rem;
   border: 1px solid #ffd9a8;

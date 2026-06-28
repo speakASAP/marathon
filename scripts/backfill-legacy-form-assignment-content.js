@@ -135,6 +135,12 @@ function normalizeFirstStepPlatformChoices(fieldName, field, choices) {
   return [...choices, FIRST_STEP_PLATFORM_PROGRAM_CHOICE];
 }
 
+function normalizeInstructionText(text) {
+  return String(text || '')
+    .replace(/Если не знаете правильный ответ, используйте подсказку\s*-\s*$/i, 'Если не знаете правильный ответ, используйте подсказку')
+    .trim();
+}
+
 function fieldBlock(fieldName, field, branch, index) {
   if (!field || field.hidden || !field.label || field.label.toLowerCase() === 'text') return null;
   const choices = normalizeFirstStepPlatformChoices(
@@ -145,6 +151,9 @@ function fieldBlock(fieldName, field, branch, index) {
       : [],
   );
   const fieldType = field.fieldType || (choices.length ? 'radio' : 'textarea');
+  const correctAnswers = Array.isArray(field.correctAnswers)
+    ? field.correctAnswers.map((answer) => stripHtmlToText(answer)).filter(Boolean)
+    : [];
   return {
     id: `field-${index}-${fieldName}`,
     type: 'field',
@@ -153,6 +162,7 @@ function fieldBlock(fieldName, field, branch, index) {
     fieldType,
     required: field.required !== false,
     choices,
+    ...(correctAnswers.length ? { correctAnswers, hint: correctAnswers.join(', ') } : {}),
     ...(branch ? { branch } : {}),
   };
 }
@@ -165,7 +175,7 @@ function currentBranch(stack) {
 }
 
 function pushTextBlock(blocks, rawText, branch, href = null) {
-  const text = stripHtmlToText(rawText);
+  const text = normalizeInstructionText(stripHtmlToText(rawText));
   if (!text) return;
   if (href) {
     blocks.push({
@@ -347,6 +357,16 @@ def const_string(node):
             return left + right
     return None
 
+def strings_from_sequence(node):
+    if not isinstance(node, (ast.Tuple, ast.List)):
+        return []
+    result = []
+    for item in node.elts:
+        value = const_string(item)
+        if value:
+            result.append(value)
+    return result
+
 def choices_from_tuple(node):
     if not isinstance(node, (ast.Tuple, ast.List)):
         return []
@@ -392,6 +412,7 @@ def parse_forms(file_path):
                     choices = constants.get(choice_node.id, [])
                 else:
                     choices = choices_from_tuple(choice_node)
+            correct_answers = strings_from_sequence(kwargs.get("answers")) if "answers" in kwargs else []
             required = True
             if "required" in kwargs and isinstance(kwargs["required"], ast.Constant):
                 required = bool(kwargs["required"].value)
@@ -410,6 +431,7 @@ def parse_forms(file_path):
                 "choices": choices,
                 "required": required,
                 "fieldType": field_type,
+                "correctAnswers": correct_answers,
                 "hidden": widget_name == "HiddenInput" or name.startswith("known_words"),
             }
         if fields:
