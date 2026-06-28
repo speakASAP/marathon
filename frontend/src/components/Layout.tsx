@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { fetchCatalogReadiness, fetchMarathonLanguages, type CatalogReadiness, type MarathonLanguage } from '../api/publicMarathon';
 import { MarathonAuthRequiredError, fetchMyMarathons, fetchMyProfile, type MarathonUserProfileSettings, type MyMarathonSummary } from '../api/profileMarathon';
 import MarathonFooterLinks from './MarathonFooterLinks';
-import { clearToken, getToken } from '../auth';
+import { clearToken, getLoginUrl, getToken } from '../auth';
 import { PUBLIC_MARATHON_LANGUAGES, formatLanguageFlag, formatLanguageLabel, formatLanguageOptionLabel, getMarathonLandingPathFromSlug } from '../languages';
 
 function getCompletedCount(marathon: MyMarathonSummary) {
@@ -42,6 +42,7 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const hideFooter = false;
+  const isHomePage = location.pathname === '/';
   const registrationStatusUnavailable = Boolean(readinessError);
   const registrationClosed = !registrationStatusUnavailable && readiness?.registrationOpen === false;
   const navRegistrationLabel = 'Регистрация';
@@ -201,7 +202,6 @@ export default function Layout() {
           <div className="header-actions">
             {!hideRegistrationNavigation && (
               <label className="navbar-language-select">
-                <span>Язык</span>
                 <select
                   value={currentLanguagePath}
                   onChange={(event) => {
@@ -265,13 +265,20 @@ export default function Layout() {
                 </div>
               </div>
             ) : !hideRegistrationNavigation ? (
-              <Link
-                to="/register"
-                className={`btn btn-landing navbar-cta ${registrationClosed || registrationStatusUnavailable ? 'navbar-cta-closed' : 'btn-primary'}`}
-                title={navRegistrationTitle}
-              >
-                {navRegistrationLabel}
-              </Link>
+              <div className="navbar-guest-actions">
+                <Link
+                  to="/register"
+                  className={`btn btn-landing navbar-cta ${registrationClosed || registrationStatusUnavailable ? 'navbar-cta-closed' : 'btn-primary'}`}
+                  title={navRegistrationTitle}
+                >
+                  {navRegistrationLabel}
+                </Link>
+                {isHomePage && (
+                  <a className="navbar-login-link" href={getLoginUrl('/profile')}>
+                    Вход
+                  </a>
+                )}
+              </div>
             ) : null}
           </div>
           <button

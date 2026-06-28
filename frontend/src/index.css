@@ -175,6 +175,28 @@ a:hover {
   color: #fff;
 }
 
+.navbar-guest-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.58rem;
+}
+
+.navbar-login-link {
+  color: #566987;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navbar-login-link:hover,
+.navbar-login-link:focus {
+  color: #24324f;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .navbar-toggle {
   display: none;
   background: none;
@@ -231,6 +253,16 @@ a:hover {
     min-height: 32px;
     padding: 0 12px;
     font-size: 0.78rem;
+  }
+
+  .navbar-guest-actions {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+  }
+
+  .navbar-login-link {
+    font-size: 0.72rem;
   }
 
   .main-nav-links {
@@ -1844,6 +1876,34 @@ a:hover {
   font-size: 1.08rem;
 }
 
+.profile-catalog-login-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-top: 24px;
+}
+
+.profile-catalog-login-actions span {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.profile-existing-account-login {
+  min-height: 44px;
+  margin-top: 0;
+  background: #ffffff;
+  color: #101832;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
+}
+
+.profile-existing-account-login:hover,
+.profile-existing-account-login:focus {
+  background: #eef7ff;
+  color: #101832;
+}
+
 .profile-catalog-main {
   padding-top: 40px;
   padding-bottom: 56px;
@@ -1957,6 +2017,16 @@ a:hover {
   .profile-catalog-hero-inner {
     min-height: 330px;
     gap: 42px;
+  }
+
+  .profile-catalog-login-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .profile-existing-account-login {
+    width: 100%;
+    max-width: 260px;
   }
 
   .profile-language-grid {

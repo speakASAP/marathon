@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { clearToken, getToken } from '../auth';
+import { clearToken, getLoginUrl, getToken } from '../auth';
 import {
   MarathonAuthRequiredError,
   fetchMyMarathons,
@@ -317,6 +317,14 @@ export default function Profile() {
                 ? 'Здесь находятся ваши марафоны, прогресс и настройки профиля участника.'
                 : `Сейчас открыты ${readiness?.counts.activeMarathons ?? (availableCards.length || cards.length || 13)} языковых марафонов. У каждого языка своя страница, превью страны и быстрый старт регистрации.`}
             </p>
+            {!isAuthenticated && (
+              <div className="profile-catalog-login-actions">
+                <a className="btn-profile-open profile-existing-account-login" href={getLoginUrl('/profile')}>
+                  Войти в марафон
+                </a>
+                <span>Для тех, у кого уже есть аккаунт</span>
+              </div>
+            )}
           </div>
         </div>
       </header>
