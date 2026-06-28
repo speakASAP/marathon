@@ -16,6 +16,32 @@ function getTextValue(value: AnswerValue | undefined) {
   return typeof value === "string" ? value : "";
 }
 
+function splitTranslatedLabel(label: string) {
+  const normalized = label.replace(/\s+/g, " ").trim();
+  const match = normalized.match(/^(.+?)\s*(\([^()]+\))$/);
+
+  if (!match) {
+    return { original: label, translation: "" };
+  }
+
+  return { original: match[1].trim(), translation: match[2].trim() };
+}
+
+function renderTranslatedLabel(label: string) {
+  const parts = splitTranslatedLabel(label);
+
+  if (!parts.translation) {
+    return <span className="step-question-label-original">{parts.original}</span>;
+  }
+
+  return (
+    <>
+      <span className="step-question-label-original">{parts.original}</span>{" "}
+      <span className="step-question-label-translation">{parts.translation}</span>
+    </>
+  );
+}
+
 export function AssignmentFieldRenderer({ block, value, readOnly, onChange }: AssignmentFieldRendererProps) {
   const [hintOpen, setHintOpen] = useState(false);
   const values = Array.isArray(value) ? value : [];
@@ -40,8 +66,8 @@ export function AssignmentFieldRenderer({ block, value, readOnly, onChange }: As
   return (
     <fieldset className={blockClassName}>
       <legend>
-        {block.label}
-        {!block.required && <span>Необязательное поле</span>}
+        {renderTranslatedLabel(block.label)}
+        {!block.required && <span className="step-question-label-optional">Необязательное поле</span>}
       </legend>
       {block.fieldType === "radio" || block.fieldType === "checkbox" ? (
         <div className="step-choice-list">

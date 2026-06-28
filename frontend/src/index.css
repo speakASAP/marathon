@@ -5308,17 +5308,28 @@ a:hover {
 }
 
 .step-question-block legend {
-  display: grid;
-  gap: 0.25rem;
+  display: block;
   width: 100%;
   padding: 0;
   color: #172033;
   font-size: 1rem;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.35;
 }
 
-.step-question-block legend span {
+.step-question-label-original {
+  color: #111827;
+  font-weight: 700;
+}
+
+.step-question-label-translation {
+  color: rgba(17, 24, 39, 0.8);
+  font-weight: 400;
+}
+
+.step-question-block legend .step-question-label-optional {
+  display: block;
+  margin-top: 0.25rem;
   color: #6b7280;
   font-size: 0.82rem;
   font-weight: 600;
