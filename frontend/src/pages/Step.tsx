@@ -128,12 +128,25 @@ function missingRequiredAnswers(blocks: AssignmentBlock[] | null | undefined, pa
     .filter((block) => !answerFilled(payload[block.name]));
 }
 
+function stripLegacyAnswerMarkup(value: string) {
+  const hasLegacyTags = /<\/?(?:p|span|strong|b|br|div)\b/i.test(value);
+  if (!hasLegacyTags) return value.trim();
+
+  const parsed = new DOMParser().parseFromString(value, 'text/html');
+  return (parsed.body.textContent || '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
 function formatAnswerValue(block: AssignmentFieldBlock, value: unknown) {
   const choiceLabel = (raw: string) => block.choices?.find((choice) => choice.value === raw)?.label || raw;
   if (Array.isArray(value)) {
-    return value.map((item) => choiceLabel(String(item))).filter(Boolean).join(', ');
+    return value.map((item) => stripLegacyAnswerMarkup(choiceLabel(String(item)))).filter(Boolean).join(', ');
   }
-  if (typeof value === 'string') return choiceLabel(value).trim();
+  if (typeof value === 'string') return stripLegacyAnswerMarkup(choiceLabel(value));
   return '';
 }
 
@@ -159,7 +172,7 @@ function answerRowsFromPayload(
     .filter((row) => row.answer.trim());
 
   if (!rows.length && report.trim()) {
-    return [{ id: 'report', question: 'Ответ', answer: report.trim() }];
+    return [{ id: 'report', question: 'Ответ', answer: stripLegacyAnswerMarkup(report) }];
   }
 
   return rows;
@@ -599,7 +612,7 @@ export default function Step() {
               ))}
             </dl>
           ) : (
-            <div className="random-report-body">{randomAnswer.report}</div>
+            <div className="random-report-body">{stripLegacyAnswerMarkup(randomAnswer.report)}</div>
           )}
         </div>
       )}
