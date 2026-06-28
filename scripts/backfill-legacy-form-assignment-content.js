@@ -151,6 +151,8 @@ function fieldBlock(fieldName, field, branch, index) {
       : [],
   );
   const fieldType = field.fieldType || (choices.length ? 'radio' : 'textarea');
+  const label = stripHtmlToText(field.label);
+  if (!label) return null;
   const correctAnswers = Array.isArray(field.correctAnswers)
     ? field.correctAnswers.map((answer) => stripHtmlToText(answer)).filter(Boolean)
     : [];
@@ -158,7 +160,7 @@ function fieldBlock(fieldName, field, branch, index) {
     id: `field-${index}-${fieldName}`,
     type: 'field',
     name: fieldName,
-    label: stripHtmlToText(field.label),
+    label,
     fieldType,
     required: field.required !== false,
     choices,
