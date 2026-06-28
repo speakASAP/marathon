@@ -36,6 +36,27 @@ type CallbackAmountCurrency = {
 
 const SUCCESS_STATUSES = new Set(['completed', 'complete', 'success', 'succeeded', 'paid']);
 const PAYMENT_METHODS = new Set(['payu', 'stripe', 'paypal', 'fiobanka', 'comgate', 'card', 'webpay']);
+const BANK_TRANSFER_LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  de: 'German',
+  fr: 'French',
+  es: 'Spanish',
+  it: 'Italian',
+  pt: 'Portuguese',
+  pl: 'Polish',
+  ru: 'Russian',
+  uk: 'Ukrainian',
+  cz: 'Czech',
+  cs: 'Czech',
+  sk: 'Slovak',
+  nl: 'Dutch',
+  dk: 'Danish',
+  da: 'Danish',
+  se: 'Swedish',
+  sv: 'Swedish',
+  no: 'Norwegian',
+  tr: 'Turkish',
+};
 
 @Injectable()
 export class PaymentsService {
@@ -83,6 +104,11 @@ export class PaymentsService {
     const currency = product.currency || 'EUR';
 
     const customer = this.getCheckoutCustomer(participant, user);
+    const description = this.getCheckoutDescription(
+      paymentMethod,
+      product.title || participant.marathon.title,
+      participant.marathon.languageCode,
+    );
     const requestBody = {
       orderId,
       applicationId: process.env.PAYMENT_APPLICATION_ID || 'marathon',
@@ -92,7 +118,7 @@ export class PaymentsService {
       callbackUrl,
       successUrl: process.env.PAYMENT_SUCCESS_URL || `${publicBase}/profile/${participant.id}?payment=success`,
       cancelUrl: process.env.PAYMENT_CANCEL_URL || `${publicBase}/profile/${participant.id}?payment=cancelled`,
-      description: product.title || participant.marathon.title,
+      description,
       customer,
       metadata: {
         marathonerId: participant.id,
@@ -420,6 +446,25 @@ export class PaymentsService {
     }
 
     return participant;
+  }
+
+  private getCheckoutDescription(paymentMethod: string, fallbackTitle: string, languageCode: string): string {
+    if (paymentMethod !== 'fiobanka') {
+      return fallbackTitle;
+    }
+
+    const languageName = BANK_TRANSFER_LANGUAGE_NAMES[languageCode.toLowerCase()] || 'Language';
+    return this.sanitizeBankTransferMessage(`${languageName} Marathon`) || 'Marathon';
+  }
+
+  private sanitizeBankTransferMessage(value: string): string {
+    return value
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Za-z0-9 .,_/-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 60);
   }
 
   private getCheckoutCustomer(
