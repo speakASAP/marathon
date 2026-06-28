@@ -232,6 +232,7 @@ async function checkVisitorTraversal(report, options) {
     ['Start my marathon', 'Run the', '30-day route', 'Пройдите марафон', 'Маршрут на 30 дней', '30-дневный маршрут'],
     ['View registration status', 'Registration status', 'Статус регистрации', 'Посмотреть статус регистрации'],
     ['My marathon', 'Open my marathon', 'Мой марафон', 'Открыть мой марафон', '/profile'],
+    ['navbar-login-link', 'Вход'],
     ['auth.alfares.cz/login', 'auth.alfares.cz/register', 'return_url', 'client_id', 'marathon', 'access_token', 'refresh_token'],
     ['Pay with PayPal', 'Mastercard', 'Bank transfer', 'Оплатить', 'Банковский перевод', 'Нужна оплата марафона'],
     ['Contact support', 'Связаться с поддержкой', '/faq'],

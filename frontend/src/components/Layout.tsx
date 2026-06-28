@@ -42,13 +42,13 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const hideFooter = false;
-  const isHomePage = location.pathname === '/';
   const registrationStatusUnavailable = Boolean(readinessError);
   const registrationClosed = !registrationStatusUnavailable && readiness?.registrationOpen === false;
   const navRegistrationLabel = 'Регистрация';
   const navRegistrationTitle = registrationStatusUnavailable
     ? 'Статус регистрации недоступен. Откройте страницу регистрации для подробностей.'
     : undefined;
+  const currentAuthReturnPath = `${location.pathname}${location.search}`;
 
   const languageOptions = useMemo<MarathonLanguage[]>(() => {
     if (languages.length) return languages;
@@ -264,22 +264,22 @@ export default function Layout() {
                   </button>
                 </div>
               </div>
-            ) : !hideRegistrationNavigation ? (
+            ) : (
               <div className="navbar-guest-actions">
-                <Link
-                  to="/register"
-                  className={`btn btn-landing navbar-cta ${registrationClosed || registrationStatusUnavailable ? 'navbar-cta-closed' : 'btn-primary'}`}
-                  title={navRegistrationTitle}
-                >
-                  {navRegistrationLabel}
-                </Link>
-                {isHomePage && (
-                  <a className="navbar-login-link" href={getLoginUrl('/profile')}>
-                    Вход
-                  </a>
+                {!hideRegistrationNavigation && (
+                  <Link
+                    to="/register"
+                    className={`btn btn-landing navbar-cta ${registrationClosed || registrationStatusUnavailable ? 'navbar-cta-closed' : 'btn-primary'}`}
+                    title={navRegistrationTitle}
+                  >
+                    {navRegistrationLabel}
+                  </Link>
                 )}
+                <a className="navbar-login-link" href={getLoginUrl(currentAuthReturnPath)}>
+                  Вход
+                </a>
               </div>
-            ) : null}
+            )}
           </div>
           <button
             type="button"
