@@ -10,7 +10,6 @@ import {
   fetchProgressReport,
   reconcilePaymentStatus,
   saveNpsSurvey,
-  updateReportTime,
   type Answer,
   type PaymentMethod,
   type MyMarathon,
@@ -38,30 +37,8 @@ function formatDateTime(value: string) {
   });
 }
 
-function formatTimeInput(value?: string | null) {
-  if (!value) return '13:00';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '13:00';
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
-}
 
-function getBrowserTimeZone() {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'локальный часовой пояс';
-  } catch {
-    return 'локальный часовой пояс';
-  }
-}
 
-function formatCurrentLocalTime(value: Date) {
-  return value.toLocaleTimeString('ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-}
 
 function getStateLabel(answer: Answer) {
   if (answer.block_reason === 'payment_required') return 'Оплата';
@@ -112,22 +89,11 @@ export default function ProfileDetail() {
   const [npsSaving, setNpsSaving] = useState(false);
   const [npsMessage, setNpsMessage] = useState('');
   const [npsError, setNpsError] = useState('');
-  const [reportTime, setReportTime] = useState('13:00');
-  const [currentTime, setCurrentTime] = useState(() => new Date());
-  const [browserTimeZone] = useState(getBrowserTimeZone);
-  const [reportTimeSaving, setReportTimeSaving] = useState(false);
-  const [reportTimeMessage, setReportTimeMessage] = useState('');
-  const [reportTimeError, setReportTimeError] = useState('');
 
   useEffect(() => {
     const payment = new URLSearchParams(window.location.search).get('payment');
     if (payment === 'success') setPaymentReturn('success');
     if (payment === 'cancelled' || payment === 'cancel') setPaymentReturn('cancelled');
-  }, []);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setCurrentTime(new Date()), 30_000);
-    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -161,11 +127,6 @@ export default function ProfileDetail() {
     } else if (data) {
       setNpsScore(null);
       setNpsComment('');
-    }
-    if (data) {
-      setReportTime(formatTimeInput(data.report_time));
-      setReportTimeMessage('');
-      setReportTimeError('');
     }
   }, [data]);
 
@@ -355,27 +316,6 @@ export default function ProfileDetail() {
     }
   };
 
-  const submitReportTime = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!data) return;
-    setReportTimeSaving(true);
-    setReportTimeMessage('');
-    setReportTimeError('');
-    try {
-      const body = await updateReportTime(data.id, reportTime, browserTimeZone);
-      setData(body);
-      setReportTimeMessage('Время отчета сохранено. Расписание этапов пересчитано без сжатия дней.');
-    } catch (error) {
-      if (error instanceof MarathonAuthRequiredError) {
-        redirectToLogin(`/profile/${data.id}`);
-        return;
-      }
-      setReportTimeError(error instanceof Error ? error.message : 'Не удалось сохранить время отчета');
-    } finally {
-      setReportTimeSaving(false);
-    }
-  };
-
   return (
     <div className="container page-static profile-dashboard">
       <section className="profile-hero-panel">
@@ -393,39 +333,6 @@ export default function ProfileDetail() {
           <div className="profile-progress-track"><span style={{ width: `${progressPct}%` }} /></div>
         </div>
       </section>
-      {!data.payment_required && (
-        <section className="profile-schedule-panel">
-          <div>
-            <h2>Время отчета</h2>
-            <p>
-              Отчеты появляются каждый день в выбранное время.
-              Если пройти несколько этапов заранее, календарные дни марафона не сжимаются.
-            </p>
-            <p className="profile-schedule-current">
-              Сейчас у вас: <strong>{formatCurrentLocalTime(currentTime)}</strong> <span className="profile-step-meta">({browserTimeZone})</span>
-            </p>
-            <p className="profile-schedule-current">
-              Время отчетов: <strong>{data.report_time_label || formatTimeInput(data.report_time)}</strong>
-            </p>
-          </div>
-          <form onSubmit={submitReportTime} className="profile-report-time-form">
-            <label htmlFor="profile-report-time">Ежедневное время</label>
-            <input
-              id="profile-report-time"
-              type="time"
-              value={reportTime}
-              onChange={(event) => setReportTime(event.target.value)}
-              disabled={!data.can_change_report_time || reportTimeSaving}
-            />
-            <button type="submit" className="btn-profile-open" disabled={!data.can_change_report_time || reportTimeSaving}>
-              {reportTimeSaving ? 'Сохраняем...' : 'Сохранить время'}
-            </button>
-            {!data.can_change_report_time && <span className="profile-step-meta">Время нельзя менять после завершения марафона.</span>}
-            {reportTimeMessage && <p className="step-submit-success">{reportTimeMessage}</p>}
-            {reportTimeError && <p className="ml-error">{reportTimeError}</p>}
-          </form>
-        </section>
-      )}
       {paymentReturn && (
         <section className={`profile-payment-return profile-payment-return-${paymentReturn}`}>
           <div className="profile-payment-return-copy">
