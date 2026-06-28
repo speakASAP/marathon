@@ -5414,6 +5414,8 @@ a:hover {
 }
 
 .step-assignment-link-row {
+  display: flex;
+  justify-content: center;
   margin: 0;
 }
 
