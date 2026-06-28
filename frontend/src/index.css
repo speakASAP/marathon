@@ -2889,7 +2889,7 @@ a:hover {
   box-shadow: 0 10px 28px rgba(225, 29, 72, 0.12);
 }
 
-.step-question-block.step-question-block-error input,
+.step-question-block.step-question-block-error input[type="text"],
 .step-question-block.step-question-block-error textarea {
   border-color: #e11d48;
   box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.18);
