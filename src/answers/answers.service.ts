@@ -18,6 +18,7 @@ export type RandomAnswer = {
 @Injectable()
 export class AnswersService {
   private readonly logger = new Logger(AnswersService.name);
+  private readonly maxRandomCandidateAttempts = 12;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -35,69 +36,74 @@ export class AnswersService {
     }
 
     this.logger.debug(`Database count filters: ${JSON.stringify(where)}`);
-    const fetchStartTime = Date.now();
-    const submissions = await this.prisma.stepSubmission.findMany({
-      where,
-      orderBy: { id: 'asc' },
-      include: {
-        participant: {
-          include: {
-            marathon: true,
-          },
-        },
-        step: {
-          include: {
-            marathon: true,
-          },
-        },
-      },
-    });
-    const fetchLatency = Date.now() - fetchStartTime;
+    const countStartTime = Date.now();
+    const completedSubmissions = await this.prisma.stepSubmission.count({ where });
+    const countLatency = Date.now() - countStartTime;
 
     this.logger.log(
-      `Random answer database fetch completed: found=${submissions.length}, latency=${fetchLatency}ms`,
+      `Random answer database count completed: found=${completedSubmissions}, latency=${countLatency}ms`,
     );
 
-    if (!submissions.length) {
+    if (!completedSubmissions) {
       this.logger.warn(`No completed submissions found: stepId=${stepId}, excludeMarathonerId=${excludeMarathonerId || 'none'}`);
       return null;
     }
 
-    const candidates = submissions
-      .map((submission) => {
-        const payload = submission.payloadJson as Record<string, unknown> | null;
-        const assignmentBlocks = normalizeAssignmentBlocks(submission.step.assignmentBlocks);
-        const report = generateAssignmentReport(payload, assignmentBlocks);
-        return {
-          submission,
-          payload,
-          assignmentBlocks,
-          report,
-        };
-      })
-      .filter((candidate) => candidate.report.trim());
+    let candidate: {
+      submission: NonNullable<Awaited<ReturnType<AnswersService['fetchRandomSubmissionCandidate']>>>;
+      payload: Record<string, unknown> | null;
+      assignmentBlocks: ReturnType<typeof normalizeAssignmentBlocks>;
+      report: string;
+      randomIndex: number;
+    } | null = null;
 
-    if (!candidates.length) {
+    const usedIndexes = new Set<number>();
+    const fetchStartTime = Date.now();
+    const maxAttempts = Math.min(completedSubmissions, this.maxRandomCandidateAttempts);
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      let randomIndex = Math.floor(Math.random() * completedSubmissions);
+      while (usedIndexes.has(randomIndex) && usedIndexes.size < completedSubmissions) {
+        randomIndex = (randomIndex + 1) % completedSubmissions;
+      }
+      usedIndexes.add(randomIndex);
+
+      const submission = await this.fetchRandomSubmissionCandidate(where, randomIndex);
+      if (!submission) continue;
+
+      const payload = submission.payloadJson as Record<string, unknown> | null;
+      const assignmentBlocks = normalizeAssignmentBlocks(submission.step.assignmentBlocks);
+      const report = generateAssignmentReport(payload, assignmentBlocks);
+      if (!report.trim()) continue;
+
+      candidate = {
+        submission,
+        payload,
+        assignmentBlocks,
+        report,
+        randomIndex,
+      };
+      break;
+    }
+
+    const fetchLatency = Date.now() - fetchStartTime;
+    if (!candidate) {
       this.logger.warn(
-        `No public report text found: stepId=${stepId}, completedSubmissions=${submissions.length}, excludeMarathonerId=${excludeMarathonerId || 'none'}`,
+        `No public report text found after bounded random sampling: stepId=${stepId}, completedSubmissions=${completedSubmissions}, attempts=${maxAttempts}, excludeMarathonerId=${excludeMarathonerId || 'none'}`,
       );
       return null;
     }
 
-    const randomIndex = Math.floor(Math.random() * candidates.length);
-    const candidate = candidates[randomIndex];
     const submission = candidate.submission;
 
     this.logger.debug(
-      `Selected random submission: index=${randomIndex} of ${candidates.length}, submissionId=${submission.id}, latency=${fetchLatency}ms`,
+      `Selected random submission: index=${candidate.randomIndex} of ${completedSubmissions}, submissionId=${submission.id}, latency=${fetchLatency}ms`,
     );
 
     const participant = submission.participant;
-    const marathon = participant.marathon;
     const step = submission.step;
 
     this.logger.debug(
-      `Processing submission: participantId=${participant.id}, marathonId=${marathon.id}, stepId=${step.id}`,
+      `Processing submission: participantId=${participant.id}, stepId=${step.id}`,
     );
 
     const name = participant.name?.trim() || 'Участник марафона';
@@ -108,7 +114,7 @@ export class AnswersService {
     const reportLatency = Date.now() - reportStartTime;
 
     this.logger.log(
-      `Random answer generated: stepId=${stepId}, completedSubmissions=${submissions.length}, publicCandidates=${candidates.length}, marathonerName=${name}, reportLength=${report.length}, latency=${reportLatency}ms`,
+      `Random answer generated: stepId=${stepId}, completedSubmissions=${completedSubmissions}, attempts=${usedIndexes.size}, marathonerName=${name}, reportLength=${report.length}, latency=${reportLatency}ms`,
     );
 
     return {
@@ -119,5 +125,17 @@ export class AnswersService {
       payload: filterAssignmentPayloadForPublicReport(candidate.payload, candidate.assignmentBlocks),
       complete_time: submission.endAt.toISOString(),
     };
+  }
+
+  private async fetchRandomSubmissionCandidate(where: any, randomIndex: number) {
+    return this.prisma.stepSubmission.findFirst({
+      where,
+      orderBy: { id: 'asc' },
+      skip: randomIndex,
+      include: {
+        participant: true,
+        step: true,
+      },
+    });
   }
 }
