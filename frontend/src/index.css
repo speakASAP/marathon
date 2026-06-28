@@ -2883,14 +2883,14 @@ a:hover {
 }
 
 
-.step-question-block-error {
+.step-question-block.step-question-block-error {
   border-color: #f43f5e;
   background: #fff1f5;
   box-shadow: 0 10px 28px rgba(225, 29, 72, 0.12);
 }
 
-.step-question-block-error input,
-.step-question-block-error textarea {
+.step-question-block.step-question-block-error input,
+.step-question-block.step-question-block-error textarea {
   border-color: #e11d48;
   box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.18);
 }
