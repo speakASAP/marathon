@@ -236,10 +236,13 @@ function peerAnswerRowsFromPayload(
   report: string,
 ): AnswerRow[] {
   const rows = answerRowsFromPayload(blocks, payload, '');
-  if (rows.length) return rows;
-
   const legacyRows = legacyAnswerRowsFromPayload(payload);
-  if (legacyRows.length) return legacyRows;
+  const existingQuestions = new Set(rows.map((row) => row.question));
+  const mergedRows = [
+    ...rows,
+    ...legacyRows.filter((row) => !existingQuestions.has(row.question)),
+  ];
+  if (mergedRows.length) return mergedRows;
 
   const cleanedReport = stripLegacyAnswerMarkup(report);
   return cleanedReport ? [{ id: 'report', question: '', answer: cleanedReport }] : [];
