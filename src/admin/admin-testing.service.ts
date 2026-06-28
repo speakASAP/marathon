@@ -10,7 +10,7 @@ import { AuthUser } from '../shared/auth-client';
 import { PrismaService } from '../shared/prisma.service';
 
 const TEST_PAYMENT_EMAIL = 'test@example.com';
-const TEST_ADMIN_EMAIL = 'test@example.com';
+const TEST_ADMIN_EMAILS = ['test@example.com', 'ssfskype@gmail.com'] as const;
 
 export type UpdateTestPaymentInput = {
   participantId?: unknown;
@@ -160,8 +160,8 @@ export class AdminTestingService {
   private assertTestAdmin(user: AuthUser): void {
     this.assertAdmin(user);
     const email = user.email?.trim().toLowerCase() || '';
-    if (email !== TEST_ADMIN_EMAIL) {
-      throw new ForbiddenException(`Test payment controls are limited to ${TEST_ADMIN_EMAIL}`);
+    if (!TEST_ADMIN_EMAILS.includes(email as typeof TEST_ADMIN_EMAILS[number])) {
+      throw new ForbiddenException(`Test payment controls are limited to Marathon test admins`);
     }
   }
 
