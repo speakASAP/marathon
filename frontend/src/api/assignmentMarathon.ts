@@ -98,7 +98,11 @@ export async function fetchRandomAnswer(stepId: string, excludeMarathonerId?: st
   if (excludeMarathonerId) params.set('excludeMarathonerId', excludeMarathonerId);
 
   const response = await fetch(`/api/v1/answers/random?${params}`);
-  return response.ok ? response.json() as Promise<RandomAnswer | null> : null;
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`random-answer:${response.status}`);
+  }
+  return response.json() as Promise<RandomAnswer | null>;
 }
 
 async function sendStepReport(

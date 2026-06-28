@@ -205,6 +205,7 @@ export default function Step() {
   const [tab, setTab] = useState<'task' | 'report'>('task');
   const [randomAnswer, setRandomAnswer] = useState<RandomAnswer | null>(null);
   const [loadingRandom, setLoadingRandom] = useState(false);
+  const [randomAnswerError, setRandomAnswerError] = useState('');
   const [marathonerId, setMarathonerId] = useState('');
   const [report, setОтчет] = useState('');
   const [assignmentPayload, setAssignmentPayload] = useState<SubmissionPayload>({});
@@ -235,6 +236,7 @@ export default function Step() {
     setStepLoadError('');
     setRandomAnswer(null);
     setSavedSubmission(null);
+    setRandomAnswerError('');
     setSavedSubmissionError('');
     setSubmissionAuthRequired(false);
     setMarathon(null);
@@ -341,12 +343,20 @@ export default function Step() {
   const loadRandomОтчет = () => {
     if (!stepId) return;
     setLoadingRandom(true);
+    setRandomAnswerError('');
     fetchRandomAnswer(stepId, marathonerId)
       .then((data) => {
         setRandomAnswer(data);
+        if (!data) {
+          setRandomAnswerError('empty');
+        }
         setLoadingRandom(false);
       })
-      .catch(() => setLoadingRandom(false));
+      .catch(() => {
+        setRandomAnswer(null);
+        setRandomAnswerError('load');
+        setLoadingRandom(false);
+      });
   };
 
   useEffect(() => {
@@ -531,7 +541,8 @@ export default function Step() {
     || !assignmentContent
     || submitBlockedByStatusError
     || isFinalSubmission;
-  const peerОтчетEmpty = canViewPeerReports && !loadingRandom && !randomAnswer;
+  const peerОтчетEmpty = canViewPeerReports && !loadingRandom && !randomAnswer && randomAnswerError === 'empty';
+  const peerОтчетLoadError = canViewPeerReports && !loadingRandom && !randomAnswer && randomAnswerError === 'load';
 
   const stepUrl = (targetStepId: string) => `/steps/${targetStepId}?marathonerId=${participantStepQuery}`;
 
@@ -623,6 +634,17 @@ export default function Step() {
           </button>
         )}
       </div>
+      {peerОтчетLoadError && (
+        <div className="step-peer-empty" aria-live="polite">
+          <strong>Пример отчета временно не загрузился</strong>
+          <span>
+            Обновите пример еще раз. Если отчеты по этому этапу уже есть, они появятся без повторной отправки вашего отчета.
+          </span>
+          <button type="button" className="btn-show-more" onClick={loadRandomОтчет}>
+            Загрузить пример
+          </button>
+        </div>
+      )}
       {peerОтчетEmpty && (
         <div className="step-peer-empty" aria-live="polite">
           <strong>Пока нет примеров отчетов</strong>
@@ -646,9 +668,9 @@ export default function Step() {
   }, [tab, canViewPeerReports]);
 
   useEffect(() => {
-    if (!canViewPeerReports || !stepId || randomAnswer || loadingRandom) return;
+    if (!canViewPeerReports || !stepId || randomAnswer || loadingRandom || randomAnswerError) return;
     loadRandomОтчет();
-  }, [canViewPeerReports, stepId, marathonerId]);
+  }, [canViewPeerReports, stepId, marathonerId, randomAnswerError]);
 
   if (loadingStep && !step) {
     return (
