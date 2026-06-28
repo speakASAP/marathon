@@ -141,13 +141,65 @@ function stripLegacyAnswerMarkup(value: string) {
     .trim();
 }
 
+function isLegacyKnownWordsField(name: string) {
+  return /^known_words\d*$/i.test(name) || /^known_words_audio_/i.test(name);
+}
+
+function legacyPayloadQuestionLabel(name: string) {
+  if (isLegacyKnownWordsField(name)) return 'Какие знакомые слова вы выделили в тексте?';
+  if (name === 'thoughts') return 'Какие мысли и переживания появились во время работы над заданием?';
+  return '';
+}
+
+function extractLegacyKnownWords(value: string) {
+  if (!/<span\b/i.test(value)) return stripLegacyAnswerMarkup(value);
+
+  const parsed = new DOMParser().parseFromString(value, 'text/html');
+  const selected = Array.from(parsed.querySelectorAll('span.strong'))
+    .map((node) => node.textContent || '')
+    .map((text) => text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+
+  return selected.join(' ').replace(/\s+([,.!?;:])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+}
+
+function formatPublicAnswerValue(name: string, value: string) {
+  if (isLegacyKnownWordsField(name)) return extractLegacyKnownWords(value);
+  return stripLegacyAnswerMarkup(value);
+}
+
 function formatAnswerValue(block: AssignmentFieldBlock, value: unknown) {
   const choiceLabel = (raw: string) => block.choices?.find((choice) => choice.value === raw)?.label || raw;
   if (Array.isArray(value)) {
-    return value.map((item) => stripLegacyAnswerMarkup(choiceLabel(String(item)))).filter(Boolean).join(', ');
+    return value.map((item) => formatPublicAnswerValue(block.name, choiceLabel(String(item)))).filter(Boolean).join(', ');
   }
-  if (typeof value === 'string') return stripLegacyAnswerMarkup(choiceLabel(value));
+  if (typeof value === 'string') return formatPublicAnswerValue(block.name, choiceLabel(value));
   return '';
+}
+
+function legacyAnswerRowsFromPayload(payload: SubmissionPayload): AnswerRow[] {
+  const grouped = new Map<string, { id: string; question: string; answers: string[] }>();
+
+  Object.entries(payload)
+    .filter(([name]) => name === 'thoughts' || isLegacyKnownWordsField(name))
+    .forEach(([name, value]) => {
+      const question = legacyPayloadQuestionLabel(name);
+      if (!question || typeof value !== 'string') return;
+
+      const answer = formatPublicAnswerValue(name, value);
+      if (!answer.trim()) return;
+
+      const id = isLegacyKnownWordsField(name) ? 'known_words' : name;
+      const existing = grouped.get(question) || { id, question, answers: [] };
+      existing.answers.push(answer);
+      grouped.set(question, existing);
+    });
+
+  return Array.from(grouped.values()).map((row) => ({
+    id: row.id,
+    question: row.question,
+    answer: row.answers.join('\n\n'),
+  }));
 }
 
 function answerRowsFromPayload(
@@ -176,6 +228,21 @@ function answerRowsFromPayload(
   }
 
   return rows;
+}
+
+function peerAnswerRowsFromPayload(
+  blocks: AssignmentBlock[] | null | undefined,
+  payload: SubmissionPayload,
+  report: string,
+): AnswerRow[] {
+  const rows = answerRowsFromPayload(blocks, payload, '');
+  if (rows.length) return rows;
+
+  const legacyRows = legacyAnswerRowsFromPayload(payload);
+  if (legacyRows.length) return legacyRows;
+
+  const cleanedReport = stripLegacyAnswerMarkup(report);
+  return cleanedReport ? [{ id: 'report', question: '', answer: cleanedReport }] : [];
 }
 
 function hasPublicQuestionLabel(block: AssignmentFieldBlock) {
@@ -334,7 +401,7 @@ export default function Step() {
   );
   const peerAnswerRows = useMemo(
     () => randomAnswer
-      ? answerRowsFromPayload(step?.assignmentBlocks, randomAnswer.payload || {}, randomAnswer.report)
+      ? peerAnswerRowsFromPayload(step?.assignmentBlocks, randomAnswer.payload || {}, randomAnswer.report)
       : [],
     [randomAnswer, step?.assignmentBlocks],
   );
@@ -617,7 +684,7 @@ export default function Step() {
             <dl className="random-report-body">
               {peerAnswerRows.map((row) => (
                 <div className="step-answer-row" key={row.id}>
-                  <dt>{row.question}</dt>
+                  {row.question && <dt>{row.question}</dt>}
                   <dd>{row.answer}</dd>
                 </div>
               ))}

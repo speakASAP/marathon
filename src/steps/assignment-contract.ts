@@ -25,12 +25,56 @@ function stringifyPayloadValue(value: unknown, choices: Array<{ value: string; l
   return JSON.stringify(value);
 }
 
+function isLegacyKnownWordsField(name: string): boolean {
+  return /^known_words\d*$/i.test(name) || /^known_words_audio_/i.test(name);
+}
+
+function stripLegacyHtml(value: string): string {
+  return value
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+function extractLegacyStrongText(value: string): string {
+  const selected: string[] = [];
+  const spanPattern = /<span\b([^>]*)>([\s\S]*?)<\/span>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = spanPattern.exec(value))) {
+    const attributes = match[1] || '';
+    if (!/\bclass\s*=\s*["'][^"']*\bstrong\b/i.test(attributes)) continue;
+    const text = stripLegacyHtml(match[2]);
+    if (text) selected.push(text);
+  }
+  return selected.join(' ').replace(/\s+([,.!?;:])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+}
+
+function stringifyPublicPayloadValue(name: string, value: unknown, choices: Array<{ value: string; label: string }> = []): string {
+  const text = stringifyPayloadValue(value, choices);
+  if (isLegacyKnownWordsField(name)) {
+    const selectedText = extractLegacyStrongText(text);
+    if (selectedText || /<span\b/i.test(text)) return selectedText;
+    return stripLegacyHtml(text);
+  }
+  return stripLegacyHtml(text);
+}
+
 function isLegacyDiagnosticField(block: AssignmentFieldBlock): boolean {
   return /^c\d+$/i.test(block.name);
 }
 
 function legacyPayloadQuestionLabel(name: string): string {
-  if (/^known_words\d*$/i.test(name) || /^known_words_audio_/i.test(name)) {
+  if (isLegacyKnownWordsField(name)) {
     return 'Какие знакомые слова вы выделили в тексте?';
   }
   if (name === 'thoughts') {
@@ -59,7 +103,7 @@ function legacyPublicAssignmentFields(
     .map(([name, rawValue]) => ({
       name,
       label: legacyPayloadQuestionLabel(name),
-      value: stringifyPayloadValue(rawValue),
+      value: stringifyPublicPayloadValue(name, rawValue),
     }))
     .filter((entry) => shouldPublishLegacyPayloadValue(entry.name, entry.value));
 }
@@ -123,15 +167,14 @@ export function generateAssignmentReport(payload: AssignmentPayload | null, bloc
   const visibleFields = visiblePublicAssignmentFields(blocks, payload);
   for (const block of visibleFields) {
     if (!Object.prototype.hasOwnProperty.call(payload, block.name)) continue;
-    const value = stringifyPayloadValue(payload[block.name], block.choices);
+    const value = stringifyPublicPayloadValue(block.name, payload[block.name], block.choices);
     if (!value) continue;
     lines.push(`${block.label}:`, value);
   }
 
-  if (!lines.length) {
-    for (const entry of legacyPublicAssignmentFields(payload, visibleFields)) {
-      lines.push(`${entry.label}:`, entry.value);
-    }
+  for (const entry of legacyPublicAssignmentFields(payload, visibleFields)) {
+    if (!entry.value) continue;
+    lines.push(`${entry.label}:`, entry.value);
   }
 
   return lines.join('\n\n');
@@ -147,14 +190,14 @@ export function filterAssignmentPayloadForPublicReport(
   const visibleFields = visiblePublicAssignmentFields(blocks, payload);
   for (const block of visibleFields) {
     if (!Object.prototype.hasOwnProperty.call(payload, block.name)) continue;
-    if (!stringifyPayloadValue(payload[block.name], block.choices)) continue;
-    filtered[block.name] = payload[block.name];
+    const value = stringifyPublicPayloadValue(block.name, payload[block.name], block.choices);
+    if (!value) continue;
+    filtered[block.name] = value;
   }
 
-  if (!Object.keys(filtered).length) {
-    for (const entry of legacyPublicAssignmentFields(payload, visibleFields)) {
-      filtered[entry.name] = payload[entry.name];
-    }
+  for (const entry of legacyPublicAssignmentFields(payload, visibleFields)) {
+    if (!entry.value) continue;
+    filtered[entry.name] = entry.value;
   }
 
   return filtered;
