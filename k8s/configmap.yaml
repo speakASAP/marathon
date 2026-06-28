@@ -39,4 +39,4 @@ data:
   PAYMENT_CALLBACK_URL: "https://marathon.alfares.cz/api/v1/payments/webhook"
   PAYMENT_DEFAULT_METHOD: "stripe"
   MARATHON_ADMIN_USER_IDS: ""
-  MARATHON_ADMIN_EMAILS: "test@example.com"
+  MARATHON_ADMIN_EMAILS: "test@example.com,ssfskype@gmail.com"
