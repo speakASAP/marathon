@@ -22,6 +22,13 @@ const DRAFT_SAVE_DELAY_MS = 900;
 type Level = 'beginner' | 'medium' | 'advanced' | null;
 type AssignmentFieldBlock = Extract<AssignmentBlock, { type: 'field' }>;
 type AnswerRow = { id: string; question: string; answer: string };
+type LocalStepDraft = {
+  report: string;
+  payload: SubmissionPayload;
+  savedAt: string;
+};
+
+const LOCAL_DRAFT_VERSION = 'v1';
 
 function normalizeText(value: string) {
   return value.toLowerCase().replace(/ё/g, 'е').trim();
@@ -263,6 +270,61 @@ function hasMeaningfulDraft(report: string, payload: SubmissionPayload) {
   return Boolean(report.trim()) || Object.keys(payload).length > 0;
 }
 
+function makeLocalDraftKey(participantId: string, stepId: string) {
+  return `marathon:step-draft:${LOCAL_DRAFT_VERSION}:${participantId}:${stepId}`;
+}
+
+function readLocalDraft(participantId: string, stepId: string): LocalStepDraft | null {
+  try {
+    const raw = window.localStorage.getItem(makeLocalDraftKey(participantId, stepId));
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<LocalStepDraft>;
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (typeof parsed.report !== 'string') return null;
+    if (!isPayloadRecord(parsed.payload)) return null;
+    if (typeof parsed.savedAt !== 'string') return null;
+
+    return {
+      report: parsed.report,
+      payload: parsed.payload,
+      savedAt: parsed.savedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalDraft(participantId: string, stepId: string, report: string, payload: SubmissionPayload) {
+  try {
+    window.localStorage.setItem(
+      makeLocalDraftKey(participantId, stepId),
+      JSON.stringify({
+        report,
+        payload,
+        savedAt: new Date().toISOString(),
+      } satisfies LocalStepDraft),
+    );
+  } catch {
+    // The server draft remains the authoritative persistence path when local storage is unavailable.
+  }
+}
+
+function removeLocalDraft(participantId: string, stepId: string) {
+  try {
+    window.localStorage.removeItem(makeLocalDraftKey(participantId, stepId));
+  } catch {
+    // Ignore browser storage failures.
+  }
+}
+
+function isLocalDraftNewerThanServer(localDraft: LocalStepDraft, serverUpdatedAt?: string) {
+  if (!serverUpdatedAt) return true;
+  const localTime = new Date(localDraft.savedAt).getTime();
+  const serverTime = new Date(serverUpdatedAt).getTime();
+  return Number.isFinite(localTime) && (!Number.isFinite(serverTime) || localTime > serverTime);
+}
+
 /**
  * Step (task) page: assignment and submission form first; peer reports unlock after submission.
  */
@@ -365,13 +427,27 @@ export default function Step() {
     }
     fetchSavedSubmission(participantId, stepId)
       .then((data) => {
-        const nextPayload = data.exists && isPayloadRecord(data.payload) ? data.payload : {};
-        const nextReport = data.exists && typeof data.report === 'string' ? data.report : '';
+        const localDraft = readLocalDraft(participantId, stepId);
+        const serverPayload = data.exists && isPayloadRecord(data.payload) ? data.payload : {};
+        const serverReport = data.exists && typeof data.report === 'string' ? data.report : '';
+        const shouldUseLocalDraft = Boolean(data.state !== 'completed'
+          && localDraft
+          && hasMeaningfulDraft(localDraft.report, localDraft.payload)
+          && isLocalDraftNewerThanServer(localDraft, data.updated_at));
+        const nextPayload = shouldUseLocalDraft && localDraft ? localDraft.payload : serverPayload;
+        const nextReport = shouldUseLocalDraft && localDraft ? localDraft.report : serverReport;
+
+        if (data.state === 'completed' || !shouldUseLocalDraft) {
+          removeLocalDraft(participantId, stepId);
+        }
+
         setSavedSubmission(data);
         setОтчет(nextReport);
         setAssignmentPayload(nextPayload);
-        setDraftStatus('');
-        setLastSavedDraftKey(makeDraftKey(nextReport, nextPayload));
+        setDraftStatus(shouldUseLocalDraft ? 'Восстановлен локальный черновик. Он сохранится на сервере автоматически.' : '');
+        setLastSavedDraftKey(shouldUseLocalDraft
+          ? makeDraftKey(serverReport, serverPayload)
+          : makeDraftKey(nextReport, nextPayload));
         setLoadingSavedSubmission(false);
       })
       .catch((error) => {
@@ -380,6 +456,15 @@ export default function Step() {
         } else {
           setSavedSubmissionError('Статус сохраненного отчета не загрузился.');
         }
+
+        const localDraft = readLocalDraft(participantId, stepId);
+        if (localDraft && hasMeaningfulDraft(localDraft.report, localDraft.payload)) {
+          setОтчет(localDraft.report);
+          setAssignmentPayload(localDraft.payload);
+          setDraftStatus('Восстановлен локальный черновик. Подключение к серверу проверим при отправке.');
+          setLastSavedDraftKey(makeDraftKey('', {}));
+        }
+
         setLoadingSavedSubmission(false);
       });
   }, [stepId, marathonerId]);
@@ -444,6 +529,35 @@ export default function Step() {
     if (
       !stepId
       || !participantId
+      || !assignmentContent
+      || isFinalSubmission
+      || loadingSavedSubmission
+      || submitting
+    ) {
+      return;
+    }
+
+    if (hasMeaningfulDraft(report, assignmentPayload)) {
+      writeLocalDraft(participantId, stepId, report, assignmentPayload);
+    } else {
+      removeLocalDraft(participantId, stepId);
+    }
+  }, [
+    assignmentContent,
+    assignmentPayload,
+    isFinalSubmission,
+    loadingSavedSubmission,
+    marathonerId,
+    report,
+    stepId,
+    submitting,
+  ]);
+
+  useEffect(() => {
+    const participantId = marathonerId.trim();
+    if (
+      !stepId
+      || !participantId
       || !getToken()
       || !assignmentContent
       || submissionAuthRequired
@@ -475,6 +589,7 @@ export default function Step() {
             updated_at: body.updated_at,
           });
           setLastSavedDraftKey(savedKey);
+          removeLocalDraft(participantId, stepId);
           setDraftStatus('');
         })
         .catch((error) => {
@@ -549,6 +664,7 @@ export default function Step() {
         bonus_left: typeof body.bonus_left === 'number' ? body.bonus_left : 0,
         updated_at: body.updated_at,
       });
+      removeLocalDraft(marathonerId.trim(), stepId);
       setLastSavedDraftKey(makeDraftKey(reportToSubmit, assignmentPayload));
       setDraftStatus('');
       setSubmitMessage(body.is_late
