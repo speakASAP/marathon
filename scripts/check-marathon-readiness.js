@@ -64,6 +64,21 @@ function addCheck(checks, status, code, message, detail = undefined) {
   checks.push({ status, code, message, ...(detail === undefined ? {} : { detail }) });
 }
 
+function minimumChargeAmount(currency) {
+  const minimums = new Map([
+    ['EUR', 0.5],
+    ['USD', 0.5],
+    ['GBP', 0.3],
+    ['CZK', 15],
+    ['DKK', 2.5],
+    ['NOK', 3],
+    ['PLN', 2],
+    ['SEK', 3],
+  ]);
+  return minimums.get(String(currency || '').toUpperCase()) || null;
+}
+
+
 function publicMarathon(marathon) {
   return {
     id: marathon.id,
@@ -194,7 +209,17 @@ async function buildReport() {
         } else if (!/^[A-Z]{3}$/.test(marathon.product.currency)) {
           addCheck(checks, 'fail', 'product-currency', `${label} has invalid MarathonProduct.currency.`);
         } else {
-          addCheck(checks, 'pass', 'product', `${label} has payment product ${marathon.product.currency} ${marathon.product.price.toString()}.`);
+          const minimumAmount = minimumChargeAmount(marathon.product.currency);
+          if (minimumAmount !== null && amount < minimumAmount) {
+            addCheck(
+              checks,
+              'fail',
+              'product-price-minimum',
+              `${label} has payment product ${marathon.product.currency} ${marathon.product.price.toString()}, below provider minimum ${marathon.product.currency} ${minimumAmount}.`,
+            );
+          } else {
+            addCheck(checks, 'pass', 'product', `${label} has payment product ${marathon.product.currency} ${marathon.product.price.toString()}.`);
+          }
         }
       }
 
