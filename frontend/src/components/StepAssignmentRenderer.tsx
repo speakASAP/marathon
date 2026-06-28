@@ -20,6 +20,24 @@ type StepAssignmentRendererProps = {
   onPayloadChange?: (payload: SubmissionPayload, report: string) => void;
 };
 
+function assignmentBlockLayoutClass(block: AssignmentBlock) {
+  if (block.type !== "field") {
+    return "step-assignment-item step-assignment-item--wide";
+  }
+
+  const fieldTypeClass = `step-assignment-item--${block.fieldType}`;
+
+  if (block.fieldType === "textarea") {
+    return `step-assignment-item step-assignment-item--field step-assignment-item--wide-field ${fieldTypeClass}`;
+  }
+
+  if (block.fieldType === "radio" || block.fieldType === "checkbox") {
+    return `step-assignment-item step-assignment-item--field step-assignment-item--choice-field ${fieldTypeClass}`;
+  }
+
+  return `step-assignment-item step-assignment-item--field step-assignment-item--short-field ${fieldTypeClass}`;
+}
+
 export default function StepAssignmentRenderer({
   blocks,
   fallbackContent,
@@ -67,13 +85,14 @@ export default function StepAssignmentRenderer({
         if (!branchVisible(block.branch, level)) return null;
 
         return (
-          <AssignmentBlockRenderer
-            answers={answers}
-            block={block}
-            key={block.id}
-            onAnswerChange={updateAnswer}
-            readOnly={readOnly}
-          />
+          <div className={assignmentBlockLayoutClass(block)} key={block.id}>
+            <AssignmentBlockRenderer
+              answers={answers}
+              block={block}
+              onAnswerChange={updateAnswer}
+              readOnly={readOnly}
+            />
+          </div>
         );
       })}
     </div>

@@ -35,8 +35,10 @@ export function AssignmentFieldRenderer({ block, value, readOnly, onChange }: As
     if (hintOpen) setHintOpen(false);
   };
 
+  const blockClassName = `step-question-block step-question-block--${block.fieldType}${answerIsWrong ? " step-question-block-error" : ""}`;
+
   return (
-    <fieldset className={`step-question-block${answerIsWrong ? " step-question-block-error" : ""}`}>
+    <fieldset className={blockClassName}>
       <legend>
         {block.label}
         {!block.required && <span>Необязательное поле</span>}
