@@ -313,10 +313,10 @@ async function checkRegistrationAttempt(report, options, traversalContext) {
 
 function checkDashboardBundleContract(report, bundle) {
   const markerGroups = [
-    ['Payment confirmation is processing', 'Подтверждение оплаты обрабатывается'],
+    ['Payment is processing', 'Платеж обрабатывается'],
     ['Payment confirmed', 'Оплата подтверждена'],
     ['Payment was cancelled', 'Оплата отменена'],
-    ['Refresh status', 'Обновить статус'],
+    ['Automatic payment status check', 'Мы проверяем подтверждение оплаты автоматически'],
     ['Payment required', 'Нужна оплата марафона'],
     ['Pay', 'Оплатить'],
     ['PayPal'],

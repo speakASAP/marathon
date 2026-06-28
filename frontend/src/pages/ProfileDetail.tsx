@@ -8,6 +8,7 @@ import {
   createPaymentCheckout,
   fetchMyMarathon,
   fetchProgressReport,
+  reconcilePaymentStatus,
   saveNpsSurvey,
   updateReportTime,
   type Answer,
@@ -102,6 +103,7 @@ export default function ProfileDetail() {
   const [checkoutError, setCheckoutError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paypal');
   const [paymentReturn, setPaymentReturn] = useState<PaymentReturnState>(null);
+  const [paymentStatusError, setPaymentStatusError] = useState('');
   const [report, setReport] = useState<ProgressReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState('');
@@ -167,6 +169,43 @@ export default function ProfileDetail() {
     }
   }, [data]);
 
+  useEffect(() => {
+    if (paymentReturn !== 'success' || !data?.payment_required) return undefined;
+
+    let stopped = false;
+    let timer: number | undefined;
+
+    const refreshPaymentStatus = async () => {
+      try {
+        await reconcilePaymentStatus(data.id);
+        const nextData = await fetchMyMarathon(data.id);
+        if (stopped) return;
+        setData(nextData);
+        if (!nextData.payment_required) {
+          setCheckoutError('');
+          setPaymentStatusError('');
+          return;
+        }
+        timer = window.setTimeout(refreshPaymentStatus, 3_000);
+      } catch (error) {
+        if (stopped) return;
+        if (error instanceof MarathonAuthRequiredError) {
+          redirectToLogin(`/profile/${data.id}`);
+          return;
+        }
+        setPaymentStatusError('Не удалось обновить статус оплаты. Мы продолжим проверку автоматически.');
+        timer = window.setTimeout(refreshPaymentStatus, 6_000);
+      }
+    };
+
+    refreshPaymentStatus();
+
+    return () => {
+      stopped = true;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [paymentReturn, data?.id, data?.payment_required]);
+
   if (loading) {
     return (
       <div className="container">
@@ -227,12 +266,13 @@ export default function ProfileDetail() {
   const progressPct = data.answers.length ? Math.round((completedCount / data.answers.length) * 100) : 0;
   const canGenerateProgressReport = !data.payment_required && data.can_generate_progress_report;
   const showBonusDays = data.bonus_total > 0;
+  const paymentProcessing = paymentReturn === 'success' && data.payment_required;
   const paymentReturnTitle = paymentReturn === 'success'
-    ? (data.payment_required ? 'Подтверждение оплаты обрабатывается' : 'Оплата подтверждена')
+    ? (paymentProcessing ? 'Платеж обрабатывается' : 'Оплата подтверждена')
     : 'Оплата отменена';
   const paymentReturnBody = paymentReturn === 'success'
-    ? (data.payment_required
-      ? 'Платежный провайдер вернул вас сюда. Мы ждем защищенный callback для подтверждения оплаты; обновите страницу через минуту, если блокировка еще видна.'
+    ? (paymentProcessing
+      ? 'Мы проверяем подтверждение оплаты автоматически. Когда провайдер подтвердит платеж, задания откроются на этой странице.'
       : 'Оплата подтверждена, задания доступны из этого профиля.')
     : 'Списание не выполнено. Вы можете снова открыть оплату или обратиться в поддержку с этой страницы.';
 
@@ -388,18 +428,17 @@ export default function ProfileDetail() {
       )}
       {paymentReturn && (
         <section className={`profile-payment-return profile-payment-return-${paymentReturn}`}>
-          <div>
-            <h2>{paymentReturnTitle}</h2>
-            <p>{paymentReturnBody}</p>
+          <div className="profile-payment-return-copy">
+            {paymentProcessing && <span className="profile-payment-spinner" aria-hidden="true" />}
+            <div>
+              <h2>{paymentReturnTitle}</h2>
+              <p>{paymentReturnBody}</p>
+              {paymentStatusError && <p className="ml-error">{paymentStatusError}</p>}
+            </div>
           </div>
-          {paymentReturn === 'success' && data.payment_required && (
-            <button type="button" className="btn-profile-login" onClick={() => window.location.reload()}>
-              Обновить статус
-            </button>
-          )}
         </section>
       )}
-      {data.payment_required && (
+      {data.payment_required && !paymentProcessing && (
         <section className="profile-payment-panel" id="payment-access">
           <div>
             <h2>Нужна оплата марафона</h2>

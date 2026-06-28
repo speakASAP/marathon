@@ -34,6 +34,12 @@ type CallbackAmountCurrency = {
   source: 'callback' | 'payment_status';
 };
 
+type PaymentStatusResponse = {
+  amount: number | string;
+  currency: string;
+  status?: string;
+};
+
 const SUCCESS_STATUSES = new Set(['completed', 'complete', 'success', 'succeeded', 'paid']);
 const PAYMENT_METHODS = new Set(['payu', 'stripe', 'paypal', 'fiobanka', 'comgate', 'card', 'webpay']);
 const BANK_TRANSFER_LANGUAGE_NAMES: Record<string, string> = {
@@ -205,6 +211,96 @@ export class PaymentsService {
     };
   }
 
+  async reconcileCheckout(user: AuthUser, payload: CheckoutRequest) {
+    const marathonerId = payload.marathonerId?.trim();
+    if (!marathonerId) {
+      throw new BadRequestException('marathonerId is required');
+    }
+
+    const participant = await this.findAndClaimParticipant(marathonerId, user.id);
+    if (participant.paid) {
+      return {
+        status: 'already_paid',
+        marathonerId: participant.id,
+        redirectUrl: this.profileUrl(participant.id),
+      };
+    }
+
+    const attempt = await this.prisma.marathonPaymentAttempt.findFirst({
+      where: {
+        participantId: participant.id,
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        participant: {
+          include: {
+            marathon: {
+              include: {
+                steps: {
+                  orderBy: { sequence: 'asc' },
+                  select: { id: true, sequence: true, title: true },
+                },
+              },
+            },
+          },
+        },
+        product: true,
+      },
+    });
+
+    if (!attempt) {
+      throw new NotFoundException('Payment attempt not found');
+    }
+    if (!attempt.providerPaymentId) {
+      throw new BadRequestException('Payment provider ID is not available for this checkout');
+    }
+    if (attempt.status === 'confirmed') {
+      return { status: 'payment_confirmed', marathonerId: attempt.participantId, orderId: attempt.orderId, idempotent: true };
+    }
+
+    const paymentStatus = await this.fetchPaymentStatus(attempt.providerPaymentId);
+    const remoteStatus = String(paymentStatus.status || '').toLowerCase();
+    if (remoteStatus && !SUCCESS_STATUSES.has(remoteStatus)) {
+      await this.prisma.marathonPaymentAttempt.update({
+        where: { orderId: attempt.orderId },
+        data: {
+          status: remoteStatus,
+          callbackPayload: this.compactRecord({
+            orderId: attempt.orderId,
+            status: remoteStatus,
+            paymentId: attempt.providerPaymentId,
+            reconciledFrom: 'profile_return',
+          }) as any,
+        },
+      });
+      return { status: 'pending', marathonerId: attempt.participantId, orderId: attempt.orderId };
+    }
+
+    const amountCurrency: CallbackAmountCurrency = {
+      amount: Number(paymentStatus.amount),
+      currency: paymentStatus.currency,
+      source: 'payment_status',
+    };
+    this.validateCallbackAmount(
+      amountCurrency.amount,
+      amountCurrency.currency,
+      Number(attempt.amount.toString()),
+      attempt.currency,
+    );
+
+    const callbackSummary = this.compactRecord({
+      orderId: attempt.orderId,
+      status: remoteStatus || 'succeeded',
+      paymentId: attempt.providerPaymentId,
+      amount: amountCurrency.amount,
+      currency: amountCurrency.currency,
+      amountCurrencySource: amountCurrency.source,
+      reconciledFrom: 'profile_return',
+    });
+
+    return this.confirmPaymentAttempt(attempt, attempt.providerPaymentId, callbackSummary);
+  }
+
 
   async redeemGift(userId: string, marathonerId: string | undefined, rawCode: string | undefined) {
     const normalizedMarathonerId = marathonerId?.trim();
@@ -333,8 +429,12 @@ export class PaymentsService {
     );
     const confirmedCallbackSummary = this.summarizeCallbackPayload(payload, callbackAmountCurrency);
 
+    return this.confirmPaymentAttempt(attempt, providerPaymentId, confirmedCallbackSummary);
+  }
+
+  private async confirmPaymentAttempt(attempt: any, providerPaymentId: string, callbackPayload: Record<string, unknown>) {
     if (attempt.status === 'confirmed') {
-      return { status: 'payment_confirmed', marathonerId: attempt.participantId, orderId, idempotent: true };
+      return { status: 'payment_confirmed', marathonerId: attempt.participantId, orderId: attempt.orderId, idempotent: true };
     }
 
     if (!attempt.participant.active) {
@@ -343,9 +443,9 @@ export class PaymentsService {
 
     await this.prisma.$transaction(async (tx) => {
       await tx.marathonPaymentAttempt.update({
-        where: { orderId },
+        where: { orderId: attempt.orderId },
         data: {
-          callbackPayload: confirmedCallbackSummary as any,
+          callbackPayload: callbackPayload as any,
           confirmedAt: new Date(),
           providerPaymentId,
           status: 'confirmed',
@@ -364,9 +464,9 @@ export class PaymentsService {
     await this.sendPaymentConfirmedNotification(attempt.participant);
 
     this.logger.log(
-      `Marathon payment confirmed: marathonerId=${attempt.participantId}, paymentId=${providerPaymentId || ''}, orderId=${orderId}`,
+      `Marathon payment confirmed: marathonerId=${attempt.participantId}, paymentId=${providerPaymentId || ''}, orderId=${attempt.orderId}`,
     );
-    return { status: 'payment_confirmed', marathonerId: attempt.participantId, orderId };
+    return { status: 'payment_confirmed', marathonerId: attempt.participantId, orderId: attempt.orderId };
   }
 
   private async sendPaymentConfirmedNotification(participant: any): Promise<void> {
@@ -596,7 +696,7 @@ export class PaymentsService {
     };
   }
 
-  private async fetchPaymentStatus(paymentId: string): Promise<{ amount: number | string; currency: string }> {
+  private async fetchPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {
     const apiKey = process.env.PAYMENT_API_KEY;
     if (!apiKey) {
       throw new InternalServerErrorException('Payment API key is required for callback reconciliation');
@@ -623,11 +723,12 @@ export class PaymentsService {
 
     const amount = body?.data?.amount;
     const currency = body?.data?.currency;
+    const status = this.stringField(body?.data?.status) || this.stringField(body?.status);
     if (amount == null || typeof currency !== 'string' || !currency.trim()) {
       throw new BadRequestException('Payment status response is missing amount or currency');
     }
 
-    return { amount, currency };
+    return { amount, currency, status };
   }
 
   private summarizeCheckoutResponse(responseBody: unknown, httpStatus?: number): Record<string, unknown> {

@@ -32,6 +32,24 @@ export class PaymentsController {
     }
   }
 
+  @Post('payments/reconcile')
+  @UseGuards(AuthGuard)
+  async reconcileCheckout(@Req() req: AuthenticatedRequest, @Body() body: { marathonerId?: string }) {
+    const userId = req.user!.id;
+    this.logger.log(`Payment reconciliation requested: userId=${userId}, marathonerId=${body.marathonerId || ''}`);
+    try {
+      return await this.paymentsService.reconcileCheckout(req.user!, body);
+    } catch (error) {
+      const status = error instanceof HttpException ? error.getStatus() : 500;
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        'marathon.payment_reconcile.failed hasMarathonerId=' + Boolean(body.marathonerId) + ' status=' + status + ' reason=' + reason.replace(/\s+/g, '_'),
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
+  }
+
   @Post('payments/gift-redemptions')
   @UseGuards(AuthGuard)
   async redeemGift(@Req() req: AuthenticatedRequest, @Body() body: { marathonerId?: string; code?: string }) {

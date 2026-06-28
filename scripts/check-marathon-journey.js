@@ -467,7 +467,8 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   }
   if (
     !js.includes('Оплата создана, но корректная ссылка для перехода не вернулась.') ||
-    !js.includes('Подтверждение оплаты обрабатывается') ||
+    !js.includes('Платеж обрабатывается') ||
+    !js.includes('Мы проверяем подтверждение оплаты автоматически') ||
     !js.includes('Оплата подтверждена') ||
     !js.includes('Оплата отменена')
   ) {

@@ -235,6 +235,23 @@ export async function createPaymentCheckout(marathonerId: string, paymentMethod:
   return readCheckoutRedirectUrl(body);
 }
 
+export async function reconcilePaymentStatus(marathonerId: string): Promise<{ status: string }> {
+  const response = await authFetch('/api/v1/payments/reconcile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ marathonerId }),
+  });
+
+  if (response.status === 401) throw new MarathonAuthRequiredError();
+  if (response.status === 404) throw new MarathonNotFoundError();
+
+  const body = await readJsonBody<{ status: string; message?: string; error?: string }>(response);
+  if (!response.ok) {
+    throw new Error(body.message || body.error || `Payment reconciliation failed (${response.status})`);
+  }
+  return body;
+}
+
 export async function fetchProgressReport(marathonerId: string): Promise<ProgressReport> {
   const response = await authFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/progress-report`);
   if (response.status === 401) throw new MarathonAuthRequiredError();
