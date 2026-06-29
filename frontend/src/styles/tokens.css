@@ -5,34 +5,46 @@
 
 :root {
   /* Legacy colors */
-  --marathon-bg: #ecf0f1;
-  --marathon-stripe: #14b5ea;
-  --marathon-nav-accent: #50d0de;
+  --marathon-bg: #f7f7f7;
+  --marathon-lesson-blue: #2c96ff;
+  --marathon-lesson-blue-hover: #1976d2;
+  --marathon-lesson-yellow: #feb600;
+  --marathon-lesson-red: #ff5252;
+  --marathon-lesson-text: #424242;
+  --marathon-lesson-muted: #999;
+  --marathon-lesson-soft-yellow: #fff4dc;
+  --marathon-lesson-soft-blue: #ebf8ff;
+  --marathon-lesson-green: #4caf50;
+  --marathon-stripe: #2c96ff;
+  --marathon-nav-accent: #feb600;
   --marathon-text-on-dark: #fff;
-  --marathon-button-primary: #ef3f34;
-  --marathon-button-primary-hover: #cf2f26;
-  --marathon-button-primary-shadow: 0 14px 30px rgba(239, 63, 52, 0.24);
+  --marathon-button-primary: #2c96ff;
+  --marathon-button-primary-hover: #1976d2;
+  --marathon-button-primary-shadow: 0 3px 8px rgba(44, 150, 255, 0.25);
   --marathon-button-secondary-bg: #fff;
-  --marathon-button-secondary-text: #1b2a48;
-  --marathon-button-secondary-border: #d8e3ef;
-  --marathon-button-secondary-hover-border: #b7c8df;
-  --marathon-button-secondary-hover-text: #1257b8;
-  --marathon-button-muted: #566987;
-  --marathon-button-muted-hover: #42536e;
-  --marathon-button-radius: 8px;
+  --marathon-button-secondary-text: #424242;
+  --marathon-button-secondary-border: #f0f0f0;
+  --marathon-button-secondary-hover-border: #2c96ff;
+  --marathon-button-secondary-hover-text: #2c96ff;
+  --marathon-button-muted: #999;
+  --marathon-button-muted-hover: #757575;
+  --marathon-button-radius: 2px;
   --marathon-button-min-height: 44px;
-  --marathon-muted: #757575;
+  --marathon-muted: #999;
   --marathon-card-bg: #fff;
-  --marathon-border: #e0e0e0;
+  --marathon-border: #f0f0f0;
+  --marathon-heading: #2c96ff;
+  --marathon-text: #424242;
 
-  /* Typography (legacy: ProximaNova; fallback system sans) */
-  --marathon-font: "Proxima Nova", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Typography aligned to SpeakASAP lesson pages */
+  --marathon-font: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --marathon-heading-font: "PT Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --marathon-font-size: 16px;
-  --marathon-line-height: 1.5;
+  --marathon-line-height: 30px;
 
   /* Section spacing */
   --marathon-section-padding: 3rem 0;
   --marathon-promo-min-height: 523px;
-  --marathon-container-max: 90vw;
-  --marathon-container-padding: 0 15px;
+  --marathon-container-max: 1080px;
+  --marathon-container-padding: 0 24px;
 }

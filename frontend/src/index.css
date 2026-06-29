@@ -1,4 +1,5 @@
 @import './styles/tokens.css';
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&family=PT+Mono&display=swap');
 
 * {
   box-sizing: border-box;
@@ -5630,4 +5631,506 @@ a:hover {
 .step-known-word.selected {
   background: #ffe08a;
   font-weight: 900;
+}
+
+/* SpeakASAP lesson skin for all marathon step content.
+   Keep this as the shared override layer so all marathon pages inherit one visual system. */
+.main-header {
+  background: var(--marathon-lesson-blue);
+  border-bottom: 5px solid #7cc242;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.24);
+  backdrop-filter: none;
+  padding: 0;
+}
+
+.main-header .header-inner {
+  min-height: 56px;
+}
+
+.navbar-brand,
+.main-nav-links a,
+.navbar-language-select,
+.navbar-login-link {
+  color: #fff;
+  font-family: var(--marathon-heading-font);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.navbar-brand {
+  font-size: 22px;
+}
+
+.navbar-brand .navbar-brand-provider {
+  color: rgba(255, 255, 255, 0.86);
+  font-family: var(--marathon-font);
+}
+
+.main-nav-links a:hover,
+.navbar-brand:hover,
+.navbar-brand:focus,
+.navbar-login-link:hover,
+.navbar-login-link:focus {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.navbar-cta,
+.btn-profile-open,
+.btn-profile-login,
+.btn-show-more,
+.step-sequence-actions .step-nav-link,
+.step-next-now,
+.step-report-actions .btn-show-more,
+.step-answer-hint-toggle {
+  min-height: 40px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--marathon-lesson-blue);
+  color: #fff;
+  box-shadow: 0 2px 5px rgba(44, 150, 255, 0.26);
+  font-family: var(--marathon-font);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.navbar-cta {
+  min-height: 36px;
+  border-radius: 22px;
+  background: var(--marathon-lesson-yellow);
+  color: #fff;
+  font-size: 1rem;
+}
+
+.navbar-cta:hover,
+.btn-profile-open:hover,
+.btn-profile-login:hover,
+.btn-show-more:hover,
+.step-sequence-actions .step-nav-link:hover,
+.step-next-now:hover,
+.step-answer-hint-toggle:hover,
+.step-answer-hint-toggle:focus-visible {
+  background: var(--marathon-lesson-blue-hover);
+  color: #fff;
+  transform: none;
+}
+
+body {
+  background: var(--marathon-bg);
+  color: var(--marathon-lesson-text);
+  font-family: var(--marathon-font);
+  font-size: 16px;
+  line-height: var(--marathon-line-height);
+}
+
+a {
+  color: var(--marathon-lesson-red);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: #e53935;
+}
+
+.container.page-static,
+.page-step {
+  max-width: 1080px;
+}
+
+.page-static {
+  color: var(--marathon-lesson-text);
+}
+
+.page-static h1,
+.page-step h1 {
+  margin: 0 0 24px;
+  color: var(--marathon-lesson-blue);
+  font-family: var(--marathon-heading-font);
+  font-size: 32px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: 0;
+}
+
+.page-static h2,
+.step-submit h2,
+.step-assignment-heading {
+  margin: 24px 0;
+  color: var(--marathon-lesson-yellow);
+  font-family: var(--marathon-heading-font);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: normal;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+.page-static h3,
+.step-answer-summary h3,
+.step-known-words h3,
+.step-assignment-list-panel h3 {
+  margin: 0 0 18px;
+  color: var(--marathon-lesson-blue);
+  font-family: var(--marathon-heading-font);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: normal;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+.page-static p,
+.page-static li,
+.step-assignment-paragraph,
+.step-assignment-lead,
+.step-report-note,
+.step-submit-form label,
+.step-manual-answer,
+.step-submit-auth-panel,
+.step-saved-report,
+.step-peer-empty,
+.random-report-body {
+  color: var(--marathon-lesson-text);
+  font-family: var(--marathon-font);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 30px;
+}
+
+.page-step .step-content-card {
+  margin: 1rem auto 0;
+  padding: 48px;
+  border: 1px solid #e7e7e7;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.22);
+}
+
+.page-step .step-tabs {
+  justify-content: center;
+  margin: 0 0 24px;
+}
+
+.page-step .step-tabs button {
+  min-height: 36px;
+  border: 1px solid #e0e0e0;
+  border-radius: 2px;
+  background: #fff;
+  color: var(--marathon-lesson-text);
+  box-shadow: none;
+  font-weight: 600;
+}
+
+.page-step .step-tabs button.active {
+  background: var(--marathon-lesson-blue);
+  color: #fff;
+  box-shadow: 0 2px 5px rgba(44, 150, 255, 0.22);
+}
+
+.step-assignment-content {
+  color: var(--marathon-lesson-text);
+  line-height: 30px;
+}
+
+.step-assignment-content.structured {
+  display: flex;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  gap: 18px;
+}
+
+.step-assignment-content.structured::before {
+  display: none;
+}
+
+.step-assignment-item--field {
+  flex: 1 1 220px;
+  max-width: 360px;
+}
+
+.step-assignment-item--choice-field {
+  flex-basis: 320px;
+  max-width: 520px;
+}
+
+.step-assignment-item--wide-field {
+  flex-basis: 100%;
+  max-width: none;
+}
+
+.step-assignment-paragraph {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-weight: 400;
+  white-space: pre-line;
+}
+
+.step-assignment-lead,
+.step-content-missing,
+.step-submit-auth-panel,
+.step-answer-hint-panel,
+.step-saved-report,
+.step-next-control {
+  padding: 18px 24px;
+  border: 1px solid #ff9800;
+  border-radius: 0;
+  background: var(--marathon-lesson-soft-yellow);
+  color: var(--marathon-lesson-text);
+  box-shadow: none;
+  text-align: center;
+}
+
+.step-assignment-quote {
+  margin: 0;
+  padding: 18px 24px;
+  border: 1px solid #ff9800;
+  border-left: 1px solid #ff9800;
+  border-radius: 0;
+  background: var(--marathon-lesson-soft-yellow);
+  color: var(--marathon-lesson-text);
+  font-style: normal;
+  line-height: 30px;
+  text-align: center;
+}
+
+.step-video-block {
+  width: 100%;
+  max-width: 898px;
+  margin: 0 auto 24px;
+  border-radius: 24px;
+  background: #000;
+  box-shadow: none;
+}
+
+.step-audio-block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  padding: 16px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.step-audio-block strong {
+  color: var(--marathon-lesson-text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.step-audio-block audio {
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+
+.step-audio-block a,
+.step-assignment-download-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background: var(--marathon-lesson-blue);
+  color: #fff;
+  box-shadow: 0 2px 5px rgba(44, 150, 255, 0.3);
+  text-decoration: none;
+}
+
+.step-assignment-download-button {
+  min-width: 0;
+  border-radius: 2px;
+  padding: 0 16px;
+  gap: 8px;
+}
+
+.step-audio-block a:hover,
+.step-assignment-download-button:hover,
+.step-assignment-download-button:focus-visible {
+  background: var(--marathon-lesson-blue-hover);
+  color: #fff;
+  text-decoration: none;
+}
+
+.step-assignment-list-panel,
+.step-known-words,
+.step-answer-summary,
+.step-submit-form textarea,
+.step-manual-answer textarea {
+  border: 1px solid #f0f0f0;
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.step-assignment-list-panel ul {
+  gap: 0;
+}
+
+.step-assignment-list-panel li,
+.step-reading-rule,
+.step-answer-row {
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  color: var(--marathon-lesson-text);
+}
+
+.step-assignment-list-panel li:nth-child(even),
+.step-reading-rule:nth-child(even),
+.step-answer-row:nth-child(even) {
+  background: #fafafa;
+}
+
+.step-reading-rule strong,
+.step-question-label-original,
+.step-answer-row dd,
+.step-known-word.selected {
+  color: var(--marathon-lesson-text);
+  font-weight: 700;
+}
+
+.step-reading-rule span,
+.accent,
+.step-known-word:hover,
+.step-known-word.selected {
+  color: var(--marathon-lesson-blue);
+}
+
+.step-reading-rule em,
+.step-question-label-translation,
+.step-answer-row dt,
+.profile-step-meta,
+.step-report-note,
+.step-assignment-list-panel .mute,
+.step-known-words p {
+  color: var(--marathon-lesson-muted);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.step-question-block {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.step-question-block legend {
+  color: var(--marathon-lesson-text);
+  font-weight: 700;
+  line-height: 30px;
+}
+
+.step-question-block textarea,
+.step-question-block input[type="text"] {
+  min-height: 31px;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  padding: 5px;
+  background: #fff;
+  color: #000;
+  font-family: var(--marathon-font);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: normal;
+  box-shadow: none;
+}
+
+.step-question-block--text input[type="text"] {
+  max-width: 120px;
+}
+
+.step-question-block textarea:focus,
+.step-question-block input[type="text"]:focus {
+  border-color: var(--marathon-lesson-blue);
+  box-shadow: 0 0 0 2px rgba(44, 150, 255, 0.18);
+}
+
+.step-choice {
+  border: 1px solid #f0f0f0;
+  border-radius: 2px;
+  background: #fff;
+  color: var(--marathon-lesson-text);
+  font-weight: 600;
+}
+
+.step-choice.selected {
+  border-color: var(--marathon-lesson-blue);
+  background: var(--marathon-lesson-soft-blue);
+  box-shadow: none;
+}
+
+.step-known-words {
+  background: var(--marathon-lesson-soft-blue);
+}
+
+.step-known-word {
+  color: var(--marathon-lesson-text);
+  font-weight: inherit;
+}
+
+.step-known-word:hover,
+.step-known-word.selected {
+  background: transparent;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.step-submit {
+  margin-top: 24px;
+}
+
+.step-submit-form {
+  gap: 18px;
+}
+
+.step-answer-summary {
+  padding: 30px;
+  background: var(--marathon-lesson-soft-blue);
+}
+
+.step-answer-summary dl {
+  gap: 0;
+}
+
+.step-submit-success {
+  border: 1px solid #81c784;
+  border-radius: 2px;
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+
+@media (max-width: 720px) {
+  .page-step .step-content-card {
+    padding: 24px 18px;
+  }
+
+  .page-static h1,
+  .page-step h1 {
+    font-size: 28px;
+  }
+
+  .page-static h2,
+  .step-submit h2,
+  .step-assignment-heading {
+    font-size: 23px;
+  }
 }
