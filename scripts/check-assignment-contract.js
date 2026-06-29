@@ -6,8 +6,8 @@
  * field labels, report payloads, participant data, payment data, tokens, or secrets.
  */
 
-const SUPPORTED_PERSISTED_TYPES = new Set(['text', 'video', 'audio', 'image', 'link', 'field']);
-const RENDERER_DERIVED_TYPES = new Set(['quote', 'list', 'knownWords']);
+const SUPPORTED_PERSISTED_TYPES = new Set(['text', 'video', 'audio', 'image', 'link', 'field', 'knownWords']);
+const RENDERER_DERIVED_TYPES = new Set(['quote', 'list']);
 const SUPPORTED_FIELD_TYPES = new Set(['text', 'textarea', 'radio', 'checkbox']);
 const SUPPORTED_ANSWER_SIZES = new Set(['short', 'long']);
 const DOWNLOAD_FILE_HREF = /\.(?:pdf|zip|docx?|xlsx?|pptx?|mp3|mp4|wav|ogg)(?:[?#]|$)/i;
@@ -209,6 +209,17 @@ function validateSupportedBlock(block, aggregate) {
     }
     if (isGenericSettingsLink(block)) {
       aggregate.genericSettingsLinkCount += 1;
+    }
+    return;
+  }
+
+  if (block.type === 'knownWords') {
+    if (!hasText(block.name) || !Array.isArray(block.paragraphs) || !block.paragraphs.every(hasText)) {
+      aggregate.invalidSupportedBlockCount += 1;
+    }
+    auditDisplayedText(block.label, aggregate);
+    for (const paragraph of Array.isArray(block.paragraphs) ? block.paragraphs : []) {
+      auditDisplayedText(paragraph, aggregate);
     }
     return;
   }

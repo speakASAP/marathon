@@ -70,7 +70,18 @@ export type AssignmentFieldBlock = {
   branch?: AssignmentBranch;
 };
 
-export type AssignmentBlock = AssignmentTextBlock | AssignmentVideoBlock | AssignmentAudioBlock | AssignmentLinkBlock | AssignmentImageBlock | AssignmentFieldBlock;
+export type AssignmentKnownWordsBlock = {
+  id: string;
+  type: 'knownWords';
+  name: string;
+  paragraphs: string[];
+  label?: string;
+  sourceForm?: string;
+  sourceName?: string;
+  branch?: AssignmentBranch;
+};
+
+export type AssignmentBlock = AssignmentTextBlock | AssignmentVideoBlock | AssignmentAudioBlock | AssignmentLinkBlock | AssignmentImageBlock | AssignmentFieldBlock | AssignmentKnownWordsBlock;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -296,6 +307,7 @@ function normalizeBlockTerminalPunctuation(blocks: AssignmentBlock[]): Assignmen
       };
     }
     if (block.type === 'image' && block.caption) return { ...block, caption: ensureTerminalPunctuation(block.caption) };
+    if (block.type === 'knownWords' && block.label) return { ...block, label: ensureTerminalPunctuation(block.label) };
     return block;
   });
 }
@@ -353,6 +365,25 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
         const alt = cleanString(raw.alt);
         const caption = cleanString(raw.caption);
         return { id, type, src, ...(alt ? { alt } : {}), ...(caption ? { caption } : {}), ...(branch ? { branch } : {}) };
+      }
+
+      if (type === 'knownWords') {
+        const name = cleanString(raw.name);
+        const paragraphs = normalizeStringList(raw.paragraphs);
+        const label = normalizeParentheticalSpacing(cleanString(raw.label));
+        const sourceForm = cleanString(raw.sourceForm);
+        const sourceName = cleanString(raw.sourceName);
+        if (!name || !paragraphs.length) return null;
+        return {
+          id,
+          type,
+          name,
+          paragraphs,
+          ...(label ? { label } : {}),
+          ...(sourceForm ? { sourceForm } : {}),
+          ...(sourceName ? { sourceName } : {}),
+          ...(branch ? { branch } : {}),
+        };
       }
 
       if (type === 'field') {

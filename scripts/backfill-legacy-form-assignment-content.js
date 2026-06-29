@@ -301,6 +301,7 @@ function pushTextBlock(blocks, rawText, branch, href = null) {
   if (!text) return;
   if (href) {
     if (isGenericSettingsLink(text, href)) return;
+    if (/^#choice-\d+$/i.test(href) && /^Текст\s+\d+\.?$/i.test(text)) return;
     blocks.push({
       id: `link-${blocks.length}`,
       type: 'link',
@@ -348,6 +349,64 @@ function shouldJoinWithPrevious(previous, text) {
   return /^[.!?,;:]+$/.test(text)
     || (/^настроек\.?$/i.test(text) && /^Сформируйте отчет\./i.test(previous.text))
     || isSentenceContinuation(previous.text, text);
+}
+
+function classContainsKnownWords(attrs) {
+  const classValue = htmlAttr(attrs, 'class');
+  return /(?:^|\s)known-words(?:\s|$)/i.test(classValue);
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^$\{}()|[\]\\]/g, '\\$&');
+}
+
+function attrsContainId(attrs, id) {
+  const escaped = escapeRegExp(id);
+  return new RegExp("\\bid\\s*=\\s*[\"']" + escaped + "[\"']", 'i').test(attrs);
+}
+
+function knownWordsParagraphsFromHtml(fragment) {
+  const paragraphs = [];
+  const paragraphPattern = /<p\b[^>]*>([\s\S]*?)<\/p>/gi;
+  let match;
+  while ((match = paragraphPattern.exec(fragment)) !== null) {
+    const text = normalizeInstructionText(stripHtmlToText(match[1]));
+    if (text) paragraphs.push(text);
+  }
+  if (paragraphs.length) return paragraphs;
+  const text = normalizeInstructionText(stripHtmlToText(fragment));
+  return text ? [text] : [];
+}
+
+function extractLegacyKnownWordsParagraphs(templatesRoot, folder, sourceForm, sourceName) {
+  const sourceTemplate = path.join(templatesRoot, folder, `${sourceForm}.html`);
+  if (!fs.existsSync(sourceTemplate)) return [];
+  const html = fs.readFileSync(sourceTemplate, 'utf8').replace(/\{#[\s\S]*?#\}/g, '\n');
+  const openPattern = /<div\b([^>]*)>/gi;
+  let open;
+  while ((open = openPattern.exec(html)) !== null) {
+    const attrs = open[1] || '';
+    if (!attrsContainId(attrs, sourceName) || !classContainsKnownWords(attrs)) continue;
+    const start = openPattern.lastIndex;
+    const closeIndex = html.indexOf('</div>', start);
+    if (closeIndex < 0) return [];
+    return knownWordsParagraphsFromHtml(html.slice(start, closeIndex));
+  }
+  return [];
+}
+
+function pushKnownWordsBlock(blocks, paragraphs, branch, name, label, sourceForm, sourceName) {
+  if (!paragraphs.length || !name) return;
+  blocks.push({
+    id: `known-words-${blocks.length}`,
+    type: 'knownWords',
+    name,
+    paragraphs,
+    label,
+    sourceForm,
+    sourceName,
+    ...(branch ? { branch } : {}),
+  });
 }
 
 function normalizeTextBlockSequence(blocks) {
@@ -416,10 +475,9 @@ function normalizeTextBlockSequence(blocks) {
   return normalized;
 }
 
-function renderTemplateBlocks(templatePath, fields) {
+function renderTemplateBlocks(templatePath, fields, templatesRoot, folder) {
   let html = fs.readFileSync(templatePath, 'utf8')
-    .replace(/\{#[\s\S]*?#\}/g, '\n')
-    .replace(/\{%\s*load_answer\s+[^%]+%\}/g, 'ранее выделенные слова');
+    .replace(/\{#[\s\S]*?#\}/g, '\n');
   html = legacyTableRowsToTags(html);
   const tokenPattern = /(\{%[\s\S]*?%\}|<\/?[A-Za-z][^>]*>)/g;
   const blocks = [];
@@ -436,6 +494,7 @@ function renderTemplateBlocks(templatePath, fields) {
     const video = token.match(/^\{%\s*video\s+['"]([^'"]+)['"]\s*%\}$/);
     const audio = token.match(/^\{%\s*audio\s+['"]([^'"]+)['"]\s*%\}$/);
     const field = token.match(/^\{%\s*render_field\s+form\.([A-Za-z0-9_]+)[^%]*%\}$/);
+    const loadAnswer = token.match(/^\{%\s*load_answer\s+([\s\S]*?)%\}$/);
     const branch = currentBranch(stack);
     if (video) {
       blocks.push({ id: `video-${blocks.length}`, type: 'video', code: video[1], ...(branch ? { branch } : {}) });
@@ -444,6 +503,13 @@ function renderTemplateBlocks(templatePath, fields) {
     } else if (field) {
       const block = fieldBlock(field[1], fields[field[1]], branch, blocks.length);
       if (block) blocks.push(block);
+    } else if (loadAnswer) {
+      const [sourceForm, sourceName] = parseTemplateTagArgs(loadAnswer[1]);
+      const targetName = sourceName ? `known_words${blocks.filter((block) => block.type === 'knownWords').length + 1}` : '';
+      const paragraphs = sourceForm && sourceName
+        ? extractLegacyKnownWordsParagraphs(templatesRoot, folder, sourceForm, sourceName)
+        : [];
+      pushKnownWordsBlock(blocks, paragraphs, branch, targetName, targetName ? `Текст ${targetName.replace(/^known_words/, '')}` : '', sourceForm, sourceName);
     } else if (token.startsWith('{%')) {
       // Other Django tags control template flow/includes and are not user-visible blocks.
     } else {
@@ -500,6 +566,10 @@ function blocksToText(blocks) {
     else if (block.type === 'audio') parts.push(`Аудио: ${block.code}`);
     else if (block.type === 'link') parts.push(block.text);
     else if (block.type === 'image' && block.alt) parts.push(block.alt);
+    else if (block.type === 'knownWords') {
+      if (block.label) parts.push(block.label);
+      parts.push(...block.paragraphs);
+    }
     else if (block.type === 'field') {
       const label = block.rowLayout === 'three-column'
         ? [block.rowPrefix, block.label, block.rowSuffix].filter(Boolean).join(' ')
@@ -669,7 +739,7 @@ async function main() {
       summary.missing.push({ id: step.id, title: step.title, languageCode: step.marathon.languageCode, formKey: step.formKey, folder });
       continue;
     }
-    const blocks = renderTemplateBlocks(templatePath, fields);
+    const blocks = renderTemplateBlocks(templatePath, fields, templatesRoot, folder);
     const content = blocksToText(blocks);
     summary.generated += 1;
     const currentBlocks = Array.isArray(step.assignmentBlocks) ? stableJson(step.assignmentBlocks) : '';

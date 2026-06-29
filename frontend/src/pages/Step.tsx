@@ -21,12 +21,22 @@ import PublicAnswerReport, {
   peerAnswerRowsFromPayload,
   renderPublicAnswerQuestion,
 } from '../components/assignment/PublicAnswerReport';
-import { answerPartsFromValue, fieldInlineBlankCount, stripHeadingTerminalPeriod } from '../components/assignment/assignmentBlockNormalization';
+import {
+  answerPartsFromValue,
+  decorateBlocks,
+  fieldInlineBlankCount,
+  stripHeadingTerminalPeriod,
+} from '../components/assignment/assignmentBlockNormalization';
 
 const DRAFT_SAVE_DELAY_MS = 900;
 
 type Level = 'beginner' | 'medium' | 'advanced' | null;
 type AssignmentFieldBlock = Extract<AssignmentBlock, { type: 'field' }>;
+type KnownWordsBlock = Extract<AssignmentBlock, { type: 'knownWords' }>;
+type KnownWordsReplayEntry = {
+  paragraphs: string[];
+  selected: string[];
+};
 type LocalStepDraft = {
   report: string;
   payload: SubmissionPayload;
@@ -129,12 +139,95 @@ function sanitizeAssignmentBlock(block: AssignmentBlock): AssignmentBlock | null
   return text ? { ...block, text } : null;
 }
 
+function sanitizedDecoratedBlocks(blocks: AssignmentBlock[] | null | undefined) {
+  return decorateBlocks(
+    blocks?.map(sanitizeAssignmentBlock).filter((block): block is AssignmentBlock => Boolean(block)) || [],
+  );
+}
+
 function isPayloadRecord(value: unknown): value is SubmissionPayload {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 function isFieldBlock(block: AssignmentBlock): block is AssignmentFieldBlock {
   return block.type === 'field';
+}
+
+function isKnownWordsBlock(block: AssignmentBlock): block is KnownWordsBlock {
+  return block.type === 'knownWords';
+}
+
+function isLegacyKnownWordsPlaceholder(value: string) {
+  return /^ранее\s+выделенные\s+слова(?:\s+Текст\s+\d+)?\.?$/i.test(value.trim());
+}
+
+function isReplayKnownWordsBlock(block: KnownWordsBlock) {
+  return block.paragraphs.length > 0 && block.paragraphs.every(isLegacyKnownWordsPlaceholder);
+}
+
+function payloadStringList(payload: SubmissionPayload, name: string) {
+  const value = payload[name];
+  if (!Array.isArray(value)) return [];
+  return value.map(String).filter(Boolean);
+}
+
+function mergePayloadDefaults(payload: SubmissionPayload, defaults: SubmissionPayload) {
+  if (!Object.keys(defaults).length) return payload;
+  const next = { ...defaults, ...payload };
+  Object.entries(defaults).forEach(([name, value]) => {
+    const current = payload[name];
+    if (Array.isArray(current) && current.length === 0 && Array.isArray(value) && value.length > 0) {
+      next[name] = value;
+    }
+  });
+  return next;
+}
+
+function withKnownWordsReplay(blocks: AssignmentBlock[], replayEntries: KnownWordsReplayEntry[]) {
+  if (!replayEntries.length) return blocks;
+  let replayIndex = 0;
+  return blocks.map((block) => {
+    if (!isKnownWordsBlock(block) || !isReplayKnownWordsBlock(block)) return block;
+    const entry = replayEntries[replayIndex];
+    replayIndex += 1;
+    if (!entry?.paragraphs.length) return block;
+    return { ...block, paragraphs: entry.paragraphs };
+  });
+}
+
+function knownWordsReplayDefaults(blocks: AssignmentBlock[], replayEntries: KnownWordsReplayEntry[]) {
+  const defaults: SubmissionPayload = {};
+  if (!replayEntries.length) return defaults;
+  let replayIndex = 0;
+  blocks.forEach((block) => {
+    if (!isKnownWordsBlock(block) || !isReplayKnownWordsBlock(block)) return;
+    const entry = replayEntries[replayIndex];
+    replayIndex += 1;
+    if (entry?.selected.length) defaults[block.name] = entry.selected;
+  });
+  return defaults;
+}
+
+async function loadKnownWordsReplayEntries(marathon: MyMarathon, participantId: string) {
+  const step3Answers = marathon.answers.filter((answer) => /^Этап\s+3\./i.test(answer.title));
+  const stepResults = await Promise.all(step3Answers.map(async (answer) => {
+    try {
+      const [stepInfo, submission] = await Promise.all([
+        fetchStepInfo(answer.stepId),
+        fetchSavedSubmission(participantId, answer.stepId),
+      ]);
+      if (!stepInfo || !submission.exists || !isPayloadRecord(submission.payload)) return [];
+      return sanitizedDecoratedBlocks(stepInfo.assignmentBlocks)
+        .filter(isKnownWordsBlock)
+        .map((block) => ({
+          paragraphs: block.paragraphs,
+          selected: payloadStringList(submission.payload, block.name),
+        }));
+    } catch {
+      return [];
+    }
+  }));
+  return stepResults.flat();
 }
 
 function findLevelField(blocks: AssignmentBlock[]): AssignmentFieldBlock | undefined {
@@ -288,6 +381,7 @@ export default function Step() {
   const [submissionAuthRequired, setSubmissionAuthRequired] = useState(false);
   const [marathon, setMarathon] = useState<MyMarathon | null>(null);
   const [, setMarathonLoadError] = useState('');
+  const [knownWordsReplayEntries, setKnownWordsReplayEntries] = useState<KnownWordsReplayEntry[]>([]);
   const [reportTime, setReportTime] = useState('13:00');
   const [browserTimeZone] = useState(getBrowserTimeZone);
   const [reportTimeSaving, setReportTimeSaving] = useState(false);
@@ -308,6 +402,7 @@ export default function Step() {
     setSubmissionAuthRequired(false);
     setMarathon(null);
     setMarathonLoadError('');
+    setKnownWordsReplayEntries([]);
     setОтчет('');
     setAssignmentPayload({});
     setDraftStatus('');
@@ -348,6 +443,27 @@ export default function Step() {
         }
       });
   }, [marathonerId]);
+
+  useEffect(() => {
+    const participantId = marathonerId.trim();
+    if (step?.formKey !== 'Step11Form1' || !marathon || !participantId || !getToken()) {
+      setKnownWordsReplayEntries([]);
+      return;
+    }
+
+    let cancelled = false;
+    loadKnownWordsReplayEntries(marathon, participantId)
+      .then((entries) => {
+        if (!cancelled) setKnownWordsReplayEntries(entries);
+      })
+      .catch(() => {
+        if (!cancelled) setKnownWordsReplayEntries([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [step?.formKey, marathon?.id, marathonerId]);
 
   useEffect(() => {
     const participantId = marathonerId.trim();
@@ -407,26 +523,37 @@ export default function Step() {
   const assignmentContent = step?.assignmentContent?.trim();
   const hasParticipantContext = Boolean(marathonerId.trim());
   const isFinalSubmission = Boolean(savedSubmission?.exists && savedSubmission.state === 'completed');
-  const hasStructuredFields = Boolean(step?.assignmentBlocks?.some((block) => block.type === 'field'));
-  const displayedPayload = isFinalSubmission && savedSubmission?.payload ? savedSubmission.payload : assignmentPayload;
-  const displayedReport = isFinalSubmission && savedSubmission?.report ? savedSubmission.report : report;
-  const filteredAssignmentBlocks = useMemo(
-    () => step?.assignmentBlocks?.map(sanitizeAssignmentBlock).filter((block): block is AssignmentBlock => Boolean(block)),
+  const baseAssignmentBlocks = useMemo(
+    () => sanitizedDecoratedBlocks(step?.assignmentBlocks),
     [step?.assignmentBlocks],
   );
+  const knownWordsDefaults = useMemo(
+    () => knownWordsReplayDefaults(baseAssignmentBlocks, knownWordsReplayEntries),
+    [baseAssignmentBlocks, knownWordsReplayEntries],
+  );
+  const filteredAssignmentBlocks = useMemo(
+    () => withKnownWordsReplay(baseAssignmentBlocks, knownWordsReplayEntries),
+    [baseAssignmentBlocks, knownWordsReplayEntries],
+  );
+  const hasStructuredFields = Boolean(filteredAssignmentBlocks.some((block) => block.type === 'field'));
+  const displayedPayload = mergePayloadDefaults(
+    isFinalSubmission && savedSubmission?.payload ? savedSubmission.payload : assignmentPayload,
+    knownWordsDefaults,
+  );
+  const displayedReport = isFinalSubmission && savedSubmission?.report ? savedSubmission.report : report;
   const filteredAssignmentContent = useMemo(
     () => stripGenericNextScheduleInstruction(assignmentContent || ''),
     [assignmentContent],
   );
   const answerRows = useMemo(
-    () => answerRowsFromPayload(step?.assignmentBlocks, displayedPayload, displayedReport),
-    [step?.assignmentBlocks, displayedPayload, displayedReport],
+    () => answerRowsFromPayload(filteredAssignmentBlocks, displayedPayload, displayedReport),
+    [filteredAssignmentBlocks, displayedPayload, displayedReport],
   );
   const peerAnswerRows = useMemo(
     () => randomAnswer
-      ? peerAnswerRowsFromPayload(step?.assignmentBlocks, randomAnswer.payload || {}, randomAnswer.report, randomAnswer.rows)
+      ? peerAnswerRowsFromPayload(filteredAssignmentBlocks, randomAnswer.payload || {}, randomAnswer.report, randomAnswer.rows)
       : [],
-    [randomAnswer, step?.assignmentBlocks],
+    [filteredAssignmentBlocks, randomAnswer],
   );
   const draftKey = useMemo(() => makeDraftKey(report, assignmentPayload), [report, assignmentPayload]);
   const currentScheduleIndex = marathon?.answers.findIndex((answer) => answer.stepId === stepId) ?? -1;
@@ -909,7 +1036,7 @@ export default function Step() {
               <StepAssignmentRenderer
                 blocks={filteredAssignmentBlocks}
                 fallbackContent={filteredAssignmentContent}
-                initialPayload={assignmentPayload}
+                initialPayload={displayedPayload}
                 readOnly={isFinalSubmission || stepAccessBlocked}
                 onPayloadChange={(payload, draft) => {
                   setAssignmentPayload(payload);

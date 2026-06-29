@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
-import { AssignmentBlock, normalizeAssignmentBlocks } from '../steps/assignment-blocks';
+import { AssignmentBlock, AssignmentKnownWordsBlock, normalizeAssignmentBlocks } from '../steps/assignment-blocks';
 import { missingRequiredAssignmentAnswers } from '../steps/assignment-contract';
 import { WinnersService } from '../winners/winners.service';
 
@@ -254,14 +254,24 @@ export class SubmissionsService {
         marathonerId: participant.id,
         stepId: step.id,
         report: '',
-        payload: {},
+        payload: await this.hydrateKnownWordsPayload(
+          participant.id,
+          step.marathonId,
+          normalizeAssignmentBlocks(step.assignmentBlocks),
+          {},
+        ),
         state: 'active',
         is_late: false,
         bonus_left: participant.bonusDaysLeft,
       };
     }
 
-    const payloadJson = this.normalizePayloadJson(submission.payloadJson);
+    const payloadJson = await this.hydrateKnownWordsPayload(
+      participant.id,
+      step.marathonId,
+      normalizeAssignmentBlocks(step.assignmentBlocks),
+      this.normalizePayloadJson(submission.payloadJson),
+    );
     const report = typeof payloadJson.report === 'string' ? payloadJson.report : '';
 
     return {
@@ -354,6 +364,56 @@ export class SubmissionsService {
       return fallback;
     }
     return Math.max(0, Math.min(5, Math.round(value)));
+  }
+
+  private knownWordsBlocks(blocks: AssignmentBlock[]): AssignmentKnownWordsBlock[] {
+    return blocks.filter((block): block is AssignmentKnownWordsBlock => block.type === 'knownWords');
+  }
+
+  private async hydrateKnownWordsPayload(
+    participantId: string,
+    marathonId: string,
+    blocks: AssignmentBlock[],
+    payload: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const knownWordsBlocks = this.knownWordsBlocks(blocks).filter((block) => (
+      block.sourceForm && block.sourceName && payload[block.name] == null
+    ));
+    if (!knownWordsBlocks.length) return payload;
+
+    const sourceForms = Array.from(new Set(knownWordsBlocks.map((block) => block.sourceForm!)));
+    const sourceSteps = await this.prisma.marathonStep.findMany({
+      where: { marathonId, formKey: { in: sourceForms } },
+      select: { id: true, formKey: true },
+    });
+    const sourceStepIdByForm = new Map(sourceSteps.map((step) => [step.formKey, step.id]));
+    const sourceStepIds = sourceSteps.map((step) => step.id);
+    if (!sourceStepIds.length) return payload;
+
+    const submissions = await this.prisma.stepSubmission.findMany({
+      where: {
+        participantId,
+        stepId: { in: sourceStepIds },
+        isCompleted: true,
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    const payloadByStepId = new Map<string, Record<string, unknown>>();
+    for (const submission of submissions) {
+      if (payloadByStepId.has(submission.stepId)) continue;
+      payloadByStepId.set(submission.stepId, this.normalizePayloadJson(submission.payloadJson));
+    }
+
+    const hydrated = { ...payload };
+    for (const block of knownWordsBlocks) {
+      const sourceStepId = sourceStepIdByForm.get(block.sourceForm!);
+      const sourcePayload = sourceStepId ? payloadByStepId.get(sourceStepId) : null;
+      const sourceValue = sourcePayload ? sourcePayload[block.sourceName!] : null;
+      if (Array.isArray(sourceValue) || typeof sourceValue === 'string') {
+        hydrated[block.name] = sourceValue;
+      }
+    }
+    return hydrated;
   }
 
   private normalizePayloadJson(value: unknown): Record<string, unknown> {
