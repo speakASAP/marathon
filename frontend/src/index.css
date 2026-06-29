@@ -6321,6 +6321,10 @@ a:hover {
 }
 
 .step-answer-summary dl {
+  gap: 24px;
+}
+
+.step-answer-summary .step-answer-row {
   gap: 8px;
 }
 
