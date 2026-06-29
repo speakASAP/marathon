@@ -116,6 +116,24 @@ async function registerSmokeParticipant(token, marathon, purpose) {
   return registration.marathonerId;
 }
 
+function flattenAssignmentBlocks(blocks) {
+  const result = [];
+  const visit = (items) => {
+    for (const block of Array.isArray(items) ? items : []) {
+      result.push(block);
+      if (block?.type === "list" && Array.isArray(block.items)) {
+        for (const item of block.items) {
+          if (item && typeof item === "object" && Array.isArray(item.blocks)) {
+            visit(item.blocks);
+          }
+        }
+      }
+    }
+  };
+  visit(blocks);
+  return result;
+}
+
 function smokeValueForField(block, step) {
   const choices = Array.isArray(block.choices) ? block.choices : [];
   if (block.name === "q1" && choices.length) {
@@ -131,7 +149,7 @@ function smokeValueForField(block, step) {
 
 function smokePayloadForStep(step) {
   const payload = { smoke: true, stamp, stepSequence: step.sequence };
-  const blocks = Array.isArray(step.assignmentBlocks) ? step.assignmentBlocks : [];
+  const blocks = flattenAssignmentBlocks(step.assignmentBlocks);
   for (const block of blocks) {
     if (block?.type !== "field" || block.required === false || !block.name) continue;
     payload[block.name] = smokeValueForField(block, step);
