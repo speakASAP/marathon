@@ -10,6 +10,12 @@ export type MissingAssignmentAnswer = {
   label: string;
 };
 
+export type PublicAssignmentReportRow = {
+  id: string;
+  question: string;
+  answer: string;
+};
+
 function normalizeText(value: string): string {
   return value.toLowerCase().replace(/ё/g, 'е').trim();
 }
@@ -187,29 +193,57 @@ export function visiblePublicAssignmentFields(
   ));
 }
 
-export function generateAssignmentReport(payload: AssignmentPayload | null, blocks: AssignmentBlock[]): string {
-  if (!payload) return '';
+function formatReportQuestionLabel(label: string): string {
+  const text = label.replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  return /[?!…:;.]$/.test(text) ? text : `${text}:`;
+}
 
-  const lines: string[] = [];
+export function formatAssignmentReportRows(rows: PublicAssignmentReportRow[]): string {
+  return rows
+    .map((row) => {
+      const answer = row.answer.trim();
+      if (!answer) return '';
+
+      const question = formatReportQuestionLabel(row.question);
+      return question ? `${question}\n${answer}` : answer;
+    })
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+export function generateAssignmentReportRows(
+  payload: AssignmentPayload | null,
+  blocks: AssignmentBlock[],
+): PublicAssignmentReportRow[] {
+  if (!payload) return [];
+
+  const rows: PublicAssignmentReportRow[] = [];
   const visibleFields = isLegacyGermanStep1Payload(payload) ? [] : visiblePublicAssignmentFields(blocks, payload);
   for (const block of visibleFields) {
     if (!Object.prototype.hasOwnProperty.call(payload, block.name)) continue;
     const value = stringifyPublicPayloadValue(block.name, payload[block.name], block.choices);
     if (!value) continue;
     const filledSentence = fillAssignmentLabelPlaceholder(block.label, value);
-    if (filledSentence) {
-      lines.push(filledSentence);
-    } else {
-      lines.push(`${block.label}:`, value);
-    }
+    rows.push(filledSentence
+      ? { id: block.id || block.name, question: '', answer: filledSentence }
+      : { id: block.id || block.name, question: block.label.trim(), answer: value });
   }
 
   for (const entry of legacyPublicAssignmentFields(payload, visibleFields)) {
     if (!entry.value) continue;
-    lines.push(`${entry.label}:`, entry.value);
+    rows.push({
+      id: entry.name,
+      question: entry.label.trim(),
+      answer: entry.value,
+    });
   }
 
-  return lines.join('\n\n');
+  return rows;
+}
+
+export function generateAssignmentReport(payload: AssignmentPayload | null, blocks: AssignmentBlock[]): string {
+  return formatAssignmentReportRows(generateAssignmentReportRows(payload, blocks));
 }
 
 export function filterAssignmentPayloadForPublicReport(

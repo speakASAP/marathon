@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { fetchParticipantReports, type PublicParticipantReports } from '../api/assignmentMarathon';
+import PublicAnswerReport from '../components/assignment/PublicAnswerReport';
 
 function formatReportDate(value: string) {
   const date = new Date(value);
@@ -117,7 +118,7 @@ export default function ParticipantReports() {
               <h2>{report.title}</h2>
               {formatReportDate(report.complete_time) && <small>{formatReportDate(report.complete_time)}</small>}
             </header>
-            <div className="participant-report-body">{report.report}</div>
+            <PublicAnswerReport rows={report.rows} report={report.report} className="participant-report-body" />
           </article>
         )) : (
           <div className="step-peer-empty" aria-live="polite">

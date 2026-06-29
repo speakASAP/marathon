@@ -43,6 +43,12 @@ export type AssignmentBlock =
 
 export type SubmissionPayload = Record<string, unknown>;
 
+export interface PublicAnswerReportRow {
+  id: string;
+  question: string;
+  answer: string;
+}
+
 export interface StepInfo {
   id: string;
   title: string;
@@ -57,6 +63,7 @@ export interface RandomAnswer {
   marathoner: { id: string; name: string; avatar: string };
   report: string;
   payload?: SubmissionPayload | null;
+  rows?: PublicAnswerReportRow[];
   complete_time: string;
 }
 
@@ -93,6 +100,7 @@ export interface PublicParticipantReports {
     title: string;
     sequence: number;
     report: string;
+    rows?: PublicAnswerReportRow[];
     payload?: SubmissionPayload | null;
     complete_time: string;
   }>;

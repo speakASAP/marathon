@@ -3,7 +3,9 @@ import { PrismaService } from '../shared/prisma.service';
 import { normalizeAssignmentBlocks } from '../steps/assignment-blocks';
 import {
   filterAssignmentPayloadForPublicReport,
-  generateAssignmentReport,
+  formatAssignmentReportRows,
+  generateAssignmentReportRows,
+  type PublicAssignmentReportRow,
 } from '../steps/assignment-contract';
 
 export type RandomAnswer = {
@@ -12,6 +14,7 @@ export type RandomAnswer = {
     name: string;
     avatar: string;
   };
+  rows: PublicAssignmentReportRow[];
   report: string;
   payload: Record<string, unknown>;
   complete_time: string;
@@ -39,6 +42,7 @@ export type PublicParticipantReports = {
     title: string;
     sequence: number;
     report: string;
+    rows: PublicAssignmentReportRow[];
     payload: Record<string, unknown>;
     complete_time: string;
   }>;
@@ -83,6 +87,7 @@ export class AnswersService {
       payload: Record<string, unknown> | null;
       assignmentBlocks: ReturnType<typeof normalizeAssignmentBlocks>;
       report: string;
+      rows: PublicAssignmentReportRow[];
       randomIndex: number;
     } | null = null;
 
@@ -101,7 +106,8 @@ export class AnswersService {
 
       const payload = submission.payloadJson as Record<string, unknown> | null;
       const assignmentBlocks = normalizeAssignmentBlocks(submission.step.assignmentBlocks);
-      const report = generateAssignmentReport(payload, assignmentBlocks);
+      const rows = generateAssignmentReportRows(payload, assignmentBlocks);
+      const report = formatAssignmentReportRows(rows);
       if (!report.trim()) continue;
 
       candidate = {
@@ -109,6 +115,7 @@ export class AnswersService {
         payload,
         assignmentBlocks,
         report,
+        rows,
         randomIndex,
       };
       break;
@@ -153,6 +160,7 @@ export class AnswersService {
         avatar: await this.resolveParticipantAvatar(participant),
       },
       report,
+      rows: candidate.rows,
       payload: filterAssignmentPayloadForPublicReport(candidate.payload, candidate.assignmentBlocks),
       complete_time: submission.endAt.toISOString(),
     };
@@ -192,7 +200,8 @@ export class AnswersService {
       if (seenStepIds.has(submission.stepId)) continue;
       const assignmentBlocks = normalizeAssignmentBlocks(submission.step.assignmentBlocks);
       const payload = submission.payloadJson as Record<string, unknown> | null;
-      const report = generateAssignmentReport(payload, assignmentBlocks).trim();
+      const rows = generateAssignmentReportRows(payload, assignmentBlocks);
+      const report = formatAssignmentReportRows(rows).trim();
       if (!report) continue;
       seenStepIds.add(submission.stepId);
       reports.push({
@@ -201,6 +210,7 @@ export class AnswersService {
         title: submission.step.title,
         sequence: submission.step.sequence,
         report,
+        rows,
         payload: filterAssignmentPayloadForPublicReport(payload, assignmentBlocks),
         complete_time: submission.endAt.toISOString(),
       });

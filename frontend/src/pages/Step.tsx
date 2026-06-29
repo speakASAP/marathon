@@ -1,5 +1,5 @@
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { type ReactNode, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { getToken, redirectToLogin } from '../auth';
 import {
   MarathonAuthRequiredError,
@@ -16,12 +16,16 @@ import {
 } from '../api/assignmentMarathon';
 import StepAssignmentRenderer from '../components/StepAssignmentRenderer';
 import { fetchMyMarathon, updateReportTime, type Answer, type MyMarathon } from '../api/profileMarathon';
+import PublicAnswerReport, {
+  answerRowsFromPayload,
+  peerAnswerRowsFromPayload,
+  renderPublicAnswerQuestion,
+} from '../components/assignment/PublicAnswerReport';
 
 const DRAFT_SAVE_DELAY_MS = 900;
 
 type Level = 'beginner' | 'medium' | 'advanced' | null;
 type AssignmentFieldBlock = Extract<AssignmentBlock, { type: 'field' }>;
-type AnswerRow = { id: string; question: string; answer: ReactNode };
 type LocalStepDraft = {
   report: string;
   payload: SubmissionPayload;
@@ -173,214 +177,6 @@ function missingRequiredAnswers(blocks: AssignmentBlock[] | null | undefined, pa
       isFieldBlock(block) && block.required && branchVisible(block.branch, level)
     ))
     .filter((block) => !answerFilled(block, payload[block.name]));
-}
-
-function stripLegacyAnswerMarkup(value: string) {
-  const hasLegacyTags = /<\/?(?:p|span|strong|b|br|div)\b/i.test(value);
-  if (!hasLegacyTags) return value.trim();
-
-  const parsed = new DOMParser().parseFromString(value, 'text/html');
-  return (parsed.body.textContent || '')
-    .replace(/\u00a0/g, ' ')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim();
-}
-
-function isLegacyKnownWordsField(name: string) {
-  return /^known_words\d*$/i.test(name) || /^known_words_audio_/i.test(name);
-}
-
-const LEGACY_GERMAN_STEP1_LABELS: Record<string, string> = {
-  q1: 'Как долго вы учите немецкий язык?',
-  bm2: 'Какие эмоции вызвали у вас эти вопросы и задания?',
-  bm8: 'Что вы хотите уметь в немецком уже через месяц? Через полгода? Через год?',
-  c21: 'К какому внутреннему выводу вы пришли, что вы для себя решили? (возможно, не только на время марафона)',
-};
-
-function isLegacyGermanStep1Payload(payload: SubmissionPayload) {
-  return ['bm8', 'bm9', 'c21'].some((name) => Object.prototype.hasOwnProperty.call(payload, name));
-}
-
-function legacyPayloadQuestionLabel(name: string, payload?: SubmissionPayload) {
-  if (payload && isLegacyGermanStep1Payload(payload) && LEGACY_GERMAN_STEP1_LABELS[name]) {
-    return LEGACY_GERMAN_STEP1_LABELS[name];
-  }
-  if (isLegacyKnownWordsField(name)) return 'Какие знакомые слова вы выделили в тексте?';
-  if (name === 'thoughts') return 'Какие мысли и переживания появились во время работы над заданием?';
-  return '';
-}
-
-function extractLegacyKnownWords(value: string) {
-  if (!/<span\b/i.test(value)) return stripLegacyAnswerMarkup(value);
-
-  const parsed = new DOMParser().parseFromString(value, 'text/html');
-  const selected = Array.from(parsed.querySelectorAll('span.strong'))
-    .map((node) => node.textContent || '')
-    .map((text) => text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim())
-    .filter(Boolean);
-
-  return selected.join(' ').replace(/\s+([,.!?;:])/g, '$1').replace(/\s{2,}/g, ' ').trim();
-}
-
-function formatPublicAnswerValue(name: string, value: string) {
-  if (isLegacyKnownWordsField(name)) return extractLegacyKnownWords(value);
-  return stripLegacyAnswerMarkup(value);
-}
-
-function formatAnswerValue(block: AssignmentFieldBlock, value: unknown) {
-  const choiceLabel = (raw: string) => block.choices?.find((choice) => choice.value === raw)?.label || raw;
-  if (Array.isArray(value)) {
-    return value.map((item) => formatPublicAnswerValue(block.name, choiceLabel(String(item)))).filter(Boolean).join(', ');
-  }
-  if (typeof value === 'string') return formatPublicAnswerValue(block.name, choiceLabel(value));
-  return '';
-}
-
-function splitMutedParenthetical(text: string) {
-  const normalized = text.replace(/\s+/g, " ").trim();
-  const match = normalized.match(/^(.+?)\s*(\([^()]+\))$/);
-
-  if (!match) {
-    return { main: text, parenthetical: "" };
-  }
-
-  return { main: match[1].trim(), parenthetical: match[2].trim() };
-}
-
-function renderMutedParentheticalText(text: string): ReactNode {
-  const parts = splitMutedParenthetical(text);
-
-  if (!parts.parenthetical) return text;
-
-  return (
-    <>
-      {parts.main}{" "}
-      <span className="step-muted-parenthetical">{parts.parenthetical}</span>
-    </>
-  );
-}
-
-function renderInsertedAnswerSentence(label: string, answer: string): ReactNode | null {
-  const cleanAnswer = answer.trim();
-  if (!cleanAnswer || !/\[[^\]]+\]/.test(label)) return null;
-
-  const labelParts = splitMutedParenthetical(label);
-  const nodes: ReactNode[] = [];
-  let lastIndex = 0;
-  let insertIndex = 0;
-  const placeholderPattern = /\[[^\]]+\]/g;
-
-  for (const match of labelParts.main.matchAll(placeholderPattern)) {
-    const index = match.index ?? 0;
-    if (index > lastIndex) nodes.push(labelParts.main.slice(lastIndex, index));
-    nodes.push(
-      <strong className="step-answer-inserted" key={"answer-" + insertIndex}>
-        {cleanAnswer}
-      </strong>,
-    );
-    lastIndex = index + match[0].length;
-    insertIndex += 1;
-  }
-
-  if (lastIndex < labelParts.main.length) nodes.push(labelParts.main.slice(lastIndex));
-  if (labelParts.parenthetical) {
-    nodes.push(" ");
-    nodes.push(
-      <span className="step-muted-parenthetical" key="translation">
-        {labelParts.parenthetical}
-      </span>,
-    );
-  }
-
-  return <>{nodes}</>;
-}
-
-function legacyAnswerRowsFromPayload(payload: SubmissionPayload): AnswerRow[] {
-  const grouped = new Map<string, { id: string; question: string; answers: string[] }>();
-
-  Object.entries(payload)
-    .filter(([name]) => isLegacyGermanStep1Payload(payload) ? Boolean(LEGACY_GERMAN_STEP1_LABELS[name]) : (name === 'thoughts' || isLegacyKnownWordsField(name)))
-    .forEach(([name, value]) => {
-      const question = legacyPayloadQuestionLabel(name, payload);
-      if (!question || typeof value !== 'string') return;
-
-      const answer = formatPublicAnswerValue(name, value);
-      if (!answer.trim()) return;
-
-      const id = isLegacyKnownWordsField(name) ? 'known_words' : name;
-      const existing = grouped.get(question) || { id, question, answers: [] };
-      existing.answers.push(answer);
-      grouped.set(question, existing);
-    });
-
-  return Array.from(grouped.values()).map((row) => ({
-    id: row.id,
-    question: row.question,
-    answer: row.answers.join('\n\n'),
-  }));
-}
-
-function answerRowsFromPayload(
-  blocks: AssignmentBlock[] | null | undefined,
-  payload: SubmissionPayload,
-  report: string,
-): AnswerRow[] {
-  const assignmentBlocks = Array.isArray(blocks) ? blocks : [];
-  const levelField = findLevelField(assignmentBlocks);
-  const level = levelField ? getLevel(payload[levelField.name]) : null;
-  const rows = assignmentBlocks
-    .filter(isFieldBlock)
-    .filter((block) => (
-      branchVisible(block.branch, level)
-      && hasPublicQuestionLabel(block)
-    ))
-    .map((block) => {
-      const answer = formatAnswerValue(block, payload[block.name]);
-      const insertedSentence = renderInsertedAnswerSentence(block.label, answer);
-      return {
-        id: block.id || block.name,
-        question: insertedSentence ? '' : block.label,
-        answer: insertedSentence || answer,
-        answerText: answer,
-      };
-    })
-    .filter((row) => row.answerText.trim())
-    .map(({ answerText, ...row }) => row);
-
-  if (!rows.length && report.trim()) {
-    return [{ id: 'report', question: 'Ответ', answer: stripLegacyAnswerMarkup(report) }];
-  }
-
-  return rows;
-}
-
-function peerAnswerRowsFromPayload(
-  blocks: AssignmentBlock[] | null | undefined,
-  payload: SubmissionPayload,
-  report: string,
-): AnswerRow[] {
-  const legacyRows = legacyAnswerRowsFromPayload(payload);
-  if (isLegacyGermanStep1Payload(payload) && legacyRows.length) return legacyRows;
-
-  const rows = answerRowsFromPayload(blocks, payload, '');
-  const existingQuestions = new Set(rows.map((row) => row.question));
-  const mergedRows = [
-    ...rows,
-    ...legacyRows.filter((row) => !existingQuestions.has(row.question)),
-  ];
-  if (mergedRows.length) return mergedRows;
-
-  const cleanedReport = stripLegacyAnswerMarkup(report);
-  return cleanedReport ? [{ id: 'report', question: '', answer: cleanedReport }] : [];
-}
-
-function hasPublicQuestionLabel(block: AssignmentFieldBlock) {
-  const label = block.label.trim();
-  if (!label) return false;
-  if (label === block.name) return false;
-  return !/^(?:[a-zа-я]+\d+|field\d+)$/i.test(label);
 }
 
 function makeDraftKey(report: string, payload: SubmissionPayload) {
@@ -620,7 +416,7 @@ export default function Step() {
   );
   const peerAnswerRows = useMemo(
     () => randomAnswer
-      ? peerAnswerRowsFromPayload(step?.assignmentBlocks, randomAnswer.payload || {}, randomAnswer.report)
+      ? peerAnswerRowsFromPayload(step?.assignmentBlocks, randomAnswer.payload || {}, randomAnswer.report, randomAnswer.rows)
       : [],
     [randomAnswer, step?.assignmentBlocks],
   );
@@ -980,18 +776,7 @@ export default function Step() {
               <small>Посмотреть ответы по пройденным этапам</small>
             </span>
           </Link>
-          {peerAnswerRows.length ? (
-            <dl className="random-report-body">
-              {peerAnswerRows.map((row) => (
-                <div className="step-answer-row" key={row.id}>
-                  {row.question && <dt>{row.question}</dt>}
-                  <dd>{row.answer}</dd>
-                </div>
-              ))}
-            </dl>
-          ) : (
-            <div className="random-report-body">{stripLegacyAnswerMarkup(randomAnswer.report)}</div>
-          )}
+          <PublicAnswerReport rows={peerAnswerRows} report={randomAnswer.report} className="random-report-body" />
         </div>
       )}
       <div className="step-report-actions">
@@ -1199,7 +984,7 @@ export default function Step() {
                   <dl>
                     {answerRows.map((row) => (
                       <div className="step-answer-row" key={row.id}>
-                        <dt>{renderMutedParentheticalText(row.question)}</dt>
+                        <dt>{renderPublicAnswerQuestion(row.question)}</dt>
                         <dd>{row.answer}</dd>
                       </div>
                     ))}
