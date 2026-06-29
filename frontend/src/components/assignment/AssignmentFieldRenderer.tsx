@@ -44,12 +44,14 @@ function renderTranslatedLabel(label: string) {
 
 export function AssignmentFieldRenderer({ block, value, readOnly, onChange }: AssignmentFieldRendererProps) {
   const [hintOpen, setHintOpen] = useState(false);
+  const [textFieldBlurred, setTextFieldBlurred] = useState(false);
   const values = Array.isArray(value) ? value : [];
   const textValue = getTextValue(value);
   const correctAnswers = block.correctAnswers?.map(normalizeAnswer).filter(Boolean) || [];
   const hasAnswerCheck = correctAnswers.length > 0 && (block.fieldType === "text" || block.fieldType === "textarea");
   const normalizedTextValue = normalizeAnswer(textValue);
-  const answerIsWrong = hasAnswerCheck && normalizedTextValue.length > 0 && !correctAnswers.includes(normalizedTextValue);
+  const answerMismatch = hasAnswerCheck && normalizedTextValue.length > 0 && !correctAnswers.includes(normalizedTextValue);
+  const answerIsWrong = answerMismatch && (readOnly || textFieldBlurred);
   const hintText = block.hint || correctAnswers.join(", ");
 
   const toggleCheckbox = (option: string) => {
@@ -58,7 +60,12 @@ export function AssignmentFieldRenderer({ block, value, readOnly, onChange }: As
 
   const updateText = (nextValue: string) => {
     onChange(block.name, nextValue);
+    if (textFieldBlurred) setTextFieldBlurred(false);
     if (hintOpen) setHintOpen(false);
+  };
+
+  const markTextFieldBlurred = () => {
+    if (hasAnswerCheck) setTextFieldBlurred(true);
   };
 
   const blockClassName = `step-question-block step-question-block--${block.fieldType}${answerIsWrong ? " step-question-block-error" : ""}`;
@@ -95,6 +102,7 @@ export function AssignmentFieldRenderer({ block, value, readOnly, onChange }: As
         <textarea
           value={textValue}
           onChange={(event) => updateText(event.target.value)}
+          onBlur={markTextFieldBlurred}
           onKeyDown={(event) => event.stopPropagation()}
           rows={4}
           disabled={readOnly}
@@ -105,6 +113,7 @@ export function AssignmentFieldRenderer({ block, value, readOnly, onChange }: As
           type="text"
           value={textValue}
           onChange={(event) => updateText(event.target.value)}
+          onBlur={markTextFieldBlurred}
           onKeyDown={(event) => event.stopPropagation()}
           disabled={readOnly}
           aria-invalid={answerIsWrong || undefined}
