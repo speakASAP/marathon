@@ -29,6 +29,8 @@ export interface Answer {
 
 export interface MarathonUserProfileSettings {
   displayName: string;
+  email: string;
+  phone: string;
   avatarUrl: string;
   bio: string;
 }

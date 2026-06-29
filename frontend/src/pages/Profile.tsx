@@ -29,6 +29,8 @@ type MarathonCard = MarathonSummary & {
 
 const EMPTY_PROFILE: MarathonUserProfileSettings = {
   displayName: '',
+  email: '',
+  phone: '',
   avatarUrl: '',
   bio: '',
 };
@@ -414,6 +416,30 @@ export default function Profile() {
                 maxLength={120}
                 onChange={(event) => setAccountProfile({ ...accountProfile, displayName: event.target.value })}
               />
+              <div className="profile-settings-contact-grid">
+                <div>
+                  <label htmlFor="profile-email">Email</label>
+                  <input
+                    id="profile-email"
+                    type="email"
+                    value={accountProfile.email}
+                    maxLength={254}
+                    autoComplete="email"
+                    onChange={(event) => setAccountProfile({ ...accountProfile, email: event.target.value })}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="profile-phone">Телефон</label>
+                  <input
+                    id="profile-phone"
+                    type="tel"
+                    value={accountProfile.phone}
+                    maxLength={40}
+                    autoComplete="tel"
+                    onChange={(event) => setAccountProfile({ ...accountProfile, phone: event.target.value })}
+                  />
+                </div>
+              </div>
               <div className="profile-payment-actions">
                 <button type="submit" className="btn-profile-open" disabled={profileSaveLoading}>
                   {profileSaveLoading ? 'Сохраняем...' : 'Сохранить профиль'}

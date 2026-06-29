@@ -17,12 +17,11 @@ Read those first, then follow the repository-specific notes below and the curren
 Query the RAG service first to reuse indexed ecosystem context before reading raw files:
 
 ```bash
-curl -s -X POST http://docs-rag-microservice.statex-apps.svc.cluster.local:3397/retrieval/agent-context \
-  -H "Authorization: Bearer $JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "YOUR QUESTION HERE", "maxTokens": 3000}'
+./scripts/query-docs-rag.sh "YOUR QUESTION HERE" 3000
 ```
 
+- The helper executes inside `deployment/marathon`, where `JWT_TOKEN` is injected from Kubernetes Vault through `marathon-secret`.
+- Do not copy or print the token into the remote shell; keep it pod/Vault sourced.
 - Internal URL: `http://docs-rag-microservice.statex-apps.svc.cluster.local:3397`
 - Public URL: `https://docs-rag.alfares.cz`
 - Full guide: `docs-rag-microservice/docs/RAG_USAGE.md`

@@ -1,12 +1,37 @@
-import { Controller, Get, Logger, Query, NotFoundException, Req } from '@nestjs/common';
+import { Controller, Get, Logger, Query, NotFoundException, Param, Req } from '@nestjs/common';
 import { Request } from 'express';
-import { AnswersService, RandomAnswer } from './answers.service';
+import { AnswersService, PublicParticipantReports, RandomAnswer } from './answers.service';
 
 @Controller('answers')
 export class AnswersController {
   private readonly logger = new Logger(AnswersController.name);
 
   constructor(private readonly answersService: AnswersService) {}
+
+  @Get('participant/:participantId/reports')
+  async getParticipantReports(
+    @Param('participantId') participantId: string,
+    @Query('throughStepId') throughStepId: string,
+    @Req() req?: Request,
+  ): Promise<PublicParticipantReports> {
+    this.logger.log(
+      `Participant reports request received: participantId=${participantId}, throughStepId=${throughStepId || 'none'}`,
+    );
+
+    if (!participantId || !throughStepId) {
+      throw new NotFoundException('participantId and throughStepId are required');
+    }
+
+    const reports = await this.answersService.getParticipantReports(participantId, throughStepId);
+    if (!reports) {
+      this.logger.warn(
+        `No participant reports found: participantId=${participantId}, throughStepId=${throughStepId}`,
+      );
+      throw new NotFoundException('Participant reports not found');
+    }
+
+    return reports;
+  }
 
   @Get('random')
   async getRandom(

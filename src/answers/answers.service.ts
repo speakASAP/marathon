@@ -8,11 +8,40 @@ import {
 
 export type RandomAnswer = {
   marathoner: {
+    id: string;
     name: string;
+    avatar: string;
   };
   report: string;
   payload: Record<string, unknown>;
   complete_time: string;
+};
+
+export type PublicParticipantReports = {
+  participant: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
+  marathon: {
+    id: string;
+    title: string;
+    languageCode: string;
+  };
+  throughStep: {
+    id: string;
+    title: string;
+    sequence: number;
+  };
+  reports: Array<{
+    id: string;
+    stepId: string;
+    title: string;
+    sequence: number;
+    report: string;
+    payload: Record<string, unknown>;
+    complete_time: string;
+  }>;
 };
 
 @Injectable()
@@ -119,12 +148,96 @@ export class AnswersService {
 
     return {
       marathoner: {
+        id: participant.id,
         name,
+        avatar: await this.resolveParticipantAvatar(participant),
       },
       report,
       payload: filterAssignmentPayloadForPublicReport(candidate.payload, candidate.assignmentBlocks),
       complete_time: submission.endAt.toISOString(),
     };
+  }
+
+  async getParticipantReports(participantId: string, throughStepId: string): Promise<PublicParticipantReports | null> {
+    const throughStep = await this.prisma.marathonStep.findUnique({
+      where: { id: throughStepId },
+      include: { marathon: true },
+    });
+    if (!throughStep) return null;
+
+    const participant = await this.prisma.marathonParticipant.findFirst({
+      where: {
+        id: participantId,
+        marathonId: throughStep.marathonId,
+      },
+    });
+    if (!participant) return null;
+
+    const submissions = await this.prisma.stepSubmission.findMany({
+      where: {
+        participantId,
+        isCompleted: true,
+        step: {
+          marathonId: throughStep.marathonId,
+          sequence: { lte: throughStep.sequence },
+        },
+      },
+      include: { step: true },
+      orderBy: [{ step: { sequence: 'asc' } }, { updatedAt: 'desc' }],
+    });
+
+    const seenStepIds = new Set<string>();
+    const reports: PublicParticipantReports['reports'] = [];
+    for (const submission of submissions) {
+      if (seenStepIds.has(submission.stepId)) continue;
+      const assignmentBlocks = normalizeAssignmentBlocks(submission.step.assignmentBlocks);
+      const payload = submission.payloadJson as Record<string, unknown> | null;
+      const report = generateAssignmentReport(payload, assignmentBlocks).trim();
+      if (!report) continue;
+      seenStepIds.add(submission.stepId);
+      reports.push({
+        id: submission.id,
+        stepId: submission.stepId,
+        title: submission.step.title,
+        sequence: submission.step.sequence,
+        report,
+        payload: filterAssignmentPayloadForPublicReport(payload, assignmentBlocks),
+        complete_time: submission.endAt.toISOString(),
+      });
+    }
+
+    const name = participant.name?.trim() || 'Участник марафона';
+    this.logger.log(
+      `Participant reports generated: participantId=${participantId}, throughStepId=${throughStepId}, reports=${reports.length}`,
+    );
+
+    return {
+      participant: {
+        id: participant.id,
+        name,
+        avatar: await this.resolveParticipantAvatar(participant),
+      },
+      marathon: {
+        id: throughStep.marathon.id,
+        title: throughStep.marathon.title,
+        languageCode: throughStep.marathon.languageCode,
+      },
+      throughStep: {
+        id: throughStep.id,
+        title: throughStep.title,
+        sequence: throughStep.sequence,
+      },
+      reports,
+    };
+  }
+
+  private async resolveParticipantAvatar(participant: { userId: string | null }): Promise<string> {
+    if (!participant.userId) return '';
+    const profile = await this.prisma.marathonUserProfile.findUnique({
+      where: { userId: participant.userId },
+      select: { avatarUrl: true },
+    });
+    return profile?.avatarUrl?.trim() || '';
   }
 
   private async fetchRandomSubmissionCandidate(where: any, randomIndex: number) {

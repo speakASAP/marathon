@@ -2239,6 +2239,12 @@ a:hover {
   font: inherit;
 }
 
+.profile-settings-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .profile-settings-form textarea {
   resize: vertical;
 }
@@ -2253,6 +2259,10 @@ a:hover {
   .profile-settings-panel {
     grid-template-columns: 1fr;
     gap: 18px;
+  }
+
+  .profile-settings-contact-grid {
+    grid-template-columns: 1fr;
   }
 
   .profile-admin-entry {
@@ -2961,14 +2971,62 @@ a:hover {
   border-radius: 8px;
 }
 
-.random-report-meta {
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+.random-report-person {
+  display: inline-grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  color: #1f344c;
+  text-decoration: none;
+}
+
+.random-report-person img,
+.random-report-avatar-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  object-fit: cover;
+  background: #dce9f7;
+}
+
+.random-report-avatar-placeholder {
+  display: inline-grid;
+  place-items: center;
+  color: #2f6fbd;
+  font-weight: 900;
+}
+
+.random-report-person strong,
+.random-report-person small {
+  display: block;
+}
+
+.random-report-person strong {
+  font-size: 1rem;
+}
+
+.random-report-person small {
+  margin-top: 0.15rem;
+  color: #5e6a80;
+  font-weight: 700;
+}
+
+.random-report-person:hover strong,
+.random-report-person:focus-visible strong {
+  color: #2f6fbd;
 }
 
 .random-report-body {
+  display: grid;
+  gap: 30px;
   line-height: 1.6;
   white-space: pre-wrap;
+}
+
+.random-report .step-answer-row {
+  border: 0;
+  padding: 0;
 }
 
 .random-report-body p {
@@ -5802,11 +5860,10 @@ a:hover {
 
 .step-assignment-heading {
   margin: 34px 0 22px;
-  padding: 14px 20px 15px;
-  border-left: 6px solid var(--marathon-lesson-yellow);
-  border-bottom: 1px solid rgba(44, 150, 255, 0.24);
-  background: linear-gradient(90deg, rgba(255, 193, 7, 0.18), rgba(44, 150, 255, 0.07) 72%, transparent);
-  color: var(--marathon-lesson-blue);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--marathon-lesson-yellow);
   font-family: var(--marathon-heading-font);
   font-size: 25px;
   font-weight: 400;
@@ -6047,24 +6104,14 @@ a:hover {
 
 .step-answer-row {
   border: 0;
-  border-bottom: 1px solid rgba(23, 32, 51, 0.08);
   border-radius: 0;
-  padding: 2px 0 8px;
+  padding: 0;
   background: transparent;
   color: var(--marathon-lesson-text);
 }
 
 .step-answer-row:last-child {
-  border-bottom: 0;
   padding-bottom: 0;
-}
-
-.step-answer-summary .step-answer-row {
-  border-bottom-color: rgba(44, 150, 255, 0.18);
-}
-
-.random-report .step-answer-row {
-  border-bottom-color: rgba(23, 32, 51, 0.1);
 }
 
 .step-assignment-list-panel li:nth-child(even),
@@ -6095,7 +6142,6 @@ a:hover {
 }
 
 .step-reading-rule em,
-.step-question-label-translation,
 .step-answer-row dt,
 .profile-step-meta,
 .step-report-note,
@@ -6103,6 +6149,13 @@ a:hover {
 .step-known-words p {
   color: var(--marathon-lesson-muted);
   font-style: italic;
+  font-weight: 400;
+}
+
+.step-question-label-translation,
+.step-muted-parenthetical {
+  color: rgba(82, 92, 105, 0.52);
+  font-style: normal;
   font-weight: 400;
 }
 
@@ -6268,7 +6321,7 @@ a:hover {
 }
 
 .step-answer-summary dl {
-  gap: 0;
+  gap: 8px;
 }
 
 .step-submit-success {
@@ -6295,7 +6348,117 @@ a:hover {
 
   .step-assignment-heading {
     margin: 28px 0 18px;
-    padding: 12px 14px 13px;
+    padding: 0;
     font-size: 22px;
+  }
+}
+
+
+.participant-reports-page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.participant-reports-hero {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--marathon-border);
+}
+
+.participant-reports-hero img,
+.participant-reports-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 999px;
+  object-fit: cover;
+  background: #dce9f7;
+}
+
+.participant-reports-avatar {
+  display: inline-grid;
+  place-items: center;
+  color: #2f6fbd;
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+.participant-reports-back {
+  display: inline-flex;
+  margin-bottom: 0.45rem;
+  color: #2f6fbd;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.participant-reports-hero h1 {
+  margin: 0;
+  color: var(--marathon-heading);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+}
+
+.participant-reports-hero p {
+  margin: 0.35rem 0;
+  color: #5e6a80;
+  line-height: 1.5;
+}
+
+.participant-reports-hero strong {
+  color: #1f344c;
+}
+
+.participant-reports-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.participant-report-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--marathon-border);
+}
+
+.participant-report-card header {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.participant-report-card header span {
+  color: #2f6fbd;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.participant-report-card h2 {
+  margin: 0;
+  color: var(--marathon-heading);
+  font-size: 1.18rem;
+}
+
+.participant-report-card small {
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.participant-report-body {
+  white-space: pre-wrap;
+  line-height: 1.65;
+  color: #3d4856;
+}
+
+@media (max-width: 640px) {
+  .participant-reports-hero {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 0.85rem;
+  }
+
+  .participant-reports-hero img,
+  .participant-reports-avatar {
+    width: 64px;
+    height: 64px;
   }
 }

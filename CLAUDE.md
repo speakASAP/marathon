@@ -24,11 +24,10 @@ Read those first, then follow the repository-specific notes below and the curren
 **Query the RAG before reading source files** — saves 2000-5000 tokens per answer.
 
 ```bash
-kubectl -n statex-apps exec deployment/marathon -- curl -s -X POST http://docs-rag-microservice:3397/retrieval/agent-context \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $(cat ~/.claude/rag-token)" \
-  -d '{"query": "YOUR QUESTION HERE", "maxTokens": 3000}'
+./scripts/query-docs-rag.sh "YOUR QUESTION HERE" 3000
 ```
+
+The helper uses `JWT_TOKEN` injected into `deployment/marathon` from Kubernetes Vault through `marathon-secret`; do not use local token files or print the token.
 
 ---
 

@@ -54,7 +54,7 @@ export interface StepInfo {
 }
 
 export interface RandomAnswer {
-  marathoner: { name: string };
+  marathoner: { id: string; name: string; avatar: string };
   report: string;
   payload?: SubmissionPayload | null;
   complete_time: string;
@@ -69,6 +69,33 @@ export interface SavedSubmission {
   is_late: boolean;
   bonus_left: number;
   updated_at?: string;
+}
+
+export interface PublicParticipantReports {
+  participant: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
+  marathon: {
+    id: string;
+    title: string;
+    languageCode: string;
+  };
+  throughStep: {
+    id: string;
+    title: string;
+    sequence: number;
+  };
+  reports: Array<{
+    id: string;
+    stepId: string;
+    title: string;
+    sequence: number;
+    report: string;
+    payload?: SubmissionPayload | null;
+    complete_time: string;
+  }>;
 }
 
 export interface SubmittedStepReport {
@@ -99,6 +126,16 @@ export async function fetchSavedSubmission(participantId: string, stepId: string
     throw new Error(`saved-submission:${response.status}`);
   }
   return response.json() as Promise<SavedSubmission>;
+}
+
+export async function fetchParticipantReports(participantId: string, throughStepId: string): Promise<PublicParticipantReports | null> {
+  const params = new URLSearchParams({ throughStepId });
+  const response = await fetch(`/api/v1/answers/participant/${encodeURIComponent(participantId)}/reports?${params}`);
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`participant-reports:${response.status}`);
+  }
+  return response.json() as Promise<PublicParticipantReports>;
 }
 
 export async function fetchRandomAnswer(stepId: string, excludeMarathonerId?: string): Promise<RandomAnswer | null> {

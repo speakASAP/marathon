@@ -238,18 +238,43 @@ function formatAnswerValue(block: AssignmentFieldBlock, value: unknown) {
   return '';
 }
 
+function splitMutedParenthetical(text: string) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  const match = normalized.match(/^(.+?)\s*(\([^()]+\))$/);
+
+  if (!match) {
+    return { main: text, parenthetical: "" };
+  }
+
+  return { main: match[1].trim(), parenthetical: match[2].trim() };
+}
+
+function renderMutedParentheticalText(text: string): ReactNode {
+  const parts = splitMutedParenthetical(text);
+
+  if (!parts.parenthetical) return text;
+
+  return (
+    <>
+      {parts.main}{" "}
+      <span className="step-muted-parenthetical">{parts.parenthetical}</span>
+    </>
+  );
+}
+
 function renderInsertedAnswerSentence(label: string, answer: string): ReactNode | null {
   const cleanAnswer = answer.trim();
   if (!cleanAnswer || !/\[[^\]]+\]/.test(label)) return null;
 
+  const labelParts = splitMutedParenthetical(label);
   const nodes: ReactNode[] = [];
   let lastIndex = 0;
   let insertIndex = 0;
   const placeholderPattern = /\[[^\]]+\]/g;
 
-  for (const match of label.matchAll(placeholderPattern)) {
+  for (const match of labelParts.main.matchAll(placeholderPattern)) {
     const index = match.index ?? 0;
-    if (index > lastIndex) nodes.push(label.slice(lastIndex, index));
+    if (index > lastIndex) nodes.push(labelParts.main.slice(lastIndex, index));
     nodes.push(
       <strong className="step-answer-inserted" key={"answer-" + insertIndex}>
         {cleanAnswer}
@@ -259,7 +284,16 @@ function renderInsertedAnswerSentence(label: string, answer: string): ReactNode 
     insertIndex += 1;
   }
 
-  if (lastIndex < label.length) nodes.push(label.slice(lastIndex));
+  if (lastIndex < labelParts.main.length) nodes.push(labelParts.main.slice(lastIndex));
+  if (labelParts.parenthetical) {
+    nodes.push(" ");
+    nodes.push(
+      <span className="step-muted-parenthetical" key="translation">
+        {labelParts.parenthetical}
+      </span>,
+    );
+  }
+
   return <>{nodes}</>;
 }
 
@@ -921,7 +955,22 @@ export default function Step() {
       {loadingRandom && !randomAnswer && <p>Загрузка…</p>}
       {randomAnswer && (
         <div className="random-report">
-          <p className="random-report-meta">{randomAnswer.marathoner.name}</p>
+          <Link
+            to={`/participants/${encodeURIComponent(randomAnswer.marathoner.id)}/reports?throughStepId=${encodeURIComponent(stepId || '')}`}
+            className="random-report-person"
+          >
+            {randomAnswer.marathoner.avatar ? (
+              <img src={randomAnswer.marathoner.avatar} alt="" width={44} height={44} loading="lazy" />
+            ) : (
+              <span className="random-report-avatar-placeholder" aria-hidden="true">
+                {randomAnswer.marathoner.name.trim().charAt(0).toUpperCase() || 'У'}
+              </span>
+            )}
+            <span>
+              <strong>{randomAnswer.marathoner.name}</strong>
+              <small>Посмотреть ответы по пройденным этапам</small>
+            </span>
+          </Link>
           {peerAnswerRows.length ? (
             <dl className="random-report-body">
               {peerAnswerRows.map((row) => (
@@ -1141,7 +1190,7 @@ export default function Step() {
                   <dl>
                     {answerRows.map((row) => (
                       <div className="step-answer-row" key={row.id}>
-                        <dt>{row.question}</dt>
+                        <dt>{renderMutedParentheticalText(row.question)}</dt>
                         <dd>{row.answer}</dd>
                       </div>
                     ))}

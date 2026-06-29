@@ -49,12 +49,16 @@ export type MyMarathonSurvey = {
 
 export type MarathonUserProfileSettings = {
   displayName: string;
+  email: string;
+  phone: string;
   avatarUrl: string;
   bio: string;
 };
 
 export type MarathonUserProfileInput = {
   displayName?: string;
+  email?: string;
+  phone?: string;
   avatarUrl?: string;
   bio?: string;
 };
@@ -182,41 +186,78 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       this.prisma.marathonParticipant.findFirst({
         where: { userId },
         orderBy: { createdAt: 'desc' },
-        select: { name: true, email: true },
+        select: { name: true, email: true, phone: true },
       }),
     ]);
 
     return {
       displayName: profile?.displayName || participant?.name || '',
+      email: participant?.email || '',
+      phone: participant?.phone || '',
       avatarUrl: profile?.avatarUrl || '',
       bio: profile?.bio || '',
     };
   }
 
   async updateUserProfile(userId: string, input: MarathonUserProfileInput): Promise<MarathonUserProfileSettings> {
-    const displayName = this.normalizeProfileText(input.displayName, 120, 'Display name');
-    const bio = this.normalizeProfileText(input.bio, 500, 'Profile bio');
+    const currentParticipant = await this.prisma.marathonParticipant.findFirst({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      select: { email: true, phone: true },
+    });
+    const displayName = this.normalizeProfileText(input.displayName, 120, "Name");
+    const email = input.email === undefined ? currentParticipant?.email || null : this.normalizeEmail(input.email);
+    const phone = input.phone === undefined ? currentParticipant?.phone || null : this.normalizeProfileText(input.phone, 40, "Phone");
+    const bio = this.normalizeProfileText(input.bio, 500, "Profile bio");
     const avatarUrl = this.normalizeAvatarUrl(input.avatarUrl);
 
-    const profile = await this.prisma.marathonUserProfile.upsert({
-      where: { userId },
-      create: {
-        userId,
-        displayName,
-        avatarUrl,
-        bio,
-        avatarSource: avatarUrl ? 'user' : 'generated',
-      },
-      update: {
-        displayName,
-        avatarUrl,
-        bio,
-        avatarSource: avatarUrl ? 'user' : 'generated',
-      },
+    if (email || phone) {
+      const duplicateParticipant = await this.prisma.marathonParticipant.findFirst({
+        where: {
+          active: true,
+          NOT: { userId },
+          OR: [
+            ...(email ? [{ email }] : []),
+            ...(phone ? [{ phone }] : []),
+          ],
+        },
+        select: { id: true },
+      });
+      if (duplicateParticipant) {
+        throw new BadRequestException('Этот email или телефон уже используется другим участником марафона.');
+      }
+    }
+
+    const profile = await this.prisma.$transaction(async (tx) => {
+      const savedProfile = await tx.marathonUserProfile.upsert({
+        where: { userId },
+        create: {
+          userId,
+          displayName,
+          avatarUrl,
+          bio,
+          avatarSource: avatarUrl ? 'user' : 'generated',
+        },
+        update: {
+          displayName,
+          avatarUrl,
+          bio,
+          avatarSource: avatarUrl ? 'user' : 'generated',
+        },
+      });
+
+      await tx.marathonParticipant.updateMany({
+        where: { userId },
+        data: { name: displayName, email, phone },
+      });
+
+      return savedProfile;
     });
 
     return {
       displayName: profile.displayName || '',
+      email: email || '',
+      phone: phone || '',
       avatarUrl: profile.avatarUrl || '',
       bio: profile.bio || '',
     };
@@ -533,6 +574,16 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     return this.mapSurvey(response);
   }
 
+
+  private normalizeEmail(value: unknown): string | null {
+    const normalized = this.normalizeProfileText(value, 254, 'Email');
+    if (!normalized) return null;
+    const email = normalized.toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new BadRequestException('Email must be a valid email address');
+    }
+    return email;
+  }
 
   private normalizeProfileText(value: unknown, maxLength: number, fieldName: string): string | null {
     if (value === undefined || value === null) return null;
