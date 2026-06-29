@@ -17,27 +17,64 @@ function isDownloadHref(href: string) {
   return /\.(?:pdf|zip|docx?|xlsx?|pptx?|mp3|mp4|wav|ogg)(?:[?#]|$)/i.test(href);
 }
 
+const SPEAKASAP_YOUTUBE_CHANNEL_URL = "https://www.youtube.com/@Speak_ASAP";
+const SPEAKASAP_YOUTUBE_VIEWS_CONTEXT = "миллионы просмотров на youtube";
+const SPEAKASAP_YOUTUBE_VIEWS_PREFIX = "миллионы просмотров на ";
+const SPEAKASAP_YOUTUBE_LINK_TEXT = "youtube";
+
+type InlineLink = {
+  text: string;
+  href: string;
+  index: number;
+};
+
+function inlineLinksForText(text: string, links?: Array<{ text: string; href: string }>): InlineLink[] {
+  const configuredLinks = (links || [])
+    .filter((link) => link.text && link.href)
+    .map((link) => ({ ...link, index: text.indexOf(link.text) }))
+    .filter((link) => link.index >= 0);
+
+  const youtubeContextIndex = text.indexOf(SPEAKASAP_YOUTUBE_VIEWS_CONTEXT);
+  if (youtubeContextIndex >= 0) {
+    const youtubeIndex = youtubeContextIndex + SPEAKASAP_YOUTUBE_VIEWS_PREFIX.length;
+    const hasConfiguredYoutubeLink = configuredLinks.some((link) => (
+      link.index <= youtubeIndex &&
+      youtubeIndex < link.index + link.text.length
+    ));
+
+    if (!hasConfiguredYoutubeLink) {
+      configuredLinks.push({
+        text: SPEAKASAP_YOUTUBE_LINK_TEXT,
+        href: SPEAKASAP_YOUTUBE_CHANNEL_URL,
+        index: youtubeIndex,
+      });
+    }
+  }
+
+  return configuredLinks.sort((a, b) => a.index - b.index);
+}
+
 function renderInlineLinkedText(text: string, links?: Array<{ text: string; href: string }>) {
-  const normalizedLinks = (links || []).filter((link) => link.text && link.href);
+  const normalizedLinks = inlineLinksForText(text, links);
   if (!normalizedLinks.length) return text;
 
   const parts: JSX.Element[] = [];
-  let remaining = text;
+  let cursor = 0;
   let key = 0;
 
   for (const link of normalizedLinks) {
-    const index = remaining.indexOf(link.text);
-    if (index < 0) continue;
-    const before = remaining.slice(0, index);
+    if (link.index < cursor) continue;
+    const before = text.slice(cursor, link.index);
     if (before) parts.push(<span key={`text-${key++}`}>{before}</span>);
     parts.push(
-      <a className="step-assignment-link" href={link.href} key={`link-${key++}`} target="_blank" rel="noreferrer">
+      <a className="step-assignment-link" href={link.href} key={`link-${key++}`} target="_blank" rel="noopener noreferrer">
         {link.text}
       </a>,
     );
-    remaining = remaining.slice(index + link.text.length);
+    cursor = link.index + link.text.length;
   }
 
+  const remaining = text.slice(cursor);
   if (remaining) parts.push(<span key={`text-${key++}`}>{remaining}</span>);
   return parts.length ? parts : text;
 }
@@ -112,6 +149,15 @@ export function AssignmentBlockRenderer({ block, answers, readOnly, validationEr
 
   if (block.type === "knownWords") {
     return <KnownWordsBlock block={block} onChange={onAnswerChange} readOnly={readOnly} value={answers[block.name]} />;
+  }
+
+  if (block.type === "image") {
+    return (
+      <figure className="step-image-block">
+        <img src={block.src} alt={block.alt || block.caption || ""} loading="lazy" />
+        {block.caption && <figcaption>{block.caption}</figcaption>}
+      </figure>
+    );
   }
 
   if (block.type === "video") {

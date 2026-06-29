@@ -25,6 +25,7 @@ export type AssignmentBlock =
   | { id: string; type: 'list'; title?: string; items: string[]; branch?: AssignmentBranch }
   | { id: string; type: 'knownWords'; name: string; paragraphs: string[]; label?: string; sourceForm?: string; sourceName?: string; branch?: AssignmentBranch }
   | { id: string; type: 'link'; href: string; text: string; download?: boolean; branch?: AssignmentBranch }
+  | { id: string; type: 'image'; src: string; alt?: string; caption?: string; branch?: AssignmentBranch }
   | { id: string; type: 'video'; code: string; title?: string; branch?: AssignmentBranch }
   | { id: string; type: 'audio'; code: string; title?: string; branch?: AssignmentBranch }
   | {

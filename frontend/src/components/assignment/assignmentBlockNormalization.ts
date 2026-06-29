@@ -179,6 +179,30 @@ function isParticipantQuoteStop(text: string) {
   return /^(?:И перед|Через|И, кстати|Вопрос:|Завтра|Нам с вами|Давайте|Скачайте|Сказано|Также|К тому же|Эта книга|Нажмите)/i.test(text.trim());
 }
 
+function letterCount(text: string, pattern: RegExp) {
+  return Array.from(text.matchAll(pattern)).length;
+}
+
+function isTargetLanguageReadingParagraph(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed || isNumberedHeading(trimmed) || startsRussianInstruction(trimmed)) return false;
+
+  const allLetters = letterCount(trimmed, /\p{L}/gu);
+  if (allLetters < 20) return false;
+
+  const latinLetters = letterCount(trimmed, /\p{Script=Latin}/gu);
+  if (latinLetters < 20) return false;
+
+  const cyrillicLetters = letterCount(trimmed, /\p{Script=Cyrillic}/gu);
+  return cyrillicLetters / allLetters < 0.2;
+}
+
+function targetLanguageReadingBlock(block: AssignmentBlock, branch: AssignmentBranch | undefined): block is TextBlock {
+  return block.type === "text"
+    && block.branch === branch
+    && isTargetLanguageReadingParagraph(block.text);
+}
+
 export function isReadingRulesTitle(text: string) {
   return /^Подробнее о правилах чтения/i.test(text.trim());
 }
@@ -349,6 +373,28 @@ export function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
       });
       index = cursor - 1;
       continue;
+    }
+
+    if (block.type === "text" && isTargetLanguageReadingParagraph(block.text)) {
+      const quoteLines = [block.text];
+      let cursor = index + 1;
+      while (cursor < blocks.length) {
+        const candidate = blocks[cursor];
+        if (!targetLanguageReadingBlock(candidate, block.branch)) break;
+        quoteLines.push(candidate.text);
+        cursor += 1;
+      }
+
+      if (quoteLines.length > 1 || quoteLines.join(" ").length >= 160) {
+        decorated.push({
+          id: `${block.id}-reading-quote`,
+          type: "quote",
+          text: quoteLines.join("\n\n"),
+          ...(block.branch ? { branch: block.branch } : {}),
+        });
+        index = cursor - 1;
+        continue;
+      }
     }
 
     decorated.push(block);

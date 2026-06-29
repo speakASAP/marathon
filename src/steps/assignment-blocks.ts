@@ -43,6 +43,15 @@ export type AssignmentLinkBlock = {
   branch?: AssignmentBranch;
 };
 
+export type AssignmentImageBlock = {
+  id: string;
+  type: 'image';
+  src: string;
+  alt?: string;
+  caption?: string;
+  branch?: AssignmentBranch;
+};
+
 export type AssignmentFieldBlock = {
   id: string;
   type: 'field';
@@ -57,7 +66,7 @@ export type AssignmentFieldBlock = {
   branch?: AssignmentBranch;
 };
 
-export type AssignmentBlock = AssignmentTextBlock | AssignmentVideoBlock | AssignmentAudioBlock | AssignmentLinkBlock | AssignmentFieldBlock;
+export type AssignmentBlock = AssignmentTextBlock | AssignmentVideoBlock | AssignmentAudioBlock | AssignmentLinkBlock | AssignmentImageBlock | AssignmentFieldBlock;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -151,7 +160,9 @@ function stripGenericNextScheduleInstruction(text: string) {
 function normalizeLegacyAssignmentText(text: string) {
   return text
     .replace(/Спряжение слабых глаголов\. Поставьте глагол в правильную форму$/u, 'Спряжение слабых глаголов. Поставьте глагол в правильную форму.')
-    .replace(/Если не знаете, как это сделать, то смотрите раздел\s*["«]?\s*Помощь\s*$/u, 'Если не знаете, как это сделать, то смотрите раздел «Помощь');
+    .replace(/Если не знаете, как это сделать, то смотрите раздел\s*["«]?\s*Помощь\s*$/u, 'Если не знаете, как это сделать, то смотрите раздел «Помощь')
+    .replace(/\s+[“„]\s+(?=Детский немецкий для взрослых(?:\s|$))/u, ' «')
+    .replace(/^[”»]\s+\(/u, '» (');
 }
 
 function normalizeLegacyInlineLinks(text: string, links: AssignmentInlineLink[]) {
@@ -192,6 +203,21 @@ function normalizeTextBlockSequence(blocks: AssignmentBlock[]): AssignmentBlock[
     const closingQuotePunctuation = text.match(/^[\"”»]\s*([.!?]+)$/);
     if (closingQuotePunctuation && previous?.type === "text" && sameBranch(previous, block)) {
       previous.text = `${previous.text}»${closingQuotePunctuation[1]}`;
+      continue;
+    }
+
+    const closingQuoteContinuation = text.match(/^[\"”»]\s*(\([\s\S]+)$/);
+    if (
+      closingQuoteContinuation
+      && previous?.type === "text"
+      && Array.isArray(previous.links)
+      && previous.links.length
+      && sameBranch(previous, block)
+    ) {
+      previous.text = `${previous.text}» ${closingQuoteContinuation[1].trim()}`;
+      if (Array.isArray(block.links) && block.links.length) {
+        previous.links = [...(previous.links || []), ...block.links];
+      }
       continue;
     }
 
@@ -274,6 +300,14 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
         const text = cleanString(raw.text) || cleanString(raw.label) || href;
         if (!href || !text || isGenericSettingsLink(text, href)) return null;
         return { id, type, href, text, ...(raw.download === true && isDownloadHref(href) ? { download: true } : {}), ...(branch ? { branch } : {}) };
+      }
+
+      if (type === 'image') {
+        const src = cleanString(raw.src);
+        if (!src || /\{%|%\}/.test(src)) return null;
+        const alt = cleanString(raw.alt);
+        const caption = cleanString(raw.caption);
+        return { id, type, src, ...(alt ? { alt } : {}), ...(caption ? { caption } : {}), ...(branch ? { branch } : {}) };
       }
 
       if (type === 'field') {

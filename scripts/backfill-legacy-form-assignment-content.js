@@ -254,6 +254,26 @@ function isGenericSettingsLink(text, href) {
   return /^настроек\.?$/i.test(text) && /^\/profile\/?(?:[?#].*)?$/i.test(href);
 }
 
+function htmlAttr(attrs, name) {
+  const pattern = new RegExp(`${name}=(['\"])([\\s\\S]*?)\\1`, 'i');
+  const match = String(attrs || '').match(pattern);
+  return match ? decodeEntities(match[2]).trim() : '';
+}
+
+function pushImageBlock(blocks, attrs, branch) {
+  const rawSrc = htmlAttr(attrs, 'src');
+  const src = rawSrc ? resolveTemplateHref(rawSrc) : '';
+  if (!src) return;
+  const alt = stripHtmlToText(htmlAttr(attrs, 'alt'));
+  blocks.push({
+    id: `image-${blocks.length}`,
+    type: 'image',
+    src,
+    ...(alt ? { alt } : {}),
+    ...(branch ? { branch } : {}),
+  });
+}
+
 function pushTextBlock(blocks, rawText, branch, href = null) {
   const text = normalizeInstructionText(stripHtmlToText(rawText));
   if (!text) return;
@@ -301,6 +321,7 @@ function stripGenericNextScheduleInstruction(text) {
 
 function shouldJoinWithPrevious(previous, text) {
   if (!previous || previous.type !== "text") return false;
+  if (Array.isArray(previous.links) && previous.links.length && /^[)\]}>»]/.test(text)) return true;
   if (Array.isArray(previous.links) && previous.links.length && /^\(/.test(text)) return true;
   return /^[.!?,;:]+$/.test(text)
     || (/^настроек\.?$/i.test(text) && /^Сформируйте отчет\./i.test(previous.text))
@@ -356,8 +377,10 @@ function normalizeTextBlockSequence(blocks) {
     }
 
     if (shouldJoinWithPrevious(previous, text) && previous?.type === 'text' && previous.branch === block.branch) {
-      const separator = /^[.!?,;:]+$/.test(text) ? '' : ' ';
-      const appendedText = /^[.!?,;:]+$/.test(text) ? text : text.replace(/\.$/, '');
+      const isStandalonePunctuation = /^[.!?,;:)\]}>»]+$/.test(text);
+      const startsWithClosingPunctuation = /^[)\]}>»]/.test(text);
+      const separator = isStandalonePunctuation || startsWithClosingPunctuation ? '' : ' ';
+      const appendedText = isStandalonePunctuation ? text : text.replace(/\.$/, '');
       previous.text = `${previous.text}${separator}${appendedText}`;
       if (Array.isArray(block.links) && block.links.length) {
         previous.links = [...(previous.links || []), ...block.links];
@@ -414,7 +437,11 @@ function renderTemplateBlocks(templatePath, fields) {
         const attrs = open[2];
         const classMatch = attrs.match(/class=["']([^"']+)["']/i);
         const hrefMatch = attrs.match(/href=(["'])([\s\S]*?)\1/i);
-        stack.push({ tag, branch: branchFromClass(classMatch ? classMatch[1] : ''), href: tag === 'a' && hrefMatch ? resolveTemplateHref(hrefMatch[2]) : null });
+        if (tag === 'img') {
+          pushImageBlock(blocks, attrs, branch);
+        } else {
+          stack.push({ tag, branch: branchFromClass(classMatch ? classMatch[1] : ''), href: tag === 'a' && hrefMatch ? resolveTemplateHref(hrefMatch[2]) : null });
+        }
       }
     }
     lastIndex = tokenPattern.lastIndex;
@@ -424,6 +451,14 @@ function renderTemplateBlocks(templatePath, fields) {
   return normalizeTextBlockSequence(blocks);
 }
 
+function stableJson(value) {
+  if (Array.isArray(value)) return `[${value.map((item) => stableJson(item)).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
 function blocksToText(blocks) {
   const parts = [];
   for (const block of blocks) {
@@ -431,6 +466,7 @@ function blocksToText(blocks) {
     else if (block.type === 'video') parts.push(`Видео: ${block.code}`);
     else if (block.type === 'audio') parts.push(`Аудио: ${block.code}`);
     else if (block.type === 'link') parts.push(block.text);
+    else if (block.type === 'image' && block.alt) parts.push(block.alt);
     else if (block.type === 'field') {
       const fieldParts = [`Вопрос: ${block.label}`];
       if (Array.isArray(block.choices) && block.choices.length) {
@@ -600,8 +636,8 @@ async function main() {
     const blocks = renderTemplateBlocks(templatePath, fields);
     const content = blocksToText(blocks);
     summary.generated += 1;
-    const currentBlocks = Array.isArray(step.assignmentBlocks) ? JSON.stringify(step.assignmentBlocks) : '';
-    if (content && (content !== (step.assignmentContent || '').trim() || JSON.stringify(blocks) !== currentBlocks)) {
+    const currentBlocks = Array.isArray(step.assignmentBlocks) ? stableJson(step.assignmentBlocks) : '';
+    if (content && (content !== (step.assignmentContent || '').trim() || stableJson(blocks) !== currentBlocks)) {
       summary.changed += 1;
       updates.push({ id: step.id, title: step.title, languageCode: step.marathon.languageCode, formKey: step.formKey, content, blocks });
     }
