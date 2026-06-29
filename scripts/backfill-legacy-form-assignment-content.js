@@ -627,6 +627,15 @@ function renderTemplateBlocks(templatePath, fields, templatesRoot, folder) {
     return activeList?.currentItem?.blocks || blocks;
   };
   const pushBlock = (block) => activeBlocks().push(block);
+  const pushDirectListItemBlock = (block) => {
+    const activeList = listStack[listStack.length - 1];
+    if (!activeList || activeList.currentItem) {
+      pushBlock(block);
+      return;
+    }
+    const item = listItemFromBlocks([block]);
+    if (item.text || item.blocks?.length) activeList.block.items.push(item);
+  };
   const appendText = (text) => {
     const branch = currentBranch(stack);
     const runMeta = currentInlineRun(stack);
@@ -656,7 +665,7 @@ function renderTemplateBlocks(templatePath, fields, templatesRoot, folder) {
       if (stations.length) pushBlock({ id: `radio-${activeBlocks().length}`, type: 'radio', stations, ...(branch ? { branch } : {}) });
     } else if (field) {
       const block = fieldBlock(field[1], fields[field[1]], branch, activeBlocks().length);
-      if (block) pushBlock(block);
+      if (block) pushDirectListItemBlock(block);
     } else if (loadAnswer) {
       const [sourceForm, sourceName] = parseTemplateTagArgs(loadAnswer[1]);
       const targetName = sourceName ? `known_words${blocks.filter((block) => block.type === 'knownWords').length + 1}` : '';
