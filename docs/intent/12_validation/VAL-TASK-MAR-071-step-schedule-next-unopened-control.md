@@ -32,17 +32,19 @@
   - Follow-up: a parallel deploy later changed the image tag to `localhost:5000/marathon:inline-exercise-20260629b`; the running pod still contains `deadlineReconciliation` code in `/app/dist/me/me.service.js`.
   - Candidate SQL validation: `make_interval(days => s.sequence)` query passed; recent 15-minute due window returned `0` candidates at validation time.
   - Startup log check: no deadline-loop errors; pod running with `0` restarts.
-- Production title repair:
-  - Dry-run matched exactly one row: `german-3`, sequence 8.
-  - Updated title from `Этап 4. НИДЕРЛАНДСКИЙ язык. День 3. Передышка` to `Этап 4. Местоимения. Глагол sein (быть). День 3. Передышка`.
-  - Updated `/home/ssf/Documents/marathon-import/marathon-catalog.generated.json` with exactly one replacement to prevent reload drift.
+- Production title restore, 2026-06-29:
+  - Live DB title diff against `/home/ssf/Documents/marathon-import/marathon_export.json` found 14 mismatches across 13 marathons / 377 steps.
+  - Restored `german-3`, sequence 8 from `Этап 4. Местоимения. Глагол sein (быть). День 3. Передышка` back to `Этап 4. НИДЕРЛАНДСКИЙ язык. День 3. Передышка`.
+  - Restored sequence 29 in all 13 marathons by removing the added `Награждение` wording and returning each title to the legacy export value.
+  - Updated `/home/ssf/Documents/marathon-import/marathon-catalog.generated.json` with exactly one replacement for `german-3`, sequence 8 to prevent reload drift.
+  - Post-restore title diff: 13 marathons, 377 steps, 0 mismatches, 0 missing legacy rows.
 - Live route verification:
   - URL: `https://marathon.alfares.cz/steps/848916ef-bdb7-4824-9f87-92aa156866ec?marathonerId=fc2f9975-9151-49df-9297-4228d7d2891b`
-  - Panel text: `Следующий этап, Этап 4. Местоимения. Глагол sein (быть). День 3. Передышка. Появится 4 июля в 13:00.`
+  - Panel text after title restore: `Следующий этап, Этап 4. НИДЕРЛАНДСКИЙ язык. День 3. Передышка. Появится 4 июля в 13:00.`
   - Old text absent: `Следующий этап, Этап 2. Введение языка в вашу реальность`.
   - Old date absent: `Появится 28 июня`.
   - `Открыть следующий сейчас` absent because sequence 7 remains active/incomplete.
-  - Rechecked after parallel deploy and the same panel text remained visible.
+  - Rechecked after title restore through live DB for `fc2f9975-9151-49df-9297-4228d7d2891b`: `german-3`, sequence 8 title is `Этап 4. НИДЕРЛАНДСКИЙ язык. День 3. Передышка`.
 
 ## Remaining Validation
 
