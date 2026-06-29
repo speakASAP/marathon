@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { type ReactNode, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { getToken, redirectToLogin } from '../auth';
 import {
@@ -458,6 +458,7 @@ function isLocalDraftNewerThanServer(localDraft: LocalStepDraft, serverUpdatedAt
  */
 export default function Step() {
   const { stepId } = useParams<{ stepId: string }>();
+  const location = useLocation();
   const [step, setStep] = useState<StepInfo | null>(null);
   const [loadingStep, setLoadingStep] = useState(true);
   const [stepNotFound, setStepNotFound] = useState(false);
@@ -888,6 +889,14 @@ export default function Step() {
   const peerОтчетLoadError = canViewPeerReports && !loadingRandom && !randomAnswer && randomAnswerError === 'load';
 
   const stepUrl = (targetStepId: string) => `/steps/${targetStepId}?marathonerId=${participantStepQuery}`;
+  const reportsReturnUrl = `${location.pathname}${location.search}${location.hash}`;
+  const participantReportsUrl = (participantId: string) => {
+    const params = new URLSearchParams({
+      throughStepId: stepId || '',
+      next: reportsReturnUrl,
+    });
+    return `/participants/${encodeURIComponent(participantId)}/reports?${params.toString()}`;
+  };
 
   const renderStepNavigation = (placement: 'top' | 'footer' = 'top') => {
     if (!previousSchedule && !sequentialNextSchedule) return null;
@@ -956,7 +965,7 @@ export default function Step() {
       {randomAnswer && (
         <div className="random-report">
           <Link
-            to={`/participants/${encodeURIComponent(randomAnswer.marathoner.id)}/reports?throughStepId=${encodeURIComponent(stepId || '')}`}
+            to={participantReportsUrl(randomAnswer.marathoner.id)}
             className="random-report-person"
           >
             {randomAnswer.marathoner.avatar ? (

@@ -17,10 +17,22 @@ function participantInitial(name: string) {
   return name.trim().charAt(0).toUpperCase() || 'У';
 }
 
+function resolveReturnPath(next: string | null, fallbackStepId: string) {
+  const fallbackPath = `/steps/${encodeURIComponent(fallbackStepId)}`;
+  const normalizedNext = next?.trim() || '';
+
+  if (normalizedNext.startsWith('/') && !normalizedNext.startsWith('//') && !/[\\\r\n]/.test(normalizedNext)) {
+    return normalizedNext;
+  }
+
+  return fallbackPath;
+}
+
 export default function ParticipantReports() {
   const { participantId = '' } = useParams();
   const [searchParams] = useSearchParams();
   const throughStepId = searchParams.get('throughStepId') || '';
+  const nextPath = searchParams.get('next');
   const [data, setData] = useState<PublicParticipantReports | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,6 +66,10 @@ export default function ParticipantReports() {
     if (count > 1 && count < 5) return `${count} пройденных этапа`;
     return `${count} пройденных этапов`;
   }, [data?.reports.length]);
+  const returnPath = useMemo(
+    () => resolveReturnPath(nextPath, data?.throughStep.id || throughStepId),
+    [data?.throughStep.id, nextPath, throughStepId],
+  );
 
   if (loading) {
     return <div className="container page-static participant-reports-page"><p>Загрузка…</p></div>;
@@ -81,13 +97,15 @@ export default function ParticipantReports() {
             {participantInitial(data.participant.name)}
           </span>
         )}
-        <div>
-          <Link to={`/steps/${encodeURIComponent(data.throughStep.id)}`} className="participant-reports-back">
+        <div className="participant-reports-hero-main">
+          <div className="participant-reports-hero-copy">
+            <h1>{data.participant.name}</h1>
+            <p>{data.marathon.title}: ответы до этапа {data.throughStep.sequence}, {data.throughStep.title}</p>
+            <strong>{reportCountLabel}</strong>
+          </div>
+          <Link to={returnPath} className="participant-reports-back">
             Вернуться к этапу
           </Link>
-          <h1>{data.participant.name}</h1>
-          <p>{data.marathon.title}: ответы до этапа {data.throughStep.sequence}, {data.throughStep.title}</p>
-          <strong>{reportCountLabel}</strong>
         </div>
       </section>
 
@@ -108,6 +126,12 @@ export default function ParticipantReports() {
           </div>
         )}
       </section>
+
+      <footer className="participant-reports-footer">
+        <Link to={returnPath} className="participant-reports-back">
+          Вернуться к этапу
+        </Link>
+      </footer>
     </div>
   );
 }

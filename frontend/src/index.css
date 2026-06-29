@@ -6372,6 +6372,17 @@ a:hover {
   border-bottom: 1px solid var(--marathon-border);
 }
 
+.participant-reports-hero-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 1rem;
+}
+
+.participant-reports-hero-copy {
+  min-width: 0;
+}
+
 .participant-reports-hero img,
 .participant-reports-avatar {
   width: 88px;
@@ -6391,10 +6402,28 @@ a:hover {
 
 .participant-reports-back {
   display: inline-flex;
-  margin-bottom: 0.45rem;
-  color: #2f6fbd;
-  font-weight: 800;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.78rem 1.1rem;
+  border: 1px solid #1e66c7;
+  border-radius: 999px;
+  background: #2f7bdc;
+  box-shadow: 0 12px 28px rgba(47, 123, 220, 0.24);
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1.1;
   text-decoration: none;
+  white-space: nowrap;
+}
+
+.participant-reports-back:hover,
+.participant-reports-back:focus-visible {
+  background: #1e66c7;
+  color: #ffffff;
+  outline: none;
+  transform: translateY(-1px);
 }
 
 .participant-reports-hero h1 {
@@ -6416,6 +6445,12 @@ a:hover {
 .participant-reports-list {
   display: grid;
   gap: 1rem;
+}
+
+.participant-reports-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem 0 2rem;
 }
 
 .participant-report-card {
@@ -6457,6 +6492,12 @@ a:hover {
 @media (max-width: 640px) {
   .participant-reports-hero {
     grid-template-columns: 64px minmax(0, 1fr);
+    align-items: start;
+    gap: 0.85rem;
+  }
+
+  .participant-reports-hero-main {
+    grid-template-columns: 1fr;
     gap: 0.85rem;
   }
 
@@ -6464,5 +6505,19 @@ a:hover {
   .participant-reports-avatar {
     width: 64px;
     height: 64px;
+  }
+
+  .participant-reports-back {
+    width: 100%;
+    max-width: 280px;
+    white-space: normal;
+  }
+
+  .participant-reports-footer {
+    justify-content: stretch;
+  }
+
+  .participant-reports-footer .participant-reports-back {
+    max-width: none;
   }
 }
