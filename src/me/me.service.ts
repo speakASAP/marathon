@@ -35,10 +35,10 @@ export type MyMarathonCertificate = {
 
 export type MyMarathonPrize = {
   id: string;
-  kind: certificate | medal | discount | bonus;
+  kind: 'certificate' | 'medal' | 'discount' | 'bonus';
   title: string;
   description: string;
-  status: earned | available;
+  status: 'earned' | 'available';
   urlHint: string | null;
 };
 
@@ -974,7 +974,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       finished_at: finishedAt,
       medal,
       certificate,
-      prizes: certificate ? this.buildPrizePayload(participant, marathon, medal, certificate) : [],
+      prizes: certificate && medal ? this.buildPrizePayload(marathon, medal, certificate) : [],
       nps_survey: participant.surveyResponse ? this.mapSurvey(participant.surveyResponse) : null,
       can_generate_progress_report: this.canGenerateProgressReport(participant),
     };
@@ -1005,61 +1005,60 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
   }
 
   private buildPrizePayload(
-    participant: any,
     marathon: any,
     medal: MarathonMedal,
     certificate: MyMarathonCertificate,
   ): MyMarathonPrize[] {
     const awardsPath = certificate.shareUrlHint;
-    const discountPercent = medal === bronze ? 5 : 10;
+    const discountPercent = medal === 'bronze' ? 5 : 10;
     return [
       {
         id: `${certificate.id}:certificate`,
-        kind: certificate,
+        kind: 'certificate',
         title: certificate.title,
         description: `Именной сертификат для ${certificate.participantName} по марафону ${marathon.title}.`,
-        status: earned,
+        status: 'earned',
         urlHint: certificate.downloadUrlHint,
       },
       {
         id: `${certificate.id}:medal`,
-        kind: medal,
+        kind: 'medal',
         title: `${this.formatMedalLabel(medal)} медаль`,
         description: `Медаль финалиста за завершение марафона ${marathon.title}.`,
-        status: earned,
+        status: 'earned',
         urlHint: awardsPath,
       },
       {
         id: `${certificate.id}:discount`,
-        kind: discount,
+        kind: 'discount',
         title: `${discountPercent}% скидка на следующий курс SpeakASAP`,
-        description: Персональный бонус финалиста без хранения PDF или отдельной записи сертификата в базе.,
-        status: available,
-        urlHint: /gift,
+        description: 'Персональный бонус финалиста без хранения PDF или отдельной записи сертификата в базе.',
+        status: 'available',
+        urlHint: '/gift',
       },
       {
         id: `${certificate.id}:share`,
-        kind: bonus,
-        title: Готовый текст для отзыва,
+        kind: 'bonus',
+        title: 'Готовый текст для отзыва',
         description: certificate.shareText,
-        status: available,
+        status: 'available',
         urlHint: awardsPath,
       },
     ];
   }
 
   private resolveParticipantDisplayName(participant: any): string {
-    const name = typeof participant.name === string ? participant.name.trim() : ;
+    const name = typeof participant.name === 'string' ? participant.name.trim() : '';
     if (name) return name;
-    const email = typeof participant.email === string ? participant.email.trim() : ;
+    const email = typeof participant.email === 'string' ? participant.email.trim() : '';
     if (email) return email;
-    return Участник марафона;
+    return 'Участник марафона';
   }
 
   private formatMedalLabel(medal: MarathonMedal): string {
-    if (medal === gold) return Золотой;
-    if (medal === silver) return Серебряный;
-    return Бронзовый;
+    if (medal === 'gold') return 'Золотой';
+    if (medal === 'silver') return 'Серебряный';
+    return 'Бронзовый';
   }
 
   private mapSurvey(survey: any): MyMarathonSurvey {
