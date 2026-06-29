@@ -227,6 +227,22 @@ function startsRussianInstruction(text: string) {
   return /^(?:Скачайте|Сказано|Также|Нам с вами|И сейчас|Давайте|Вопрос:|Завтра|И перед|Через|И, кстати)/i.test(text.trim());
 }
 
+function isLegacyKnownWordsPlaceholder(text: string) {
+  return /^ранее\s+выделенные\s+слова(?:\s+Текст\s+\d+)?\.?$/i.test(text.trim());
+}
+
+function isKnownWordsContinuationText(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  if (isLegacyKnownWordsPlaceholder(trimmed)) return true;
+
+  const letters = Array.from(trimmed.matchAll(/\p{L}/gu)).length;
+  if (letters < 12) return false;
+
+  const cyrillic = Array.from(trimmed.matchAll(/\p{Script=Cyrillic}/gu)).length;
+  return cyrillic / letters < 0.35;
+}
+
 function shouldBecomeBookLink(text: string) {
   return /^Книга\s+"Немецкий язык вместе с SpeakASAP/i.test(text.trim());
 }
@@ -430,7 +446,7 @@ export function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
       let cursor = index + 1;
       while (cursor < blocks.length) {
         const candidate = blocks[cursor];
-        if (candidate.type !== "text" || startsRussianInstruction(candidate.text)) break;
+        if (candidate.type !== "text" || startsRussianInstruction(candidate.text) || !isKnownWordsContinuationText(candidate.text)) break;
         paragraphs.push(candidate.text);
         cursor += 1;
       }

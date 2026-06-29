@@ -447,8 +447,8 @@ function renderTemplateBlocks(templatePath, fields) {
     } else if (token.startsWith('{%')) {
       // Other Django tags control template flow/includes and are not user-visible blocks.
     } else {
-      const close = token.match(/^<\/([A-Za-z0-9]+)>/);
-      const open = token.match(/^<([A-Za-z0-9]+)\b([^>]*)>/);
+      const close = token.match(/^<\/([A-Za-z0-9-]+)>/);
+      const open = token.match(/^<([A-Za-z0-9-]+)\b([^>]*)>/);
       if (close) {
         const tag = close[1].toLowerCase();
         for (let i = stack.length - 1; i >= 0; i -= 1) {
