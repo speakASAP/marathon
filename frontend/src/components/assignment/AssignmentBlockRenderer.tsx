@@ -123,7 +123,13 @@ function listItemText(item: string | { text?: string; blocks?: AssignmentBlock[]
   return typeof item === "string" ? item : item.text || "";
 }
 
-function renderListItem(item: string | { text?: string; links?: Array<{ text: string; href: string }>; content?: AssignmentInlineRun[]; blocks?: AssignmentBlock[] }, blockId: string) {
+function renderListItem(
+  item: string | { text?: string; links?: Array<{ text: string; href: string }>; content?: AssignmentInlineRun[]; blocks?: AssignmentBlock[] },
+  blockId: string,
+  answers: Answers,
+  readOnly: boolean,
+  onAnswerChange: (name: string, value: AnswerValue) => void,
+) {
   const rawText = ensureTerminalPunctuation(listItemText(item));
   const links = typeof item === "string" ? undefined : item.links;
   const content = typeof item === "string" ? undefined : item.content;
@@ -145,10 +151,10 @@ function renderListItem(item: string | { text?: string; links?: Array<{ text: st
           {nestedBlocks.map((nested, index) => (
             <AssignmentBlockRenderer
               block={nested}
-              answers={{}}
-              readOnly
+              answers={answers}
+              readOnly={readOnly}
               key={`${blockId}-nested-${index}`}
-              onAnswerChange={() => undefined}
+              onAnswerChange={onAnswerChange}
             />
           ))}
         </div>
@@ -192,11 +198,11 @@ export function AssignmentBlockRenderer({ block, answers, readOnly, validationEr
         ) : (
           block.ordered ? (
             <ol>
-              {block.items.map((item, index) => <li key={`${block.id}-${index}`}>{renderListItem(item, `${block.id}-${index}`)}</li>)}
+              {block.items.map((item, index) => <li key={`${block.id}-${index}`}>{renderListItem(item, `${block.id}-${index}`, answers, readOnly, onAnswerChange)}</li>)}
             </ol>
           ) : (
             <ul>
-              {block.items.map((item, index) => <li key={`${block.id}-${index}`}>{renderListItem(item, `${block.id}-${index}`)}</li>)}
+              {block.items.map((item, index) => <li key={`${block.id}-${index}`}>{renderListItem(item, `${block.id}-${index}`, answers, readOnly, onAnswerChange)}</li>)}
             </ul>
           )
         )}

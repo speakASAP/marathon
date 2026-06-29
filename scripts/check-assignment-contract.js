@@ -132,6 +132,22 @@ function validListItems(value) {
     return (hasInline || (Array.isArray(item.blocks) && item.blocks.length > 0)) && hasBlocks;
   });
 }
+function flattenAssignmentBlocks(blocks) {
+  const result = [];
+  const visit = (items) => {
+    for (const block of Array.isArray(items) ? items : []) {
+      result.push(block);
+      if (isRecord(block) && block.type === 'list' && Array.isArray(block.items)) {
+        for (const item of block.items) {
+          if (isRecord(item) && Array.isArray(item.blocks)) visit(item.blocks);
+        }
+      }
+    }
+  };
+  visit(blocks);
+  return result;
+}
+
 
 function isDatabaseConnectionError(error) {
   const message = String(error?.message || error || '');
@@ -290,7 +306,8 @@ function validateSupportedBlock(block, aggregate) {
 }
 
 function auditStepBlocks(step, aggregate) {
-  const blocks = Array.isArray(step.assignmentBlocks) ? step.assignmentBlocks : [];
+  const persistedBlocks = Array.isArray(step.assignmentBlocks) ? step.assignmentBlocks : [];
+  const blocks = flattenAssignmentBlocks(persistedBlocks);
   const invalidCountBeforeStep = aggregate.invalidSupportedBlockCount;
   const terminalPunctuationIssueCountBeforeStep = aggregate.terminalPunctuationIssueCount;
   const parentheticalSpacingIssueCountBeforeStep = aggregate.parentheticalSpacingIssueCount;
@@ -304,7 +321,7 @@ function auditStepBlocks(step, aggregate) {
     aggregate.violations.push({ code: 'missing-assignment-content', sequence: step.sequence });
   }
 
-  if (blocks.length === 0) {
+  if (persistedBlocks.length === 0) {
     aggregate.violations.push({ code: 'missing-assignment-blocks', sequence: step.sequence });
     return;
   }

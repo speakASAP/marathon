@@ -48,6 +48,22 @@ export function getLevel(value: AnswerValue | undefined): Level {
   return null;
 }
 
+export function flattenAssignmentBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
+  const result: AssignmentBlock[] = [];
+  const visit = (items: AssignmentBlock[]) => {
+    items.forEach((block) => {
+      result.push(block);
+      if (block.type === "list") {
+        block.items.forEach((item) => {
+          if (typeof item !== "string" && Array.isArray(item.blocks)) visit(item.blocks);
+        });
+      }
+    });
+  };
+  visit(blocks);
+  return result;
+}
+
 export function isFieldBlock(block: AssignmentBlock): block is FieldBlock {
   return block.type === "field";
 }
@@ -67,8 +83,9 @@ export function fieldUsesLongAnswer(block: FieldBlock) {
 }
 
 export function findLevelField(blocks: AssignmentBlock[]) {
-  return blocks.find((block) => isFieldBlock(block) && block.name === "q1")
-    || blocks.find((block) => isFieldBlock(block) && normalizeText(block.label).startsWith("как долго вы учите"));
+  const flattened = flattenAssignmentBlocks(blocks);
+  return flattened.find((block) => isFieldBlock(block) && block.name === "q1")
+    || flattened.find((block) => isFieldBlock(block) && normalizeText(block.label).startsWith("как долго вы учите"));
 }
 
 export function branchVisible(branch: AssignmentBranch | undefined, level: Level) {
@@ -174,13 +191,13 @@ export function requiredAnswerValid(block: FieldBlock, value: AnswerValue | unde
 }
 
 export function missingRequiredFields(blocks: AssignmentBlock[], answers: Answers, level: Level) {
-  return blocks
+  return flattenAssignmentBlocks(blocks)
     .filter((block): block is FieldBlock => isFieldBlock(block) && branchVisible(block.branch, level) && block.required)
     .filter((block) => !requiredAnswerValid(block, answers[block.name]));
 }
 
 export function composeReport(blocks: AssignmentBlock[], answers: Answers, level: Level) {
-  return blocks
+  return flattenAssignmentBlocks(blocks)
     .filter((block): block is FieldBlock => isFieldBlock(block) && branchVisible(block.branch, level))
     .map((block) => {
       if (isPracticeExerciseField(block)) return "";
@@ -198,7 +215,7 @@ export function composeReport(blocks: AssignmentBlock[], answers: Answers, level
 
 export function payloadFromAnswers(blocks: AssignmentBlock[], answers: Answers, level: Level) {
   const payload: Record<string, unknown> = {};
-  blocks.forEach((block) => {
+  flattenAssignmentBlocks(blocks).forEach((block) => {
     if (isFieldBlock(block)) {
       if (isPracticeExerciseField(block) || !branchVisible(block.branch, level)) return;
       const value = answers[block.name];

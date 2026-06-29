@@ -190,12 +190,28 @@ function legacyPublicAssignmentFields(
     .filter((entry) => shouldPublishLegacyPayloadValue(entry.name, entry.value, payload));
 }
 
+export function flattenAssignmentBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
+  const result: AssignmentBlock[] = [];
+  const visit = (items: AssignmentBlock[]) => {
+    for (const block of items) {
+      result.push(block);
+      if (block.type === 'list') {
+        for (const item of block.items) {
+          if (typeof item !== 'string' && Array.isArray(item.blocks)) visit(item.blocks);
+        }
+      }
+    }
+  };
+  visit(blocks);
+  return result;
+}
+
 export function isAssignmentFieldBlock(block: AssignmentBlock): block is AssignmentFieldBlock {
   return block.type === 'field';
 }
 
 export function findAssignmentLevelField(blocks: AssignmentBlock[]): AssignmentFieldBlock | undefined {
-  const fields = blocks.filter(isAssignmentFieldBlock);
+  const fields = flattenAssignmentBlocks(blocks).filter(isAssignmentFieldBlock);
   return fields.find((block) => block.name === 'q1')
     || fields.find((block) => normalizeText(block.label).startsWith('как долго вы учите'));
 }
@@ -234,7 +250,7 @@ export function visiblePublicAssignmentFields(
   payload: AssignmentPayload,
 ): AssignmentFieldBlock[] {
   const level = resolveAssignmentPayloadLevel(blocks, payload);
-  return blocks.filter((block): block is AssignmentFieldBlock => (
+  return flattenAssignmentBlocks(blocks).filter((block): block is AssignmentFieldBlock => (
     isAssignmentFieldBlock(block)
     && assignmentBranchVisible(block.branch, level)
     && hasPublicAssignmentQuestionLabel(block)
@@ -341,7 +357,7 @@ export function missingRequiredAssignmentAnswers(
   payload: AssignmentPayload,
 ): MissingAssignmentAnswer[] {
   const level = resolveAssignmentPayloadLevel(blocks, payload);
-  return blocks
+  return flattenAssignmentBlocks(blocks)
     .filter(isAssignmentFieldBlock)
     .filter((block) => block.required && assignmentBranchVisible(block.branch, level))
     .filter((block) => !assignmentAnswerFilled(block, payload[block.name]))
