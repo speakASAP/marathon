@@ -336,7 +336,7 @@ export default function Step() {
         if (error instanceof MarathonAuthRequiredError) {
           setSubmissionAuthRequired(true);
         } else {
-          setMarathonLoadError('Навигация по этапам временно недоступна.');
+          setMarathonLoadError('Навигация по дням временно недоступна.');
         }
       });
   }, [marathonerId]);
@@ -639,13 +639,13 @@ export default function Step() {
       const body = await updateReportTime(marathon.id, reportTime, browserTimeZone);
       setMarathon(body);
       setReportTime(formatTimeInput(body.report_time));
-      setReportTimeMessage('Время сохранено. Следующий этап будет не раньше чем через 24 часа.');
+      setReportTimeMessage('Время сохранено. Следующий день будет не раньше чем через 24 часа.');
     } catch (error) {
       if (error instanceof MarathonAuthRequiredError) {
         redirectToLogin(`/steps/${stepId}?marathonerId=${encodeURIComponent(marathonerId.trim())}`);
         return;
       }
-      setReportTimeError(error instanceof Error ? error.message : 'Не удалось сохранить время следующего этапа');
+      setReportTimeError(error instanceof Error ? error.message : 'Не удалось сохранить время следующих заданий');
     } finally {
       setReportTimeSaving(false);
     }
@@ -698,20 +698,20 @@ export default function Step() {
     if (!previousSchedule && !sequentialNextSchedule) return null;
 
     return (
-      <nav className={`step-sequence-actions step-sequence-actions-${placement}`} aria-label="Навигация по этапам">
+      <nav className={`step-sequence-actions step-sequence-actions-${placement}`} aria-label="Навигация по дням">
         {canNavigateToScheduleAnswer(previousSchedule) ? (
           <Link to={stepUrl(previousSchedule!.stepId)} className="step-nav-link">
-            Предыдущий этап
+            Предыдущий день
           </Link>
         ) : (
-          <span className="step-nav-link step-nav-disabled">Предыдущий этап</span>
+          <span className="step-nav-link step-nav-disabled">Предыдущий день</span>
         )}
         {canNavigateToScheduleAnswer(sequentialNextSchedule) ? (
           <Link to={stepUrl(sequentialNextSchedule!.stepId)} className="step-nav-link">
-            Следующий этап
+            Следующий день
           </Link>
         ) : (
-          <span className="step-nav-link step-nav-disabled">Следующий этап</span>
+          <span className="step-nav-link step-nav-disabled">Следующий день</span>
         )}
       </nav>
     );
@@ -721,18 +721,18 @@ export default function Step() {
     if (!nextSchedule || !marathon) return null;
 
     return (
-      <section className="step-next-control" aria-label="Следующий этап">
+      <section className="step-next-control" aria-label="Следующий день">
         <div className="step-next-control-main">
-          <p><strong>Следующий этап, {nextSchedule.title}.</strong></p>
+          <p><strong>Следующий день, {nextSchedule.title}.</strong></p>
           <p>{nextAvailabilityText}</p>
           {nextOpenAllowed && (
             <Link to={stepUrl(nextSchedule.stepId)} className="btn-profile-open step-next-now">
-              Открыть следующий сейчас
+              Открыть следующий день сейчас
             </Link>
           )}
         </div>
         <form className="step-next-time-form" onSubmit={submitReportTime}>
-          <label htmlFor="step-report-time">Время появления следующих этапов</label>
+          <label htmlFor="step-report-time">Время появления следующих заданий</label>
           <div className="step-next-time-row">
             <input
               id="step-report-time"
