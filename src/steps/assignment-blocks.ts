@@ -76,6 +76,23 @@ function cleanString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+const TERMINAL_PUNCTUATION_PATTERN = /[.!?…:;]["')\]»”]*$/u;
+const TRAILING_TRANSLATION_PATTERN = /\s+(\([^()]+\))$/u;
+
+function hasTerminalPunctuation(value: string): boolean {
+  const text = value.trim();
+  if (TERMINAL_PUNCTUATION_PATTERN.test(text)) return true;
+  return TERMINAL_PUNCTUATION_PATTERN.test(text.replace(TRAILING_TRANSLATION_PATTERN, ''));
+}
+
+function ensureTerminalPunctuation(value: string): string {
+  const text = value.replace(/\s+/g, ' ').trim();
+  if (!text || !/\p{L}/u.test(text) || hasTerminalPunctuation(text)) return text;
+  const translation = text.match(TRAILING_TRANSLATION_PATTERN);
+  if (translation) return `${text.slice(0, translation.index).trim()}. ${translation[1]}`;
+  return `${text}.`;
+}
+
 function normalizeBranch(value: unknown): AssignmentBranch | undefined {
   if (value === 'beginner' || value === 'medium' || value === 'advanced' || value === 'beginner-medium') {
     return value;
@@ -256,6 +273,21 @@ function normalizeTextBlockSequence(blocks: AssignmentBlock[]): AssignmentBlock[
   return normalized;
 }
 
+function normalizeBlockTerminalPunctuation(blocks: AssignmentBlock[]): AssignmentBlock[] {
+  return blocks.map((block) => {
+    if (block.type === 'text') return { ...block, text: ensureTerminalPunctuation(block.text) };
+    if (block.type === 'field') {
+      return {
+        ...block,
+        label: ensureTerminalPunctuation(block.label),
+        ...(block.hint ? { hint: ensureTerminalPunctuation(block.hint) } : {}),
+      };
+    }
+    if (block.type === 'image' && block.caption) return { ...block, caption: ensureTerminalPunctuation(block.caption) };
+    return block;
+  });
+}
+
 function ensureAtLeastOneRequiredField(blocks: AssignmentBlock[]): AssignmentBlock[] {
   const firstFieldIndex = blocks.findIndex((block) => block.type === 'field');
   if (firstFieldIndex < 0) return blocks;
@@ -336,5 +368,5 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
       return null;
     })
     .filter((block): block is AssignmentBlock => Boolean(block));
-  return ensureAtLeastOneRequiredField(normalizeTextBlockSequence(blocks));
+  return ensureAtLeastOneRequiredField(normalizeBlockTerminalPunctuation(normalizeTextBlockSequence(blocks)));
 }

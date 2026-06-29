@@ -15,6 +15,7 @@ import {
   type MyMarathon,
   type ProgressReport,
 } from '../api/profileMarathon';
+import { stripHeadingTerminalPeriod } from '../components/assignment/assignmentBlockNormalization';
 
 type PaymentReturnState = 'success' | 'cancelled' | null;
 
@@ -320,7 +321,7 @@ export default function ProfileDetail() {
     <div className="container page-static profile-dashboard">
       <section className="profile-hero-panel">
         <div>
-          <h1>{data.title}</h1>
+          <h1>{stripHeadingTerminalPeriod(data.title)}</h1>
           {showBonusDays && (
             <p className="profile-meta">
               {`Бонусных дней: ${data.bonus_left} из ${data.bonus_total}.`}

@@ -31,6 +31,32 @@ function hasText(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+const TERMINAL_PUNCTUATION_PATTERN = /[.!?…:;]["')\]»”]*$/u;
+const TRAILING_TRANSLATION_PATTERN = /\s+(\([^()]+\))$/u;
+
+function hasTerminalPunctuation(value) {
+  const text = String(value || '').trim();
+  if (TERMINAL_PUNCTUATION_PATTERN.test(text)) return true;
+  return TERMINAL_PUNCTUATION_PATTERN.test(text.replace(TRAILING_TRANSLATION_PATTERN, ''));
+}
+
+function ensureTerminalPunctuation(value) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!text || !/\p{L}/u.test(text) || hasTerminalPunctuation(text)) return text;
+  const translation = text.match(TRAILING_TRANSLATION_PATTERN);
+  if (translation) return `${text.slice(0, translation.index).trim()}. ${translation[1]}`;
+  return `${text}.`;
+}
+
+function auditDisplayedText(value, aggregate) {
+  if (!hasText(value) || !/\p{L}/u.test(String(value))) return;
+  aggregate.terminalPunctuationTextCount += 1;
+  if (!hasTerminalPunctuation(value)) aggregate.terminalPunctuationNormalizedCount += 1;
+  if (!hasTerminalPunctuation(ensureTerminalPunctuation(value))) {
+    aggregate.terminalPunctuationIssueCount += 1;
+  }
+}
+
 function isDownloadHref(value) {
   return typeof value === 'string' && DOWNLOAD_FILE_HREF.test(value.trim());
 }
@@ -105,6 +131,9 @@ function createEmptyAggregate(marathon) {
     genericInstructionCount: 0,
     genericSettingsLinkCount: 0,
     invalidDownloadLinkCount: 0,
+    terminalPunctuationTextCount: 0,
+    terminalPunctuationNormalizedCount: 0,
+    terminalPunctuationIssueCount: 0,
     violations: [],
     warnings: [],
   };
@@ -113,6 +142,7 @@ function createEmptyAggregate(marathon) {
 function validateSupportedBlock(block, aggregate) {
   if (block.type === 'text') {
     if (!hasText(block.text) || !validInlineLinks(block.links)) aggregate.invalidSupportedBlockCount += 1;
+    auditDisplayedText(block.text, aggregate);
     if (GENERIC_NEXT_SCHEDULE_INSTRUCTION.test(String(block.text || ''))) {
       aggregate.genericInstructionCount += 1;
     }
@@ -123,6 +153,7 @@ function validateSupportedBlock(block, aggregate) {
     aggregate.mediaCounts.video += 1;
     aggregate.mediaCounts.total += 1;
     if (!hasText(block.code)) aggregate.invalidSupportedBlockCount += 1;
+    auditDisplayedText(block.title, aggregate);
     return;
   }
 
@@ -130,6 +161,7 @@ function validateSupportedBlock(block, aggregate) {
     aggregate.mediaCounts.audio += 1;
     aggregate.mediaCounts.total += 1;
     if (!hasText(block.code)) aggregate.invalidSupportedBlockCount += 1;
+    auditDisplayedText(block.title, aggregate);
     return;
   }
 
@@ -137,6 +169,7 @@ function validateSupportedBlock(block, aggregate) {
     aggregate.mediaCounts.image += 1;
     aggregate.mediaCounts.total += 1;
     if (!hasText(block.src) || hasTemplateHref(block.src)) aggregate.invalidSupportedBlockCount += 1;
+    auditDisplayedText(block.caption, aggregate);
     return;
   }
 
@@ -158,6 +191,8 @@ function validateSupportedBlock(block, aggregate) {
     if (!hasText(block.name) || !hasText(block.label)) {
       aggregate.invalidSupportedBlockCount += 1;
     }
+    auditDisplayedText(block.label, aggregate);
+    auditDisplayedText(block.hint, aggregate);
     if (block.fieldType != null && !SUPPORTED_FIELD_TYPES.has(block.fieldType)) {
       aggregate.invalidSupportedBlockCount += 1;
     }
@@ -217,6 +252,9 @@ function auditStepBlocks(step, aggregate) {
 
   if (aggregate.invalidSupportedBlockCount > invalidCountBeforeStep) {
     aggregate.violations.push({ code: 'invalid-supported-block-shape', sequence: step.sequence });
+  }
+  if (aggregate.terminalPunctuationIssueCount > 0) {
+    aggregate.violations.push({ code: 'terminal-punctuation', sequence: step.sequence });
   }
   if (blocks.some((block) => isRecord(block) && block.type === 'text' && GENERIC_NEXT_SCHEDULE_INSTRUCTION.test(String(block.text || '')))) {
     aggregate.violations.push({ code: 'generic-next-schedule-instruction', sequence: step.sequence });
@@ -342,6 +380,20 @@ function buildContractChecks(activeCatalog, aggregates) {
       checks.push({ status: 'pass', code: 'assignment-block-shape', message: `${label} supported block shapes are valid.` });
     }
 
+    if (aggregate.terminalPunctuationIssueCount > 0) {
+      checks.push({
+        status: 'fail',
+        code: 'terminal-punctuation',
+        message: `${label} has ${aggregate.terminalPunctuationIssueCount} displayed assignment text item(s) without terminal punctuation after normalization.`,
+      });
+    } else {
+      checks.push({
+        status: 'pass',
+        code: 'terminal-punctuation',
+        message: `${label} displayed assignment text has terminal punctuation after normalization.`,
+      });
+    }
+
     const rendererDerivedCount = Object.values(aggregate.rendererDerivedTypeCounts).reduce((total, count) => total + count, 0);
     if (rendererDerivedCount > 0) {
       checks.push({
@@ -459,6 +511,9 @@ function printHuman(report) {
     console.log(`  genericInstructionCount: ${marathon.genericInstructionCount}`);
     console.log(`  genericSettingsLinkCount: ${marathon.genericSettingsLinkCount}`);
     console.log(`  invalidDownloadLinkCount: ${marathon.invalidDownloadLinkCount}`);
+    console.log(`  terminalPunctuationTextCount: ${marathon.terminalPunctuationTextCount}`);
+    console.log(`  terminalPunctuationNormalizedCount: ${marathon.terminalPunctuationNormalizedCount}`);
+    console.log(`  terminalPunctuationIssueCount: ${marathon.terminalPunctuationIssueCount}`);
   });
 }
 

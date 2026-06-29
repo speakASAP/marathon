@@ -21,7 +21,7 @@ import PublicAnswerReport, {
   peerAnswerRowsFromPayload,
   renderPublicAnswerQuestion,
 } from '../components/assignment/PublicAnswerReport';
-import { answerPartsFromValue, fieldInlineBlankCount } from '../components/assignment/assignmentBlockNormalization';
+import { answerPartsFromValue, fieldInlineBlankCount, stripHeadingTerminalPeriod } from '../components/assignment/assignmentBlockNormalization';
 
 const DRAFT_SAVE_DELAY_MS = 900;
 
@@ -874,7 +874,7 @@ export default function Step() {
         <Link to={profileUrl} className="step-profile-link">← Профиль марафона</Link>
         {renderStepNavigation()}
       </div>
-      <h1>{step?.title ?? `Этап ${stepId}`}</h1>
+      <h1>{stripHeadingTerminalPeriod(step?.title ?? `Этап ${stepId}`)}</h1>
       <div className="step-content-card" ref={contentCardRef}>
       {canViewPeerReports && (
         <div className="step-tabs">

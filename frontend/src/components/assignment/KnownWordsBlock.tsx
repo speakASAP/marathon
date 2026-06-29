@@ -1,3 +1,4 @@
+import { ensureTerminalPunctuation, stripHeadingTerminalPeriod } from "./assignmentBlockNormalization";
 import type { AnswerValue, KnownWordsBlockModel } from "./assignmentRendererTypes";
 
 type KnownWordsBlockProps = {
@@ -17,6 +18,7 @@ function splitKnownWordTokens(text: string) {
 
 export function KnownWordsBlock({ block, value, readOnly, onChange }: KnownWordsBlockProps) {
   const selected = new Set(Array.isArray(value) ? value : []);
+  const label = ensureTerminalPunctuation(block.label || "Текст для выделения знакомых слов");
   const toggle = (key: string) => {
     if (readOnly) return;
     const next = new Set(selected);
@@ -26,11 +28,11 @@ export function KnownWordsBlock({ block, value, readOnly, onChange }: KnownWords
   };
 
   return (
-    <section className="step-known-words" aria-label={block.label || "Текст для выделения знакомых слов"}>
-      {block.label && <h3>{block.label}</h3>}
+    <section className="step-known-words" aria-label={label}>
+      {label && <h3>{stripHeadingTerminalPeriod(label)}</h3>}
       {block.paragraphs.map((paragraph, paragraphIndex) => (
         <p key={`${block.id}-${paragraphIndex}`}>
-          {splitKnownWordTokens(paragraph).map((token, tokenIndex) => {
+          {splitKnownWordTokens(ensureTerminalPunctuation(paragraph)).map((token, tokenIndex) => {
             if (/^\s+$/.test(token)) return token;
             const key = wordKey(paragraphIndex, tokenIndex, token);
             const isSelected = selected.has(key);

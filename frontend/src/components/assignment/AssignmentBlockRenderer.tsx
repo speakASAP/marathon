@@ -1,5 +1,5 @@
 import type { AssignmentBlock } from "../../api/assignmentMarathon";
-import { isReadingRulesTitle } from "./assignmentBlockNormalization";
+import { ensureTerminalPunctuation, isReadingRulesTitle, stripHeadingTerminalPeriod } from "./assignmentBlockNormalization";
 import { AssignmentFieldRenderer } from "./AssignmentFieldRenderer";
 import type { AnswerValue, Answers } from "./assignmentRendererTypes";
 import { KnownWordsBlock } from "./KnownWordsBlock";
@@ -97,26 +97,26 @@ function readingRuleParts(item: string) {
 export function AssignmentBlockRenderer({ block, answers, readOnly, validationError, onAnswerChange }: AssignmentBlockRendererProps) {
   if (block.type === "text") {
     if (block.style === "heading") {
-      return <h2 className="step-assignment-heading">{block.text}</h2>;
+      return <h2 className="step-assignment-heading">{stripHeadingTerminalPeriod(block.text)}</h2>;
     }
 
     const className = block.style === "lead" ? "step-assignment-lead" : "step-assignment-paragraph";
-    return <p className={className}>{renderInlineLinkedText(block.text, block.links)}</p>;
+    return <p className={className}>{renderInlineLinkedText(ensureTerminalPunctuation(block.text), block.links)}</p>;
   }
 
   if (block.type === "quote") {
-    return <blockquote className="step-assignment-quote">{block.text}</blockquote>;
+    return <blockquote className="step-assignment-quote">{ensureTerminalPunctuation(block.text)}</blockquote>;
   }
 
   if (block.type === "list") {
     const isReadingRules = Boolean(block.title && isReadingRulesTitle(block.title));
     return (
       <section className={`step-assignment-list-panel${isReadingRules ? " reading-rules" : ""}`}>
-        {block.title && <h3>{block.title}</h3>}
+        {block.title && <h3>{stripHeadingTerminalPeriod(block.title)}</h3>}
         {isReadingRules ? (
           <div className="step-reading-rule-grid">
             {block.items.map((item, index) => {
-              const parts = readingRuleParts(item);
+              const parts = readingRuleParts(ensureTerminalPunctuation(item));
               return (
                 <div className="step-reading-rule" key={`${block.id}-${index}`}>
                   <strong>{parts.symbol}</strong>
@@ -128,7 +128,7 @@ export function AssignmentBlockRenderer({ block, answers, readOnly, validationEr
           </div>
         ) : (
           <ul>
-            {block.items.map((item, index) => <li key={`${block.id}-${index}`}>{item}</li>)}
+            {block.items.map((item, index) => <li key={`${block.id}-${index}`}>{ensureTerminalPunctuation(item)}</li>)}
           </ul>
         )}
       </section>
@@ -155,7 +155,7 @@ export function AssignmentBlockRenderer({ block, answers, readOnly, validationEr
     return (
       <figure className="step-image-block">
         <img src={block.src} alt={block.alt || block.caption || ""} loading="lazy" />
-        {block.caption && <figcaption>{block.caption}</figcaption>}
+        {block.caption && <figcaption>{ensureTerminalPunctuation(block.caption)}</figcaption>}
       </figure>
     );
   }
@@ -177,7 +177,7 @@ export function AssignmentBlockRenderer({ block, answers, readOnly, validationEr
     const mp3Url = mediaAudioUrl(block.code, "mp3");
     return (
       <div className="step-audio-block">
-        {block.title && <strong>{block.title}</strong>}
+        {block.title && <strong>{ensureTerminalPunctuation(block.title)}</strong>}
         <audio controls preload="metadata">
           <source src={mp3Url} type="audio/mpeg" />
           <source src={mediaAudioUrl(block.code, "ogg")} type="audio/ogg" />

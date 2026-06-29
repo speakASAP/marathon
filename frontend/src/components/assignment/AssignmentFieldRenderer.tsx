@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { answerPartsFromValue, fieldUsesLongAnswer } from "./assignmentBlockNormalization";
+import { answerPartsFromValue, ensureTerminalPunctuation, fieldUsesLongAnswer } from "./assignmentBlockNormalization";
 import type { AnswerValue, FieldBlock } from "./assignmentRendererTypes";
 
 type AssignmentFieldRendererProps = {
@@ -87,7 +87,8 @@ export function AssignmentFieldRenderer({ block, value, readOnly, validationErro
   const hasAnswerCheck = correctAnswers.length > 0 && (block.fieldType === "text" || block.fieldType === "textarea");
   const hintText = block.hint || correctAnswers.join(", ");
   const useLongAnswer = fieldUsesLongAnswer(block);
-  const inlineBlank = !useLongAnswer && block.fieldType === "text" ? splitInlineBlank(block.label) : null;
+  const displayLabel = ensureTerminalPunctuation(block.label);
+  const inlineBlank = !useLongAnswer && block.fieldType === "text" ? splitInlineBlank(displayLabel) : null;
   const inlineBlankCount = inlineBlank?.blanks.length || 0;
   const inlineValues = inlineBlank ? getEditableTextParts(value, inlineBlankCount) : [];
 
@@ -145,7 +146,7 @@ export function AssignmentFieldRenderer({ block, value, readOnly, validationErro
       disabled={readOnly}
       aria-invalid={answerIsWrong || Boolean(validationError) || undefined}
       aria-describedby={validationError ? validationErrorId : undefined}
-      aria-label={block.label}
+      aria-label={displayLabel}
     />
   );
 
@@ -171,7 +172,7 @@ export function AssignmentFieldRenderer({ block, value, readOnly, validationErro
           disabled={readOnly}
           aria-invalid={answerIsWrong || Boolean(validationError) || undefined}
           aria-describedby={validationError ? validationErrorId : undefined}
-          aria-label={`${block.label} ${index + 1}`}
+          aria-label={`${displayLabel} ${index + 1}`}
           placeholder={inlineBlank.blanks[index]}
           title={inlineBlank.blanks[index] || undefined}
           style={{ width: `${widthChars}ch` }}
@@ -181,7 +182,7 @@ export function AssignmentFieldRenderer({ block, value, readOnly, validationErro
 
     return (
       <fieldset className={`${blockClassName} step-question-block--inline-blank`}>
-        <legend className="sr-only">{block.label}</legend>
+        <legend className="sr-only">{displayLabel}</legend>
         <div className="step-inline-exercise-line">
           <span className="step-inline-exercise-number" aria-hidden="true" />
           <span className="step-inline-exercise-text">
@@ -212,7 +213,7 @@ export function AssignmentFieldRenderer({ block, value, readOnly, validationErro
   return (
     <fieldset className={blockClassName}>
       <legend>
-        {renderTranslatedLabel(block.label)}
+        {renderTranslatedLabel(displayLabel)}
         {!block.required && <span className="step-question-label-optional">Необязательное поле</span>}
       </legend>
       {block.fieldType === "radio" || block.fieldType === "checkbox" ? (

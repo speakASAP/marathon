@@ -22,6 +22,7 @@ import {
   type MarathonSummary,
 } from '../api/publicMarathon';
 import { formatLanguageLabel } from '../languages';
+import { stripHeadingTerminalPeriod } from '../components/assignment/assignmentBlockNormalization';
 
 type MarathonCard = MarathonSummary & {
   language?: MarathonLanguage;
@@ -471,7 +472,7 @@ export default function Profile() {
                     <li key={m.id} className="profile-marathon-card">
                       <div className="profile-marathon-card-main">
                         <div className="profile-marathon-card-heading">
-                          <h2>{m.title}</h2>
+                          <h2>{stripHeadingTerminalPeriod(m.title)}</h2>
                           <span className={m.payment_required ? 'profile-marathon-status status-payment' : 'profile-marathon-status'}>
                             {getStatusLabel(m)}
                           </span>
@@ -542,7 +543,7 @@ export default function Profile() {
                       <span>{languageName}</span>
                     </Link>
                     <div className="profile-language-body">
-                      <h3>{card.title}</h3>
+                      <h3>{stripHeadingTerminalPeriod(card.title)}</h3>
                       <p>Марафон: {languageName}. 30 дней практики, задания и прогресс в профиле.</p>
                       <Link to={getLanguagePath(card)} className="btn-profile-login profile-language-start">
                         Начать марафон

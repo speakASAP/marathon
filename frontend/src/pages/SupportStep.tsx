@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { fetchStepInfo, type StepInfo } from '../api/assignmentMarathon';
 import StepAssignmentRenderer from '../components/StepAssignmentRenderer';
+import { stripHeadingTerminalPeriod } from '../components/assignment/assignmentBlockNormalization';
 
 /**
  * Support view of one step: content only (no report tab, no other marathoners).
@@ -63,7 +64,7 @@ export default function SupportStep() {
 
   return (
     <div className="container page-static">
-      <h1>{step.title}</h1>
+      <h1>{stripHeadingTerminalPeriod(step.title)}</h1>
       {assignmentContent ? (
         <StepAssignmentRenderer
           blocks={step.assignmentBlocks}

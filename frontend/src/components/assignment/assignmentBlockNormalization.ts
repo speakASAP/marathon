@@ -5,6 +5,31 @@ export function normalizeText(value: string) {
   return value.toLowerCase().replace(/ё/g, "е").trim();
 }
 
+const TERMINAL_PUNCTUATION_PATTERN = /[.!?…:;]["')\]»”]*$/u;
+const TRAILING_TRANSLATION_PATTERN = /\s+(\([^()]+\))$/u;
+
+export function hasTerminalPunctuation(value: string) {
+  const text = value.trim();
+  if (TERMINAL_PUNCTUATION_PATTERN.test(text)) return true;
+  return TERMINAL_PUNCTUATION_PATTERN.test(text.replace(TRAILING_TRANSLATION_PATTERN, ""));
+}
+
+export function ensureTerminalPunctuation(value: string) {
+  const text = value.replace(/\s+/g, " ").trim();
+  if (!text || !/\p{L}/u.test(text) || hasTerminalPunctuation(text)) return text;
+  const translation = text.match(TRAILING_TRANSLATION_PATTERN);
+  if (translation) return `${text.slice(0, translation.index).trim()}. ${translation[1]}`;
+  return `${text}.`;
+}
+
+export function stripHeadingTerminalPeriod(value: string) {
+  return value
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\.+(["')\]»”]*)$/u, "$1")
+    .trim();
+}
+
 export function getLevel(value: AnswerValue | undefined): Level {
   if (Array.isArray(value)) return null;
   const normalized = normalizeText(value || "");
@@ -126,7 +151,8 @@ export function composeReport(blocks: AssignmentBlock[], answers: Answers, level
       const value = displayValue(block, answers[block.name]);
       const cleanValue = value.trim();
       if (!cleanValue) return "";
-      return fillAssignmentLabelPlaceholder(block.label, answers[block.name]) || `${block.label}\n${cleanValue}`;
+      const filledLabel = fillAssignmentLabelPlaceholder(block.label, answers[block.name]);
+      return filledLabel ? ensureTerminalPunctuation(filledLabel) : `${ensureTerminalPunctuation(block.label)}\n${cleanValue}`;
     })
     .filter(Boolean)
     .join("\n\n");
@@ -400,5 +426,17 @@ export function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
     decorated.push(block);
   }
 
-  return ensureAtLeastOneRequiredField(mergeAdjacentTextParagraphs(decorated));
+  return ensureAtLeastOneRequiredField(mergeAdjacentTextParagraphs(decorated).map((block) => {
+    if (block.type === "text") return { ...block, text: ensureTerminalPunctuation(block.text) };
+    if (block.type === "quote") return { ...block, text: ensureTerminalPunctuation(block.text) };
+    if (block.type === "list") {
+      return {
+        ...block,
+        ...(block.title ? { title: ensureTerminalPunctuation(block.title) } : {}),
+        items: block.items.map(ensureTerminalPunctuation),
+      };
+    }
+    if (block.type === "knownWords") return { ...block, label: ensureTerminalPunctuation(block.label || "Текст для выделения знакомых слов") };
+    return block;
+  }));
 }
