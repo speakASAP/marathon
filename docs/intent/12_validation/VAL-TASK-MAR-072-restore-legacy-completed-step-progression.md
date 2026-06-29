@@ -52,6 +52,30 @@ Pre-deploy validation:
   - Built JS asset: `public/assets/index-CZLmmCrQ.js`.
   - Residual dependency debt: `npm ci` reported 6 audit vulnerabilities (1 low, 4 moderate, 1 high). This is pre-existing dependency debt, not introduced by the progression patch.
 
+Deployment:
+
+- Commit: `02cb4ed Restore legacy marathon progression gates`
+- Command: `./scripts/deploy.sh 02cb4ed`
+- Result: passed.
+- Image: `localhost:5000/marathon:02cb4ed`
+- Running pod: `marathon-66fc68c75c-hlv2j`, `1/1 Running`, `0` restarts at verification time.
+- Readiness: passed; observed `13` active marathons, `377` steps, `377` steps with content.
+- User-flow smoke: passed.
+- Production smoke: passed; synthetic flow submitted `29` steps, finished participant, confirmed payment/gift, created winner/NPS rows, and printed only masked identifiers.
+
+Post-deploy German participant schedule:
+
+- Command: read-only schedule query inside deployed pod using `MeService.buildSchedule()`.
+- Participant: `fc2f9975-9151-49df-9297-4228d7d2891b`
+- Pod: `marathon-66fc68c75c-hlv2j`
+- Result:
+  - Sequences `1-6`: `completed`, `can_open=true`, no block reason.
+  - Sequence `7`: `active`, `can_open=true`, no block reason.
+  - Sequence `8`: `active`, `can_open=true`, no block reason.
+  - Sequence `9`: `inactive`, `can_open=false`, `block_reason=previous_report_pending`.
+- Live HTML route: `https://marathon.alfares.cz/profile/fc2f9975-9151-49df-9297-4228d7d2891b`
+  - Served bundle: `/assets/index-CZLmmCrQ.js`.
+
 ## Remaining Risk
 
-[MISSING: deployment and post-deploy route evidence]
+The German participant currently has two already-opened incomplete submissions, sequences `7` and `8`. The fix keeps both reachable because they already exist as opened work, while keeping never-opened sequence `9` locked until previous reports are completed. No participant data was mutated by this repair.
