@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { answerPartsFromValue, ensureTerminalPunctuation, fieldUsesLongAnswer } from "./assignmentBlockNormalization";
+import { answerPartsFromValue, ensureTerminalPunctuation, fieldUsesLongAnswer, isPracticeExerciseField, practiceExerciseDisplayLabel } from "./assignmentBlockNormalization";
 import type { AnswerValue, FieldBlock } from "./assignmentRendererTypes";
 
 type AssignmentFieldRendererProps = {
@@ -86,8 +86,9 @@ export function AssignmentFieldRenderer({ block, value, readOnly, validationErro
   const correctAnswers = block.correctAnswers?.map(normalizeAnswer).filter(Boolean) || [];
   const hasAnswerCheck = correctAnswers.length > 0 && (block.fieldType === "text" || block.fieldType === "textarea");
   const hintText = block.hint || correctAnswers.join(", ");
+  const isPracticeExercise = isPracticeExerciseField(block);
   const useLongAnswer = fieldUsesLongAnswer(block);
-  const displayLabel = ensureTerminalPunctuation(block.label);
+  const displayLabel = ensureTerminalPunctuation(practiceExerciseDisplayLabel(block));
   const inlineBlank = !useLongAnswer && block.fieldType === "text" ? splitInlineBlank(displayLabel) : null;
   const inlineBlankCount = inlineBlank?.blanks.length || 0;
   const inlineValues = inlineBlank ? getEditableTextParts(value, inlineBlankCount) : [];
@@ -135,7 +136,7 @@ export function AssignmentFieldRenderer({ block, value, readOnly, validationErro
   };
 
   const validationErrorId = `assignment-field-error-${block.id || block.name}`;
-  const blockClassName = `step-question-block step-question-block--${block.fieldType}${useLongAnswer ? " step-question-block--long-answer" : ""}${answerIsWrong ? " step-question-block-error" : ""}${validationError ? " step-question-block-required-error" : ""}`;
+  const blockClassName = `step-question-block step-question-block--${block.fieldType}${isPracticeExercise ? " step-question-block--practice-exercise" : ""}${useLongAnswer ? " step-question-block--long-answer" : ""}${answerIsWrong ? " step-question-block-error" : ""}${validationError ? " step-question-block-required-error" : ""}`;
   const textInput = (
     <input
       type="text"
@@ -194,7 +195,7 @@ export function AssignmentFieldRenderer({ block, value, readOnly, validationErro
             ))}
           </span>
           {inlineBlank.translation && <span className="step-question-label-translation"> {inlineBlank.translation}</span>}
-          {!block.required && <span className="step-question-label-optional">Необязательное поле</span>}
+          {!block.required && !isPracticeExercise && <span className="step-question-label-optional">Необязательное поле</span>}
         </div>
         {validationError && <div id={validationErrorId} className="step-required-field-message" role="alert">{validationError}</div>}
         {answerIsWrong && (
@@ -214,7 +215,7 @@ export function AssignmentFieldRenderer({ block, value, readOnly, validationErro
     <fieldset className={blockClassName}>
       <legend>
         {renderTranslatedLabel(displayLabel)}
-        {!block.required && <span className="step-question-label-optional">Необязательное поле</span>}
+        {!block.required && !isPracticeExercise && <span className="step-question-label-optional">Необязательное поле</span>}
       </legend>
       {block.fieldType === "radio" || block.fieldType === "checkbox" ? (
         <div className="step-choice-list">

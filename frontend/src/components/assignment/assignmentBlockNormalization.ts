@@ -90,6 +90,19 @@ export function fieldInlineBlankCount(block: FieldBlock) {
   return block.fieldType === "text" ? inlineBlankCount(block.label) : 0;
 }
 
+export function isPracticeExerciseField(block: FieldBlock) {
+  return block.fieldType === "text"
+    && block.required === false
+    && /^([a-z]+)?ex\d+$/i.test(block.name)
+    && fieldInlineBlankCount(block) > 0
+    && Boolean(block.correctAnswers?.length);
+}
+
+export function practiceExerciseDisplayLabel(block: FieldBlock) {
+  if (!isPracticeExerciseField(block)) return block.label;
+  return block.label.replace(/^\s*\d+[.)]?\s*/, "").trim();
+}
+
 function splitStoredAnswer(value: string, expectedCount: number) {
   const cleanValue = value.trim();
   if (!cleanValue) return [];
@@ -148,6 +161,7 @@ export function composeReport(blocks: AssignmentBlock[], answers: Answers, level
   return blocks
     .filter((block): block is FieldBlock => isFieldBlock(block) && branchVisible(block.branch, level))
     .map((block) => {
+      if (isPracticeExerciseField(block)) return "";
       const value = displayValue(block, answers[block.name]);
       const cleanValue = value.trim();
       if (!cleanValue) return "";
@@ -162,7 +176,7 @@ export function payloadFromAnswers(blocks: AssignmentBlock[], answers: Answers, 
   const payload: Record<string, unknown> = {};
   blocks.forEach((block) => {
     if (isFieldBlock(block)) {
-      if (!branchVisible(block.branch, level)) return;
+      if (isPracticeExerciseField(block) || !branchVisible(block.branch, level)) return;
       const value = answers[block.name];
       if (Array.isArray(value)) {
         const cleanParts = value.map((item) => item.trim()).filter(Boolean);
@@ -252,6 +266,26 @@ function shouldMergeTextParagraph(previous: TextBlock, current: TextBlock) {
   return false;
 }
 
+function splitLinkedNumberedHeading(block: TextBlock): TextBlock[] | null {
+  const links = block.links || [];
+  if (!links.length) return null;
+
+  const firstLink = links
+    .map((link) => ({ ...link, index: block.text.indexOf(link.text) }))
+    .filter((link) => link.index > 0)
+    .sort((a, b) => a.index - b.index)[0];
+  if (!firstLink) return null;
+
+  const headingText = block.text.slice(0, firstLink.index).trim();
+  const paragraphText = block.text.slice(firstLink.index).trim();
+  if (!isNumberedHeading(headingText) || !paragraphText) return null;
+
+  return [
+    { ...block, id: `${block.id}-heading`, text: headingText, links: undefined, style: "heading" },
+    { ...block, id: `${block.id}-body`, text: paragraphText, links },
+  ];
+}
+
 function mergeAdjacentTextParagraphs(blocks: AssignmentBlock[]): AssignmentBlock[] {
   const merged: AssignmentBlock[] = [];
 
@@ -300,6 +334,14 @@ export function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
 
   for (let index = 0; index < blocks.length; index += 1) {
     const block = blocks[index];
+    if (block.type === "text") {
+      const splitBlocks = splitLinkedNumberedHeading(block);
+      if (splitBlocks) {
+        decorated.push(...splitBlocks);
+        continue;
+      }
+    }
+
     if (block.type === "text" && isNumberedHeading(block.text)) {
       decorated.push({ ...block, style: "heading" });
       continue;
