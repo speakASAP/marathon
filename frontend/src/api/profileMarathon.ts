@@ -78,69 +78,6 @@ export interface NpsSurvey {
   submitted_at: string;
 }
 
-export interface ProgressReport {
-  generatedAt: string;
-  participant: {
-    id: string;
-    name: string | null;
-    email: string | null;
-    active: boolean;
-    registeredAt: string;
-    finishedAt: string | null;
-  };
-  marathon: {
-    id: string;
-    title: string;
-    languageCode: string;
-    slug: string;
-  };
-  access: {
-    paymentStatus: string;
-    paymentRequired: boolean;
-    paid: boolean;
-    bonusDaysLeft: number;
-    bonusDaysTotal: number;
-  };
-  summary: {
-    totalSteps: number;
-    completedSteps: number;
-    checkedSteps: number;
-    activeSteps: number;
-    lockedSteps: number;
-    lateSteps: number;
-    trialSteps: number;
-    gatedSteps: number;
-    completionPercent: number;
-    penaltyReports: number;
-    paymentAttempts: number;
-  };
-  currentStep: {
-    title: string;
-    state: string;
-    isLate: boolean;
-    blockReason?: string | null;
-  } | null;
-  steps: Array<{
-    stepId: string;
-    sequence: number;
-    title: string;
-    state: string;
-    isTrialStep: boolean;
-    isLate: boolean;
-    submittedAt: string | null;
-    blockReason?: string | null;
-  }>;
-  paymentAttempts: Array<{
-    orderId: string;
-    status: string;
-    amount: string;
-    currency: string;
-    paymentMethod: string;
-    createdAt: string;
-    confirmedAt: string | null;
-  }>;
-}
-
 interface CheckoutPayload {
   redirectUrl?: unknown;
   payment?: { data?: { redirectUrl?: unknown }; redirectUrl?: unknown };
@@ -252,17 +189,6 @@ export async function reconcilePaymentStatus(marathonerId: string): Promise<{ st
     throw new Error(body.message || body.error || `Payment reconciliation failed (${response.status})`);
   }
   return body;
-}
-
-export async function fetchProgressReport(marathonerId: string): Promise<ProgressReport> {
-  const response = await authFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/progress-report`);
-  if (response.status === 401) throw new MarathonAuthRequiredError();
-
-  const body = await readJsonBody<{ message?: string; error?: string }>(response);
-  if (!response.ok) {
-    throw new Error(body.message || body.error || `Progress report failed (${response.status})`);
-  }
-  return body as ProgressReport;
 }
 
 export async function saveNpsSurvey(marathonerId: string, score: number, comment: string): Promise<NpsSurvey> {

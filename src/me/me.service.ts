@@ -16,6 +16,32 @@ export type Answer = {
 
 export type MarathonMedal = 'gold' | 'silver' | 'bronze';
 
+export type MyMarathonCertificate = {
+  id: string;
+  participantName: string;
+  participantEmail: string | null;
+  marathonTitle: string;
+  languageCode: string;
+  medal: MarathonMedal;
+  finishedAt: string;
+  issuedAt: string;
+  title: string;
+  shareText: string;
+  shareUrlHint: string;
+  downloadUrlHint: string;
+  imageUrlHint: string;
+  generatedOnRead: true;
+};
+
+export type MyMarathonPrize = {
+  id: string;
+  kind: certificate | medal | discount | bonus;
+  title: string;
+  description: string;
+  status: earned | available;
+  urlHint: string | null;
+};
+
 export type MyMarathon = {
   title: string;
   languageCode: string;
@@ -32,6 +58,8 @@ export type MyMarathon = {
   answers: Answer[];
   finished_at: string | null;
   medal: MarathonMedal | null;
+  certificate: MyMarathonCertificate | null;
+  prizes: MyMarathonPrize[];
   nps_survey: MyMarathonSurvey | null;
   can_generate_progress_report: boolean;
 };
@@ -302,7 +330,12 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    return Array.from(participantByLanguage.values()).map((participant) => this.mapToMyMarathon(participant));
+    const reconciledParticipants = [];
+    for (const participant of participantByLanguage.values()) {
+      reconciledParticipants.push(await this.reconcileCompletedParticipant(participant));
+    }
+
+    return reconciledParticipants.map((participant) => this.mapToMyMarathon(participant));
   }
 
   async getMarathonById(userId: string, marathonerId: string): Promise<MyMarathon | null> {
@@ -365,6 +398,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     }
 
     participant = await this.reconcileMissedDeadlines(participant);
+    participant = await this.reconcileCompletedParticipant(participant);
     return this.mapToMyMarathon(participant);
   }
 
@@ -782,6 +816,110 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+  private async reconcileCompletedParticipant(participant: any): Promise<any> {
+    if (!this.hasCompletedAllSteps(participant, participant.marathon.steps)) {
+      return participant;
+    }
+
+    const finishedAt = participant.finishedAt || this.resolveFinishedAt(participant);
+    let current = participant;
+    if (participant.active || !participant.finishedAt) {
+      current = await this.prisma.marathonParticipant.update({
+        where: { id: participant.id },
+        data: {
+          active: false,
+          finishedAt,
+        },
+        include: this.participantDetailInclude(),
+      });
+    }
+
+    if (current.userId) {
+      await this.recomputeWinnerMedals(current.userId);
+    }
+
+    return current;
+  }
+
+  private resolveFinishedAt(participant: any): Date {
+    const completedAtValues = participant.submissions
+      .filter((submission: any) => submission.isCompleted)
+      .map((submission: any) => submission.updatedAt || submission.createdAt)
+      .filter(Boolean)
+      .map((value: Date) => value.getTime());
+
+    if (completedAtValues.length === 0) {
+      return new Date();
+    }
+
+    return new Date(Math.max(...completedAtValues));
+  }
+
+  private async recomputeWinnerMedals(userId: string): Promise<void> {
+    const participants = await this.prisma.marathonParticipant.findMany({
+      where: {
+        userId,
+        finishedAt: { not: null },
+      },
+      include: this.participantDetailInclude(),
+    });
+
+    const medals = { goldCount: 0, silverCount: 0, bronzeCount: 0 };
+
+    for (const participant of participants) {
+      const medal = this.getParticipantMedal(participant, participant.marathon.steps);
+      if (medal === 'gold') medals.goldCount += 1;
+      if (medal === 'silver') medals.silverCount += 1;
+      if (medal === 'bronze') medals.bronzeCount += 1;
+    }
+
+    const existing = await this.prisma.marathonWinner.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (existing) {
+      await this.prisma.marathonWinner.update({
+        where: { id: existing.id },
+        data: medals,
+      });
+      return;
+    }
+
+    if (medals.goldCount + medals.silverCount + medals.bronzeCount === 0) {
+      return;
+    }
+
+    await this.prisma.marathonWinner.create({
+      data: {
+        userId,
+        ...medals,
+      },
+    });
+  }
+
+  private participantDetailInclude() {
+    return {
+      marathon: {
+        include: {
+          steps: {
+            orderBy: { sequence: 'asc' as const },
+          },
+        },
+      },
+      submissions: {
+        include: {
+          step: true,
+        },
+        orderBy: {
+          createdAt: 'desc' as const,
+        },
+      },
+      surveyResponse: true,
+      penaltyReports: true,
+    };
+  }
+
   private findNextUncompletedStep(participant: any): any | null {
     const completedStepIds = new Set(
       participant.submissions
@@ -805,13 +943,19 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     const latestOpenSubmissionStep = latestSubmission && latestStep
       ? answers.find((answer) => answer.stepId === latestSubmission.stepId && answer.can_open && answer.state !== 'completed' && answer.state !== 'done')
       : null;
-    const currentStep =
+    const isFinished = Boolean(participant.finishedAt);
+    const currentStep = isFinished
+      ? null
+      :
       latestOpenSubmissionStep ||
       answers.find((answer) => answer.can_open && answer.state === 'active') ||
       answers.find((answer) => answer.can_open && answer.state !== 'completed' && answer.state !== 'done') ||
       (latestSubmission && latestStep ? this.mapToAnswer(latestSubmission, latestStep, participant) : null);
 
     const canChangeReportTime = participant.active && !this.isWinner(participant, steps);
+    const medal = this.getParticipantMedal(participant, steps);
+    const finishedAt = participant.finishedAt ? participant.finishedAt.toISOString() : null;
+    const certificate = medal && finishedAt ? this.buildCertificatePayload(participant, marathon, medal, finishedAt) : null;
 
     return {
       title: marathon.title,
@@ -827,11 +971,95 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       report_time_label: participant.reportHour ? this.formatReportTime(participant.reportHour) : null,
       current_step: currentStep,
       answers,
-      finished_at: participant.finishedAt ? participant.finishedAt.toISOString() : null,
-      medal: this.getParticipantMedal(participant, steps),
+      finished_at: finishedAt,
+      medal,
+      certificate,
+      prizes: certificate ? this.buildPrizePayload(participant, marathon, medal, certificate) : [],
       nps_survey: participant.surveyResponse ? this.mapSurvey(participant.surveyResponse) : null,
       can_generate_progress_report: this.canGenerateProgressReport(participant),
     };
+  }
+
+
+  private buildCertificatePayload(participant: any, marathon: any, medal: MarathonMedal, finishedAt: string): MyMarathonCertificate {
+    const participantName = this.resolveParticipantDisplayName(participant);
+    const awardsPath = `/profile/${encodeURIComponent(participant.id)}/awards`;
+    const title = `${this.formatMedalLabel(medal)} сертификат финалиста`;
+
+    return {
+      id: `marathon-certificate:${participant.id}:${marathon.id}:${medal}`,
+      participantName,
+      participantEmail: participant.email || null,
+      marathonTitle: marathon.title,
+      languageCode: marathon.languageCode,
+      medal,
+      finishedAt,
+      issuedAt: finishedAt,
+      title,
+      shareText: `${participantName} завершил(а) ${marathon.title} и получил(а) ${title.toLowerCase()}.`,
+      shareUrlHint: awardsPath,
+      downloadUrlHint: `${awardsPath}?download=certificate`,
+      imageUrlHint: `/img/certificates/${medal}_en.png`,
+      generatedOnRead: true,
+    };
+  }
+
+  private buildPrizePayload(
+    participant: any,
+    marathon: any,
+    medal: MarathonMedal,
+    certificate: MyMarathonCertificate,
+  ): MyMarathonPrize[] {
+    const awardsPath = certificate.shareUrlHint;
+    const discountPercent = medal === bronze ? 5 : 10;
+    return [
+      {
+        id: `${certificate.id}:certificate`,
+        kind: certificate,
+        title: certificate.title,
+        description: `Именной сертификат для ${certificate.participantName} по марафону ${marathon.title}.`,
+        status: earned,
+        urlHint: certificate.downloadUrlHint,
+      },
+      {
+        id: `${certificate.id}:medal`,
+        kind: medal,
+        title: `${this.formatMedalLabel(medal)} медаль`,
+        description: `Медаль финалиста за завершение марафона ${marathon.title}.`,
+        status: earned,
+        urlHint: awardsPath,
+      },
+      {
+        id: `${certificate.id}:discount`,
+        kind: discount,
+        title: `${discountPercent}% скидка на следующий курс SpeakASAP`,
+        description: Персональный бонус финалиста без хранения PDF или отдельной записи сертификата в базе.,
+        status: available,
+        urlHint: /gift,
+      },
+      {
+        id: `${certificate.id}:share`,
+        kind: bonus,
+        title: Готовый текст для отзыва,
+        description: certificate.shareText,
+        status: available,
+        urlHint: awardsPath,
+      },
+    ];
+  }
+
+  private resolveParticipantDisplayName(participant: any): string {
+    const name = typeof participant.name === string ? participant.name.trim() : ;
+    if (name) return name;
+    const email = typeof participant.email === string ? participant.email.trim() : ;
+    if (email) return email;
+    return Участник марафона;
+  }
+
+  private formatMedalLabel(medal: MarathonMedal): string {
+    if (medal === gold) return Золотой;
+    if (medal === silver) return Серебряный;
+    return Бронзовый;
   }
 
   private mapSurvey(survey: any): MyMarathonSurvey {
@@ -1025,8 +1253,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
   }
 
   private isWinner(participant: any, steps: any[]): boolean {
-    const completedCount = participant.submissions.filter((s: any) => s.isCompleted && s.isChecked).length;
-    return completedCount === steps.length;
+    return this.hasCompletedAllSteps(participant, steps);
   }
 
   private getParticipantMedal(participant: any, steps: any[]): MarathonMedal | null {

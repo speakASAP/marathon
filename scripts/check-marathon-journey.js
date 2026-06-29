@@ -654,8 +654,10 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   if (!js.includes('navbar-cta') || !js.includes('navbar-cta-closed')) {
     throw new Error('Built frontend bundle does not use readiness-aware registration label for global navigation.');
   }
-  if (!js.includes('/progress-report') || !js.includes('Отчет прогресса') || !js.includes('Скачать JSON')) {
-    throw new Error('Built frontend bundle does not include participant progress report UI.');
+  for (const forbiddenProfileReportMarker of ['/progress-report', 'Отчет прогресса', 'Скачать JSON']) {
+    if (js.includes(forbiddenProfileReportMarker)) {
+      throw new Error(`Built frontend bundle still includes participant progress report UI marker: ${forbiddenProfileReportMarker}`);
+    }
   }
   if (!js.includes('/nps') || !js.includes('Отзыв о марафоне') || !js.includes('Сохранить отзыв')) {
     throw new Error('Built frontend bundle does not include post-marathon NPS feedback UI.');
@@ -701,7 +703,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   addCheck(report, 'pass', 'gift-readiness-loading-state', 'Gift redemption entry stays hidden until readiness status is known.');
   addCheck(report, 'pass', 'gift-missing-gates-ui', 'Gift redemption closed-catalog panel includes exact missing launch gates from readiness data.');
   addCheck(report, 'pass', 'nav-readiness-error-state', 'Global registration navigation distinguishes readiness load failures from closed-catalog state.');
-  addCheck(report, 'pass', 'progress-report-ui', 'Profile detail frontend includes authenticated participant progress report generation and JSON download UI.');
+  addCheck(report, 'pass', 'progress-report-ui-removed', 'Profile detail frontend omits participant progress report generation and JSON download UI.');
   addCheck(report, 'pass', 'nps-survey-ui', 'Profile detail frontend includes completed-marathon NPS feedback UI.');
 }
 
@@ -878,10 +880,6 @@ async function checkPublicRoutes(report, options) {
     'frontend-step-return',
     'Direct assignment central Auth return route serves the frontend shell.',
   );
-
-  const unauthenticatedReport = await request(report, '/api/v1/me/marathons/smoke-participant/progress-report');
-  assertResponse(unauthenticatedReport, 401, 'unauthenticated progress report');
-  addCheck(report, 'pass', 'progress-report-auth-guard', 'Participant progress report endpoint requires authentication.');
 
   const unauthenticatedNps = await request(report, '/api/v1/me/marathons/smoke-participant/nps', {
     method: 'POST',

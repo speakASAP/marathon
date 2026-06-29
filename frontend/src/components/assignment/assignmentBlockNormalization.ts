@@ -1,4 +1,4 @@
-import type { AssignmentBlock, AssignmentBranch } from "../../api/assignmentMarathon";
+import type { AssignmentBlock, AssignmentBranch, AssignmentInlineLink, AssignmentListItem } from "../../api/assignmentMarathon";
 import type { AnswerValue, Answers, FieldBlock, Level, TextBlock } from "./assignmentRendererTypes";
 
 export function normalizeText(value: string) {
@@ -360,6 +360,144 @@ function compactReadingRules(items: string[]) {
     .filter(Boolean);
 }
 
+function normalizeListItem(item: AssignmentListItem): AssignmentListItem {
+  if (typeof item === "string") return ensureTerminalPunctuation(item);
+  return { ...item, ...(item.text ? { text: ensureTerminalPunctuation(item.text) } : {}) };
+}
+
+function isMarathonTopicsIntro(text: string) {
+  return /^Мы с вами за время марафона прошли следующие темы:?$/i.test(text.trim());
+}
+
+function isLegacyTopicListStop(text: string) {
+  return /^(?:Поверьте|Я призываю|Тем не менее|И все\.|Все остальное|Что я еще|Давайте вернемся|На сегодня все|Если не реализовалась|Все\. Завтра)/i.test(text.trim());
+}
+
+function isLegacyTopicListItem(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed || isLegacyTopicListStop(trimmed) || isNumberedHeading(trimmed)) return false;
+  if (/^(?:Видео:|Вопрос:)/i.test(trimmed)) return false;
+  return /(?:[:—-]|[.!?)]$)/u.test(trimmed);
+}
+
+function isBenefitIntro(text: string) {
+  return /^Поверьте, этого более чем достаточно, чтобы:?$/i.test(text.trim());
+}
+
+function splitBenefitItems(text: string) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return [];
+
+  const firstGermanSplit = normalized.match(/^(.+?\bязыке)\s+(говорить\b.+)$/iu);
+  const prepared = (firstGermanSplit ? `${firstGermanSplit[1]} || ${firstGermanSplit[2]}` : normalized)
+    .replace(/\s+(самостоятельно\s+набирать\b)/iu, " || $1")
+    .replace(/\s+(двигаться\s+по\b)/iu, " || $1")
+    .replace(/\s+(и,\s*главное,?\b)/iu, " || $1");
+
+  return prepared.split(/\s*\|\|\s*/).map((item) => item.trim()).filter(Boolean);
+}
+
+function isBenefitListItem(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed || isLegacyTopicListStop(trimmed) || isNumberedHeading(trimmed)) return false;
+  return /^(?:получить|говорить|самостоятельно|узнавать|двигаться|и,\s*главное)/i.test(trimmed);
+}
+
+function shouldAppendLegacyListContinuation(current: string, next: string) {
+  const left = current.trim();
+  const right = next.trim();
+  if (!left || !right || isLegacyTopicListStop(right) || isNumberedHeading(right)) return false;
+  if (/^(?:Видео:|Вопрос:)/i.test(right)) return false;
+  if (/^[-–—]/u.test(right)) return true;
+  if (/:$/.test(left)) return true;
+  return !hasTerminalPunctuation(left) && right.length <= 180 && /^[а-яёa-z“"«]/iu.test(right);
+}
+
+function collectLegacyListItems(blocks: AssignmentBlock[], start: number, isItem: (text: string) => boolean) {
+  const items: string[] = [];
+  let cursor = start;
+  while (cursor < blocks.length) {
+    const candidate = blocks[cursor];
+    if (candidate.type !== "text" || !isItem(candidate.text)) break;
+
+    let item = candidate.text;
+    cursor += 1;
+    while (cursor < blocks.length) {
+      const next = blocks[cursor];
+      if (next.type !== "text" || !shouldAppendLegacyListContinuation(item, next.text)) break;
+      item = `${item.trim()} ${next.text.trim()}`;
+      cursor += 1;
+    }
+    items.push(item);
+  }
+  return { items, cursor };
+}
+
+function collectBenefitListItems(blocks: AssignmentBlock[], start: number) {
+  const items: string[] = [];
+  let cursor = start;
+  while (cursor < blocks.length) {
+    const candidate = blocks[cursor];
+    if (candidate.type !== "text" || !isBenefitListItem(candidate.text)) break;
+    for (const item of splitBenefitItems(candidate.text)) {
+      if (/^ПОЛЬЗОВАТЬСЯ\b/u.test(item) && items.length) {
+        items[items.length - 1] = `${items[items.length - 1].trim()} ${item}`;
+      } else {
+        items.push(item);
+      }
+    }
+    cursor += 1;
+  }
+  return { items, cursor };
+}
+
+function germanAdjectiveLead(text: string) {
+  const match = text.match(/^(Прилагательные в немецком языке\.[\s\S]+?составит):\s*(?:Здесь[\s\S]*)?$/u);
+  return match?.[1]?.trim() || "";
+}
+
+function isGermanAdjectiveFollowup(text: string) {
+  return /^—\s+если\s+/u.test(text.trim());
+}
+
+function firstLinkByHref(links: AssignmentInlineLink[] | undefined, hrefPart: string): AssignmentInlineLink | undefined {
+  return links?.find((link) => link.href.includes(hrefPart));
+}
+
+function germanAdjectiveListItems(block: TextBlock, next: TextBlock | undefined, afterNext: TextBlock | undefined): AssignmentListItem[] | null {
+  const lead = germanAdjectiveLead(block.text);
+  if (!lead || !next || !afterNext || !isGermanAdjectiveFollowup(next.text)) return null;
+
+  const definiteLink = firstLinkByHref(block.links, "prilagatelnoe-posle-opredelennogo-artiklya");
+  const indefiniteLink = firstLinkByHref(block.links, "prilagatelnoe-posle-neopredelennogo-artiklya")
+    || firstLinkByHref(next.links, "prilagatelnoe-posle-neopredelennogo-artiklya");
+  const zeroLink = firstLinkByHref(next.links, "prilagatelnoe-posle-nulevogo-artiklya")
+    || firstLinkByHref(afterNext.links, "prilagatelnoe-posle-nulevogo-artiklya");
+
+  return [
+    {
+      text: "Здесь и видео, и упражнения, если у нас прилагательное стоит после определенного артикля",
+      ...(definiteLink ? { links: [{ ...definiteLink, text: "Здесь" }] } : {}),
+    },
+    {
+      text: "Здесь — если прилагательное стоит после неопределенного артикля",
+      ...(indefiniteLink ? { links: [{ ...indefiniteLink, text: "Здесь" }] } : {}),
+    },
+    {
+      text: "Здесь — если вообще нет никакого артикля. Если хорошо проработаете ссылку выше, то тут вообще ничего учить не нужно будет.",
+      ...(zeroLink ? { links: [{ ...zeroLink, text: "Здесь" }] } : {}),
+    },
+  ];
+}
+
+function isFinalGoalBookReminder(text: string) {
+  return /^И тут я еще раз хочу обратиться к тем, кто не скачал книгу Джон Кэхо/i.test(text.trim());
+}
+
+function isFinalMarathonFeedbackIntro(text: string) {
+  return /^Нам очень интересно все, что происходило с вами за это время, а именно:?$/i.test(text.trim());
+}
+
 function ensureAtLeastOneRequiredField(blocks: AssignmentBlock[]): AssignmentBlock[] {
   const firstFieldIndex = blocks.findIndex((block) => block.type === "field");
   if (firstFieldIndex < 0) return blocks;
@@ -381,6 +519,88 @@ export function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
         decorated.push(...splitBlocks);
         continue;
       }
+    }
+
+    if (block.type === "text" && isMarathonTopicsIntro(block.text)) {
+      const { items, cursor } = collectLegacyListItems(blocks, index + 1, isLegacyTopicListItem);
+
+      if (items.length > 1) {
+        decorated.push(block);
+        decorated.push({
+          id: `${block.id}-legacy-topics`,
+          type: "list",
+          items,
+          ...(block.branch ? { branch: block.branch } : {}),
+        });
+        index = cursor - 1;
+        continue;
+      }
+    }
+
+    if (block.type === "text" && isBenefitIntro(block.text)) {
+      const { items, cursor } = collectBenefitListItems(blocks, index + 1);
+
+      if (items.length > 1) {
+        decorated.push(block);
+        decorated.push({
+          id: `${block.id}-legacy-benefits`,
+          type: "list",
+          items,
+          ...(block.branch ? { branch: block.branch } : {}),
+        });
+        index = cursor - 1;
+        continue;
+      }
+    }
+
+    if (block.type === "text") {
+      const next = blocks[index + 1];
+      const afterNext = blocks[index + 2];
+      const items = germanAdjectiveListItems(
+        block,
+        next?.type === "text" ? next : undefined,
+        afterNext?.type === "text" ? afterNext : undefined,
+      );
+      const lead = germanAdjectiveLead(block.text);
+      if (items && lead) {
+        decorated.push({ ...block, text: lead, links: undefined });
+        decorated.push({ id: `${block.id}-german-adjective-links`, type: "list", items });
+        index += 2;
+        continue;
+      }
+    }
+
+    if (block.type === "text" && isFinalGoalBookReminder(block.text)) {
+      decorated.push({
+        id: `${block.id}-book-reminder`,
+        type: "quote",
+        text: "Если вы еще не скачали книгу Джона Кэхо \"Подсознание может все\", сделайте это сейчас.",
+        ...(block.branch ? { branch: block.branch } : {}),
+      });
+      decorated.push({
+        ...block,
+        id: `${block.id}-book-note`,
+        text: "Прочитайте ее, и смысл этого задания станет понятнее.",
+        keepSeparate: true,
+      });
+      continue;
+    }
+
+    if (block.type === "text" && isFinalMarathonFeedbackIntro(block.text)) {
+      decorated.push({
+        id: `${block.id}-feedback-topics`,
+        type: "list",
+        title: "Нам очень интересно, что происходило с вами за это время:",
+        items: [
+          "каким стало ваше состояние после марафона",
+          "какие эмоции и чувства он вызвал",
+          "что изменилось в вашей жизни, знаниях и привычках",
+          "что было самым сложным и что помогало идти дальше",
+          "какой отзыв, благодарность или пожелание вы хотите оставить",
+        ],
+        ...(block.branch ? { branch: block.branch } : {}),
+      });
+      continue;
     }
 
     if (block.type === "text" && isNumberedHeading(block.text)) {
@@ -516,7 +736,7 @@ export function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
       return {
         ...block,
         ...(block.title ? { title: ensureTerminalPunctuation(block.title) } : {}),
-        items: block.items.map(ensureTerminalPunctuation),
+        items: block.items.map(normalizeListItem),
       };
     }
     if (block.type === "knownWords") return { ...block, label: ensureTerminalPunctuation(block.label || "Текст для выделения знакомых слов") };

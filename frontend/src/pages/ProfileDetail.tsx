@@ -7,17 +7,34 @@ import {
   MarathonNotFoundError,
   createPaymentCheckout,
   fetchMyMarathon,
-  fetchProgressReport,
   reconcilePaymentStatus,
   saveNpsSurvey,
   type Answer,
   type PaymentMethod,
   type MyMarathon,
-  type ProgressReport,
 } from '../api/profileMarathon';
 import { stripHeadingTerminalPeriod } from '../components/assignment/assignmentBlockNormalization';
 
 type PaymentReturnState = 'success' | 'cancelled' | null;
+type MedalKind = 'gold' | 'silver' | 'bronze';
+
+const MEDAL_LABELS: Record<MedalKind, { title: string; prize: string; detail: string }> = {
+  gold: {
+    title: 'Золотой финалист',
+    prize: 'Ваш приз: золотая медаль',
+    detail: 'Марафон завершен без потери штрафного круга и бонусных дней.',
+  },
+  silver: {
+    title: 'Серебряный финалист',
+    prize: 'Ваш приз: серебряная медаль',
+    detail: 'Марафон завершен с сохраненными бонусными днями.',
+  },
+  bronze: {
+    title: 'Бронзовый финалист',
+    prize: 'Ваш приз: бронзовая медаль',
+    detail: 'Марафон завершен. Приз зафиксирован в вашем профиле.',
+  },
+};
 
 const PAYMENT_METHOD_OPTIONS: Array<{ value: PaymentMethod; label: string; detail: string; disabled?: boolean }> = [
   { value: 'paypal', label: 'Оплата через аккаунт PayPal', detail: 'Оплата через аккаунт PayPal.' },
@@ -66,6 +83,14 @@ function getStepMeta(answer: Answer) {
   return `${answer.is_late ? 'Поздно. ' : ''}Срок: ${formatDateTime(answer.stop)}.`;
 }
 
+function getStepStatusText(answer: Answer) {
+  const label = getStateLabel(answer);
+  const meta = getStepMeta(answer);
+  return label === 'Поздно' && meta.startsWith('Поздно.')
+    ? meta
+    : `${label} · ${meta}`;
+}
+
 /**
  * My marathon detail: GET /api/v1/me/marathons/:marathonerId (Bearer).
  * Shows current step, progress, link to step page.
@@ -82,9 +107,6 @@ export default function ProfileDetail() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paypal');
   const [paymentReturn, setPaymentReturn] = useState<PaymentReturnState>(null);
   const [paymentStatusError, setPaymentStatusError] = useState('');
-  const [report, setReport] = useState<ProgressReport | null>(null);
-  const [reportLoading, setReportLoading] = useState(false);
-  const [reportError, setReportError] = useState('');
   const [npsScore, setNpsScore] = useState<number | null>(null);
   const [npsComment, setNpsComment] = useState('');
   const [npsSaving, setNpsSaving] = useState(false);
@@ -226,8 +248,8 @@ export default function ProfileDetail() {
   const current = data.current_step;
   const completedCount = data.answers.filter((answer) => answer.state === 'done' || answer.state === 'completed' || answer.state === 'checked').length;
   const progressPct = data.answers.length ? Math.round((completedCount / data.answers.length) * 100) : 0;
-  const canGenerateProgressReport = !data.payment_required && data.can_generate_progress_report;
   const showBonusDays = data.bonus_total > 0;
+  const medal = data.medal ? MEDAL_LABELS[data.medal] : null;
   const paymentProcessing = paymentReturn === 'success' && data.payment_required;
   const paymentReturnTitle = paymentReturn === 'success'
     ? (paymentProcessing ? 'Платеж обрабатывается' : 'Оплата подтверждена')
@@ -263,34 +285,6 @@ export default function ProfileDetail() {
     } finally {
       setCheckoutLoading(false);
     }
-  };
-
-  const loadProgressReport = async () => {
-    if (!data) return;
-    setReportLoading(true);
-    setReportError('');
-    try {
-      setReport(await fetchProgressReport(data.id));
-    } catch (error) {
-      if (error instanceof MarathonAuthRequiredError) {
-        redirectToLogin(`/profile/${data.id}`);
-        return;
-      }
-      setReportError(error instanceof Error ? error.message : 'Не удалось сформировать отчет прогресса');
-    } finally {
-      setReportLoading(false);
-    }
-  };
-
-  const downloadProgressReport = () => {
-    if (!report) return;
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `marathon-progress-${report.participant.id}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
   };
 
   const submitNps = async (event: FormEvent<HTMLFormElement>) => {
@@ -334,6 +328,29 @@ export default function ProfileDetail() {
           <div className="profile-progress-track"><span style={{ width: `${progressPct}%` }} /></div>
         </div>
       </section>
+      {data.finished_at && (
+        <section className="profile-completion-panel">
+          <div>
+            <p className="profile-completion-kicker">Марафон завершен</p>
+            <h2>{medal?.title || 'Финалист марафона'}</h2>
+            <p>{medal?.detail || `Финиш зафиксирован ${formatDateTime(data.finished_at)}.`}</p>
+          </div>
+          {medal && (
+            <div className={`profile-prize-badge profile-prize-badge-${data.medal}`}>
+              <span className={`medal-badge medal-badge--${data.medal}`}>
+                <span className="medal-badge__medal" aria-hidden="true">
+                  <span className="medal-badge__ribbon" />
+                  <span className="medal-badge__coin">1</span>
+                </span>
+                <span className="medal-badge__label">{medal.prize}</span>
+              </span>
+              <Link to={`/profile/${encodeURIComponent(data.id)}/awards`} className="btn-profile-open">
+                Получить призы
+              </Link>
+            </div>
+          )}
+        </section>
+      )}
       {paymentReturn && (
         <section className={`profile-payment-return profile-payment-return-${paymentReturn}`}>
           <div className="profile-payment-return-copy">
@@ -387,14 +404,12 @@ export default function ProfileDetail() {
           </div>
         </section>
       )}
-      {current && (
+      {current && !data.finished_at && (
         <section className="profile-current">
           <h2>Текущий этап</h2>
           <p><strong>{current.title}</strong></p>
           <p>
-            {getStateLabel(current)}
-            {' · '}
-            {getStepMeta(current)}
+            {getStepStatusText(current)}
           </p>
           <Link to={`/steps/${current.stepId}?marathonerId=${encodeURIComponent(data.id)}`} className="btn-profile-open">
             Открыть задание
@@ -445,45 +460,6 @@ export default function ProfileDetail() {
           </form>
         </section>
       )}
-      {canGenerateProgressReport && (
-      <section className="profile-report-panel">
-        <div className="profile-report-heading">
-          <div>
-            <h2>Отчет прогресса</h2>
-            <p>Сводка по выполненным заданиям, доступу и попыткам оплаты для этого марафона.</p>
-          </div>
-          <div className="profile-payment-actions">
-            <button type="button" className="btn-profile-open" onClick={loadProgressReport} disabled={reportLoading}>
-              {reportLoading ? 'Формируем...' : 'Сформировать отчет'}
-            </button>
-            {report && (
-              <button type="button" className="btn-profile-login" onClick={downloadProgressReport}>
-                Скачать JSON
-              </button>
-            )}
-          </div>
-        </div>
-        {reportError && <p className="ml-error">{reportError}</p>}
-        {report && (
-          <div className="profile-report-summary" aria-live="polite">
-            <div><span>Выполнено</span><strong>{report.summary.completedSteps}/{report.summary.totalSteps}</strong></div>
-            <div><span>Проверено</span><strong>{report.summary.checkedSteps}</strong></div>
-            <div><span>Поздно</span><strong>{report.summary.lateSteps}</strong></div>
-            {report.access.bonusDaysTotal > 0 && (
-              <div><span>Бонусных дней</span><strong>{report.access.bonusDaysLeft}/{report.access.bonusDaysTotal}</strong></div>
-            )}
-            <div><span>Оплата</span><strong>{report.access.paymentRequired ? 'Требуется' : 'Подтверждена'}</strong></div>
-            <div><span>Оплаты</span><strong>{report.summary.paymentAttempts}</strong></div>
-            {report.currentStep && (
-              <div className="profile-report-current">
-                <span>Текущий этап</span>
-                <strong>{report.currentStep.title}</strong>
-              </div>
-            )}
-          </div>
-        )}
-      </section>
-      )}
       <section className="profile-steps">
         <h2>Этапы</h2>
         <ul className="profile-answers">
@@ -497,7 +473,7 @@ export default function ProfileDetail() {
                     <span className="answer-title">{a.title}</span>
                     {!paymentBlocked && <span className="answer-state">{getStateLabel(a)}</span>}
                   </div>
-                  <span className="profile-step-meta">{getStepMeta(a)}</span>
+                  <span className="profile-step-meta">{getStepStatusText(a)}</span>
                 </div>
                 {canOpen && (
                   <Link className="profile-step-action" to={`/steps/${a.stepId}?marathonerId=${encodeURIComponent(data.id)}`}>

@@ -116,6 +116,136 @@ function currentLink(stack) {
 
 const SPEAKASAP_BASE_URL = 'https://speakasap.com';
 
+const LEGACY_RADIOS = {
+  german: [
+    ['http://live.alternativefm.de/afm_128.mp3', 'Rock'],
+    ['https://stream.lokalradio.nrw/444zchk', 'Radio Herne'],
+    ['http://br-mp3-b5aktuell-s.akacast.akamaistream.net/7/773/142694/v1/gnl.akacast.akamaistream.net/br_mp3_b5aktuell_s', 'B5 Aktuell'],
+  ],
+  english: [
+    ['http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio5live_mf_p', 'BBC 5 Live'],
+    ['http://bbcwssc.ic.llnwd.net/stream/bbcwssc_mp1_ws-eieuk', 'BBC World Service'],
+  ],
+  spanish: [['http://radio5.rtveradio.cires21.com/radio5/mp3/icecast.audio', 'RNE Radio 5 Todo Noticias']],
+  french: [['http://direct.franceculture.fr/live/franceculture-midfi.mp3?ID=f9fbk29m84', 'France Culture']],
+  italian: [['http://icestreaming.rai.it/1.mp3', 'Ascoltare']],
+  czech: [
+    ['http://icecast2.play.cz/rockzone128.mp3', 'Rock'],
+    ['http://icecast2.play.cz/croregina128.mp3', 'Pop'],
+    ['http://icecast8.play.cz/radio7-128.mp3', 'Mluvené'],
+  ],
+  turkish: [['http://stream.34bit.net/ar64.mp3', 'Acik Radyo']],
+  portuguese: [
+    ['http://centova.radios.pt:9478/;listen.pls', 'Portuguese'],
+    ['http://transamerica.crossradio.com.br:9100/live.aac', 'Brasil'],
+  ],
+  dutch: [
+    ['http://icecast.omroep.nl/radio2-bb-mp3', 'Radio2.nl'],
+    ['http://icecast.omroep.nl/3fm-bb-mp3', 'NPO 3FM'],
+  ],
+  norwegian: [
+    ['http://lyd.nrk.no/nrk_radio_p1_ostlandssendingen_mp3_l', 'NRK P1'],
+    ['http://lyd.nrk.no/nrk_radio_p2_mp3_m', 'NRK P2'],
+    ['http://lyd.nrk.no/nrk_radio_p3_mp3_m', 'NRK P3'],
+  ],
+  polish: [
+    ['http://stream4.nadaje.com:9230/rwkultura', 'Radio Wroclaw Kultura'],
+    ['http://s5.deb1.scdn.smcloud.net/t050-1.mp3', 'WAWA'],
+  ],
+  swedish: [
+    ['https://http-live.sr.se/p1-mp3-192?type=mp3', 'SR P1'],
+    ['https://http-live.sr.se/p4stockholm-mp3-192', 'SR P4 Stockholm'],
+    ['https://wr13-ice.stream.khz.se/wr13_mp3?platform=web', 'Svenskafavoriter'],
+    ['https://fm02-ice.stream.khz.se/fm02_mp3', 'Bandit Rock'],
+    ['https://fm01-ice.stream.khz.se/fm01_mp3', 'Rix FM'],
+    ['https://live-bauerse-fm.sharp-stream.com/svenskpop_se_aacp', 'Svensk Pop'],
+  ],
+  danish: [
+    ['http://live-icy.gss.dr.dk:8000/A/A03L.mp3', 'DR P1'],
+    ['http://live-icy.gss.dr.dk:8000/A/A02L.mp3', 'DR Nyheder'],
+    ['http://live-icy.gss.dr.dk:8000/A/A05L.mp3', 'DR P3'],
+    ['http://live-icy.gss.dr.dk:8000/A/A29L.mp3', 'DR P6 Beat'],
+  ],
+};
+
+function radioStationsForTag(tagName) {
+  const language = String(tagName || '').replace(/^radio_/, '');
+  return (LEGACY_RADIOS[language] || []).map(([url, label]) => ({ url, label }));
+}
+
+function currentInlineRun(stack) {
+  const marks = [];
+  let tone = '';
+  for (const item of stack) {
+    if (item.mark && !marks.includes(item.mark)) marks.push(item.mark);
+    if (item.tone) tone = item.tone;
+  }
+  const href = currentLink(stack);
+  return { ...(marks.length ? { marks } : {}), ...(tone ? { tone } : {}), ...(href ? { href } : {}) };
+}
+
+function inlineMetaFromTag(tag, attrs) {
+  const classValue = htmlAttr(attrs, 'class');
+  const classes = classValue.split(/\s+/).filter(Boolean);
+  const meta = {};
+  if (tag === 'b' || tag === 'strong') meta.mark = 'strong';
+  if (tag === 'i' || tag === 'em') meta.mark = 'em';
+  if (classes.includes('text-muted')) meta.tone = 'muted';
+  if (classes.includes('text-danger')) meta.tone = 'danger';
+  if (classes.includes('text-alert')) meta.tone = 'alert';
+  return meta;
+}
+
+function pushRichTextBlock(blocks, rawText, branch, runMeta) {
+  const text = normalizeInstructionText(stripHtmlToText(rawText));
+  if (!text) return;
+  if (runMeta?.href && isGenericSettingsLink(text, runMeta.href)) return;
+  const content = [{ text, ...(runMeta?.href ? { href: runMeta.href } : {}), ...(runMeta?.marks ? { marks: runMeta.marks } : {}), ...(runMeta?.tone ? { tone: runMeta.tone } : {}) }];
+  blocks.push({
+    id: `text-${blocks.length}`,
+    type: 'text',
+    text,
+    content,
+    ...(runMeta?.href ? { links: [{ text, href: runMeta.href }] } : {}),
+    ...(branch ? { branch } : {}),
+  });
+}
+
+function blockPlainText(block) {
+  if (!block) return '';
+  if (block.type === 'text') return block.text || '';
+  if (block.type === 'link') return block.text || '';
+  if (block.type === 'video') return `Видео: ${block.code}`;
+  if (block.type === 'audio') return `Аудио: ${block.code}`;
+  if (block.type === 'radio') return `Радио: ${(block.stations || []).map((station) => station.label).join('; ')}`;
+  if (block.type === 'image') return block.alt || block.caption || '';
+  if (block.type === 'knownWords') return [block.label, ...(block.paragraphs || [])].filter(Boolean).join(' ');
+  if (block.type === 'field') return block.label || '';
+  if (block.type === 'list') return (block.items || []).map(listItemPlainText).filter(Boolean).join(' ');
+  return '';
+}
+
+function listItemPlainText(item) {
+  if (typeof item === 'string') return item;
+  return item.text || (item.blocks || []).map(blockPlainText).filter(Boolean).join(' ');
+}
+
+function listItemFromBlocks(blocks) {
+  const normalizedBlocks = normalizeTextBlockSequence(blocks);
+  const textBlocks = normalizedBlocks.filter((block) => block.type === 'text');
+  const otherBlocks = normalizedBlocks.filter((block) => block.type !== 'text');
+  const text = normalizedBlocks.map(blockPlainText).filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  const links = textBlocks.flatMap((block) => block.links || []);
+  const content = textBlocks.flatMap((block) => block.content || []);
+  const item = {};
+  if (text) item.text = text;
+  if (links.length) item.links = links;
+  if (content.length) item.content = content;
+  if (otherBlocks.length) item.blocks = normalizedBlocks;
+  return item;
+}
+
+
 function parseTemplateTagArgs(source) {
   const args = [];
   const pattern = /'([^']*)'|"([^"]*)"|(-?\d+)/g;
@@ -466,6 +596,9 @@ function normalizeTextBlockSequence(blocks) {
       if (Array.isArray(block.links) && block.links.length) {
         previous.links = [...(previous.links || []), ...block.links];
       }
+      if (Array.isArray(block.content) && block.content.length) {
+        previous.content = [...(previous.content || []), ...block.content];
+      }
       continue;
     }
 
@@ -482,10 +615,24 @@ function renderTemplateBlocks(templatePath, fields, templatesRoot, folder) {
   const tokenPattern = /(\{%[\s\S]*?%\}|<\/?[A-Za-z][^>]*>)/g;
   const blocks = [];
   const stack = [];
+  const listStack = [];
   let lastIndex = 0;
   let match;
 
-  const appendText = (text) => pushTextBlock(blocks, text, currentBranch(stack), currentLink(stack));
+  const activeBlocks = () => {
+    const activeList = listStack[listStack.length - 1];
+    return activeList?.currentItem?.blocks || blocks;
+  };
+  const pushBlock = (block) => activeBlocks().push(block);
+  const appendText = (text) => {
+    const branch = currentBranch(stack);
+    const runMeta = currentInlineRun(stack);
+    if (runMeta.href || runMeta.marks || runMeta.tone) {
+      pushRichTextBlock(activeBlocks(), text, branch, runMeta);
+      return;
+    }
+    pushTextBlock(activeBlocks(), text, branch);
+  };
 
   while ((match = tokenPattern.exec(html)) !== null) {
     appendText(html.slice(lastIndex, match.index));
@@ -493,23 +640,27 @@ function renderTemplateBlocks(templatePath, fields, templatesRoot, folder) {
 
     const video = token.match(/^\{%\s*video\s+['"]([^'"]+)['"]\s*%\}$/);
     const audio = token.match(/^\{%\s*audio\s+['"]([^'"]+)['"]\s*%\}$/);
+    const radio = token.match(/^\{%\s*(radio_[A-Za-z0-9_]+)\s*%\}$/);
     const field = token.match(/^\{%\s*render_field\s+form\.([A-Za-z0-9_]+)[^%]*%\}$/);
     const loadAnswer = token.match(/^\{%\s*load_answer\s+([\s\S]*?)%\}$/);
     const branch = currentBranch(stack);
     if (video) {
-      blocks.push({ id: `video-${blocks.length}`, type: 'video', code: video[1], ...(branch ? { branch } : {}) });
+      pushBlock({ id: `video-${activeBlocks().length}`, type: 'video', code: video[1], ...(branch ? { branch } : {}) });
     } else if (audio) {
-      blocks.push({ id: `audio-${blocks.length}`, type: 'audio', code: audio[1], ...(branch ? { branch } : {}) });
+      pushBlock({ id: `audio-${activeBlocks().length}`, type: 'audio', code: audio[1], ...(branch ? { branch } : {}) });
+    } else if (radio) {
+      const stations = radioStationsForTag(radio[1]);
+      if (stations.length) pushBlock({ id: `radio-${activeBlocks().length}`, type: 'radio', stations, ...(branch ? { branch } : {}) });
     } else if (field) {
-      const block = fieldBlock(field[1], fields[field[1]], branch, blocks.length);
-      if (block) blocks.push(block);
+      const block = fieldBlock(field[1], fields[field[1]], branch, activeBlocks().length);
+      if (block) pushBlock(block);
     } else if (loadAnswer) {
       const [sourceForm, sourceName] = parseTemplateTagArgs(loadAnswer[1]);
       const targetName = sourceName ? `known_words${blocks.filter((block) => block.type === 'knownWords').length + 1}` : '';
       const paragraphs = sourceForm && sourceName
         ? extractLegacyKnownWordsParagraphs(templatesRoot, folder, sourceForm, sourceName)
         : [];
-      pushKnownWordsBlock(blocks, paragraphs, branch, targetName, targetName ? `Текст ${targetName.replace(/^known_words/, '')}` : '', sourceForm, sourceName);
+      pushKnownWordsBlock(activeBlocks(), paragraphs, branch, targetName, targetName ? `Текст ${targetName.replace(/^known_words/, '')}` : '', sourceForm, sourceName);
     } else if (token.startsWith('{%')) {
       // Other Django tags control template flow/includes and are not user-visible blocks.
     } else {
@@ -517,6 +668,16 @@ function renderTemplateBlocks(templatePath, fields, templatesRoot, folder) {
       const open = token.match(/^<([A-Za-z0-9-]+)\b([^>]*)>/);
       if (close) {
         const tag = close[1].toLowerCase();
+        if (tag === 'li') {
+          const currentList = listStack[listStack.length - 1];
+          if (currentList?.currentItem) {
+            const item = listItemFromBlocks(currentList.currentItem.blocks);
+            if (item.text || item.blocks?.length) currentList.block.items.push(item);
+            currentList.currentItem = null;
+          }
+        } else if (tag === 'ol' || tag === 'ul') {
+          listStack.pop();
+        }
         for (let i = stack.length - 1; i >= 0; i -= 1) {
           const item = stack.pop();
           if (item.tag === tag) break;
@@ -527,19 +688,33 @@ function renderTemplateBlocks(templatePath, fields, templatesRoot, folder) {
         const classMatch = attrs.match(/class=["']([^"']+)["']/i);
         const hrefMatch = attrs.match(/href=(["'])([\s\S]*?)\1/i);
         if (tag === 'img') {
-          pushImageBlock(blocks, attrs, branch);
+          pushImageBlock(activeBlocks(), attrs, branch);
         } else if (tag === 'legacy-table-row') {
           const fieldName = htmlAttr(attrs, 'data-field');
           const rowPrefix = stripHtmlToText(htmlAttr(attrs, 'data-prefix'));
           const rowSuffix = stripHtmlToText(htmlAttr(attrs, 'data-suffix'));
-          const block = fieldBlock(fieldName, fields[fieldName], branch, blocks.length, {
+          const block = fieldBlock(fieldName, fields[fieldName], branch, activeBlocks().length, {
             rowLayout: 'three-column',
             rowPrefix,
             rowSuffix,
           });
-          if (block) blocks.push(block);
+          if (block) pushBlock(block);
+        } else if (tag === 'ol' || tag === 'ul') {
+          const listBlock = { id: `list-${activeBlocks().length}`, type: 'list', ordered: tag === 'ol', items: [], ...(branch ? { branch } : {}) };
+          pushBlock(listBlock);
+          listStack.push({ block: listBlock, currentItem: null });
+          stack.push({ tag, branch: branchFromClass(classMatch ? classMatch[1] : ''), ...inlineMetaFromTag(tag, attrs) });
+        } else if (tag === 'li') {
+          const currentList = listStack[listStack.length - 1];
+          if (currentList) currentList.currentItem = { blocks: [] };
+          stack.push({ tag, branch: branchFromClass(classMatch ? classMatch[1] : ''), ...inlineMetaFromTag(tag, attrs) });
         } else {
-          stack.push({ tag, branch: branchFromClass(classMatch ? classMatch[1] : ''), href: tag === 'a' && hrefMatch ? resolveTemplateHref(hrefMatch[2]) : null });
+          stack.push({
+            tag,
+            branch: branchFromClass(classMatch ? classMatch[1] : ''),
+            href: tag === 'a' && hrefMatch ? resolveTemplateHref(hrefMatch[2]) : null,
+            ...inlineMetaFromTag(tag, attrs),
+          });
         }
       }
     }
@@ -564,6 +739,8 @@ function blocksToText(blocks) {
     if (block.type === 'text') parts.push(block.text);
     else if (block.type === 'video') parts.push(`Видео: ${block.code}`);
     else if (block.type === 'audio') parts.push(`Аудио: ${block.code}`);
+    else if (block.type === 'radio') parts.push(`Радио: ${(block.stations || []).map((station) => station.label).join('; ')}`);
+    else if (block.type === 'list') parts.push(...(block.items || []).map(listItemPlainText).filter(Boolean));
     else if (block.type === 'link') parts.push(block.text);
     else if (block.type === 'image' && block.alt) parts.push(block.alt);
     else if (block.type === 'knownWords') {

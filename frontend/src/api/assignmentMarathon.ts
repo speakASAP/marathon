@@ -19,10 +19,20 @@ export interface AssignmentInlineLink {
   href: string;
 }
 
+export interface AssignmentInlineRun {
+  text: string;
+  href?: string;
+  marks?: Array<'strong' | 'em'>;
+  tone?: 'muted' | 'danger' | 'alert';
+}
+
+export type AssignmentListItem = string | { text?: string; links?: AssignmentInlineLink[]; content?: AssignmentInlineRun[]; blocks?: AssignmentBlock[] };
+
 export type AssignmentBlock =
-  | { id: string; type: 'text'; text: string; links?: AssignmentInlineLink[]; style?: 'paragraph' | 'heading' | 'lead'; keepSeparate?: boolean; branch?: AssignmentBranch }
-  | { id: string; type: 'quote'; text: string; branch?: AssignmentBranch }
-  | { id: string; type: 'list'; title?: string; items: string[]; branch?: AssignmentBranch }
+  | { id: string; type: 'text'; text: string; links?: AssignmentInlineLink[]; content?: AssignmentInlineRun[]; style?: 'paragraph' | 'heading' | 'lead'; keepSeparate?: boolean; branch?: AssignmentBranch }
+  | { id: string; type: 'quote'; text: string; content?: AssignmentInlineRun[]; branch?: AssignmentBranch }
+  | { id: string; type: 'list'; title?: string; ordered?: boolean; items: AssignmentListItem[]; branch?: AssignmentBranch }
+  | { id: string; type: 'radio'; stations: Array<{ label: string; url: string }>; title?: string; branch?: AssignmentBranch }
   | { id: string; type: 'knownWords'; name: string; paragraphs: string[]; label?: string; sourceForm?: string; sourceName?: string; branch?: AssignmentBranch }
   | { id: string; type: 'link'; href: string; text: string; download?: boolean; branch?: AssignmentBranch }
   | { id: string; type: 'image'; src: string; alt?: string; caption?: string; branch?: AssignmentBranch }

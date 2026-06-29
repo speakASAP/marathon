@@ -1,4 +1,4 @@
-import type { AssignmentBlock } from "../../api/assignmentMarathon";
+import type { AssignmentBlock, AssignmentInlineRun } from "../../api/assignmentMarathon";
 import { ensureTerminalPunctuation, isReadingRulesTitle, stripHeadingTerminalPeriod } from "./assignmentBlockNormalization";
 import { AssignmentFieldRenderer } from "./AssignmentFieldRenderer";
 import type { AnswerValue, Answers } from "./assignmentRendererTypes";
@@ -29,10 +29,16 @@ type InlineLink = {
 };
 
 function inlineLinksForText(text: string, links?: Array<{ text: string; href: string }>): InlineLink[] {
-  const configuredLinks = (links || [])
-    .filter((link) => link.text && link.href)
-    .map((link) => ({ ...link, index: text.indexOf(link.text) }))
-    .filter((link) => link.index >= 0);
+  const configuredLinks: InlineLink[] = [];
+  let searchFrom = 0;
+  for (const link of links || []) {
+    if (!link.text || !link.href) continue;
+    let index = text.indexOf(link.text, searchFrom);
+    if (index < 0) index = text.indexOf(link.text);
+    if (index < 0) continue;
+    configuredLinks.push({ ...link, index });
+    searchFrom = index + link.text.length;
+  }
 
   const youtubeContextIndex = text.indexOf(SPEAKASAP_YOUTUBE_VIEWS_CONTEXT);
   if (youtubeContextIndex >= 0) {
@@ -54,7 +60,26 @@ function inlineLinksForText(text: string, links?: Array<{ text: string; href: st
   return configuredLinks.sort((a, b) => a.index - b.index);
 }
 
-function renderInlineLinkedText(text: string, links?: Array<{ text: string; href: string }>) {
+function renderRichRun(run: AssignmentInlineRun, key: string) {
+  const classNames = [
+    run.marks?.includes("strong") ? "step-rich-strong" : "",
+    run.marks?.includes("em") ? "step-rich-em" : "",
+    run.tone ? `step-rich-${run.tone}` : "",
+  ].filter(Boolean).join(" ");
+  const body = <span className={classNames || undefined}>{run.text}</span>;
+  if (!run.href) return <span key={key}>{body}</span>;
+  return <a className="step-assignment-link" href={run.href} key={key} target="_blank" rel="noopener noreferrer">{body}</a>;
+}
+
+function renderRichInlineText(content?: AssignmentInlineRun[]) {
+  const runs = (content || []).filter((run) => run.text);
+  if (!runs.length) return null;
+  return runs.map((run, index) => renderRichRun(run, `run-${index}`));
+}
+
+function renderInlineLinkedText(text: string, links?: Array<{ text: string; href: string }>, content?: AssignmentInlineRun[]) {
+  const rich = renderRichInlineText(content);
+  if (rich) return rich;
   const normalizedLinks = inlineLinksForText(text, links);
   if (!normalizedLinks.length) return text;
 
@@ -94,6 +119,44 @@ function readingRuleParts(item: string) {
   return { symbol: normalized, sound: "", example: "" };
 }
 
+function listItemText(item: string | { text?: string; blocks?: AssignmentBlock[] }) {
+  return typeof item === "string" ? item : item.text || "";
+}
+
+function renderListItem(item: string | { text?: string; links?: Array<{ text: string; href: string }>; content?: AssignmentInlineRun[]; blocks?: AssignmentBlock[] }, blockId: string) {
+  const rawText = ensureTerminalPunctuation(listItemText(item));
+  const links = typeof item === "string" ? undefined : item.links;
+  const content = typeof item === "string" ? undefined : item.content;
+  const nestedBlocks = typeof item === "string" ? [] : item.blocks || [];
+  const topicMatch = rawText.match(/^(.{3,90}?):\s+(.+)$/u);
+  const textNode = !topicMatch ? renderInlineLinkedText(rawText, links, content) : (
+    <>
+      <span className="step-assignment-list-topic">{renderInlineLinkedText(`${topicMatch[1]}:`, links, content)}</span>
+      {" "}
+      <span className="step-assignment-list-example">{renderInlineLinkedText(topicMatch[2], links)}</span>
+    </>
+  );
+
+  return (
+    <>
+      {rawText && <span>{textNode}</span>}
+      {nestedBlocks.length > 0 && (
+        <div className="step-assignment-list-nested-blocks">
+          {nestedBlocks.map((nested, index) => (
+            <AssignmentBlockRenderer
+              block={nested}
+              answers={{}}
+              readOnly
+              key={`${blockId}-nested-${index}`}
+              onAnswerChange={() => undefined}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function AssignmentBlockRenderer({ block, answers, readOnly, validationError, onAnswerChange }: AssignmentBlockRendererProps) {
   if (block.type === "text") {
     if (block.style === "heading") {
@@ -101,11 +164,11 @@ export function AssignmentBlockRenderer({ block, answers, readOnly, validationEr
     }
 
     const className = block.style === "lead" ? "step-assignment-lead" : "step-assignment-paragraph";
-    return <p className={className}>{renderInlineLinkedText(ensureTerminalPunctuation(block.text), block.links)}</p>;
+    return <p className={className}>{renderInlineLinkedText(ensureTerminalPunctuation(block.text), block.links, block.content)}</p>;
   }
 
   if (block.type === "quote") {
-    return <blockquote className="step-assignment-quote">{ensureTerminalPunctuation(block.text)}</blockquote>;
+    return <blockquote className="step-assignment-quote">{renderInlineLinkedText(ensureTerminalPunctuation(block.text), undefined, block.content)}</blockquote>;
   }
 
   if (block.type === "list") {
@@ -116,7 +179,7 @@ export function AssignmentBlockRenderer({ block, answers, readOnly, validationEr
         {isReadingRules ? (
           <div className="step-reading-rule-grid">
             {block.items.map((item, index) => {
-              const parts = readingRuleParts(ensureTerminalPunctuation(item));
+              const parts = readingRuleParts(ensureTerminalPunctuation(listItemText(item)));
               return (
                 <div className="step-reading-rule" key={`${block.id}-${index}`}>
                   <strong>{parts.symbol}</strong>
@@ -127,10 +190,34 @@ export function AssignmentBlockRenderer({ block, answers, readOnly, validationEr
             })}
           </div>
         ) : (
-          <ul>
-            {block.items.map((item, index) => <li key={`${block.id}-${index}`}>{ensureTerminalPunctuation(item)}</li>)}
-          </ul>
+          block.ordered ? (
+            <ol>
+              {block.items.map((item, index) => <li key={`${block.id}-${index}`}>{renderListItem(item, `${block.id}-${index}`)}</li>)}
+            </ol>
+          ) : (
+            <ul>
+              {block.items.map((item, index) => <li key={`${block.id}-${index}`}>{renderListItem(item, `${block.id}-${index}`)}</li>)}
+            </ul>
+          )
         )}
+      </section>
+    );
+  }
+
+  if (block.type === "radio") {
+    const firstStation = block.stations[0];
+    if (!firstStation) return null;
+    return (
+      <section className="step-radio-block" aria-label={block.title || "Радио"}>
+        {block.title && <strong>{ensureTerminalPunctuation(block.title)}</strong>}
+        <div className="step-radio-stations">
+          {block.stations.map((station, index) => (
+            <a className={index === 0 ? "step-radio-station is-active" : "step-radio-station"} href={station.url} key={`${block.id}-${index}`} target="_blank" rel="noopener noreferrer">
+              {station.label}
+            </a>
+          ))}
+        </div>
+        <audio controls preload="none" src={firstStation.url} />
       </section>
     );
   }

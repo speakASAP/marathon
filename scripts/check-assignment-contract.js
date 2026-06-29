@@ -6,8 +6,8 @@
  * field labels, report payloads, participant data, payment data, tokens, or secrets.
  */
 
-const SUPPORTED_PERSISTED_TYPES = new Set(['text', 'video', 'audio', 'image', 'link', 'field', 'knownWords']);
-const RENDERER_DERIVED_TYPES = new Set(['quote', 'list']);
+const SUPPORTED_PERSISTED_TYPES = new Set(['text', 'video', 'audio', 'radio', 'image', 'link', 'field', 'knownWords', 'list']);
+const RENDERER_DERIVED_TYPES = new Set(['quote']);
 const SUPPORTED_FIELD_TYPES = new Set(['text', 'textarea', 'radio', 'checkbox']);
 const SUPPORTED_ANSWER_SIZES = new Set(['short', 'long']);
 const DOWNLOAD_FILE_HREF = /\.(?:pdf|zip|docx?|xlsx?|pptx?|mp3|mp4|wav|ogg)(?:[?#]|$)/i;
@@ -104,6 +104,35 @@ function validInlineLinks(value) {
     && value.every((link) => isRecord(link) && hasText(link.text) && hasText(link.href) && !hasTemplateHref(link.href));
 }
 
+function validInlineContent(value) {
+  if (value == null) return true;
+  return Array.isArray(value)
+    && value.every((run) => (
+      isRecord(run)
+      && hasText(run.text)
+      && (run.href == null || (hasText(run.href) && !hasTemplateHref(run.href)))
+      && (run.tone == null || ['muted', 'danger', 'alert'].includes(run.tone))
+      && (run.marks == null || (Array.isArray(run.marks) && run.marks.every((mark) => mark === 'strong' || mark === 'em')))
+    ));
+}
+
+function validRadioStations(value) {
+  return Array.isArray(value)
+    && value.length > 0
+    && value.every((station) => isRecord(station) && hasText(station.label) && /^https?:\/\//i.test(String(station.url || '').trim()));
+}
+
+function validListItems(value) {
+  if (!Array.isArray(value) || value.length === 0) return false;
+  return value.every((item) => {
+    if (typeof item === 'string') return hasText(item);
+    if (!isRecord(item)) return false;
+    const hasInline = hasText(item.text) && validInlineLinks(item.links) && validInlineContent(item.content);
+    const hasBlocks = item.blocks == null || Array.isArray(item.blocks);
+    return (hasInline || (Array.isArray(item.blocks) && item.blocks.length > 0)) && hasBlocks;
+  });
+}
+
 function isDatabaseConnectionError(error) {
   const message = String(error?.message || error || '');
   return (
@@ -170,7 +199,7 @@ function createEmptyAggregate(marathon) {
 
 function validateSupportedBlock(block, aggregate) {
   if (block.type === 'text') {
-    if (!hasText(block.text) || !validInlineLinks(block.links)) aggregate.invalidSupportedBlockCount += 1;
+    if (!hasText(block.text) || !validInlineLinks(block.links) || !validInlineContent(block.content)) aggregate.invalidSupportedBlockCount += 1;
     auditDisplayedText(block.text, aggregate);
     if (GENERIC_NEXT_SCHEDULE_INSTRUCTION.test(String(block.text || ''))) {
       aggregate.genericInstructionCount += 1;
@@ -191,6 +220,24 @@ function validateSupportedBlock(block, aggregate) {
     aggregate.mediaCounts.total += 1;
     if (!hasText(block.code)) aggregate.invalidSupportedBlockCount += 1;
     auditDisplayedText(block.title, aggregate);
+    return;
+  }
+
+  if (block.type === 'radio') {
+    aggregate.mediaCounts.total += 1;
+    countInto(aggregate.mediaCounts, 'radio');
+    if (!validRadioStations(block.stations)) aggregate.invalidSupportedBlockCount += 1;
+    auditDisplayedText(block.title, aggregate);
+    return;
+  }
+
+  if (block.type === 'list') {
+    if (!validListItems(block.items)) aggregate.invalidSupportedBlockCount += 1;
+    auditDisplayedText(block.title, aggregate);
+    for (const item of Array.isArray(block.items) ? block.items : []) {
+      if (typeof item === 'string') auditDisplayedText(item, aggregate);
+      else if (isRecord(item)) auditDisplayedText(item.text, aggregate);
+    }
     return;
   }
 

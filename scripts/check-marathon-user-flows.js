@@ -323,15 +323,15 @@ function checkDashboardBundleContract(report, bundle) {
     ['PayPal'],
     ['Mastercard'],
     ['Bank transfer', 'Банковский перевод'],
-    ['Progress report', 'Отчет прогресса'],
-    ['Generate report', 'Сформировать отчет'],
+    ['Marathon completed', 'Марафон завершен'],
+    ['Gold finalist', 'Золотой финалист', 'Финалист марафона'],
     ['Current step', 'Текущий этап'],
     ['Open assignment', 'Открыть задание', 'Открыть'],
     ['Marathon feedback', 'Отзыв о марафоне'],
     ['Save feedback', 'Update feedback', 'Сохранить отзыв', 'Обновить отзыв'],
   ];
   assertBundleMarkerGroups(bundle, markerGroups, 'Frontend bundle dashboard/payment contract');
-  addCheck(report, 'pass', 'dashboard-payment-action-markers', 'Dashboard bundle contains payment return, checkout, current assignment, report, and feedback action markers.');
+  addCheck(report, 'pass', 'dashboard-payment-action-markers', 'Dashboard bundle contains payment return, checkout, current assignment, finalist prize, and feedback action markers.');
 }
 
 async function checkAuthenticatedDashboard(report, options, marathonerId) {
@@ -363,20 +363,7 @@ async function checkAuthenticatedDashboard(report, options, marathonerId) {
     await assertFrontendRoute(report, `/steps/${encodeURIComponent(profile.json.current_step.stepId)}?marathonerId=${encodeURIComponent(marathonerId)}`);
   }
 
-  const reportResponse = await requestJson(report, `/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/progress-report`, {
-    authToken: options.authToken,
-  });
-  if (profile.json.can_generate_progress_report) {
-    assertOk(reportResponse.response, "GET /api/v1/me/marathons/:marathonerId/progress-report");
-    if (!reportResponse.json?.summary || !reportResponse.json?.access) {
-      throw new Error("Progress report did not include summary/access dashboard data.");
-    }
-    addCheck(report, "pass", "dashboard-progress-report-ready", "Eligible authenticated dashboard can generate a progress report.");
-  } else {
-    assertResponse(reportResponse.response, profile.json.payment_required ? 403 : 400, "pre-eligibility progress report");
-    addCheck(report, "pass", "dashboard-progress-report-gated", "Progress report generation is blocked until payment and checked-step eligibility are satisfied.");
-  }
-  addCheck(report, "pass", "dashboard-post-payment-actions", "Authenticated dashboard exposes assignment state, current-step route when available, and gates progress report actions by eligibility.");
+  addCheck(report, "pass", "dashboard-post-payment-actions", "Authenticated dashboard exposes assignment state and current-step route when available without participant progress report UI.");
 }
 
 async function checkPaymentAttempt(report, options, marathonerId) {

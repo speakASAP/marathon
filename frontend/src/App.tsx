@@ -10,6 +10,7 @@ import Rules from './pages/Rules';
 import Faq from './pages/Faq';
 import Profile from './pages/Profile';
 import ProfileDetail from './pages/ProfileDetail';
+import ProfileAwards from './pages/ProfileAwards';
 import ParticipantReports from './pages/ParticipantReports';
 import Step from './pages/Step';
 import SupportStep from './pages/SupportStep';
@@ -33,6 +34,7 @@ function App() {
         <Route path="/rules" element={<Rules />} />
         <Route path="/faq" element={<Faq />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/:marathonerId/awards" element={<ProfileAwards />} />
         <Route path="/profile/:marathonerId" element={<ProfileDetail />} />
         <Route path="/participants/:participantId/reports" element={<ParticipantReports />} />
         <Route path="/steps/:stepId" element={<Step />} />

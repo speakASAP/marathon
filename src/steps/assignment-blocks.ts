@@ -10,11 +10,19 @@ export type AssignmentInlineLink = {
   href: string;
 };
 
+export type AssignmentInlineRun = {
+  text: string;
+  href?: string;
+  marks?: Array<'strong' | 'em'>;
+  tone?: 'muted' | 'danger' | 'alert';
+};
+
 export type AssignmentTextBlock = {
   id: string;
   type: 'text';
   text: string;
   links?: AssignmentInlineLink[];
+  content?: AssignmentInlineRun[];
   keepSeparate?: boolean;
   branch?: AssignmentBranch;
 };
@@ -31,6 +39,19 @@ export type AssignmentAudioBlock = {
   id: string;
   type: 'audio';
   code: string;
+  title?: string;
+  branch?: AssignmentBranch;
+};
+
+export type AssignmentRadioStation = {
+  label: string;
+  url: string;
+};
+
+export type AssignmentRadioBlock = {
+  id: string;
+  type: 'radio';
+  stations: AssignmentRadioStation[];
   title?: string;
   branch?: AssignmentBranch;
 };
@@ -81,7 +102,23 @@ export type AssignmentKnownWordsBlock = {
   branch?: AssignmentBranch;
 };
 
-export type AssignmentBlock = AssignmentTextBlock | AssignmentVideoBlock | AssignmentAudioBlock | AssignmentLinkBlock | AssignmentImageBlock | AssignmentFieldBlock | AssignmentKnownWordsBlock;
+export type AssignmentListItem = string | {
+  text?: string;
+  links?: AssignmentInlineLink[];
+  content?: AssignmentInlineRun[];
+  blocks?: AssignmentBlock[];
+};
+
+export type AssignmentListBlock = {
+  id: string;
+  type: 'list';
+  ordered?: boolean;
+  title?: string;
+  items: AssignmentListItem[];
+  branch?: AssignmentBranch;
+};
+
+export type AssignmentBlock = AssignmentTextBlock | AssignmentVideoBlock | AssignmentAudioBlock | AssignmentRadioBlock | AssignmentLinkBlock | AssignmentImageBlock | AssignmentFieldBlock | AssignmentKnownWordsBlock | AssignmentListBlock;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -143,6 +180,52 @@ function normalizeInlineLinks(value: unknown): AssignmentInlineLink[] {
       return { text, href };
     })
     .filter((link): link is AssignmentInlineLink => Boolean(link));
+}
+
+function normalizeInlineContent(value: unknown): AssignmentInlineRun[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((run) => {
+      if (!isRecord(run)) return null;
+      const text = cleanString(run.text);
+      if (!text) return null;
+      const href = cleanString(run.href);
+      const marks = Array.isArray(run.marks)
+        ? run.marks.filter((mark): mark is 'strong' | 'em' => mark === 'strong' || mark === 'em')
+        : [];
+      const tone = run.tone === 'muted' || run.tone === 'danger' || run.tone === 'alert' ? run.tone : undefined;
+      return { text, ...(href ? { href } : {}), ...(marks.length ? { marks } : {}), ...(tone ? { tone } : {}) };
+    })
+    .filter((run): run is AssignmentInlineRun => Boolean(run));
+}
+
+function normalizeRadioStations(value: unknown): AssignmentRadioStation[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((station) => {
+      if (!isRecord(station)) return null;
+      const label = cleanString(station.label);
+      const url = cleanString(station.url);
+      if (!label || !/^https?:\/\//i.test(url)) return null;
+      return { label, url };
+    })
+    .filter((station): station is AssignmentRadioStation => Boolean(station));
+}
+
+function normalizeListItems(value: unknown): AssignmentListItem[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item === 'string') return normalizeParentheticalSpacing(item);
+      if (!isRecord(item)) return null;
+      const text = normalizeParentheticalSpacing(cleanString(item.text));
+      const links = normalizeInlineLinks(item.links);
+      const content = normalizeInlineContent(item.content);
+      const blocks = normalizeAssignmentBlocks(item.blocks);
+      if (!text && !blocks.length) return null;
+      return { ...(text ? { text } : {}), ...(links.length ? { links } : {}), ...(content.length ? { content } : {}), ...(blocks.length ? { blocks } : {}) };
+    })
+    .filter((item): item is AssignmentListItem => Boolean(item));
 }
 
 function normalizeChoices(value: unknown): AssignmentChoice[] {
@@ -316,6 +399,15 @@ function normalizeBlockTerminalPunctuation(blocks: AssignmentBlock[]): Assignmen
     }
     if (block.type === 'image' && block.caption) return { ...block, caption: ensureTerminalPunctuation(block.caption) };
     if (block.type === 'knownWords' && block.label) return { ...block, label: ensureTerminalPunctuation(block.label) };
+    if (block.type === 'list') {
+      return {
+        ...block,
+        items: block.items.map((item) => {
+          if (typeof item === 'string') return ensureTerminalPunctuation(item);
+          return { ...item, ...(item.text ? { text: ensureTerminalPunctuation(item.text) } : {}) };
+        }),
+      };
+    }
     return block;
   });
 }
@@ -344,7 +436,8 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
         const cleanText = stripRemovedAssignmentText(text).trim();
         const links = normalizeLegacyInlineLinks(cleanText, normalizeInlineLinks(raw.links));
         const keepSeparate = raw.keepSeparate === true;
-        return cleanText ? { id, type, text: cleanText, ...(links.length ? { links } : {}), ...(keepSeparate ? { keepSeparate } : {}), ...(branch ? { branch } : {}) } : null;
+        const content = normalizeInlineContent(raw.content);
+        return cleanText ? { id, type, text: cleanText, ...(links.length ? { links } : {}), ...(content.length ? { content } : {}), ...(keepSeparate ? { keepSeparate } : {}), ...(branch ? { branch } : {}) } : null;
       }
 
       if (type === 'video') {
@@ -359,6 +452,20 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
         if (!code) return null;
         const title = cleanString(raw.title);
         return { id, type, code, ...(title ? { title } : {}), ...(branch ? { branch } : {}) };
+      }
+
+      if (type === 'radio') {
+        const stations = normalizeRadioStations(raw.stations);
+        const title = cleanString(raw.title);
+        if (!stations.length) return null;
+        return { id, type, stations, ...(title ? { title } : {}), ...(branch ? { branch } : {}) };
+      }
+
+      if (type === 'list') {
+        const items = normalizeListItems(raw.items);
+        const title = cleanString(raw.title);
+        if (!items.length) return null;
+        return { id, type, ordered: raw.ordered === true, items, ...(title ? { title } : {}), ...(branch ? { branch } : {}) };
       }
 
       if (type === 'link') {

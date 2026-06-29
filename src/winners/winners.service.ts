@@ -487,7 +487,21 @@ export class WinnersService {
         finishedAt: { not: null },
       }),
       include: {
-        marathon: true,
+        marathon: {
+          include: {
+            steps: {
+              select: { id: true },
+            },
+          },
+        },
+        submissions: {
+          where: {
+            isCompleted: true,
+          },
+          select: {
+            stepId: true,
+          },
+        },
         penaltyReports: true,
       },
     });
@@ -507,10 +521,11 @@ export class WinnersService {
     for (const participant of participants) {
       const marathon = participant.marathon;
 
-      const state = this.getWinnerState(participant);
-      if (!state) {
+      if (!this.hasCompletedAllSteps(participant)) {
         continue;
       }
+
+      const state = this.getWinnerState(participant) || 'bronze';
 
       const feedback = await this.getWinnerFeedback(participant);
       if (!feedback.review && !feedback.thanks) {
@@ -523,7 +538,7 @@ export class WinnersService {
         state,
         completed: participant.finishedAt?.toISOString() || new Date().toISOString(),
         review: feedback.review,
-        thanks: feedback.thanks,
+        thanks: feedback.thanks || '',
       });
     }
 
@@ -677,7 +692,7 @@ export class WinnersService {
     ));
   }
 
-  private getWinnerState(participant: any): 'gold' | 'silver' | 'bronze' | null {
+  private getWinnerState(participant: any): 'gold' | 'silver' | 'bronze' {
     if (participant.canUsePenalty && participant.bonusDaysLeft >= 7) {
       return 'gold';
     }
