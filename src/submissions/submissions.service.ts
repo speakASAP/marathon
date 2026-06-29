@@ -87,6 +87,8 @@ export class SubmissionsService {
       throw new ForbiddenException('Marathon payment is required before submitting this step');
     }
 
+    this.assertPreviousStepsChecked(participant, step);
+
     const completed = payload.completed !== false;
     const now = new Date();
     const result = await this.prisma.$transaction(async (tx) => {
@@ -241,6 +243,8 @@ export class SubmissionsService {
       throw new NotFoundException('Step not found for this marathon');
     }
 
+    this.assertPreviousStepsChecked(participant, step);
+
     const submissions = await this.findSubmissionsForParticipantStep(this.prisma, participant.id, step.id);
     const submission = submissions.find((candidate: any) => candidate.isCompleted) || this.pickEditableSubmission(submissions);
 
@@ -281,7 +285,13 @@ export class SubmissionsService {
         OR: [{ userId }, { userId: null }],
       },
       include: {
-        marathon: { include: { product: true } },
+        marathon: {
+          include: {
+            product: true,
+            steps: { orderBy: { sequence: 'asc' } },
+          },
+        },
+        submissions: true,
       },
     });
 
@@ -295,7 +305,15 @@ export class SubmissionsService {
       return this.prisma.marathonParticipant.update({
         where: { id: participant.id },
         data: { userId },
-        include: { marathon: { include: { product: true } } },
+        include: {
+          marathon: {
+            include: {
+              product: true,
+              steps: { orderBy: { sequence: 'asc' } },
+            },
+          },
+          submissions: true,
+        },
       });
     }
     return participant;
@@ -307,6 +325,24 @@ export class SubmissionsService {
     if (missing.length) {
       throw new BadRequestException('Заполните обязательные ответы: ' + missing.map((block) => block.label).join(', '));
     }
+  }
+
+  private assertPreviousStepsChecked(participant: any, step: any) {
+    if (step.sequence <= 1) return;
+
+    const checkedStepIds = new Set(
+      (participant.submissions || [])
+        .filter((submission: any) => submission.isCompleted && submission.isChecked)
+        .map((submission: any) => submission.stepId),
+    );
+    const previousSteps = (participant.marathon?.steps || [])
+      .filter((candidate: any) => candidate.sequence < step.sequence);
+
+    if (previousSteps.every((candidate: any) => checkedStepIds.has(candidate.id))) {
+      return;
+    }
+
+    throw new ConflictException('Этот этап откроется после отправки и проверки отчета по предыдущему этапу');
   }
 
   private normalizeRating(value?: number, fallback = 0): number {

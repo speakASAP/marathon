@@ -54,6 +54,32 @@ async function jsonFetch(path, options = {}) {
   return body;
 }
 
+async function expectJsonFetchStatus(path, expectedStatus, options = {}) {
+  const url = path.startsWith("http") ? path : `${baseUrl}${path}`;
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
+  const text = await response.text();
+  let body = null;
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = { raw: text.slice(0, 180) };
+    }
+  }
+  if (response.status !== expectedStatus) {
+    const message = body?.message || body?.raw || response.statusText;
+    throw new Error(`${options.label || path} expected HTTP ${expectedStatus}, got HTTP ${response.status} ${message}`);
+  }
+  return body;
+}
+
 async function ensureReplacementGift(marathonId) {
   const unused = await prisma.marathonGift.count({ where: { marathonId, usedAt: null } });
   if (unused > 0) return { created: false, unused };
@@ -305,7 +331,8 @@ async function main() {
   }
 
   let submitted = 0;
-  for (const step of steps) {
+  let progressionGateVerified = false;
+  for (const [index, step] of steps.entries()) {
     const payload = smokePayloadForStep(step);
     const submission = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/submissions`, {
       method: "POST",
@@ -321,7 +348,30 @@ async function main() {
     });
     if (!submission?.id || submission.state !== "completed") throw new Error(`submission failed for step ${step.sequence}`);
     submitted += 1;
+
+    const nextStep = steps[index + 1];
+    if (!progressionGateVerified && nextStep) {
+      await expectJsonFetchStatus(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/submissions`, 409, {
+        method: "POST",
+        token,
+        label: `pre-check progression gate ${step.sequence}->${nextStep.sequence}`,
+        body: JSON.stringify({
+          stepId: nextStep.id,
+          completed: true,
+          report: `Synthetic production smoke blocked report ${stamp} step ${nextStep.sequence}`,
+          payload: smokePayloadForStep(nextStep),
+          rating: 10,
+        }),
+      });
+      progressionGateVerified = true;
+    }
+
+    await prisma.stepSubmission.update({
+      where: { id: submission.id },
+      data: { isChecked: true },
+    });
   }
+  if (!progressionGateVerified) throw new Error("progression gate was not verified by production smoke");
 
   const participant = await prisma.marathonParticipant.findUnique({
     where: { id: marathonerId },
