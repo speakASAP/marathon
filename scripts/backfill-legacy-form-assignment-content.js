@@ -229,8 +229,8 @@ function blockPlainText(block) {
 }
 
 function listItemPlainText(item) {
-  if (typeof item === 'string') return item;
-  return item.text || (item.blocks || []).map(blockPlainText).filter(Boolean).join(' ');
+  if (typeof item === 'string') return normalizeInstructionText(item);
+  return normalizeInstructionText(item.text || (item.blocks || []).map(blockPlainText).filter(Boolean).join(' '));
 }
 
 function listItemFromBlocks(blocks) {
@@ -338,9 +338,35 @@ function normalizeFirstStepPlatformChoices(fieldName, field, choices) {
   return [...choices, FIRST_STEP_PLATFORM_PROGRAM_CHOICE];
 }
 
+function normalizeParentheticalSpacing(value) {
+  return String(value || '')
+    .replace(/\(\s+/gu, '(')
+    .replace(/\s+\)/gu, ')')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 function normalizeInstructionText(text) {
-  return String(text || '')
-    .replace(/Если не знаете правильный ответ, используйте подсказку\s*-\s*$/i, 'Если не знаете правильный ответ, используйте подсказку')
+  return normalizeParentheticalSpacing(String(text || '')
+    .replace(/Если не знаете правильный ответ, используйте подсказку\s*-\s*$/i, 'Если не знаете правильный ответ, используйте подсказку'));
+}
+
+function isPracticeExerciseField(fieldName, field) {
+  return /^[a-z]*ex[a-z]*\d+(?:_\d+)?$/i.test(String(fieldName || ''))
+    && field?.fieldType === 'text'
+    && field?.required === false
+    && Array.isArray(field?.correctAnswers)
+    && field.correctAnswers.length > 0;
+}
+
+function normalizeFieldLabel(fieldName, field, rawLabel) {
+  const label = normalizeInstructionText(rawLabel);
+  if (!isPracticeExerciseField(fieldName, field) || !/\[[^\]]+\]/.test(label)) return label;
+  return label
+    .replace(/^\s*<li>\s*/i, '')
+    .replace(/\s*<\/li>\s*$/i, '')
+    .replace(/^\s*\d+[.)]?\s*/, '')
+    .replace(/([.!?])(?=\p{Lu})/gu, '$1 ')
     .trim();
 }
 
@@ -354,7 +380,7 @@ function fieldBlock(fieldName, field, branch, index, extra = {}) {
       : [],
   );
   const fieldType = field.fieldType || (choices.length ? 'radio' : 'textarea');
-  const label = stripHtmlToText(field.label);
+  const label = normalizeFieldLabel(fieldName, field, stripHtmlToText(field.label));
   if (!label) return null;
   const correctAnswers = Array.isArray(field.correctAnswers)
     ? field.correctAnswers.map((answer) => stripHtmlToText(answer)).filter(Boolean)
@@ -535,7 +561,7 @@ function pushKnownWordsBlock(blocks, paragraphs, branch, name, label, sourceForm
     type: 'knownWords',
     name,
     paragraphs,
-    label,
+    label: normalizeInstructionText(label),
     sourceForm,
     sourceName,
     ...(branch ? { branch } : {}),
@@ -703,8 +729,8 @@ function renderTemplateBlocks(templatePath, fields, templatesRoot, folder) {
           pushImageBlock(activeBlocks(), attrs, branch);
         } else if (tag === 'legacy-table-row') {
           const fieldName = htmlAttr(attrs, 'data-field');
-          const rowPrefix = stripHtmlToText(htmlAttr(attrs, 'data-prefix'));
-          const rowSuffix = stripHtmlToText(htmlAttr(attrs, 'data-suffix'));
+          const rowPrefix = normalizeInstructionText(stripHtmlToText(htmlAttr(attrs, 'data-prefix')));
+          const rowSuffix = normalizeInstructionText(stripHtmlToText(htmlAttr(attrs, 'data-suffix')));
           const block = fieldBlock(fieldName, fields[fieldName], branch, activeBlocks().length, {
             rowLayout: 'three-column',
             rowPrefix,
