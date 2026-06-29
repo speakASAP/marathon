@@ -5224,11 +5224,32 @@ a:hover {
 }
 
 .step-assignment-content.structured {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 1rem;
+  width: min(80%, 70rem);
+  margin: 0 auto 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid #d7e4f2;
+  border-left: 5px solid #2f7bdc;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+  box-shadow: 0 14px 32px rgba(23, 32, 51, 0.08);
   white-space: normal;
+}
+
+.step-assignment-content.structured::before {
+  content: "";
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.16);
 }
 
 .step-assignment-item {
@@ -5241,7 +5262,7 @@ a:hover {
 }
 
 .step-assignment-item--field {
-  flex: 1 1 18rem;
+  flex: 1 1 17rem;
   max-width: 30rem;
 }
 
@@ -5255,7 +5276,18 @@ a:hover {
   max-width: 42rem;
 }
 
+@media (max-width: 900px) {
+  .step-assignment-content.structured {
+    width: min(100%, 46rem);
+  }
+}
+
 @media (max-width: 640px) {
+  .step-assignment-content.structured {
+    width: 100%;
+    padding: 1rem;
+  }
+
   .step-assignment-item--field {
     flex-basis: 100%;
     max-width: none;
@@ -5288,16 +5320,17 @@ a:hover {
   padding: 0.85rem 1rem;
   border: 1px solid #d8e2ec;
   border-radius: 8px;
-  background: #fbfcfd;
+  background: #ffffff;
 }
 
 .step-assignment-paragraph {
   margin: 0;
   padding: 0.95rem 1rem;
-  border: 1px solid #cfe0f3;
+  border: 1px solid transparent;
   border-radius: 8px;
-  background: #f7fbff;
+  background: rgba(255, 255, 255, 0.72);
   color: #24324f;
+  font-weight: 700;
   line-height: 1.65;
   white-space: pre-line;
   overflow-wrap: anywhere;
@@ -5309,18 +5342,19 @@ a:hover {
   height: 100%;
   margin: 0;
   padding: 1rem;
-  border: 1px solid #d8e2ec;
+  border: 1px solid #c9d8e8;
   border-radius: 8px;
-  background: #fbfcfd;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(23, 32, 51, 0.06);
 }
 
 .step-question-block legend {
   display: block;
   width: 100%;
-  padding: 0;
+  padding: 0 0 0.15rem;
   color: #172033;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.35;
 }
 
@@ -5352,7 +5386,16 @@ a:hover {
   background: #fff;
   color: #172033;
   font: inherit;
+  font-weight: 600;
   line-height: 1.5;
+  box-shadow: inset 0 1px 2px rgba(23, 32, 51, 0.05);
+}
+
+.step-question-block textarea:focus,
+.step-question-block input[type="text"]:focus {
+  border-color: #2f7bdc;
+  box-shadow: 0 0 0 3px rgba(47, 123, 220, 0.16);
+  outline: none;
 }
 
 .step-question-block textarea {
