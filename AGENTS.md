@@ -63,3 +63,7 @@ allowed_mcp_servers: [filesystem, postgres]
 
 ## Active Agents
 <!-- Coordinator-maintained -->
+
+## Legacy Behavior Reference
+
+When Marathon behavior is unclear, or the modern service disagrees with expected product behavior, consult the legacy/old Marathon codebase and historical export before inventing a new rule. The legacy Marathon previously worked correctly; this repository is a modern refactor/migration and should preserve the old functional contract unless the user explicitly requests a product change. This applies especially to stage opening, bonus days, penalty circles, report submission/review state, schedule timing, and participant progress.

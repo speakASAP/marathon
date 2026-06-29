@@ -219,8 +219,8 @@ export class RegistrationsService {
         name,
         userId: centralUserId,
         paid: false,
-        bonusDaysLeft: 0,
-        canUsePenalty: false,
+        bonusDaysLeft: 7,
+        canUsePenalty: true,
         reportHour,
       },
     });

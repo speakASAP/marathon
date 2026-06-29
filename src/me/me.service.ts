@@ -802,10 +802,14 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     const paymentRequired = this.calculatePaymentRequired(participant, latestStep, marathon);
     const paymentStatus = this.getPaymentStatus(participant);
     const answers = this.buildSchedule(participant, steps, submissions, paymentRequired);
+    const latestOpenSubmissionStep = latestSubmission && latestStep
+      ? answers.find((answer) => answer.stepId === latestSubmission.stepId && answer.can_open && answer.state !== 'completed' && answer.state !== 'done')
+      : null;
     const currentStep =
+      latestOpenSubmissionStep ||
       answers.find((answer) => answer.state === 'active') ||
       answers.find((answer) => answer.can_open && answer.state !== 'completed' && answer.state !== 'done') ||
-      (latestSubmission ? this.mapToAnswer(latestSubmission, latestStep, participant) : null);
+      (latestSubmission && latestStep ? this.mapToAnswer(latestSubmission, latestStep, participant) : null);
 
     const canChangeReportTime = participant.active && !this.isWinner(participant, steps);
 
@@ -937,7 +941,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
         submissionMap.set(submission.stepId, submission);
       }
     }
-    let previousStepsVerified = true;
+    let previousStepsStarted = true;
     const now = new Date();
 
     for (const step of steps) {
@@ -946,25 +950,21 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       const submission = submissionMap.get(step.id);
       if (submission) {
         const mapped = this.mapToAnswer(submission, step, participant);
-        if (!previousStepsVerified) {
-          schedule.push({
-            ...mapped,
-            state: 'inactive',
-            can_open: false,
-            block_reason: 'previous_report_pending',
-          });
-        } else {
-          schedule.push(mapped);
-        }
-        previousStepsVerified = previousStepsVerified && (mapped.state === 'checked' || mapped.state === 'done');
+        const blockedByPayment = paymentRequired;
+        schedule.push({
+          ...mapped,
+          can_open: !blockedByPayment,
+          block_reason: blockedByPayment ? 'payment_required' : null,
+        });
+        previousStepsStarted = true;
       } else {
         const blockedByPayment = paymentRequired;
         const scheduledFuture = startAt > now;
-        const canOpen = !blockedByPayment && previousStepsVerified;
+        const canOpen = !blockedByPayment && previousStepsStarted;
         const state = canOpen && !scheduledFuture ? 'active' : 'inactive';
         const blockReason = blockedByPayment
           ? 'payment_required'
-          : previousStepsVerified
+          : previousStepsStarted
             ? (scheduledFuture ? 'scheduled_future' : null)
             : 'previous_report_pending';
 
@@ -981,7 +981,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
           block_reason: blockReason,
         });
 
-        previousStepsVerified = false;
+        previousStepsStarted = false;
       }
     }
 

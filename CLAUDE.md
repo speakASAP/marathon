@@ -49,3 +49,7 @@ The helper uses `JWT_TOKEN` injected into `deployment/marathon` from Kubernetes 
 | notifications-microservice:3368 | Participant emails |
 
 **Ops**: `kubectl logs -n statex-apps -l app=marathon -f` · `kubectl rollout restart deployment/marathon -n statex-apps` · `./scripts/deploy.sh`
+
+## Legacy Behavior Reference
+
+When Marathon behavior is unclear, or the modern service disagrees with expected product behavior, consult the legacy/old Marathon codebase and historical export before inventing a new rule. The legacy Marathon previously worked correctly; this repository is a modern refactor/migration and should preserve the old functional contract unless the user explicitly requests a product change. This applies especially to stage opening, bonus days, penalty circles, report submission/review state, schedule timing, and participant progress.
