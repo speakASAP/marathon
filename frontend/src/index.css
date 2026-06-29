@@ -4840,6 +4840,45 @@ a:hover {
   align-items: stretch;
 }
 
+.profile-certificate-share {
+  display: grid;
+  gap: 10px;
+  margin: 20px 0 14px;
+}
+
+.profile-certificate-share__primary {
+  width: min(100%, 320px);
+}
+
+.profile-certificate-share p {
+  max-width: 540px;
+  margin: 0;
+  color: #5e6a80;
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.profile-certificate-share-status {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.profile-certificate-share-status--success,
+.profile-certificate-share-status--fallback {
+  border: 1px solid #bfe6d2;
+  background: #f1fbf5;
+  color: #1f6b3d;
+}
+
+.profile-certificate-share-status--error {
+  border: 1px solid #f0c2c2;
+  background: #fff3f3;
+  color: #9b2d2d;
+}
+
 .profile-certificate-downloads {
   display: flex;
   flex-wrap: wrap;
@@ -5164,6 +5203,10 @@ a:hover {
   .profile-awards-certificate,
   .profile-awards-grid {
     grid-template-columns: 1fr;
+  }
+
+  .profile-certificate-share__primary {
+    width: 100%;
   }
 
   .profile-nps-panel {
@@ -7409,5 +7452,65 @@ a:hover {
 @media (max-width: 520px) {
   .finalist-rewards__prizes li {
     grid-template-columns: 1fr;
+  }
+}
+
+
+.profile-certificate-confirmation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  gap: 24px;
+  align-items: start;
+  margin: 24px 0;
+  padding: 28px;
+  border: 1px solid #dce6f2;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgba(16, 24, 50, 0.08);
+}
+
+.profile-certificate-confirmation h1 {
+  margin: 0 0 10px;
+  color: #101832;
+  font-size: clamp(1.6rem, 2.8vw, 2.35rem);
+}
+
+.profile-certificate-confirmation p {
+  margin: 0;
+  color: #526071;
+  line-height: 1.6;
+}
+
+.profile-certificate-confirmation strong {
+  color: #101832;
+}
+
+.profile-certificate-confirmation__form {
+  display: grid;
+  gap: 14px;
+}
+
+.profile-certificate-confirmation__form label {
+  display: grid;
+  gap: 8px;
+  color: #101832;
+  font-weight: 800;
+}
+
+.profile-certificate-confirmation__form input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid #cdd9e8;
+  border-radius: 8px;
+  color: #172033;
+  background: #fff;
+  font: inherit;
+}
+
+@media (max-width: 760px) {
+  .profile-certificate-confirmation {
+    grid-template-columns: 1fr;
+    padding: 22px;
   }
 }

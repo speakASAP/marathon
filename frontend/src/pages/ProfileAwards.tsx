@@ -1,9 +1,11 @@
 import { Link, useParams } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import { getLoginUrl, getPasswordResetUrl } from '../auth';
 import {
   MarathonAuthRequiredError,
   MarathonNotFoundError,
+  confirmCertificateName,
   fetchMyMarathon,
   fetchMyProfile,
   type MarathonUserProfileSettings,
@@ -14,6 +16,8 @@ import { stripHeadingTerminalPeriod } from '../components/assignment/assignmentB
 
 type MedalKind = 'gold' | 'silver' | 'bronze';
 type CertificateDownloadFormat = 'png' | 'jpeg' | 'pdf';
+type ShareStatusKind = 'success' | 'fallback' | 'error';
+
 
 const CERTIFICATE_DOWNLOAD_FORMATS: Array<{ format: CertificateDownloadFormat; label: string }> = [
   { format: 'png', label: 'PNG' },
@@ -22,6 +26,8 @@ const CERTIFICATE_DOWNLOAD_FORMATS: Array<{ format: CertificateDownloadFormat; l
 ];
 
 const BOOK_PRIZE_URL = 'https://speakasap.com/media/steps/german/tochka_vixoda_iz_yazika_ili_kak_brosit_ychit_yazik_buch.pdf';
+const SHARE_FALLBACK_DELAY_MS = 3600;
+
 
 const MEDAL_COPY: Record<MedalKind, { title: string; certificate: string; discount: string; className: string }> = {
   gold: {
@@ -80,10 +86,13 @@ function certificateImage(medal: MedalKind) {
   return `/img/certificates/${medal}_en.png`;
 }
 
-function resolveParticipantName(profile: MarathonUserProfileSettings | null) {
-  return profile?.displayName?.trim() || 'Финалист SpeakASAP';
+function resolveParticipantName(data: MyMarathon | null, profile: MarathonUserProfileSettings | null) {
+  return profile?.displayName?.trim()
+    || data?.certificate_name_confirmation.confirmedName
+    || data?.certificate_name_confirmation.currentName
+    || data?.certificate?.participantName
+    || 'Финалист SpeakASAP';
 }
-
 function resolveAwardLanguageCopy(code: string) {
   const normalized = code.toLowerCase();
   return AWARD_LANGUAGE_COPY[AWARD_LANGUAGE_ALIASES[normalized] || normalized] || {
@@ -110,6 +119,10 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number)
       }
     }, type, quality);
   });
+}
+
+function buildCertificateFilename(data: MyMarathon, extension: string) {
+  return `speakASAP_Marathon_${data.languageCode}_${data.medal}.${extension}`;
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -187,8 +200,13 @@ export default function ProfileAwards() {
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [downloadError, setDownloadError] = useState('');
+  const [shareStatus, setShareStatus] = useState<{ kind: ShareStatusKind; message: string } | null>(null);
   const [downloadingFormat, setDownloadingFormat] = useState<CertificateDownloadFormat | null>(null);
-
+  const [sharingCertificate, setSharingCertificate] = useState(false);
+  const [certificateNameDraft, setCertificateNameDraft] = useState('');
+  const [certificateNameEditing, setCertificateNameEditing] = useState(false);
+  const [certificateNameSaving, setCertificateNameSaving] = useState(false);
+  const [certificateNameError, setCertificateNameError] = useState('');
   useEffect(() => {
     if (!marathonerId) return;
     setLoading(true);
@@ -217,7 +235,9 @@ export default function ProfileAwards() {
     if (data) document.title = `Призы: ${data.title} - Марафон`;
   }, [data]);
 
-  const participantName = resolveParticipantName(profile);
+  const participantName = resolveParticipantName(data, profile);
+  const certificateNameConfirmation = data?.certificate_name_confirmation || null;
+  const certificateNameConfirmed = !certificateNameConfirmation?.required || Boolean(certificateNameConfirmation.confirmed);
   const medal = data?.medal || null;
   const medalCopy = medal ? MEDAL_COPY[medal] : null;
   const languageLabel = data ? formatLanguageLabel(data.languageCode) : '';
@@ -227,6 +247,10 @@ export default function ProfileAwards() {
   const bookPrize = data?.prizes?.find((prize) => prize.kind === 'book') || null;
   const discountPrize = data?.prizes?.find((prize) => prize.kind === 'discount') || null;
   const discountValidUntil = discountPrize?.validUntil ? formatDate(discountPrize.validUntil) : '';
+  const shareUrl = data ? `${window.location.origin}/profile/${encodeURIComponent(data.id)}/awards` : window.location.href;
+  const shareText = data
+    ? `Я завершил(а) ${stripHeadingTerminalPeriod(data.title)} и получил(а) сертификат SpeakASAP. ${awardCopy.hashtag}`
+    : 'Мой сертификат SpeakASAP готов.';
 
   const certificateLines = useMemo(() => [
     participantName,
@@ -247,7 +271,7 @@ export default function ProfileAwards() {
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    context.fillStyle = '#26324a';
+    context.fillStyle = '#806427';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.font = '700 30px Georgia, serif';
@@ -265,21 +289,96 @@ export default function ProfileAwards() {
     if (!data?.medal || !data.finished_at) return;
     setDownloadingFormat(format);
     setDownloadError('');
+    setShareStatus(null);
     try {
       const canvas = await buildCertificateCanvas();
       if (!canvas) return;
-      const filenameBase = `speakASAP_Marathon_${data.languageCode}_${data.medal}`;
       if (format === 'pdf') {
-        downloadBlob(buildPdfBlobFromCanvas(canvas), `${filenameBase}.pdf`);
+        downloadBlob(buildPdfBlobFromCanvas(canvas), buildCertificateFilename(data, 'pdf'));
       } else if (format === 'jpeg') {
-        downloadBlob(await canvasToBlob(canvas, 'image/jpeg', 0.94), `${filenameBase}.jpg`);
+        downloadBlob(await canvasToBlob(canvas, 'image/jpeg', 0.94), buildCertificateFilename(data, 'jpg'));
       } else {
-        downloadBlob(await canvasToBlob(canvas, 'image/png'), `${filenameBase}.png`);
+        downloadBlob(await canvasToBlob(canvas, 'image/png'), buildCertificateFilename(data, 'png'));
       }
     } catch (error) {
       setDownloadError(error instanceof Error ? error.message : 'Сертификат не удалось сформировать.');
     } finally {
       setDownloadingFormat(null);
+    }
+  };
+
+  const shareCertificate = async () => {
+    if (!data?.medal || !data.finished_at || sharingCertificate) return;
+    setSharingCertificate(true);
+    setDownloadError('');
+    setShareStatus(null);
+
+    try {
+      const canvas = await buildCertificateCanvas();
+      if (!canvas) return;
+      const pngBlob = await canvasToBlob(canvas, 'image/png');
+      const file = new File([pngBlob], buildCertificateFilename(data, 'png'), { type: 'image/png' });
+      const sharePayload = {
+        title: 'Мой сертификат SpeakASAP',
+        text: shareText,
+        url: shareUrl,
+        files: [file],
+      };
+
+      if (navigator.canShare?.({ files: [file] }) && navigator.share) {
+        await navigator.share(sharePayload);
+        setShareStatus({ kind: 'success', message: 'Открылось системное меню: выберите Telegram, WhatsApp, Instagram или другое приложение.' });
+        return;
+      }
+
+      downloadBlob(pngBlob, file.name);
+      await navigator.clipboard?.writeText(`${shareText} ${shareUrl}`);
+      setShareStatus({
+        kind: 'fallback',
+        message: 'PNG скачан, а текст со ссылкой скопирован. Его можно вставить в любой чат или соцсеть.',
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      setShareStatus({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'Не удалось подготовить сертификат для отправки.',
+      });
+    } finally {
+      window.setTimeout(() => setSharingCertificate(false), SHARE_FALLBACK_DELAY_MS);
+    }
+  };
+
+  const submitCertificateName = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!data) return;
+    const displayName = certificateNameDraft.trim();
+    if (!displayName) {
+      setCertificateNameError('Укажите имя для сертификата.');
+      setCertificateNameEditing(true);
+      return;
+    }
+
+    setCertificateNameSaving(true);
+    setCertificateNameError('');
+    try {
+      const nextData = await confirmCertificateName(data.id, displayName);
+      setData(nextData);
+      setProfile((currentProfile) => {
+        const nextProfile = {
+          displayName,
+          email: currentProfile?.email || profile?.email || '',
+          phone: currentProfile?.phone || profile?.phone || '',
+          avatarUrl: currentProfile?.avatarUrl || profile?.avatarUrl || '',
+          bio: currentProfile?.bio || profile?.bio || '',
+        };
+        window.dispatchEvent(new CustomEvent('marathon-profile-updated', { detail: nextProfile }));
+        return nextProfile;
+      });
+      setCertificateNameEditing(false);
+    } catch (error) {
+      setCertificateNameError(error instanceof Error ? error.message : 'Не удалось подтвердить имя для сертификата.');
+    } finally {
+      setCertificateNameSaving(false);
     }
   };
 
@@ -344,6 +443,55 @@ export default function ProfileAwards() {
     );
   }
 
+  if (!certificateNameConfirmed && certificateNameConfirmation) {
+    return (
+      <main className="container page-static profile-awards-page">
+        <section className="profile-certificate-confirmation" aria-labelledby="certificate-awards-name-title">
+          <div>
+            <p className="profile-completion-kicker">Марафон завершен</p>
+            <h1 id="certificate-awards-name-title">Подтвердите имя для сертификата</h1>
+            <p>
+              Мы видим в вашем профиле имя <strong>{certificateNameConfirmation.currentName}</strong>.
+              Сертификат, медаль и призы откроются после подтверждения имени.
+            </p>
+          </div>
+          <form className="profile-certificate-confirmation__form" onSubmit={submitCertificateName}>
+            {certificateNameEditing ? (
+              <label htmlFor="awards-certificate-display-name">
+                Имя на сертификате
+                <input
+                  id="awards-certificate-display-name"
+                  value={certificateNameDraft}
+                  onChange={(event) => setCertificateNameDraft(event.target.value)}
+                  maxLength={120}
+                  autoFocus
+                />
+              </label>
+            ) : null}
+            <div className="profile-payment-actions">
+              <button type="submit" className="btn-profile-open" disabled={certificateNameSaving}>
+                {certificateNameSaving ? 'Подтверждаем...' : 'Да, подтверждаю'}
+              </button>
+              <button
+                type="button"
+                className="btn-profile-login"
+                onClick={() => {
+                  setCertificateNameEditing(true);
+                  setCertificateNameError('');
+                }}
+                disabled={certificateNameSaving}
+              >
+                Изменить имя
+              </button>
+              <Link to={`/profile/${encodeURIComponent(data.id)}`} className="btn-profile-login">Вернуться в профиль</Link>
+            </div>
+            {certificateNameError && <p className="ml-error">{certificateNameError}</p>}
+          </form>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="container page-static profile-awards-page">
       <section className={`profile-awards-hero profile-awards-hero-${medalCopy?.className}`}>
@@ -377,9 +525,27 @@ export default function ProfileAwards() {
         <div className="profile-awards-copy">
           <h2>Сертификат об окончании марафона</h2>
           <p>
-            Legacy Marathon генерировал такой сертификат из медальной заготовки, имени участника,
-            языка и даты финиша. В новой версии сертификат формируется прямо на этой странице.
+            Это ваш заслуженный сертификат финишера. За ним стоят дни дисциплины, десятки выполненных
+            заданий, смелость говорить, ошибаться, снова пробовать и идти вперед даже тогда, когда было
+            непросто. Вы дошли до финиша, потому что учились по-настоящему: работали, старались,
+            преодолевали усталость и каждый день становились сильнее в языке. Пусть этот результат
+            напоминает вам: вы уже умеете доводить большое дело до конца, а значит следующий уровень
+            вам тоже по силам. Поздравляем с победой и желаем идти дальше с тем же огнем, уверенностью
+            и радостью от каждого нового шага.
           </p>
+          <div className="profile-certificate-share">
+            <button
+              type="button"
+              className="btn-profile-open profile-certificate-share__primary"
+              onClick={shareCertificate}
+              disabled={sharingCertificate || downloadingFormat !== null}
+            >
+              {sharingCertificate ? 'Готовим сертификат...' : 'Поделиться сертификатом'}
+            </button>
+            <p>
+              На телефоне откроется системное меню отправки. На компьютере мы скачаем PNG и скопируем текст со ссылкой.
+            </p>
+          </div>
           <div className="profile-certificate-downloads" aria-label="Скачать сертификат">
             {CERTIFICATE_DOWNLOAD_FORMATS.map(({ format, label }) => (
               <button
@@ -396,6 +562,7 @@ export default function ProfileAwards() {
               Вернуться в профиль
             </Link>
           </div>
+          {shareStatus && <p className={`profile-certificate-share-status profile-certificate-share-status--${shareStatus.kind}`}>{shareStatus.message}</p>}
           {downloadError && <p className="ml-error">{downloadError}</p>}
         </div>
       </section>

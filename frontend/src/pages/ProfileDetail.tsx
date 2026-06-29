@@ -5,6 +5,7 @@ import { getLoginUrl, getPasswordResetUrl, redirectToLogin } from '../auth';
 import {
   MarathonAuthRequiredError,
   MarathonNotFoundError,
+  confirmCertificateName,
   createPaymentCheckout,
   fetchMyMarathon,
   fetchMyProfile,
@@ -153,6 +154,10 @@ export default function ProfileDetail() {
   const [npsMessage, setNpsMessage] = useState('');
   const [npsError, setNpsError] = useState('');
   const [, setShareMessage] = useState('');
+  const [certificateNameDraft, setCertificateNameDraft] = useState('');
+  const [certificateNameEditing, setCertificateNameEditing] = useState(false);
+  const [certificateNameSaving, setCertificateNameSaving] = useState(false);
+  const [certificateNameError, setCertificateNameError] = useState('');
 
   useEffect(() => {
     const payment = new URLSearchParams(window.location.search).get('payment');
@@ -194,6 +199,16 @@ export default function ProfileDetail() {
       setNpsComment('');
     }
   }, [data]);
+
+  useEffect(() => {
+    if (!data) return;
+    const suggestedName = data.certificate_name_confirmation.confirmedName
+      || data.certificate_name_confirmation.currentName
+      || resolveParticipantName(profile);
+    setCertificateNameDraft(suggestedName);
+    setCertificateNameEditing(false);
+    setCertificateNameError('');
+  }, [data?.id, data?.certificate_name_confirmation.confirmedName, data?.certificate_name_confirmation.currentName, profile?.displayName, profile?.email]);
 
   useEffect(() => {
     if (paymentReturn !== 'success' || !data?.payment_required) return undefined;
@@ -298,6 +313,8 @@ export default function ProfileDetail() {
   const awardsPath = `/profile/${encodeURIComponent(data.id)}/awards`;
   const shareUrl = typeof window === 'undefined' ? awardsPath : `${window.location.origin}${awardsPath}`;
   const shareText = `Я завершил(а) языковой марафон SpeakASAP: ${stripHeadingTerminalPeriod(data.title)}. ${medal?.prize || 'Мой сертификат готов'}! ${awardCopy.hashtag}`;
+  const certificateNameConfirmation = data.certificate_name_confirmation;
+  const certificateNameConfirmed = !certificateNameConfirmation.required || certificateNameConfirmation.confirmed;
   const finalistPrizes = data.prizes.length ? data.prizes.map((prize) => ({
     id: prize.id,
     title: prize.title,
@@ -389,6 +406,44 @@ export default function ProfileDetail() {
     }
   };
 
+  const submitCertificateName = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!data) return;
+    const displayName = certificateNameDraft.trim();
+    if (!displayName) {
+      setCertificateNameError('Укажите имя для сертификата.');
+      setCertificateNameEditing(true);
+      return;
+    }
+
+    setCertificateNameSaving(true);
+    setCertificateNameError('');
+    try {
+      const nextData = await confirmCertificateName(data.id, displayName);
+      setData(nextData);
+      setProfile((currentProfile) => {
+        const nextProfile = {
+          displayName,
+          email: currentProfile?.email || profile?.email || '',
+          phone: currentProfile?.phone || profile?.phone || '',
+          avatarUrl: currentProfile?.avatarUrl || profile?.avatarUrl || '',
+          bio: currentProfile?.bio || profile?.bio || '',
+        };
+        window.dispatchEvent(new CustomEvent('marathon-profile-updated', { detail: nextProfile }));
+        return nextProfile;
+      });
+      setCertificateNameEditing(false);
+    } catch (error) {
+      if (error instanceof MarathonAuthRequiredError) {
+        redirectToLogin(`/profile/${data.id}`);
+        return;
+      }
+      setCertificateNameError(error instanceof Error ? error.message : 'Не удалось подтвердить имя для сертификата.');
+    } finally {
+      setCertificateNameSaving(false);
+    }
+  };
+
   return (
     <div className="container page-static profile-dashboard">
       {!isFinished && (
@@ -408,7 +463,52 @@ export default function ProfileDetail() {
           </div>
         </section>
       )}
-      {isFinished && (
+      {isFinished && !certificateNameConfirmed && (
+        <section className="profile-certificate-confirmation" aria-labelledby="certificate-name-title">
+          <div>
+            <p className="profile-completion-kicker">Марафон завершен</p>
+            <h1 id="certificate-name-title">Подтвердите имя для сертификата</h1>
+            <p>
+              Мы видим в вашем профиле имя <strong>{certificateNameConfirmation.currentName}</strong>.
+              Подтвердите, что сертификат нужно выдать именно на это имя, или измените его перед генерацией.
+              Призы уже доступны на отдельной странице финиша.
+            </p>
+            <Link to={awardsPath} className="btn-profile-open">Получить призы</Link>
+          </div>
+          <form className="profile-certificate-confirmation__form" onSubmit={submitCertificateName}>
+            {certificateNameEditing ? (
+              <label htmlFor="certificate-display-name">
+                Имя на сертификате
+                <input
+                  id="certificate-display-name"
+                  value={certificateNameDraft}
+                  onChange={(event) => setCertificateNameDraft(event.target.value)}
+                  maxLength={120}
+                  autoFocus
+                />
+              </label>
+            ) : null}
+            <div className="profile-payment-actions">
+              <button type="submit" className="btn-profile-open" disabled={certificateNameSaving}>
+                {certificateNameSaving ? 'Подтверждаем...' : 'Да, подтверждаю'}
+              </button>
+              <button
+                type="button"
+                className="btn-profile-login"
+                onClick={() => {
+                  setCertificateNameEditing(true);
+                  setCertificateNameError('');
+                }}
+                disabled={certificateNameSaving}
+              >
+                Изменить имя
+              </button>
+            </div>
+            {certificateNameError && <p className="ml-error">{certificateNameError}</p>}
+          </form>
+        </section>
+      )}
+      {isFinished && certificateNameConfirmed && (
         <FinalistRewards
           participant={{
             name: data.certificate?.participantName || participantName,

@@ -30,7 +30,7 @@ const LANGUAGE_FOLDERS = {
 function usage(exitCode = 0) {
   const out = [
     'Usage:',
-    '  node scripts/backfill-legacy-form-assignment-content.js [--apply] [--legacy-root <path>] [--forms-json <path>]',
+    '  node scripts/backfill-legacy-form-assignment-content.js [--apply] [--legacy-root <path>] [--forms-json <path>] [--sequence <n>] [--form-key <name>] [--language-code <code>]',
     '  node scripts/backfill-legacy-form-assignment-content.js --dump-forms-json <path> [--legacy-root <path>]',
     '',
     'Dry-run by default. Reads legacy Django marathon form templates and form metadata,',
@@ -41,7 +41,7 @@ function usage(exitCode = 0) {
 }
 
 function parseArgs(argv) {
-  const opts = { apply: false, legacyRoot: DEFAULT_LEGACY_ROOT, formsJson: '', dumpFormsJson: '' };
+  const opts = { apply: false, legacyRoot: DEFAULT_LEGACY_ROOT, formsJson: '', dumpFormsJson: '', sequence: '', formKey: '', languageCode: '' };
   const args = argv.slice(2);
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
@@ -50,6 +50,9 @@ function parseArgs(argv) {
     else if (arg === '--legacy-root') opts.legacyRoot = args[++i];
     else if (arg === '--forms-json') opts.formsJson = args[++i];
     else if (arg === '--dump-forms-json') opts.dumpFormsJson = args[++i];
+    else if (arg === '--sequence') opts.sequence = args[++i];
+    else if (arg === '--form-key') opts.formKey = args[++i];
+    else if (arg === '--language-code') opts.languageCode = String(args[++i] || '').toLowerCase();
     else throw new Error(`Unsupported argument: ${arg}`);
   }
   return opts;
@@ -896,7 +899,13 @@ async function main() {
     return;
   }
   const prisma = new PrismaClient();
+  const stepWhere = {
+    ...(opts.sequence ? { sequence: Number(opts.sequence) } : {}),
+    ...(opts.formKey ? { formKey: opts.formKey } : {}),
+    ...(opts.languageCode ? { marathon: { languageCode: opts.languageCode } } : {}),
+  };
   const steps = await prisma.marathonStep.findMany({
+    where: stepWhere,
     include: { marathon: { select: { languageCode: true, slug: true } } },
     orderBy: [{ marathonId: 'asc' }, { sequence: 'asc' }],
   });
@@ -940,6 +949,11 @@ async function main() {
     mode: opts.apply ? 'apply' : 'dry-run',
     ...summary,
     updated: opts.apply ? updates.length : 0,
+    filters: {
+      ...(opts.sequence ? { sequence: Number(opts.sequence) } : {}),
+      ...(opts.formKey ? { formKey: opts.formKey } : {}),
+      ...(opts.languageCode ? { languageCode: opts.languageCode } : {}),
+    },
     examples: updates.slice(0, 5).map((item) => ({
       id: item.id,
       title: item.title,
