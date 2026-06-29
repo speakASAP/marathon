@@ -1,11 +1,9 @@
 import { Link, useParams } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
 import { getLoginUrl, getPasswordResetUrl } from '../auth';
 import {
   MarathonAuthRequiredError,
   MarathonNotFoundError,
-  confirmCertificateName,
   fetchMyMarathon,
   fetchMyProfile,
   type MarathonUserProfileSettings,
@@ -45,7 +43,7 @@ const MEDAL_COPY: Record<MedalKind, { title: string; certificate: string; discou
   bronze: {
     title: 'Бронзовый финиш',
     certificate: 'Бронзовый сертификат финалиста',
-    discount: '5% скидка на следующий курс SpeakASAP',
+    discount: '10% скидка на следующий курс SpeakASAP',
     className: 'bronze',
   },
 };
@@ -203,10 +201,6 @@ export default function ProfileAwards() {
   const [shareStatus, setShareStatus] = useState<{ kind: ShareStatusKind; message: string } | null>(null);
   const [downloadingFormat, setDownloadingFormat] = useState<CertificateDownloadFormat | null>(null);
   const [sharingCertificate, setSharingCertificate] = useState(false);
-  const [certificateNameDraft, setCertificateNameDraft] = useState('');
-  const [certificateNameEditing, setCertificateNameEditing] = useState(false);
-  const [certificateNameSaving, setCertificateNameSaving] = useState(false);
-  const [certificateNameError, setCertificateNameError] = useState('');
   useEffect(() => {
     if (!marathonerId) return;
     setLoading(true);
@@ -236,8 +230,6 @@ export default function ProfileAwards() {
   }, [data]);
 
   const participantName = resolveParticipantName(data, profile);
-  const certificateNameConfirmation = data?.certificate_name_confirmation || null;
-  const certificateNameConfirmed = !certificateNameConfirmation?.required || Boolean(certificateNameConfirmation.confirmed);
   const medal = data?.medal || null;
   const medalCopy = medal ? MEDAL_COPY[medal] : null;
   const languageLabel = data ? formatLanguageLabel(data.languageCode) : '';
@@ -249,7 +241,7 @@ export default function ProfileAwards() {
   const discountValidUntil = discountPrize?.validUntil ? formatDate(discountPrize.validUntil) : '';
   const shareUrl = data ? `${window.location.origin}/profile/${encodeURIComponent(data.id)}/awards` : window.location.href;
   const shareText = data
-    ? `Я завершил(а) ${stripHeadingTerminalPeriod(data.title)} и получил(а) сертификат SpeakASAP. ${awardCopy.hashtag}`
+    ? `Я завершил(а) ${stripHeadingTerminalPeriod(data.title)} и получил(а) сертификат SpeakASAP.`
     : 'Мой сертификат SpeakASAP готов.';
 
   const certificateLines = useMemo(() => [
@@ -325,17 +317,25 @@ export default function ProfileAwards() {
         files: [file],
       };
 
-      if (navigator.canShare?.({ files: [file] }) && navigator.share) {
+      if (navigator.canShare?.(sharePayload) && navigator.share) {
         await navigator.share(sharePayload);
         setShareStatus({ kind: 'success', message: 'Открылось системное меню: выберите Telegram, WhatsApp, Instagram или другое приложение.' });
         return;
       }
 
       downloadBlob(pngBlob, file.name);
-      await navigator.clipboard?.writeText(`${shareText} ${shareUrl}`);
+      let copiedShareText = false;
+      try {
+        await navigator.clipboard?.writeText(`${shareText} ${shareUrl}`);
+        copiedShareText = true;
+      } catch {
+        copiedShareText = false;
+      }
       setShareStatus({
         kind: 'fallback',
-        message: 'PNG скачан, а текст со ссылкой скопирован. Его можно вставить в любой чат или соцсеть.',
+        message: copiedShareText
+          ? 'PNG скачан, а текст со ссылкой скопирован. Его можно вставить в любой чат или соцсеть.'
+          : 'PNG скачан. Если браузер не разрешил копирование, отправьте файл и добавьте ссылку из адресной строки.',
       });
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -345,40 +345,6 @@ export default function ProfileAwards() {
       });
     } finally {
       window.setTimeout(() => setSharingCertificate(false), SHARE_FALLBACK_DELAY_MS);
-    }
-  };
-
-  const submitCertificateName = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!data) return;
-    const displayName = certificateNameDraft.trim();
-    if (!displayName) {
-      setCertificateNameError('Укажите имя для сертификата.');
-      setCertificateNameEditing(true);
-      return;
-    }
-
-    setCertificateNameSaving(true);
-    setCertificateNameError('');
-    try {
-      const nextData = await confirmCertificateName(data.id, displayName);
-      setData(nextData);
-      setProfile((currentProfile) => {
-        const nextProfile = {
-          displayName,
-          email: currentProfile?.email || profile?.email || '',
-          phone: currentProfile?.phone || profile?.phone || '',
-          avatarUrl: currentProfile?.avatarUrl || profile?.avatarUrl || '',
-          bio: currentProfile?.bio || profile?.bio || '',
-        };
-        window.dispatchEvent(new CustomEvent('marathon-profile-updated', { detail: nextProfile }));
-        return nextProfile;
-      });
-      setCertificateNameEditing(false);
-    } catch (error) {
-      setCertificateNameError(error instanceof Error ? error.message : 'Не удалось подтвердить имя для сертификата.');
-    } finally {
-      setCertificateNameSaving(false);
     }
   };
 
@@ -443,55 +409,6 @@ export default function ProfileAwards() {
     );
   }
 
-  if (!certificateNameConfirmed && certificateNameConfirmation) {
-    return (
-      <main className="container page-static profile-awards-page">
-        <section className="profile-certificate-confirmation" aria-labelledby="certificate-awards-name-title">
-          <div>
-            <p className="profile-completion-kicker">Марафон завершен</p>
-            <h1 id="certificate-awards-name-title">Подтвердите имя для сертификата</h1>
-            <p>
-              Мы видим в вашем профиле имя <strong>{certificateNameConfirmation.currentName}</strong>.
-              Сертификат, медаль и призы откроются после подтверждения имени.
-            </p>
-          </div>
-          <form className="profile-certificate-confirmation__form" onSubmit={submitCertificateName}>
-            {certificateNameEditing ? (
-              <label htmlFor="awards-certificate-display-name">
-                Имя на сертификате
-                <input
-                  id="awards-certificate-display-name"
-                  value={certificateNameDraft}
-                  onChange={(event) => setCertificateNameDraft(event.target.value)}
-                  maxLength={120}
-                  autoFocus
-                />
-              </label>
-            ) : null}
-            <div className="profile-payment-actions">
-              <button type="submit" className="btn-profile-open" disabled={certificateNameSaving}>
-                {certificateNameSaving ? 'Подтверждаем...' : 'Да, подтверждаю'}
-              </button>
-              <button
-                type="button"
-                className="btn-profile-login"
-                onClick={() => {
-                  setCertificateNameEditing(true);
-                  setCertificateNameError('');
-                }}
-                disabled={certificateNameSaving}
-              >
-                Изменить имя
-              </button>
-              <Link to={`/profile/${encodeURIComponent(data.id)}`} className="btn-profile-login">Вернуться в профиль</Link>
-            </div>
-            {certificateNameError && <p className="ml-error">{certificateNameError}</p>}
-          </form>
-        </section>
-      </main>
-    );
-  }
-
   return (
     <main className="container page-static profile-awards-page">
       <section className={`profile-awards-hero profile-awards-hero-${medalCopy?.className}`}>
@@ -499,8 +416,10 @@ export default function ProfileAwards() {
           <p className="profile-completion-kicker">Теперь самое время получать призы</p>
           <h1>{medalCopy?.title}</h1>
           <p>
-            {stripHeadingTerminalPeriod(data.title)} завершен {finishedDate}. Ниже ваши призы,
-            сертификат и ссылки для следующего шага.
+            {stripHeadingTerminalPeriod(data.title)} завершен {finishedDate}. Поздравляем с
+            {` ${medalCopy?.certificate.toLowerCase()}`}: ниже собраны ваши заслуженные призы -
+            книга, сертификат, медаль и персональная скидка за труд, время и усилия, которые привели
+            вас к финишу.
           </p>
         </div>
         <div className="profile-awards-medal" aria-label={medalCopy?.certificate}>
@@ -571,7 +490,7 @@ export default function ProfileAwards() {
         <article>
           <span className="profile-awards-card-icon">PDF</span>
           <h2>Книга «Точка выхода»</h2>
-          <p>Legacy-приз для финалистов: PDF-книга о том, как перестать бесконечно учить язык и начать им пользоваться.</p>
+          <p>PDF-книга о том, как перестать бесконечно учить язык и начать им пользоваться.</p>
           <a className="btn-profile-open" href={bookPrize?.actionHref || BOOK_PRIZE_URL} target="_blank" rel="noreferrer">
             {bookPrize?.actionLabel || 'Скачать книгу'}
           </a>
@@ -579,14 +498,17 @@ export default function ProfileAwards() {
         <article>
           <span className="profile-awards-card-icon">%</span>
           <h2>Скидка на следующий курс</h2>
-          <p>{discountPrize?.title || medalCopy?.discount}. Legacy-страница выдавала персональный код на 14 дней после финиша.</p>
+          <p>
+            {discountPrize?.title || medalCopy?.discount}. Ваш персональный код действует 14 дней
+            после финиша и будет передан на страницу курса автоматически.
+          </p>
           {discountPrize?.discountCode ? (
             <p className="profile-awards-code"><strong>{discountPrize.discountCode}</strong></p>
           ) : null}
           {discountValidUntil ? <p>Действует до {discountValidUntil}.</p> : null}
           {discountPrize?.actionHref ? (
             <a className="btn-profile-open" href={discountPrize.actionHref} target="_blank" rel="noreferrer">
-              {discountPrize.actionLabel || 'Выбрать курс'}
+              {discountPrize.actionLabel || 'Применить скидку'}
             </a>
           ) : null}
         </article>
@@ -594,8 +516,8 @@ export default function ProfileAwards() {
           <span className="profile-awards-card-icon">🏆</span>
           <h2>Кубок и медаль финалиста</h2>
           <p>
-            Ваш результат сохранен в профиле и в списке финалистов: {languageLabel}.
-            Legacy-хэштег для отзыва: {awardCopy.hashtag}.
+            Ваш результат сохранен в профиле и в списке финалистов по марафону: {languageLabel}.
+            Это ваша медаль за путь, который вы прошли до конца.
           </p>
           <Link className="btn-profile-open" to="/winners">
             Посмотреть финалистов

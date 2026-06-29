@@ -568,7 +568,7 @@ function normalizeTextBlockSequence(blocks) {
     }
 
     let text = stripGenericNextScheduleInstruction(normalizeTextBlockText(block.text));
-    if (!text || isOptionalStep1Note(text)) continue;
+    if (!text || (isOptionalStep1Note(text) && !Array.isArray(block.content))) continue;
 
     const previous = normalized[normalized.length - 1];
     const leadingPunctuation = text.match(/^([.!?,;:]+)\s+([\s\S]+)$/);
@@ -708,8 +708,14 @@ function renderTemplateBlocks(templatePath, fields, templatesRoot, folder) {
           listStack.push({ block: listBlock, currentItem: null });
           stack.push({ tag, branch: branchFromClass(classMatch ? classMatch[1] : ''), ...inlineMetaFromTag(tag, attrs) });
         } else if (tag === 'li') {
-          const currentList = listStack[listStack.length - 1];
-          if (currentList) currentList.currentItem = { blocks: [] };
+          let currentList = listStack[listStack.length - 1];
+          if (!currentList) {
+            const listBlock = { id: `list-${activeBlocks().length}`, type: 'list', ordered: false, items: [], ...(branch ? { branch } : {}) };
+            pushBlock(listBlock);
+            currentList = { block: listBlock, currentItem: null, implicit: true };
+            listStack.push(currentList);
+          }
+          currentList.currentItem = { blocks: [] };
           stack.push({ tag, branch: branchFromClass(classMatch ? classMatch[1] : ''), ...inlineMetaFromTag(tag, attrs) });
         } else {
           stack.push({

@@ -1083,9 +1083,15 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     certificate: MyMarathonCertificate,
   ): MyMarathonPrize[] {
     const awardsPath = certificate.shareUrlHint;
-    const discountPercent = medal === 'bronze' ? 5 : 10;
-    const discountCode = this.buildLegacyDiscountCode(certificate.id, marathon.languageCode, medal);
-    const validUntil = this.buildLegacyDiscountValidUntil(certificate.finishedAt);
+    const discountPercent = 10;
+    const discountCode = this.buildFinalistDiscountCode(certificate.id, marathon.languageCode, medal);
+    const validUntil = this.buildFinalistDiscountValidUntil(certificate.finishedAt);
+    const discountActionHref = this.buildNextCourseDiscountUrl(
+      marathon.languageCode,
+      discountCode,
+      discountPercent,
+      validUntil,
+    );
 
     return [
       {
@@ -1102,7 +1108,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
         id: `${certificate.id}:book`,
         kind: 'book',
         title: 'PDF-книга «Точка выхода»',
-        description: 'Legacy-приз для финалистов: книга о том, как перестать бесконечно учить язык и начать им пользоваться.',
+        description: 'PDF-книга о том, как перестать бесконечно учить язык и начать им пользоваться.',
         status: 'available',
         urlHint: 'https://speakasap.com/media/steps/german/tochka_vixoda_iz_yazika_ili_kak_brosit_ychit_yazik_buch.pdf',
         actionLabel: 'Скачать книгу',
@@ -1112,11 +1118,11 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
         id: `${certificate.id}:discount`,
         kind: 'discount',
         title: `${discountPercent}% скидка на следующий курс SpeakASAP`,
-        description: `Персональный legacy-бонус финалиста: код ${discountCode}, действует 14 дней после финиша.`,
+        description: `Персональная скидка финалиста: код ${discountCode}, действует 14 дней после финиша.`,
         status: 'available',
-        urlHint: 'https://speakasap.com/course/',
-        actionLabel: 'Выбрать курс',
-        actionHref: 'https://speakasap.com/course/',
+        urlHint: discountActionHref,
+        actionLabel: 'Применить скидку',
+        actionHref: discountActionHref,
         discountPercent,
         discountCode,
         validUntil,
@@ -1140,16 +1146,33 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     ];
   }
 
-  private buildLegacyDiscountCode(certificateId: string, languageCode: string, medal: MarathonMedal): string {
+  private buildFinalistDiscountCode(certificateId: string, languageCode: string, medal: MarathonMedal): string {
     const digest = createHash('sha256').update(certificateId).digest('hex').slice(0, 8).toUpperCase();
     return `MARATHON-${languageCode.toUpperCase()}-${medal.toUpperCase()}-${digest}`;
   }
 
-  private buildLegacyDiscountValidUntil(finishedAt: string): string {
+  private buildFinalistDiscountValidUntil(finishedAt: string): string {
     const date = new Date(finishedAt);
     if (Number.isNaN(date.getTime())) return finishedAt;
     date.setUTCDate(date.getUTCDate() + 14);
     return date.toISOString();
+  }
+
+  private buildNextCourseDiscountUrl(
+    languageCode: string,
+    discountCode: string,
+    discountPercent: number,
+    validUntil: string,
+  ): string {
+    const normalizedLanguageCode = languageCode.toLowerCase().replace(/[^a-z]/g, '');
+    const courseUrl = new URL(`https://speakasap.com/${normalizedLanguageCode || 'de'}/`);
+    courseUrl.searchParams.set('discount_code', discountCode);
+    courseUrl.searchParams.set('discount_percent', String(discountPercent));
+    courseUrl.searchParams.set('discount_valid_until', validUntil);
+    courseUrl.searchParams.set('utm_source', 'marathon');
+    courseUrl.searchParams.set('utm_medium', 'certificate');
+    courseUrl.searchParams.set('utm_campaign', 'finalist_discount');
+    return courseUrl.toString();
   }
 
   private resolveParticipantDisplayName(participant: any): string {
