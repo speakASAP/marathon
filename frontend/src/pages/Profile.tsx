@@ -113,7 +113,7 @@ async function compressAvatarFile(file: File): Promise<string> {
 
 
 function getCompletedCount(marathon: MyMarathonSummary) {
-  return marathon.answers.filter((answer) => answer.state === 'completed' || answer.state === 'done').length;
+  return marathon.answers.filter((answer) => answer.state === 'completed' || answer.state === 'checked' || answer.state === 'done').length;
 }
 
 function getProgressPct(marathon: MyMarathonSummary) {

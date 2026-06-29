@@ -87,7 +87,7 @@ export class SubmissionsService {
       throw new ForbiddenException('Marathon payment is required before submitting this step');
     }
 
-    this.assertPreviousStepsChecked(participant, step);
+    this.assertStepAccessAllowed(participant, step);
 
     const completed = payload.completed !== false;
     const now = new Date();
@@ -243,7 +243,7 @@ export class SubmissionsService {
       throw new NotFoundException('Step not found for this marathon');
     }
 
-    this.assertPreviousStepsChecked(participant, step);
+    this.assertStepAccessAllowed(participant, step);
 
     const submissions = await this.findSubmissionsForParticipantStep(this.prisma, participant.id, step.id);
     const submission = submissions.find((candidate: any) => candidate.isCompleted) || this.pickEditableSubmission(submissions);
@@ -327,22 +327,26 @@ export class SubmissionsService {
     }
   }
 
-  private assertPreviousStepsChecked(participant: any, step: any) {
+  private assertStepAccessAllowed(participant: any, step: any) {
     if (step.sequence <= 1) return;
 
-    const checkedStepIds = new Set(
-      (participant.submissions || [])
-        .filter((submission: any) => submission.isCompleted && submission.isChecked)
+    const submissions = participant.submissions || [];
+    const alreadyOpened = submissions.some((submission: any) => submission.stepId === step.id);
+    if (alreadyOpened) return;
+
+    const completedStepIds = new Set(
+      submissions
+        .filter((submission: any) => submission.isCompleted)
         .map((submission: any) => submission.stepId),
     );
     const previousSteps = (participant.marathon?.steps || [])
       .filter((candidate: any) => candidate.sequence < step.sequence);
 
-    if (previousSteps.every((candidate: any) => checkedStepIds.has(candidate.id))) {
+    if (previousSteps.every((candidate: any) => completedStepIds.has(candidate.id))) {
       return;
     }
 
-    throw new ConflictException('Этот этап откроется после отправки и проверки отчета по предыдущему этапу');
+    throw new ConflictException('Этот этап откроется после отправки отчета по предыдущему этапу');
   }
 
   private normalizeRating(value?: number, fallback = 0): number {

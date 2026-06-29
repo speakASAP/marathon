@@ -62,7 +62,7 @@ function getBrowserTimeZone() {
 }
 
 function isCompletedScheduleAnswer(answer: Answer) {
-  return answer.state === 'checked' || answer.state === 'done';
+  return answer.state === 'completed' || answer.state === 'checked' || answer.state === 'done';
 }
 
 function canNavigateToScheduleAnswer(answer: Answer | null | undefined) {
@@ -73,7 +73,7 @@ function canNavigateToScheduleAnswer(answer: Answer | null | undefined) {
 function getStepAccessMessage(answer: Answer | null | undefined) {
   if (!answer) return '';
   if (answer.block_reason === 'payment_required') return 'Доступ к этапу откроется после подтверждения оплаты марафона.';
-  if (answer.block_reason === 'previous_report_pending') return 'Этот этап откроется после отправки и проверки отчета по предыдущему этапу.';
+  if (answer.block_reason === 'previous_report_pending') return 'Этот этап откроется после отправки отчета по предыдущему этапу.';
   if (answer.block_reason === 'scheduled_future') return `Этап появится ${formatDateTime(answer.start)}.`;
   return 'Этот этап пока закрыт.';
 }

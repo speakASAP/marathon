@@ -54,32 +54,6 @@ async function jsonFetch(path, options = {}) {
   return body;
 }
 
-async function expectJsonFetchStatus(path, expectedStatus, options = {}) {
-  const url = path.startsWith("http") ? path : `${baseUrl}${path}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
-      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
-      ...(options.headers || {}),
-    },
-  });
-  const text = await response.text();
-  let body = null;
-  if (text) {
-    try {
-      body = JSON.parse(text);
-    } catch {
-      body = { raw: text.slice(0, 180) };
-    }
-  }
-  if (response.status !== expectedStatus) {
-    const message = body?.message || body?.raw || response.statusText;
-    throw new Error(`${options.label || path} expected HTTP ${expectedStatus}, got HTTP ${response.status} ${message}`);
-  }
-  return body;
-}
-
 async function ensureReplacementGift(marathonId) {
   const unused = await prisma.marathonGift.count({ where: { marathonId, usedAt: null } });
   if (unused > 0) return { created: false, unused };
@@ -331,7 +305,7 @@ async function main() {
   }
 
   let submitted = 0;
-  let progressionGateVerified = false;
+  let legacyProgressionVerified = false;
   for (const [index, step] of steps.entries()) {
     const payload = smokePayloadForStep(step);
     const submission = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/submissions`, {
@@ -350,20 +324,13 @@ async function main() {
     submitted += 1;
 
     const nextStep = steps[index + 1];
-    if (!progressionGateVerified && nextStep) {
-      await expectJsonFetchStatus(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/submissions`, 409, {
-        method: "POST",
+    if (!legacyProgressionVerified && nextStep) {
+      const nextLookup = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/submissions/${encodeURIComponent(nextStep.id)}`, {
         token,
-        label: `pre-check progression gate ${step.sequence}->${nextStep.sequence}`,
-        body: JSON.stringify({
-          stepId: nextStep.id,
-          completed: true,
-          report: `Synthetic production smoke blocked report ${stamp} step ${nextStep.sequence}`,
-          payload: smokePayloadForStep(nextStep),
-          rating: 10,
-        }),
+        label: `legacy completed-before-checked progression ${step.sequence}->${nextStep.sequence}`,
       });
-      progressionGateVerified = true;
+      if (nextLookup?.stepId !== nextStep.id || nextLookup.exists !== false) throw new Error(`legacy progression lookup failed for step ${nextStep.sequence}`);
+      legacyProgressionVerified = true;
     }
 
     await prisma.stepSubmission.update({
@@ -371,7 +338,7 @@ async function main() {
       data: { isChecked: true },
     });
   }
-  if (!progressionGateVerified) throw new Error("progression gate was not verified by production smoke");
+  if (!legacyProgressionVerified) throw new Error("legacy progression lookup was not verified by production smoke");
 
   const participant = await prisma.marathonParticipant.findUnique({
     where: { id: marathonerId },

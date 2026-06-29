@@ -856,7 +856,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     const schedule = this.buildSchedule(participant, marathon.steps, participant.submissions, paymentRequired);
     const steps = this.mapProgressReportSteps(schedule, marathon.steps, participant.submissions);
     const totalSteps = steps.length;
-    const completedSteps = steps.filter((step) => step.state === 'completed' || step.state === 'done').length;
+    const completedSteps = steps.filter((step) => step.state === 'completed' || step.state === 'checked' || step.state === 'done').length;
     const checkedSteps = steps.filter((step) => step.state === 'checked').length;
     const activeSteps = steps.filter((step) => step.state === 'active').length;
     const lockedSteps = steps.filter((step) => step.state === 'inactive').length;
@@ -941,7 +941,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
         submissionMap.set(submission.stepId, submission);
       }
     }
-    let previousStepsChecked = true;
+    let previousStepsCompleted = true;
     const now = new Date();
 
     for (const step of steps) {
@@ -949,22 +949,17 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       const dueAt = this.resolveDueAt(participant.reportHour, step.sequence);
       const submission = submissionMap.get(step.id);
       const blockedByPayment = paymentRequired;
-      const blockedByPreviousReport = !previousStepsChecked;
 
       if (submission) {
         const mapped = this.mapToAnswer(submission, step, participant);
         schedule.push({
           ...mapped,
-          state: blockedByPayment || blockedByPreviousReport ? 'inactive' : mapped.state,
-          can_open: !blockedByPayment && !blockedByPreviousReport,
-          block_reason: blockedByPayment
-            ? 'payment_required'
-            : blockedByPreviousReport
-              ? 'previous_report_pending'
-              : null,
+          can_open: !blockedByPayment,
+          block_reason: blockedByPayment ? 'payment_required' : null,
         });
-        previousStepsChecked = submission.isCompleted && submission.isChecked;
+        previousStepsCompleted = submission.isCompleted;
       } else {
+        const blockedByPreviousReport = !previousStepsCompleted;
         const scheduledFuture = startAt > now;
         const canOpen = !blockedByPayment && !blockedByPreviousReport;
         const state = canOpen && !scheduledFuture ? 'active' : 'inactive';
@@ -989,7 +984,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
           block_reason: blockReason,
         });
 
-        previousStepsChecked = false;
+        previousStepsCompleted = false;
       }
     }
 
