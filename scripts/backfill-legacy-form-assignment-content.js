@@ -163,6 +163,8 @@ function speakasapPathForRoute(routeName, args) {
   if (Object.prototype.hasOwnProperty.call(singleLanguageRoutes, route) && lang) {
     return `/${lang}/${singleLanguageRoutes[route]}/`;
   }
+  if (route === 'marathon:faq') return '/faq';
+  if (route === 'marathon:marathon' && lang) return `/${lang}/`;
   if (route === 'profile') return '/profile/';
   if (route === 'profile_settings') return '/profile/settings/';
   if (route === 'home') return '/';
