@@ -182,7 +182,7 @@ export function AssignmentBlockRenderer({ block, answers, readOnly, validationEr
           <source src={mp3Url} type="audio/mpeg" />
           <source src={mediaAudioUrl(block.code, "ogg")} type="audio/ogg" />
         </audio>
-        <a href={mp3Url} download>Скачать MP3</a>
+        <a className="step-assignment-download-button" href={mp3Url} download aria-label="Скачать аудио в формате MP3"><i className="fa fa-download" aria-hidden="true" /><span>Скачать MP3</span></a>
       </div>
     );
   }
