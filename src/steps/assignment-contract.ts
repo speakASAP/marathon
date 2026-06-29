@@ -3,6 +3,8 @@ import { AssignmentBlock, AssignmentBranch, AssignmentFieldBlock } from './assig
 export type AssignmentLevel = 'beginner' | 'medium' | 'advanced' | null;
 export type AssignmentPayload = Record<string, unknown>;
 
+const REQUIRED_TEXT_MIN_LENGTH = 2;
+
 export type MissingAssignmentAnswer = {
   name: string;
   label: string;
@@ -69,11 +71,32 @@ function stringifyPublicPayloadValue(name: string, value: unknown, choices: Arra
   return stripLegacyHtml(text);
 }
 
+function fillAssignmentLabelPlaceholder(label: string, answer: string): string | null {
+  const cleanAnswer = answer.trim();
+  if (!cleanAnswer || !/\[[^\]]+\]/.test(label)) return null;
+  return label.replace(/\[[^\]]+\]/g, cleanAnswer).replace(/\s{2,}/g, ' ').trim();
+}
+
 function isLegacyDiagnosticField(block: AssignmentFieldBlock): boolean {
   return /^c\d+$/i.test(block.name);
 }
 
-function legacyPayloadQuestionLabel(name: string): string {
+const LEGACY_GERMAN_STEP1_FIELDS: Array<{ name: string; label: string }> = [
+  { name: 'q1', label: 'Как долго вы учите немецкий язык?' },
+  { name: 'bm2', label: 'Какие эмоции вызвали у вас эти вопросы и задания?' },
+  { name: 'bm8', label: 'Что вы хотите уметь в немецком уже через месяц? Через полгода? Через год?' },
+  { name: 'c21', label: 'К какому внутреннему выводу вы пришли, что вы для себя решили? (возможно, не только на время марафона)' },
+];
+
+function isLegacyGermanStep1Payload(payload: AssignmentPayload): boolean {
+  return ['bm8', 'bm9', 'c21'].some((name) => Object.prototype.hasOwnProperty.call(payload, name));
+}
+
+function legacyPayloadQuestionLabel(name: string, payload?: AssignmentPayload): string {
+  if (payload && isLegacyGermanStep1Payload(payload)) {
+    const legacyField = LEGACY_GERMAN_STEP1_FIELDS.find((field) => field.name === name);
+    if (legacyField) return legacyField.label;
+  }
   if (isLegacyKnownWordsField(name)) {
     return 'Какие знакомые слова вы выделили в тексте?';
   }
@@ -86,8 +109,11 @@ function legacyPayloadQuestionLabel(name: string): string {
   return `Ответ на предыдущую версию вопроса (${name})`;
 }
 
-function shouldPublishLegacyPayloadValue(name: string, value: string): boolean {
+function shouldPublishLegacyPayloadValue(name: string, value: string, payload?: AssignmentPayload): boolean {
   if (!value) return false;
+  if (payload && isLegacyGermanStep1Payload(payload)) {
+    return LEGACY_GERMAN_STEP1_FIELDS.some((field) => field.name === name);
+  }
   if (/^c\d+$/i.test(name)) return false;
   if (name === 'level' || name === 'assignmentLevel') return false;
   return value.length >= 12;
@@ -97,15 +123,16 @@ function legacyPublicAssignmentFields(
   payload: AssignmentPayload,
   visibleFields: AssignmentFieldBlock[],
 ): Array<{ name: string; label: string; value: string }> {
+  const legacyGermanStep1 = isLegacyGermanStep1Payload(payload);
   const visibleNames = new Set(visibleFields.map((block) => block.name));
   return Object.entries(payload)
-    .filter(([name]) => !visibleNames.has(name))
+    .filter(([name]) => legacyGermanStep1 || !visibleNames.has(name))
     .map(([name, rawValue]) => ({
       name,
-      label: legacyPayloadQuestionLabel(name),
+      label: legacyPayloadQuestionLabel(name, payload),
       value: stringifyPublicPayloadValue(name, rawValue),
     }))
-    .filter((entry) => shouldPublishLegacyPayloadValue(entry.name, entry.value));
+    .filter((entry) => shouldPublishLegacyPayloadValue(entry.name, entry.value, payload));
 }
 
 export function isAssignmentFieldBlock(block: AssignmentBlock): block is AssignmentFieldBlock {
@@ -164,12 +191,17 @@ export function generateAssignmentReport(payload: AssignmentPayload | null, bloc
   if (!payload) return '';
 
   const lines: string[] = [];
-  const visibleFields = visiblePublicAssignmentFields(blocks, payload);
+  const visibleFields = isLegacyGermanStep1Payload(payload) ? [] : visiblePublicAssignmentFields(blocks, payload);
   for (const block of visibleFields) {
     if (!Object.prototype.hasOwnProperty.call(payload, block.name)) continue;
     const value = stringifyPublicPayloadValue(block.name, payload[block.name], block.choices);
     if (!value) continue;
-    lines.push(`${block.label}:`, value);
+    const filledSentence = fillAssignmentLabelPlaceholder(block.label, value);
+    if (filledSentence) {
+      lines.push(filledSentence);
+    } else {
+      lines.push(`${block.label}:`, value);
+    }
   }
 
   for (const entry of legacyPublicAssignmentFields(payload, visibleFields)) {
@@ -187,7 +219,7 @@ export function filterAssignmentPayloadForPublicReport(
   if (!payload) return {};
 
   const filtered: AssignmentPayload = {};
-  const visibleFields = visiblePublicAssignmentFields(blocks, payload);
+  const visibleFields = isLegacyGermanStep1Payload(payload) ? [] : visiblePublicAssignmentFields(blocks, payload);
   for (const block of visibleFields) {
     if (!Object.prototype.hasOwnProperty.call(payload, block.name)) continue;
     const value = stringifyPublicPayloadValue(block.name, payload[block.name], block.choices);
@@ -203,10 +235,10 @@ export function filterAssignmentPayloadForPublicReport(
   return filtered;
 }
 
-export function assignmentAnswerFilled(value: unknown): boolean {
-  if (typeof value === 'string') return Boolean(value.trim());
-  if (Array.isArray(value)) return value.some((item) => typeof item === 'string' && Boolean(item.trim()));
-  return false;
+export function assignmentAnswerFilled(block: AssignmentFieldBlock, value: unknown): boolean {
+  if (block.fieldType === 'radio') return typeof value === 'string' && Boolean(value.trim());
+  if (block.fieldType === 'checkbox') return Array.isArray(value) && value.some((item) => typeof item === 'string' && Boolean(item.trim()));
+  return typeof value === 'string' && value.trim().length >= REQUIRED_TEXT_MIN_LENGTH;
 }
 
 export function missingRequiredAssignmentAnswers(
@@ -217,6 +249,6 @@ export function missingRequiredAssignmentAnswers(
   return blocks
     .filter(isAssignmentFieldBlock)
     .filter((block) => block.required && assignmentBranchVisible(block.branch, level))
-    .filter((block) => !assignmentAnswerFilled(payload[block.name]))
+    .filter((block) => !assignmentAnswerFilled(block, payload[block.name]))
     .map((block) => ({ name: block.name, label: block.label }));
 }

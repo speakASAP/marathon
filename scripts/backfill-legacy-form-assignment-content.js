@@ -114,12 +114,80 @@ function currentLink(stack) {
   return null;
 }
 
+const SPEAKASAP_BASE_URL = 'https://speakasap.com';
+
+function parseTemplateTagArgs(source) {
+  const args = [];
+  const pattern = /'([^']*)'|"([^"]*)"|(-?\d+)/g;
+  let match;
+  while ((match = pattern.exec(source)) !== null) {
+    args.push(match[1] ?? match[2] ?? match[3]);
+  }
+  return args;
+}
+
+function speakasapPathForRoute(routeName, args) {
+  const route = String(routeName || '').trim();
+  const [lang, second] = args;
+  const singleLanguageRoutes = {
+    seven: 'seven',
+    grammar: 'grammar',
+    phonetics: 'phonetics',
+    songs: 'songs',
+    basic: 'basic',
+    basic_2: 'basic_2',
+    group: 'group',
+    mini: 'mini',
+    extra: 'extra',
+    mini_group: 'mini_group',
+    native: 'native',
+    demo_native: 'native/demo',
+    tef: 'tef',
+    mvv: 'mvv',
+    mvv2: 'mvv2',
+    card: 'card',
+    migrants: 'migrants',
+    b2: 'b2_25',
+    b2_25: 'b2_25',
+    b2_10: 'b2_10',
+    mp3: 'mp3',
+    demo: 'demo',
+  };
+
+  if (route === 'seven_lesson' && lang && second) return `/${lang}/seven/${second}/`;
+  if (route === 'seven_lesson_app' && lang && second) return `/${lang}/seven/${second}/app/`;
+  if (route === 'seven_lesson_email' && lang && second) return `/${lang}/seven/${second}/email/`;
+  if (route === 'grammar_lesson' && lang && second) return `/${lang}/grammar/${second}/`;
+  if (route === 'phonetics_lesson' && lang && second) return `/${lang}/phonetics/${second}/`;
+  if (route === 'songs_lesson' && lang && second) return `/${lang}/songs/${second}/`;
+  if (Object.prototype.hasOwnProperty.call(singleLanguageRoutes, route) && lang) {
+    return `/${lang}/${singleLanguageRoutes[route]}/`;
+  }
+  if (route === 'profile') return '/profile/';
+  if (route === 'profile_settings') return '/profile/settings/';
+  if (route === 'home') return '/';
+  return '';
+}
+
 function resolveTemplateHref(rawHref) {
   const href = decodeEntities(String(rawHref || '').trim());
   if (!href) return '';
-  return href
-    .replace(/\{%\s*get_media_prefix\s*%\}/g, 'https://speakasap.com/media/')
-    .replace(/\s+/g, '');
+  const mediaHref = href.replace(/\{%\s*get_media_prefix\s*%\}/g, 'https://speakasap.com/media/');
+  const templateTag = mediaHref.match(/^\{%\s*(?:host_url|url)\s*([\s\S]*?)%\}([\s\S]*)$/);
+  if (templateTag) {
+    const [routeName, ...args] = parseTemplateTagArgs(templateTag[1]);
+    const path = speakasapPathForRoute(routeName, args);
+    if (path) return `${SPEAKASAP_BASE_URL}${path}${String(templateTag[2] || '').replace(/\s+/g, '')}`;
+  }
+  const compactHref = mediaHref.replace(/\s+/g, '');
+  const compactTemplateTag = compactHref.match(/^\{%(?:host_url|url)'([^']+)'((?:'[^']+')*)%\}([\s\S]*)$/);
+  if (compactTemplateTag) {
+    const routeName = compactTemplateTag[1];
+    const args = Array.from(compactTemplateTag[2].matchAll(/'([^']+)'/g), (match) => match[1]);
+    const path = speakasapPathForRoute(routeName, args);
+    if (path) return `${SPEAKASAP_BASE_URL}${path}${compactTemplateTag[3] || ''}`;
+  }
+  return compactHref;
 }
 
 const FIRST_STEP_PLATFORM_PROGRAM_CHOICE = { value: 'Программы', label: 'Программы' };
@@ -176,16 +244,26 @@ function currentBranch(stack) {
   return null;
 }
 
+function isDownloadHref(href) {
+  return /\.(?:pdf|zip|docx?|xlsx?|pptx?|mp3|mp4|wav|ogg)(?:[?#]|$)/i.test(href);
+}
+
+function isGenericSettingsLink(text, href) {
+  return /^настроек\.?$/i.test(text) && /^\/profile\/?(?:[?#].*)?$/i.test(href);
+}
+
 function pushTextBlock(blocks, rawText, branch, href = null) {
   const text = normalizeInstructionText(stripHtmlToText(rawText));
   if (!text) return;
   if (href) {
+    if (isGenericSettingsLink(text, href)) return;
     blocks.push({
       id: `link-${blocks.length}`,
       type: 'link',
       text,
       href,
-      download: /\.pdf(?:[?#]|$)/i.test(href),
+      download: isDownloadHref(href),
+      inline: true,
       ...(branch ? { branch } : {}),
     });
     return;
@@ -213,8 +291,15 @@ function normalizeTextBlockText(text) {
   return String(text || "").replace(/\s+/g, " ").trim();
 }
 
+const GENERIC_NEXT_SCHEDULE_INSTRUCTION = /Сформируйте отчет[,.]?\s*Новый этап появится в то\s*(?:⏰\s*)?время,\s*которое вы указали на странице(?:\s*⚙️?)?(?:\s*настроек\.?)?/gi;
+
+function stripGenericNextScheduleInstruction(text) {
+  return String(text || "").replace(GENERIC_NEXT_SCHEDULE_INSTRUCTION, "").replace(/\s+/g, " ").trim();
+}
+
 function shouldJoinWithPrevious(previous, text) {
   if (!previous || previous.type !== "text") return false;
+  if (Array.isArray(previous.links) && previous.links.length && /^\(/.test(text)) return true;
   return /^[.!?,;:]+$/.test(text)
     || (/^настроек\.?$/i.test(text) && /^Сформируйте отчет\./i.test(previous.text))
     || isSentenceContinuation(previous.text, text);
@@ -223,12 +308,29 @@ function shouldJoinWithPrevious(previous, text) {
 function normalizeTextBlockSequence(blocks) {
   const normalized = [];
   for (const block of blocks) {
+    if (block.type === 'link' && block.inline) {
+      const previous = normalized[normalized.length - 1];
+      if (previous?.type === 'text' && previous.branch === block.branch && block.text && block.href) {
+        previous.text = `${previous.text} ${normalizeTextBlockText(block.text)}`;
+        previous.links = [...(previous.links || []), { text: normalizeTextBlockText(block.text), href: resolveTemplateHref(block.href) }];
+        continue;
+      }
+      normalized.push({
+        id: `text-${block.id}`,
+        type: 'text',
+        text: normalizeTextBlockText(block.text),
+        links: [{ text: normalizeTextBlockText(block.text), href: resolveTemplateHref(block.href) }],
+        ...(block.branch ? { branch: block.branch } : {}),
+      });
+      continue;
+    }
+
     if (block.type !== 'text') {
       normalized.push(block);
       continue;
     }
 
-    let text = normalizeTextBlockText(block.text);
+    let text = stripGenericNextScheduleInstruction(normalizeTextBlockText(block.text));
     if (!text || isOptionalStep1Note(text)) continue;
 
     const previous = normalized[normalized.length - 1];
@@ -252,7 +354,12 @@ function normalizeTextBlockSequence(blocks) {
     }
 
     if (shouldJoinWithPrevious(previous, text) && previous?.type === 'text' && previous.branch === block.branch) {
-      previous.text = /^[.!?,;:]+$/.test(text) ? `${previous.text}${text}` : `${previous.text} ${text.replace(/\.$/, '')}`;
+      const separator = /^[.!?,;:]+$/.test(text) ? '' : ' ';
+      const appendedText = /^[.!?,;:]+$/.test(text) ? text : text.replace(/\.$/, '');
+      previous.text = `${previous.text}${separator}${appendedText}`;
+      if (Array.isArray(block.links) && block.links.length) {
+        previous.links = [...(previous.links || []), ...block.links];
+      }
       continue;
     }
 
@@ -304,8 +411,8 @@ function renderTemplateBlocks(templatePath, fields) {
         const tag = open[1].toLowerCase();
         const attrs = open[2];
         const classMatch = attrs.match(/class=["']([^"']+)["']/i);
-        const hrefMatch = attrs.match(/href=["']([^"']+)["']/i);
-        stack.push({ tag, branch: branchFromClass(classMatch ? classMatch[1] : ''), href: tag === 'a' && hrefMatch ? resolveTemplateHref(hrefMatch[1]) : null });
+        const hrefMatch = attrs.match(/href=(["'])([\s\S]*?)\1/i);
+        stack.push({ tag, branch: branchFromClass(classMatch ? classMatch[1] : ''), href: tag === 'a' && hrefMatch ? resolveTemplateHref(hrefMatch[2]) : null });
       }
     }
     lastIndex = tokenPattern.lastIndex;

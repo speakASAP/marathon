@@ -89,38 +89,36 @@ export class SubmissionsService {
 
     const completed = payload.completed !== false;
     const now = new Date();
-    const existing = await this.prisma.stepSubmission.findFirst({
-      where: {
-        participantId: participant.id,
-        stepId: step.id,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (existing?.isCompleted) {
-      throw new ConflictException('Этот отчет уже отправлен и больше не редактируется');
-    }
-
-    const startAt = existing?.startAt || this.resolveStartAt(participant.reportHour, step.sequence);
-    const endAt = now;
-    const isLate = endAt > this.resolveDueAt(participant.reportHour, step.sequence);
-    const payloadJson = {
-      ...(existing?.payloadJson && typeof existing.payloadJson === 'object' ? existing.payloadJson as Record<string, unknown> : {}),
-      ...extraPayload,
-      ...(report ? { report } : {}),
-    };
-
-    if (completed) {
-      this.assertRequiredAnswers(normalizeAssignmentBlocks(step.assignmentBlocks), payloadJson);
-    }
-
     const result = await this.prisma.$transaction(async (tx) => {
+      await this.lockParticipantStep(tx, participant.id, step.id);
+
+      const existingSubmissions = await this.findSubmissionsForParticipantStep(tx, participant.id, step.id);
+      const completedSubmission = existingSubmissions.find((submission: any) => submission.isCompleted);
+      if (completedSubmission) {
+        throw new ConflictException('Этот отчет уже отправлен и больше не редактируется');
+      }
+
+      const existing = this.pickEditableSubmission(existingSubmissions);
+      const startAt = existing?.startAt || this.resolveStartAt(participant.reportHour, step.sequence);
+      const endAt = now;
+      const isLate = endAt > this.resolveDueAt(participant.reportHour, step.sequence);
+      const payloadJson = {
+        ...(existing?.payloadJson && typeof existing.payloadJson === 'object' ? existing.payloadJson as Record<string, unknown> : {}),
+        ...extraPayload,
+        ...(report ? { report } : {}),
+      };
+
+      if (completed) {
+        this.assertRequiredAnswers(normalizeAssignmentBlocks(step.assignmentBlocks), payloadJson);
+      }
+
       const submission = existing
         ? await tx.stepSubmission.update({
             where: { id: existing.id },
             data: {
               endAt,
               isCompleted: completed,
+              isChecked: completed ? false : existing.isChecked,
               rating: this.normalizeRating(payload.rating, existing.rating),
               payloadJson,
             },
@@ -137,6 +135,8 @@ export class SubmissionsService {
               payloadJson,
             },
           });
+
+      await this.deleteSiblingDrafts(tx, participant.id, step.id, submission.id);
 
       let penaltyReported = false;
       let bonusDaysLeft = participant.bonusDaysLeft;
@@ -189,11 +189,11 @@ export class SubmissionsService {
         }
       }
 
-      return { submission, bonusDaysLeft, penaltyReported };
+      return { submission, bonusDaysLeft, penaltyReported, isLate };
     });
 
     this.logger.log(
-      `Step submission saved: participantId=${participant.id}, stepId=${step.id}, submissionId=${result.submission.id}, completed=${completed}, late=${isLate}`,
+      `Step submission saved: participantId=${participant.id}, stepId=${step.id}, submissionId=${result.submission.id}, completed=${completed}, late=${result.isLate}`,
     );
 
     if (completed) {
@@ -217,7 +217,7 @@ export class SubmissionsService {
       marathonerId: participant.id,
       stepId: step.id,
       state: result.submission.isCompleted ? 'completed' : 'active',
-      is_late: isLate,
+      is_late: result.isLate,
       bonus_left: result.bonusDaysLeft,
       penalty_reported: result.penaltyReported,
       updated_at: result.submission.updatedAt.toISOString(),
@@ -241,13 +241,8 @@ export class SubmissionsService {
       throw new NotFoundException('Step not found for this marathon');
     }
 
-    const submission = await this.prisma.stepSubmission.findFirst({
-      where: {
-        participantId: participant.id,
-        stepId: step.id,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const submissions = await this.findSubmissionsForParticipantStep(this.prisma, participant.id, step.id);
+    const submission = submissions.find((candidate: any) => candidate.isCompleted) || this.pickEditableSubmission(submissions);
 
     if (!submission) {
       return {
@@ -326,6 +321,36 @@ export class SubmissionsService {
       return {};
     }
     return value as Record<string, unknown>;
+  }
+
+  private async lockParticipantStep(tx: any, participantId: string, stepId: string) {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${participantId}), hashtext(${stepId}))`;
+  }
+
+  private async findSubmissionsForParticipantStep(tx: any, participantId: string, stepId: string): Promise<any[]> {
+    return tx.stepSubmission.findMany({
+      where: { participantId, stepId },
+      orderBy: [
+        { isCompleted: 'desc' },
+        { updatedAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
+    });
+  }
+
+  private pickEditableSubmission(submissions: any[]): any | null {
+    return submissions.find((submission) => !submission.isCompleted) || null;
+  }
+
+  private async deleteSiblingDrafts(tx: any, participantId: string, stepId: string, keepSubmissionId: string) {
+    await tx.stepSubmission.deleteMany({
+      where: {
+        participantId,
+        stepId,
+        isCompleted: false,
+        id: { not: keepSubmissionId },
+      },
+    });
   }
 
   private resolveStartAt(reportHour: Date, sequence: number): Date {

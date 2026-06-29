@@ -19,6 +19,20 @@ export function isFieldBlock(block: AssignmentBlock): block is FieldBlock {
   return block.type === "field";
 }
 
+export function fieldHasInlineBlank(block: FieldBlock) {
+  return block.fieldType === "text" && /\[[^\]]+\]/.test(block.label);
+}
+
+export function fieldUsesLongAnswer(block: FieldBlock) {
+  if (block.fieldType === "radio" || block.fieldType === "checkbox") return false;
+  if (block.answerSize === "long") return true;
+  if (block.answerSize === "short") return false;
+  if (block.fieldType === "textarea") return true;
+  if (fieldHasInlineBlank(block)) return false;
+  if (block.correctAnswers?.length) return false;
+  return true;
+}
+
 export function findLevelField(blocks: AssignmentBlock[]) {
   return blocks.find((block) => isFieldBlock(block) && block.name === "q1")
     || blocks.find((block) => isFieldBlock(block) && normalizeText(block.label).startsWith("как долго вы учите"));
@@ -41,6 +55,8 @@ export function normalizeInitialPayload(payload: Record<string, unknown> | undef
   return answers;
 }
 
+export const REQUIRED_TEXT_MIN_LENGTH = 2;
+
 export function displayValue(block: AssignmentBlock, value: AnswerValue | undefined) {
   if (block.type !== "field") return "";
   const choiceLabel = (raw: string) => block.choices?.find((choice) => choice.value === raw)?.label || raw;
@@ -48,12 +64,32 @@ export function displayValue(block: AssignmentBlock, value: AnswerValue | undefi
   return value ? choiceLabel(value) : "";
 }
 
+function fillAssignmentLabelPlaceholder(label: string, answer: string) {
+  const cleanAnswer = answer.trim();
+  if (!cleanAnswer || !/\[[^\]]+\]/.test(label)) return null;
+  return label.replace(/\[[^\]]+\]/g, cleanAnswer).replace(/\s{2,}/g, " ").trim();
+}
+
+export function requiredAnswerValid(block: FieldBlock, value: AnswerValue | undefined) {
+  if (block.fieldType === "radio") return typeof value === "string" && value.trim().length > 0;
+  if (block.fieldType === "checkbox") return Array.isArray(value) && value.some((item) => item.trim().length > 0);
+  return typeof value === "string" && value.trim().length >= REQUIRED_TEXT_MIN_LENGTH;
+}
+
+export function missingRequiredFields(blocks: AssignmentBlock[], answers: Answers, level: Level) {
+  return blocks
+    .filter((block): block is FieldBlock => isFieldBlock(block) && branchVisible(block.branch, level) && block.required)
+    .filter((block) => !requiredAnswerValid(block, answers[block.name]));
+}
+
 export function composeReport(blocks: AssignmentBlock[], answers: Answers, level: Level) {
   return blocks
     .filter((block): block is FieldBlock => isFieldBlock(block) && branchVisible(block.branch, level))
     .map((block) => {
       const value = displayValue(block, answers[block.name]);
-      return value.trim() ? `${block.label}\n${value.trim()}` : "";
+      const cleanValue = value.trim();
+      if (!cleanValue) return "";
+      return fillAssignmentLabelPlaceholder(block.label, cleanValue) || `${block.label}\n${cleanValue}`;
     })
     .filter(Boolean)
     .join("\n\n");
@@ -159,6 +195,16 @@ function compactReadingRules(items: string[]) {
   return starts
     .map((start, index) => joined.slice(start, starts[index + 1] ?? joined.length).trim())
     .filter(Boolean);
+}
+
+function ensureAtLeastOneRequiredField(blocks: AssignmentBlock[]): AssignmentBlock[] {
+  const firstFieldIndex = blocks.findIndex((block) => block.type === "field");
+  if (firstFieldIndex < 0) return blocks;
+  if (blocks.some((block) => block.type === "field" && block.required !== false)) return blocks;
+
+  return blocks.map((block, index) => (
+    index === firstFieldIndex && block.type === "field" ? { ...block, required: true } : block
+  ));
 }
 
 export function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
@@ -270,5 +316,5 @@ export function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
     decorated.push(block);
   }
 
-  return mergeAdjacentTextParagraphs(decorated);
+  return ensureAtLeastOneRequiredField(mergeAdjacentTextParagraphs(decorated));
 }

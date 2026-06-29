@@ -5,10 +5,16 @@ export type AssignmentChoice = {
   label: string;
 };
 
+export type AssignmentInlineLink = {
+  text: string;
+  href: string;
+};
+
 export type AssignmentTextBlock = {
   id: string;
   type: 'text';
   text: string;
+  links?: AssignmentInlineLink[];
   branch?: AssignmentBranch;
 };
 
@@ -47,6 +53,7 @@ export type AssignmentFieldBlock = {
   choices?: AssignmentChoice[];
   correctAnswers?: string[];
   hint?: string;
+  answerSize?: 'short' | 'long';
   branch?: AssignmentBranch;
 };
 
@@ -67,9 +74,26 @@ function normalizeBranch(value: unknown): AssignmentBranch | undefined {
   return undefined;
 }
 
+function normalizeAnswerSize(value: unknown): 'short' | 'long' | undefined {
+  return value === 'short' || value === 'long' ? value : undefined;
+}
+
 function normalizeStringList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.map(cleanString).filter(Boolean);
+}
+
+function normalizeInlineLinks(value: unknown): AssignmentInlineLink[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((link) => {
+      if (!isRecord(link)) return null;
+      const text = cleanString(link.text);
+      const href = cleanString(link.href);
+      if (!text || !href) return null;
+      return { text, href };
+    })
+    .filter((link): link is AssignmentInlineLink => Boolean(link));
 }
 
 function normalizeChoices(value: unknown): AssignmentChoice[] {
@@ -117,8 +141,23 @@ function normalizeTextBlockText(text: string) {
   return text.replace(/\s+/g, " ").trim();
 }
 
+const GENERIC_NEXT_SCHEDULE_INSTRUCTION = /Сформируйте отчет[,.]?\s*Новый этап появится в то\s*(?:⏰\s*)?время,\s*которое вы указали на странице(?:\s*⚙️?)?(?:\s*настроек\.?)?/gi;
+
+function stripGenericNextScheduleInstruction(text: string) {
+  return text.replace(GENERIC_NEXT_SCHEDULE_INSTRUCTION, "").replace(/\s+/g, " ").trim();
+}
+
+function isGenericSettingsLink(text: string, href: string) {
+  return /^настроек\.?$/i.test(text) && /^\/profile\/?(?:[?#].*)?$/i.test(href);
+}
+
+function isDownloadHref(href: string) {
+  return /\.(?:pdf|zip|docx?|xlsx?|pptx?|mp3|mp4|wav|ogg)(?:[?#]|$)/i.test(href);
+}
+
 function shouldJoinWithPrevious(previous: AssignmentBlock | undefined, text: string) {
   if (!previous || previous.type !== "text") return false;
+  if (Array.isArray(previous.links) && previous.links.length && /^\(/.test(text)) return true;
   return /^[.!?,;:]+$/.test(text)
     || /^настроек\.?$/i.test(text) && /^Сформируйте отчет\./i.test(previous.text)
     || isSentenceContinuation(previous.text, text);
@@ -132,7 +171,7 @@ function normalizeTextBlockSequence(blocks: AssignmentBlock[]): AssignmentBlock[
       continue;
     }
 
-    let text = normalizeTextBlockText(block.text);
+    let text = stripGenericNextScheduleInstruction(normalizeTextBlockText(block.text));
     if (!text || isOptionalStep1Note(text)) continue;
 
     const previous = normalized[normalized.length - 1];
@@ -156,7 +195,12 @@ function normalizeTextBlockSequence(blocks: AssignmentBlock[]): AssignmentBlock[
     }
 
     if (shouldJoinWithPrevious(previous, text) && previous?.type === 'text' && sameBranch(previous, block)) {
-      previous.text = /^[.!?,;:]+$/.test(text) ? `${previous.text}${text}` : `${previous.text} ${text.replace(/\.$/, '')}`;
+      const separator = /^[.!?,;:]+$/.test(text) ? '' : ' ';
+      const appendedText = /^[.!?,;:]+$/.test(text) ? text : text.replace(/\.$/, '');
+      previous.text = `${previous.text}${separator}${appendedText}`;
+      if (Array.isArray(block.links) && block.links.length) {
+        previous.links = [...(previous.links || []), ...block.links];
+      }
       continue;
     }
 
@@ -164,6 +208,16 @@ function normalizeTextBlockSequence(blocks: AssignmentBlock[]): AssignmentBlock[
     normalized.push({ ...block, text });
   }
   return normalized;
+}
+
+function ensureAtLeastOneRequiredField(blocks: AssignmentBlock[]): AssignmentBlock[] {
+  const firstFieldIndex = blocks.findIndex((block) => block.type === 'field');
+  if (firstFieldIndex < 0) return blocks;
+  if (blocks.some((block) => block.type === 'field' && block.required !== false)) return blocks;
+
+  return blocks.map((block, index) => (
+    index === firstFieldIndex && block.type === 'field' ? { ...block, required: true } : block
+  ));
 }
 
 export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
@@ -177,7 +231,8 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
 
       if (type === 'text') {
         const text = cleanString(raw.text);
-        return text ? { id, type, text, ...(branch ? { branch } : {}) } : null;
+        const links = normalizeInlineLinks(raw.links);
+        return text ? { id, type, text, ...(links.length ? { links } : {}), ...(branch ? { branch } : {}) } : null;
       }
 
       if (type === 'video') {
@@ -197,8 +252,8 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
       if (type === 'link') {
         const href = cleanString(raw.href);
         const text = cleanString(raw.text) || cleanString(raw.label) || href;
-        if (!href || !text) return null;
-        return { id, type, href, text, ...(raw.download === true ? { download: true } : {}), ...(branch ? { branch } : {}) };
+        if (!href || !text || isGenericSettingsLink(text, href)) return null;
+        return { id, type, href, text, ...(raw.download === true && isDownloadHref(href) ? { download: true } : {}), ...(branch ? { branch } : {}) };
       }
 
       if (type === 'field') {
@@ -208,6 +263,7 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
         if (!name || !label) return null;
         const correctAnswers = normalizeStringList(raw.correctAnswers);
         const hint = cleanString(raw.hint);
+        const answerSize = normalizeAnswerSize(raw.answerSize);
         return {
           id,
           type,
@@ -218,6 +274,7 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
           choices: normalizeFieldChoices(name, label, normalizeChoices(raw.choices)),
           ...(correctAnswers.length ? { correctAnswers } : {}),
           ...(hint ? { hint } : {}),
+          ...(answerSize ? { answerSize } : {}),
           ...(branch ? { branch } : {}),
         };
       }
@@ -225,5 +282,5 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
       return null;
     })
     .filter((block): block is AssignmentBlock => Boolean(block));
-  return normalizeTextBlockSequence(blocks);
+  return ensureAtLeastOneRequiredField(normalizeTextBlockSequence(blocks));
 }

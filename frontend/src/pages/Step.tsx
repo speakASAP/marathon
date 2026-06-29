@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { getToken, redirectToLogin } from '../auth';
 import {
   MarathonAuthRequiredError,
@@ -15,13 +15,13 @@ import {
   type SubmissionPayload,
 } from '../api/assignmentMarathon';
 import StepAssignmentRenderer from '../components/StepAssignmentRenderer';
-import { fetchMyMarathon, updateReportTime, type MyMarathon } from '../api/profileMarathon';
+import { fetchMyMarathon, updateReportTime, type Answer, type MyMarathon } from '../api/profileMarathon';
 
 const DRAFT_SAVE_DELAY_MS = 900;
 
 type Level = 'beginner' | 'medium' | 'advanced' | null;
 type AssignmentFieldBlock = Extract<AssignmentBlock, { type: 'field' }>;
-type AnswerRow = { id: string; question: string; answer: string };
+type AnswerRow = { id: string; question: string; answer: ReactNode };
 type LocalStepDraft = {
   report: string;
   payload: SubmissionPayload;
@@ -61,7 +61,39 @@ function getBrowserTimeZone() {
   }
 }
 
-const GENERIC_NEXT_SCHEDULE_INSTRUCTION = /Сформируйте отчет[,.]?\s*Новый этап появится в то\s*(?:⏰\s*)?время,\s*которое вы указали на странице\s*(?:⚙️?\s*)?настроек\.?/gi;
+function isCompletedScheduleAnswer(answer: Answer) {
+  return answer.state === 'checked' || answer.state === 'done';
+}
+
+function canNavigateToScheduleAnswer(answer: Answer | null | undefined) {
+  if (!answer) return false;
+  return Boolean(answer.can_open && answer.state !== 'inactive' && answer.block_reason !== 'payment_required');
+}
+
+function getStepAccessMessage(answer: Answer | null | undefined) {
+  if (!answer) return '';
+  if (answer.block_reason === 'payment_required') return 'Доступ к этапу откроется после подтверждения оплаты марафона.';
+  if (answer.block_reason === 'previous_report_pending') return 'Этот этап откроется после отправки и проверки отчета по предыдущему этапу.';
+  if (answer.block_reason === 'scheduled_future') return `Этап появится ${formatDateTime(answer.start)}.`;
+  return 'Этот этап пока закрыт.';
+}
+
+function resolveNextUnopenedSchedule(answers: Answer[] | undefined | null) {
+  if (!answers?.length) return null;
+
+  const activeIndex = answers.findIndex((answer) => !isCompletedScheduleAnswer(answer) && answer.state === 'active');
+  const searchStart = activeIndex >= 0 ? activeIndex + 1 : 0;
+  const targetIndex = answers.findIndex((answer, index) => index >= searchStart && !isCompletedScheduleAnswer(answer));
+
+  return targetIndex >= 0 ? { answer: answers[targetIndex], index: targetIndex } : null;
+}
+
+function allPreviousScheduleAnswersCompleted(answers: Answer[] | undefined | null, targetIndex: number) {
+  if (!answers?.length || targetIndex <= 0) return targetIndex === 0;
+  return answers.slice(0, targetIndex).every(isCompletedScheduleAnswer);
+}
+
+const GENERIC_NEXT_SCHEDULE_INSTRUCTION = /Сформируйте отчет[,.]?\s*Новый этап появится в то\s*(?:⏰\s*)?время,\s*которое вы указали на странице(?:\s*⚙️?)?(?:\s*настроек\.?)?/gi;
 
 function stripGenericNextScheduleInstruction(value: string) {
   return value
@@ -75,11 +107,17 @@ function isGenericNextScheduleInstruction(block: AssignmentBlock) {
   return block.type === 'text'
     && /Сформируйте отчет/i.test(block.text)
     && /Новый этап появится/i.test(block.text)
-    && /странице\s*(?:⚙️?\s*)?настроек/i.test(block.text);
+    && /странице/i.test(block.text);
+}
+
+function isGenericSettingsLink(block: AssignmentBlock) {
+  return block.type === 'link'
+    && /^настроек\.?$/i.test(block.text)
+    && /^\/profile\/?(?:[?#].*)?$/i.test(block.href);
 }
 
 function sanitizeAssignmentBlock(block: AssignmentBlock): AssignmentBlock | null {
-  if (isGenericNextScheduleInstruction(block)) return null;
+  if (isGenericNextScheduleInstruction(block) || isGenericSettingsLink(block)) return null;
   if (block.type !== 'text') return block;
 
   const text = stripGenericNextScheduleInstruction(block.text);
@@ -118,10 +156,12 @@ function branchVisible(branch: AssignmentBlock['branch'], level: Level) {
   return branch === level;
 }
 
-function answerFilled(value: unknown) {
-  if (typeof value === 'string') return Boolean(value.trim());
-  if (Array.isArray(value)) return value.some((item) => typeof item === 'string' && Boolean(item.trim()));
-  return false;
+const REQUIRED_REPORT_FIELD_MIN_LENGTH = 2;
+
+function answerFilled(block: AssignmentFieldBlock, value: unknown) {
+  if (block.fieldType === 'radio') return typeof value === 'string' && Boolean(value.trim());
+  if (block.fieldType === 'checkbox') return Array.isArray(value) && value.some((item) => typeof item === 'string' && Boolean(item.trim()));
+  return typeof value === 'string' && value.trim().length >= REQUIRED_REPORT_FIELD_MIN_LENGTH;
 }
 
 function missingRequiredAnswers(blocks: AssignmentBlock[] | null | undefined, payload: SubmissionPayload) {
@@ -132,7 +172,7 @@ function missingRequiredAnswers(blocks: AssignmentBlock[] | null | undefined, pa
     .filter((block): block is Extract<AssignmentBlock, { type: 'field' }> => (
       isFieldBlock(block) && block.required && branchVisible(block.branch, level)
     ))
-    .filter((block) => !answerFilled(payload[block.name]));
+    .filter((block) => !answerFilled(block, payload[block.name]));
 }
 
 function stripLegacyAnswerMarkup(value: string) {
@@ -152,7 +192,21 @@ function isLegacyKnownWordsField(name: string) {
   return /^known_words\d*$/i.test(name) || /^known_words_audio_/i.test(name);
 }
 
-function legacyPayloadQuestionLabel(name: string) {
+const LEGACY_GERMAN_STEP1_LABELS: Record<string, string> = {
+  q1: 'Как долго вы учите немецкий язык?',
+  bm2: 'Какие эмоции вызвали у вас эти вопросы и задания?',
+  bm8: 'Что вы хотите уметь в немецком уже через месяц? Через полгода? Через год?',
+  c21: 'К какому внутреннему выводу вы пришли, что вы для себя решили? (возможно, не только на время марафона)',
+};
+
+function isLegacyGermanStep1Payload(payload: SubmissionPayload) {
+  return ['bm8', 'bm9', 'c21'].some((name) => Object.prototype.hasOwnProperty.call(payload, name));
+}
+
+function legacyPayloadQuestionLabel(name: string, payload?: SubmissionPayload) {
+  if (payload && isLegacyGermanStep1Payload(payload) && LEGACY_GERMAN_STEP1_LABELS[name]) {
+    return LEGACY_GERMAN_STEP1_LABELS[name];
+  }
   if (isLegacyKnownWordsField(name)) return 'Какие знакомые слова вы выделили в тексте?';
   if (name === 'thoughts') return 'Какие мысли и переживания появились во время работы над заданием?';
   return '';
@@ -184,13 +238,38 @@ function formatAnswerValue(block: AssignmentFieldBlock, value: unknown) {
   return '';
 }
 
+function renderInsertedAnswerSentence(label: string, answer: string): ReactNode | null {
+  const cleanAnswer = answer.trim();
+  if (!cleanAnswer || !/\[[^\]]+\]/.test(label)) return null;
+
+  const nodes: ReactNode[] = [];
+  let lastIndex = 0;
+  let insertIndex = 0;
+  const placeholderPattern = /\[[^\]]+\]/g;
+
+  for (const match of label.matchAll(placeholderPattern)) {
+    const index = match.index ?? 0;
+    if (index > lastIndex) nodes.push(label.slice(lastIndex, index));
+    nodes.push(
+      <strong className="step-answer-inserted" key={"answer-" + insertIndex}>
+        {cleanAnswer}
+      </strong>,
+    );
+    lastIndex = index + match[0].length;
+    insertIndex += 1;
+  }
+
+  if (lastIndex < label.length) nodes.push(label.slice(lastIndex));
+  return <>{nodes}</>;
+}
+
 function legacyAnswerRowsFromPayload(payload: SubmissionPayload): AnswerRow[] {
   const grouped = new Map<string, { id: string; question: string; answers: string[] }>();
 
   Object.entries(payload)
-    .filter(([name]) => name === 'thoughts' || isLegacyKnownWordsField(name))
+    .filter(([name]) => isLegacyGermanStep1Payload(payload) ? Boolean(LEGACY_GERMAN_STEP1_LABELS[name]) : (name === 'thoughts' || isLegacyKnownWordsField(name)))
     .forEach(([name, value]) => {
-      const question = legacyPayloadQuestionLabel(name);
+      const question = legacyPayloadQuestionLabel(name, payload);
       if (!question || typeof value !== 'string') return;
 
       const answer = formatPublicAnswerValue(name, value);
@@ -223,12 +302,18 @@ function answerRowsFromPayload(
       branchVisible(block.branch, level)
       && hasPublicQuestionLabel(block)
     ))
-    .map((block) => ({
-      id: block.id || block.name,
-      question: block.label,
-      answer: formatAnswerValue(block, payload[block.name]),
-    }))
-    .filter((row) => row.answer.trim());
+    .map((block) => {
+      const answer = formatAnswerValue(block, payload[block.name]);
+      const insertedSentence = renderInsertedAnswerSentence(block.label, answer);
+      return {
+        id: block.id || block.name,
+        question: insertedSentence ? '' : block.label,
+        answer: insertedSentence || answer,
+        answerText: answer,
+      };
+    })
+    .filter((row) => row.answerText.trim())
+    .map(({ answerText, ...row }) => row);
 
   if (!rows.length && report.trim()) {
     return [{ id: 'report', question: 'Ответ', answer: stripLegacyAnswerMarkup(report) }];
@@ -242,8 +327,10 @@ function peerAnswerRowsFromPayload(
   payload: SubmissionPayload,
   report: string,
 ): AnswerRow[] {
-  const rows = answerRowsFromPayload(blocks, payload, '');
   const legacyRows = legacyAnswerRowsFromPayload(payload);
+  if (isLegacyGermanStep1Payload(payload) && legacyRows.length) return legacyRows;
+
+  const rows = answerRowsFromPayload(blocks, payload, '');
   const existingQuestions = new Set(rows.map((row) => row.question));
   const mergedRows = [
     ...rows,
@@ -268,6 +355,13 @@ function makeDraftKey(report: string, payload: SubmissionPayload) {
 
 function hasMeaningfulDraft(report: string, payload: SubmissionPayload) {
   return Boolean(report.trim()) || Object.keys(payload).length > 0;
+}
+
+function cssEscapeValue(value: string) {
+  if (typeof window !== 'undefined' && window.CSS && typeof window.CSS.escape === 'function') {
+    return window.CSS.escape(value);
+  }
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 function makeLocalDraftKey(participantId: string, stepId: string) {
@@ -344,6 +438,8 @@ export default function Step() {
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const [submitError, setSubmitError] = useState('');
+  const [requiredValidationAttempted, setRequiredValidationAttempted] = useState(false);
+  const [invalidRequiredFieldNames, setInvalidRequiredFieldNames] = useState<string[]>([]);
   const [draftSaving, setDraftSaving] = useState(false);
   const [draftStatus, setDraftStatus] = useState('');
   const [lastSavedDraftKey, setLastSavedDraftKey] = useState(makeDraftKey('', {}));
@@ -494,6 +590,10 @@ export default function Step() {
     [randomAnswer, step?.assignmentBlocks],
   );
   const draftKey = useMemo(() => makeDraftKey(report, assignmentPayload), [report, assignmentPayload]);
+  const currentScheduleIndex = marathon?.answers.findIndex((answer) => answer.stepId === stepId) ?? -1;
+  const currentSchedule = marathon && currentScheduleIndex >= 0 ? marathon.answers[currentScheduleIndex] : null;
+  const stepAccessBlocked = Boolean(hasParticipantContext && marathon && currentSchedule && !currentSchedule.can_open);
+  const stepAccessMessage = getStepAccessMessage(currentSchedule);
 
   const loadRandomОтчет = () => {
     if (!stepId) return;
@@ -530,6 +630,7 @@ export default function Step() {
       !stepId
       || !participantId
       || !assignmentContent
+      || stepAccessBlocked
       || isFinalSubmission
       || loadingSavedSubmission
       || submitting
@@ -549,6 +650,7 @@ export default function Step() {
     loadingSavedSubmission,
     marathonerId,
     report,
+    stepAccessBlocked,
     stepId,
     submitting,
   ]);
@@ -560,6 +662,7 @@ export default function Step() {
       || !participantId
       || !getToken()
       || !assignmentContent
+      || stepAccessBlocked
       || submissionAuthRequired
       || loadingSavedSubmission
       || submitting
@@ -612,6 +715,7 @@ export default function Step() {
     loadingSavedSubmission,
     marathonerId,
     report,
+    stepAccessBlocked,
     stepId,
     submissionAuthRequired,
     submitting,
@@ -621,6 +725,7 @@ export default function Step() {
     event.preventDefault();
     setSubmitMessage('');
     setSubmitError('');
+    setRequiredValidationAttempted(true);
     if (!stepId) return;
     if (isFinalSubmission) {
       setSubmitError('Этот отчет уже отправлен и больше не редактируется.');
@@ -638,10 +743,22 @@ export default function Step() {
       setSubmitError('Содержание задания не настроено. Отправка заблокирована, пока поддержка не добавит утвержденное задание.');
       return;
     }
+    if (stepAccessBlocked) {
+      setSubmitError(stepAccessMessage || 'Этот этап пока закрыт.');
+      return;
+    }
 
-    const missing = missingRequiredAnswers(step?.assignmentBlocks, assignmentPayload);
+    const missing = missingRequiredAnswers(filteredAssignmentBlocks, assignmentPayload);
+    setInvalidRequiredFieldNames(missing.map((block) => block.name));
     if (missing.length) {
-      setSubmitError(`Заполните обязательные ответы: ${missing.map((block) => block.label).join(', ')}`);
+      const firstMissing = missing[0];
+      setSubmitError(`Поле «${firstMissing.label}» нужно заполнить минимум ${REQUIRED_REPORT_FIELD_MIN_LENGTH} символами.`);
+      window.requestAnimationFrame(() => {
+        const target = document.querySelector(`[data-assignment-field-name="${cssEscapeValue(firstMissing.name)}"]`);
+        target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const focusTarget = target?.querySelector('textarea, input[type="text"], input[type="radio"], input[type="checkbox"]') as HTMLElement | null;
+        focusTarget?.focus({ preventScroll: true });
+      });
       return;
     }
 
@@ -709,12 +826,17 @@ export default function Step() {
   const openLogin = () => redirectToLogin(stepReturnPath);
   const submitBlockedByStatusError = Boolean(savedSubmissionError);
   const canViewPeerReports = isFinalSubmission;
-  const currentScheduleIndex = marathon?.answers.findIndex((answer) => answer.stepId === stepId) ?? -1;
   const previousSchedule = marathon && currentScheduleIndex > 0 ? marathon.answers[currentScheduleIndex - 1] : null;
-  const nextSchedule = marathon && currentScheduleIndex >= 0 && currentScheduleIndex < marathon.answers.length - 1
+  const sequentialNextSchedule = marathon && currentScheduleIndex >= 0 && currentScheduleIndex < marathon.answers.length - 1
     ? marathon.answers[currentScheduleIndex + 1]
     : null;
-  const nextOpenAllowed = Boolean(isFinalSubmission && nextSchedule?.can_open && nextSchedule.block_reason !== 'payment_required');
+  const nextUnopenedSchedule = resolveNextUnopenedSchedule(marathon?.answers);
+  const nextSchedule = nextUnopenedSchedule?.answer || null;
+  const nextOpenAllowed = Boolean(
+    nextSchedule?.can_open
+    && nextSchedule.block_reason !== 'payment_required'
+    && allPreviousScheduleAnswersCompleted(marathon?.answers, nextUnopenedSchedule?.index ?? -1),
+  );
   const nextAvailabilityText = nextSchedule
     ? `Появится ${formatDateTime(nextSchedule.start)}.`
     : '';
@@ -726,6 +848,7 @@ export default function Step() {
     || !hasParticipantContext
     || !assignmentContent
     || submitBlockedByStatusError
+    || stepAccessBlocked
     || isFinalSubmission;
   const peerОтчетEmpty = canViewPeerReports && !loadingRandom && !randomAnswer && randomAnswerError === 'empty';
   const peerОтчетLoadError = canViewPeerReports && !loadingRandom && !randomAnswer && randomAnswerError === 'load';
@@ -733,19 +856,19 @@ export default function Step() {
   const stepUrl = (targetStepId: string) => `/steps/${targetStepId}?marathonerId=${participantStepQuery}`;
 
   const renderStepNavigation = (placement: 'top' | 'footer' = 'top') => {
-    if (!previousSchedule && !nextSchedule) return null;
+    if (!previousSchedule && !sequentialNextSchedule) return null;
 
     return (
       <nav className={`step-sequence-actions step-sequence-actions-${placement}`} aria-label="Навигация по этапам">
-        {previousSchedule ? (
-          <Link to={stepUrl(previousSchedule.stepId)} className="step-nav-link">
+        {canNavigateToScheduleAnswer(previousSchedule) ? (
+          <Link to={stepUrl(previousSchedule!.stepId)} className="step-nav-link">
             Предыдущий этап
           </Link>
         ) : (
           <span className="step-nav-link step-nav-disabled">Предыдущий этап</span>
         )}
-        {nextSchedule ? (
-          <Link to={stepUrl(nextSchedule.stepId)} className="step-nav-link">
+        {canNavigateToScheduleAnswer(sequentialNextSchedule) ? (
+          <Link to={stepUrl(sequentialNextSchedule!.stepId)} className="step-nav-link">
             Следующий этап
           </Link>
         ) : (
@@ -923,18 +1046,32 @@ export default function Step() {
 
       {tab === 'task' && (
         <section className="step-task">
-          {assignmentContent ? (
+          {stepAccessBlocked && (
+            <div className="step-submit-auth-panel" role="alert">
+              <strong>Этап пока закрыт</strong>
+              <span>{stepAccessMessage}</span>
+              <Link to={profileUrl} className="btn-profile-login">Вернуться в профиль</Link>
+            </div>
+          )}
+          {!stepAccessBlocked && assignmentContent ? (
             <>
               <StepAssignmentRenderer
                 blocks={filteredAssignmentBlocks}
                 fallbackContent={filteredAssignmentContent}
                 initialPayload={assignmentPayload}
-                readOnly={isFinalSubmission}
+                readOnly={isFinalSubmission || stepAccessBlocked}
                 onPayloadChange={(payload, draft) => {
                   setAssignmentPayload(payload);
                   setОтчет(draft);
                   setDraftStatus('');
+                  if (requiredValidationAttempted) {
+                    const missing = missingRequiredAnswers(filteredAssignmentBlocks, payload);
+                    setInvalidRequiredFieldNames(missing.map((block) => block.name));
+                    if (!missing.length) setSubmitError('');
+                  }
                 }}
+                validationAttempted={requiredValidationAttempted}
+                invalidFieldNames={invalidRequiredFieldNames}
               />
               {!hasStructuredFields && (
                 <label className="step-manual-answer">
@@ -944,18 +1081,19 @@ export default function Step() {
                     onChange={(event) => {
                       setОтчет(event.target.value);
                       setDraftStatus('');
+                      if (requiredValidationAttempted && event.target.value.trim().length >= REQUIRED_REPORT_FIELD_MIN_LENGTH) setSubmitError('');
                     }}
                     rows={6}
-                    disabled={isFinalSubmission || !hasParticipantContext || submissionAuthRequired || submitBlockedByStatusError}
+                    disabled={isFinalSubmission || stepAccessBlocked || !hasParticipantContext || submissionAuthRequired || submitBlockedByStatusError}
                   />
                 </label>
               )}
             </>
-          ) : (
+          ) : !stepAccessBlocked ? (
             <div className="step-content-missing" role="alert">
               Содержание задания не настроено для этого этапа. Свяжитесь с поддержкой перед отправкой отчета.
             </div>
-          )}
+          ) : null}
           <section className="step-submit" aria-label="Форма отчета">
             {loadingSavedSubmission && <p className="step-report-note">Проверяем сохраненный отчет...</p>}
             {(draftSaving || draftStatus) && !isFinalSubmission && (

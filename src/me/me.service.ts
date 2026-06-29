@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
 
 export type Answer = {
@@ -124,10 +124,55 @@ export type MyMarathonProgressReport = {
 
 const BONUS_DAYS = 7;
 const MIN_NEXT_STEP_WINDOW_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_DEADLINE_RECONCILIATION_INTERVAL_MS = 5 * 60 * 1000;
+const DEADLINE_RECONCILIATION_BATCH_SIZE = 100;
+const DEADLINE_RECONCILIATION_LOOKBACK_MINUTES = 15;
+
+type DeadlineCandidate = { id: string };
 
 @Injectable()
-export class MeService {
+export class MeService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MeService.name);
+  private deadlineReconciliationTimer: ReturnType<typeof setInterval> | null = null;
+  private deadlineReconciliationInitialTimer: ReturnType<typeof setTimeout> | null = null;
+  private deadlineReconciliationRunning = false;
+
+  onModuleInit(): void {
+    const intervalMs = this.getDeadlineReconciliationIntervalMs();
+    if (intervalMs <= 0) {
+      this.logger.log('Marathon deadline reconciliation loop disabled');
+      return;
+    }
+
+    this.deadlineReconciliationInitialTimer = setTimeout(() => {
+      this.runDeadlineReconciliation('startup').catch((error) => {
+        this.logger.error(
+          `Marathon deadline reconciliation startup run failed: ${error instanceof Error ? error.message : String(error)}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      });
+    }, 30_000);
+
+    this.deadlineReconciliationTimer = setInterval(() => {
+      this.runDeadlineReconciliation('interval').catch((error) => {
+        this.logger.error(
+          `Marathon deadline reconciliation interval run failed: ${error instanceof Error ? error.message : String(error)}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      });
+    }, intervalMs);
+  }
+
+  onModuleDestroy(): void {
+    if (this.deadlineReconciliationInitialTimer) {
+      clearTimeout(this.deadlineReconciliationInitialTimer);
+      this.deadlineReconciliationInitialTimer = null;
+    }
+    if (this.deadlineReconciliationTimer) {
+      clearInterval(this.deadlineReconciliationTimer);
+      this.deadlineReconciliationTimer = null;
+    }
+  }
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -519,6 +564,84 @@ export class MeService {
     throw new BadRequestException('Avatar image must be a compressed image upload, an http(s) URL, or an internal path');
   }
 
+  private getDeadlineReconciliationIntervalMs(): number {
+    const rawValue = process.env.MARATHON_DEADLINE_RECONCILIATION_INTERVAL_MS;
+    if (!rawValue) return DEFAULT_DEADLINE_RECONCILIATION_INTERVAL_MS;
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed)) return DEFAULT_DEADLINE_RECONCILIATION_INTERVAL_MS;
+    return Math.max(0, Math.floor(parsed));
+  }
+
+  private async runDeadlineReconciliation(reason: 'startup' | 'interval'): Promise<void> {
+    if (this.deadlineReconciliationRunning) {
+      this.logger.debug(`Marathon deadline reconciliation skipped (${reason}): previous run still active`);
+      return;
+    }
+
+    this.deadlineReconciliationRunning = true;
+    try {
+      const candidates = await this.findDeadlineReconciliationCandidates();
+      if (!candidates.length) {
+        this.logger.debug(`Marathon deadline reconciliation ${reason}: no due candidates`);
+        return;
+      }
+
+      const participants = await this.prisma.marathonParticipant.findMany({
+        where: {
+          id: { in: candidates.map((candidate) => candidate.id) },
+        },
+        include: {
+          marathon: {
+            include: {
+              steps: {
+                orderBy: { sequence: 'asc' },
+              },
+            },
+          },
+          submissions: {
+            include: {
+              step: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+          surveyResponse: true,
+          penaltyReports: true,
+        },
+      });
+
+      let processed = 0;
+      for (const participant of participants) {
+        await this.reconcileMissedDeadlines(participant);
+        processed += 1;
+      }
+
+      this.logger.log(`Marathon deadline reconciliation ${reason}: processed ${processed} participant(s)`);
+    } finally {
+      this.deadlineReconciliationRunning = false;
+    }
+  }
+
+  private async findDeadlineReconciliationCandidates(): Promise<DeadlineCandidate[]> {
+    return this.prisma.$queryRaw<DeadlineCandidate[]>`
+      SELECT DISTINCT p.id
+      FROM "MarathonParticipant" p
+      JOIN "MarathonStep" s ON s."marathonId" = p."marathonId"
+      LEFT JOIN "StepSubmission" completed_submission
+        ON completed_submission."participantId" = p.id
+       AND completed_submission."stepId" = s.id
+       AND completed_submission."isCompleted" = true
+      WHERE p.active = true
+        AND p."finishedAt" IS NULL
+        AND completed_submission.id IS NULL
+        AND p."reportHour" + make_interval(days => s.sequence) <= now()
+        AND p."reportHour" + make_interval(days => s.sequence) > now() - make_interval(mins => ${DEADLINE_RECONCILIATION_LOOKBACK_MINUTES}::int)
+      ORDER BY p.id
+      LIMIT ${DEADLINE_RECONCILIATION_BATCH_SIZE}
+    `;
+  }
+
   private async reconcileMissedDeadlines(participant: any): Promise<any> {
     if (!participant.active || this.isWinner(participant, participant.marathon.steps)) {
       return participant;
@@ -763,7 +886,7 @@ export class MeService {
         submissionMap.set(submission.stepId, submission);
       }
     }
-    let hasOpenStep = false;
+    let previousStepsVerified = true;
     const now = new Date();
 
     for (const step of steps) {
@@ -772,17 +895,27 @@ export class MeService {
       const submission = submissionMap.get(step.id);
       if (submission) {
         const mapped = this.mapToAnswer(submission, step, participant);
-        if (mapped.state === 'active') {
-          hasOpenStep = true;
+        if (!previousStepsVerified) {
+          schedule.push({
+            ...mapped,
+            state: 'inactive',
+            can_open: false,
+            block_reason: 'previous_report_pending',
+          });
+        } else {
+          schedule.push(mapped);
         }
-        schedule.push(mapped);
+        previousStepsVerified = previousStepsVerified && (mapped.state === 'checked' || mapped.state === 'done');
       } else {
         const blockedByPayment = paymentRequired;
         const scheduledFuture = startAt > now;
-        const state = !hasOpenStep && !blockedByPayment && !scheduledFuture ? 'active' : 'inactive';
-        if (state === 'active') {
-          hasOpenStep = true;
-        }
+        const canOpen = !blockedByPayment && previousStepsVerified;
+        const state = canOpen && !scheduledFuture ? 'active' : 'inactive';
+        const blockReason = blockedByPayment
+          ? 'payment_required'
+          : previousStepsVerified
+            ? (scheduledFuture ? 'scheduled_future' : null)
+            : 'previous_report_pending';
 
         schedule.push({
           id: 0,
@@ -792,10 +925,12 @@ export class MeService {
           stop: dueAt.toISOString(),
           state,
           is_late: false,
-          can_open: !blockedByPayment,
+          can_open: canOpen,
           is_scheduled_future: scheduledFuture,
-          block_reason: blockedByPayment ? 'payment_required' : null,
+          block_reason: blockReason,
         });
+
+        previousStepsVerified = false;
       }
     }
 

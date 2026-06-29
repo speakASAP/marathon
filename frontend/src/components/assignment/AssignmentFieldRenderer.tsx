@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { fieldUsesLongAnswer } from "./assignmentBlockNormalization";
 import type { AnswerValue, FieldBlock } from "./assignmentRendererTypes";
 
 type AssignmentFieldRendererProps = {
   block: FieldBlock;
   value: AnswerValue | undefined;
   readOnly: boolean;
+  validationError?: string;
   onChange: (name: string, value: AnswerValue) => void;
 };
 
@@ -27,6 +29,22 @@ function splitTranslatedLabel(label: string) {
   return { original: match[1].trim(), translation: match[2].trim() };
 }
 
+function splitInlineBlank(label: string) {
+  const parts = splitTranslatedLabel(label);
+  const match = parts.original.match(/^(.*?)\s*\[([^\]]+)\]\s*(.*)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    before: match[1].trimEnd(),
+    blank: match[2].trim(),
+    after: match[3].trimStart(),
+    translation: parts.translation,
+  };
+}
+
 function renderTranslatedLabel(label: string) {
   const parts = splitTranslatedLabel(label);
 
@@ -42,7 +60,7 @@ function renderTranslatedLabel(label: string) {
   );
 }
 
-export function AssignmentFieldRenderer({ block, value, readOnly, onChange }: AssignmentFieldRendererProps) {
+export function AssignmentFieldRenderer({ block, value, readOnly, validationError, onChange }: AssignmentFieldRendererProps) {
   const [hintOpen, setHintOpen] = useState(false);
   const [textFieldBlurred, setTextFieldBlurred] = useState(false);
   const values = Array.isArray(value) ? value : [];
@@ -53,6 +71,9 @@ export function AssignmentFieldRenderer({ block, value, readOnly, onChange }: As
   const answerMismatch = hasAnswerCheck && normalizedTextValue.length > 0 && !correctAnswers.includes(normalizedTextValue);
   const answerIsWrong = answerMismatch && (readOnly || textFieldBlurred);
   const hintText = block.hint || correctAnswers.join(", ");
+  const useLongAnswer = fieldUsesLongAnswer(block);
+  const inlineBlank = !useLongAnswer && block.fieldType === "text" ? splitInlineBlank(block.label) : null;
+  const inlineHint = inlineBlank ? inlineBlank.blank : "";
 
   const toggleCheckbox = (option: string) => {
     onChange(block.name, values.includes(option) ? values.filter((item) => item !== option) : [...values, option]);
@@ -68,7 +89,51 @@ export function AssignmentFieldRenderer({ block, value, readOnly, onChange }: As
     if (hasAnswerCheck) setTextFieldBlurred(true);
   };
 
-  const blockClassName = `step-question-block step-question-block--${block.fieldType}${answerIsWrong ? " step-question-block-error" : ""}`;
+  const validationErrorId = `assignment-field-error-${block.id || block.name}`;
+  const blockClassName = `step-question-block step-question-block--${block.fieldType}${useLongAnswer ? " step-question-block--long-answer" : ""}${answerIsWrong ? " step-question-block-error" : ""}${validationError ? " step-question-block-required-error" : ""}`;
+  const textInput = (
+    <input
+      type="text"
+      value={textValue}
+      onChange={(event) => updateText(event.target.value)}
+      onBlur={markTextFieldBlurred}
+      onKeyDown={(event) => event.stopPropagation()}
+      disabled={readOnly}
+      aria-invalid={answerIsWrong || Boolean(validationError) || undefined}
+      aria-describedby={validationError ? validationErrorId : undefined}
+      aria-label={block.label}
+      placeholder={inlineHint}
+      title={inlineHint || undefined}
+    />
+  );
+
+  if (inlineBlank) {
+    return (
+      <fieldset className={`${blockClassName} step-question-block--inline-blank`}>
+        <legend className="sr-only">{block.label}</legend>
+        <div className="step-inline-exercise-line">
+          <span className="step-inline-exercise-number" aria-hidden="true" />
+          <span className="step-question-label-original">
+            {inlineBlank.before && <>{inlineBlank.before} </>}
+            {textInput}
+            {inlineBlank.after && <> {inlineBlank.after}</>}
+          </span>
+          {inlineBlank.translation && <span className="step-question-label-translation"> {inlineBlank.translation}</span>}
+          {!block.required && <span className="step-question-label-optional">Необязательное поле</span>}
+        </div>
+        {validationError && <div id={validationErrorId} className="step-required-field-message" role="alert">{validationError}</div>}
+        {answerIsWrong && (
+          <div className="step-answer-hint-panel" aria-live="polite">
+            <span>Ответ пока не совпадает с правильным вариантом.</span>
+            <button type="button" className="step-answer-hint-toggle" onClick={() => setHintOpen((open) => !open)}>
+              {hintOpen ? "Скрыть подсказку" : "Показать подсказку"}
+            </button>
+            {hintOpen && <strong>{hintText}</strong>}
+          </div>
+        )}
+      </fieldset>
+    );
+  }
 
   return (
     <fieldset className={blockClassName}>
@@ -98,27 +163,21 @@ export function AssignmentFieldRenderer({ block, value, readOnly, onChange }: As
             );
           })}
         </div>
-      ) : block.fieldType === "textarea" ? (
+      ) : useLongAnswer ? (
         <textarea
           value={textValue}
           onChange={(event) => updateText(event.target.value)}
           onBlur={markTextFieldBlurred}
           onKeyDown={(event) => event.stopPropagation()}
-          rows={4}
+          rows={6}
           disabled={readOnly}
-          aria-invalid={answerIsWrong || undefined}
+          aria-invalid={answerIsWrong || Boolean(validationError) || undefined}
+          aria-describedby={validationError ? validationErrorId : undefined}
         />
       ) : (
-        <input
-          type="text"
-          value={textValue}
-          onChange={(event) => updateText(event.target.value)}
-          onBlur={markTextFieldBlurred}
-          onKeyDown={(event) => event.stopPropagation()}
-          disabled={readOnly}
-          aria-invalid={answerIsWrong || undefined}
-        />
+        textInput
       )}
+      {validationError && <div id={validationErrorId} className="step-required-field-message" role="alert">{validationError}</div>}
       {answerIsWrong && (
         <div className="step-answer-hint-panel" aria-live="polite">
           <span>Ответ пока не совпадает с правильным вариантом.</span>

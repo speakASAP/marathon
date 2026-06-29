@@ -14,8 +14,13 @@ export interface AssignmentChoice {
   label: string;
 }
 
+export interface AssignmentInlineLink {
+  text: string;
+  href: string;
+}
+
 export type AssignmentBlock =
-  | { id: string; type: 'text'; text: string; style?: 'paragraph' | 'heading' | 'lead'; branch?: AssignmentBranch }
+  | { id: string; type: 'text'; text: string; links?: AssignmentInlineLink[]; style?: 'paragraph' | 'heading' | 'lead'; branch?: AssignmentBranch }
   | { id: string; type: 'quote'; text: string; branch?: AssignmentBranch }
   | { id: string; type: 'list'; title?: string; items: string[]; branch?: AssignmentBranch }
   | { id: string; type: 'knownWords'; name: string; paragraphs: string[]; label?: string; sourceForm?: string; sourceName?: string; branch?: AssignmentBranch }
@@ -32,6 +37,7 @@ export type AssignmentBlock =
       choices?: AssignmentChoice[];
       correctAnswers?: string[];
       hint?: string;
+      answerSize?: 'short' | 'long';
       branch?: AssignmentBranch;
     };
 

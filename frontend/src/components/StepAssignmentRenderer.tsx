@@ -5,10 +5,13 @@ import {
   branchVisible,
   composeReport,
   decorateBlocks,
+  fieldUsesLongAnswer,
   findLevelField,
   getLevel,
+  missingRequiredFields,
   normalizeInitialPayload,
   payloadFromAnswers,
+  REQUIRED_TEXT_MIN_LENGTH,
 } from "./assignment/assignmentBlockNormalization";
 import type { Answers, AnswerValue } from "./assignment/assignmentRendererTypes";
 
@@ -17,6 +20,8 @@ type StepAssignmentRendererProps = {
   fallbackContent?: string;
   initialPayload?: SubmissionPayload;
   readOnly?: boolean;
+  validationAttempted?: boolean;
+  invalidFieldNames?: string[];
   onPayloadChange?: (payload: SubmissionPayload, report: string) => void;
 };
 
@@ -27,8 +32,8 @@ function assignmentBlockLayoutClass(block: AssignmentBlock) {
 
   const fieldTypeClass = `step-assignment-item--${block.fieldType}`;
 
-  if (block.fieldType === "textarea") {
-    return `step-assignment-item step-assignment-item--field step-assignment-item--wide-field ${fieldTypeClass}`;
+  if (fieldUsesLongAnswer(block)) {
+    return `step-assignment-item step-assignment-item--field step-assignment-item--long-field ${fieldTypeClass}`;
   }
 
   if (block.fieldType === "radio" || block.fieldType === "checkbox") {
@@ -43,6 +48,8 @@ export default function StepAssignmentRenderer({
   fallbackContent,
   initialPayload,
   readOnly = false,
+  validationAttempted = false,
+  invalidFieldNames = [],
   onPayloadChange,
 }: StepAssignmentRendererProps) {
   const assignmentBlocks = useMemo(() => decorateBlocks(Array.isArray(blocks) ? blocks : []), [blocks]);
@@ -51,6 +58,15 @@ export default function StepAssignmentRenderer({
   const touchedRef = useRef(false);
   const levelField = findLevelField(assignmentBlocks);
   const level = levelField && levelField.type === "field" ? getLevel(answers[levelField.name]) : null;
+  const invalidFieldNameSet = useMemo(() => new Set(invalidFieldNames), [invalidFieldNames]);
+  const currentlyMissingRequiredFields = useMemo(
+    () => validationAttempted ? missingRequiredFields(assignmentBlocks, answers, level) : [],
+    [assignmentBlocks, answers, level, validationAttempted],
+  );
+  const currentMissingRequiredNameSet = useMemo(
+    () => new Set(currentlyMissingRequiredFields.map((field) => field.name)),
+    [currentlyMissingRequiredFields],
+  );
 
   useEffect(() => {
     setAnswers(normalizeInitialPayload(initialPayload));
@@ -85,12 +101,19 @@ export default function StepAssignmentRenderer({
         if (!branchVisible(block.branch, level)) return null;
 
         return (
-          <div className={assignmentBlockLayoutClass(block)} key={block.id}>
+          <div
+            className={assignmentBlockLayoutClass(block)}
+            data-assignment-field-name={block.type === "field" ? block.name : undefined}
+            key={block.id}
+          >
             <AssignmentBlockRenderer
               answers={answers}
               block={block}
               onAnswerChange={updateAnswer}
               readOnly={readOnly}
+              validationError={block.type === "field" && (invalidFieldNameSet.has(block.name) || currentMissingRequiredNameSet.has(block.name))
+                ? `Это поле нужно заполнить минимум ${REQUIRED_TEXT_MIN_LENGTH} символами.`
+                : undefined}
             />
           </div>
         );

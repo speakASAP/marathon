@@ -9,6 +9,10 @@
 const SUPPORTED_PERSISTED_TYPES = new Set(['text', 'video', 'audio', 'link', 'field']);
 const RENDERER_DERIVED_TYPES = new Set(['quote', 'list', 'knownWords']);
 const SUPPORTED_FIELD_TYPES = new Set(['text', 'textarea', 'radio', 'checkbox']);
+const SUPPORTED_ANSWER_SIZES = new Set(['short', 'long']);
+const DOWNLOAD_FILE_HREF = /\.(?:pdf|zip|docx?|xlsx?|pptx?|mp3|mp4|wav|ogg)(?:[?#]|$)/i;
+const REQUIRED_TEXT_MIN_LENGTH = 2;
+const GENERIC_NEXT_SCHEDULE_INSTRUCTION = /Сформируйте отчет[,.]?\s*Новый этап появится в то\s*(?:⏰\s*)?время,\s*которое вы указали на странице(?:\s*⚙️?)?(?:\s*настроек\.?)?/i;
 
 function hasArg(name) {
   return process.argv.slice(2).includes(name);
@@ -25,6 +29,27 @@ function countInto(target, key, by = 1) {
 
 function hasText(value) {
   return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isDownloadHref(value) {
+  return typeof value === 'string' && DOWNLOAD_FILE_HREF.test(value.trim());
+}
+
+function isGenericSettingsLink(block) {
+  return isRecord(block)
+    && block.type === 'link'
+    && /^настроек\.?$/i.test(String(block.text || '').trim())
+    && /^\/profile\/?(?:[?#].*)?$/i.test(String(block.href || '').trim());
+}
+
+function hasTemplateHref(value) {
+  return typeof value === 'string' && /\{%|%\}|^\{%(?:host_)?url/i.test(value.trim());
+}
+
+function validInlineLinks(value) {
+  if (value == null) return true;
+  return Array.isArray(value)
+    && value.every((link) => isRecord(link) && hasText(link.text) && hasText(link.href) && !hasTemplateHref(link.href));
 }
 
 function isDatabaseConnectionError(error) {
@@ -69,10 +94,16 @@ function createEmptyAggregate(marathon) {
       audio: 0,
     },
     requiredFieldCount: 0,
+    effectiveRequiredFieldCount: 0,
+    promotedRequiredFieldStepCount: 0,
+    stepsWithoutRequiredFields: 0,
     missingBlockTypeCount: 0,
     unsupportedBlockTypeCount: 0,
     malformedBlockCount: 0,
     invalidSupportedBlockCount: 0,
+    genericInstructionCount: 0,
+    genericSettingsLinkCount: 0,
+    invalidDownloadLinkCount: 0,
     violations: [],
     warnings: [],
   };
@@ -80,7 +111,10 @@ function createEmptyAggregate(marathon) {
 
 function validateSupportedBlock(block, aggregate) {
   if (block.type === 'text') {
-    if (!hasText(block.text)) aggregate.invalidSupportedBlockCount += 1;
+    if (!hasText(block.text) || !validInlineLinks(block.links)) aggregate.invalidSupportedBlockCount += 1;
+    if (GENERIC_NEXT_SCHEDULE_INSTRUCTION.test(String(block.text || ''))) {
+      aggregate.genericInstructionCount += 1;
+    }
     return;
   }
 
@@ -99,7 +133,13 @@ function validateSupportedBlock(block, aggregate) {
   }
 
   if (block.type === 'link') {
-    if (!hasText(block.href) || !hasText(block.text)) aggregate.invalidSupportedBlockCount += 1;
+    if (!hasText(block.href) || !hasText(block.text) || hasTemplateHref(block.href)) aggregate.invalidSupportedBlockCount += 1;
+    if (block.download === true && !isDownloadHref(block.href)) {
+      aggregate.invalidDownloadLinkCount += 1;
+    }
+    if (isGenericSettingsLink(block)) {
+      aggregate.genericSettingsLinkCount += 1;
+    }
     return;
   }
 
@@ -113,12 +153,17 @@ function validateSupportedBlock(block, aggregate) {
     if (block.fieldType != null && !SUPPORTED_FIELD_TYPES.has(block.fieldType)) {
       aggregate.invalidSupportedBlockCount += 1;
     }
+    if (block.answerSize != null && !SUPPORTED_ANSWER_SIZES.has(block.answerSize)) {
+      aggregate.invalidSupportedBlockCount += 1;
+    }
   }
 }
 
 function auditStepBlocks(step, aggregate) {
   const blocks = Array.isArray(step.assignmentBlocks) ? step.assignmentBlocks : [];
   const invalidCountBeforeStep = aggregate.invalidSupportedBlockCount;
+  const requiredFieldCountBeforeStep = aggregate.requiredFieldCount;
+  const fieldCountBeforeStep = aggregate.fieldCounts.total;
   if (hasText(step.assignmentContent)) aggregate.stepsWithAssignmentContent += 1;
   if (blocks.length > 0) aggregate.stepsWithAssignmentBlocks += 1;
 
@@ -164,6 +209,27 @@ function auditStepBlocks(step, aggregate) {
 
   if (aggregate.invalidSupportedBlockCount > invalidCountBeforeStep) {
     aggregate.violations.push({ code: 'invalid-supported-block-shape', sequence: step.sequence });
+  }
+  if (blocks.some((block) => isRecord(block) && block.type === 'text' && GENERIC_NEXT_SCHEDULE_INSTRUCTION.test(String(block.text || '')))) {
+    aggregate.violations.push({ code: 'generic-next-schedule-instruction', sequence: step.sequence });
+  }
+  if (blocks.some(isGenericSettingsLink)) {
+    aggregate.violations.push({ code: 'generic-settings-link', sequence: step.sequence });
+  }
+  if (blocks.some((block) => isRecord(block) && block.type === 'link' && block.download === true && !isDownloadHref(block.href))) {
+    aggregate.violations.push({ code: 'non-file-download-link', sequence: step.sequence });
+  }
+  const stepFieldCount = aggregate.fieldCounts.total - fieldCountBeforeStep;
+  const stepRawRequiredFieldCount = aggregate.requiredFieldCount - requiredFieldCountBeforeStep;
+  if (stepRawRequiredFieldCount > 0) {
+    aggregate.effectiveRequiredFieldCount += stepRawRequiredFieldCount;
+  } else if (stepFieldCount > 0) {
+    aggregate.effectiveRequiredFieldCount += 1;
+    aggregate.promotedRequiredFieldStepCount += 1;
+    aggregate.warnings.push({ code: 'required-field-promoted-by-contract', sequence: step.sequence });
+  } else {
+    aggregate.stepsWithoutRequiredFields += 1;
+    aggregate.violations.push({ code: 'missing-required-field', sequence: step.sequence });
   }
 }
 
@@ -218,6 +284,46 @@ function buildContractChecks(activeCatalog, aggregates) {
       checks.push({ status: 'pass', code: 'assignment-block-types', message: `${label} persisted block types are supported.` });
     }
 
+    if (aggregate.genericInstructionCount > 0) {
+      checks.push({
+        status: 'fail',
+        code: 'generic-next-schedule-instruction',
+        message: `${label} still has ${aggregate.genericInstructionCount} generic next-schedule instruction block(s).`,
+      });
+    } else {
+      checks.push({ status: 'pass', code: 'generic-next-schedule-instruction', message: `${label} has no generic next-schedule instruction blocks.` });
+    }
+
+    if (aggregate.genericSettingsLinkCount > 0) {
+      checks.push({
+        status: 'fail',
+        code: 'generic-settings-link',
+        message: `${label} still has ${aggregate.genericSettingsLinkCount} generic settings link(s).`,
+      });
+    } else {
+      checks.push({ status: 'pass', code: 'generic-settings-link', message: `${label} has no generic settings links.` });
+    }
+
+    if (aggregate.invalidDownloadLinkCount > 0) {
+      checks.push({
+        status: 'fail',
+        code: 'non-file-download-link',
+        message: `${label} has ${aggregate.invalidDownloadLinkCount} navigation link(s) marked as downloads.`,
+      });
+    } else {
+      checks.push({ status: 'pass', code: 'non-file-download-link', message: `${label} has no navigation links marked as downloads.` });
+    }
+
+    if (aggregate.stepsWithoutRequiredFields > 0) {
+      checks.push({
+        status: 'fail',
+        code: 'required-report-fields',
+        message: `${label} has ${aggregate.stepsWithoutRequiredFields} step(s) without any required report field.`,
+      });
+    } else {
+      checks.push({ status: 'pass', code: 'required-report-fields', message: `${label} has at least one required report field on every step.` });
+    }
+
     if (aggregate.invalidSupportedBlockCount > 0) {
       checks.push({
         status: 'fail',
@@ -269,7 +375,8 @@ async function buildReport() {
     return {
       ok,
       checkedAt: new Date().toISOString(),
-      supportedPersistedTypes: Array.from(SUPPORTED_PERSISTED_TYPES).sort(),
+      requiredTextMinLength: REQUIRED_TEXT_MIN_LENGTH,
+    supportedPersistedTypes: Array.from(SUPPORTED_PERSISTED_TYPES).sort(),
       rendererDerivedVirtualTypes: Array.from(RENDERER_DERIVED_TYPES).sort(),
       checks,
       marathons: aggregates,
@@ -283,6 +390,7 @@ function buildConnectionFailureReport(error) {
   return {
     ok: false,
     checkedAt: new Date().toISOString(),
+    requiredTextMinLength: REQUIRED_TEXT_MIN_LENGTH,
     supportedPersistedTypes: Array.from(SUPPORTED_PERSISTED_TYPES).sort(),
     rendererDerivedVirtualTypes: Array.from(RENDERER_DERIVED_TYPES).sort(),
     checks: [
@@ -307,6 +415,7 @@ function buildConnectionFailureReport(error) {
 function printHuman(report) {
   console.log(`Assignment contract: ${report.ok ? 'PASS' : 'FAIL'}`);
   console.log(`Checked at: ${report.checkedAt}`);
+  console.log(`Required text minimum length: ${report.requiredTextMinLength}`);
   console.log(`Supported persisted block types: ${report.supportedPersistedTypes.join(', ')}`);
   console.log(`Renderer-derived virtual types: ${report.rendererDerivedVirtualTypes.join(', ')}`);
   console.log('');
@@ -332,10 +441,16 @@ function printHuman(report) {
     console.log(`  fieldCounts: ${JSON.stringify(marathon.fieldCounts)}`);
     console.log(`  mediaCounts: ${JSON.stringify(marathon.mediaCounts)}`);
     console.log(`  requiredFieldCount: ${marathon.requiredFieldCount}`);
+    console.log(`  effectiveRequiredFieldCount: ${marathon.effectiveRequiredFieldCount}`);
+    console.log(`  promotedRequiredFieldStepCount: ${marathon.promotedRequiredFieldStepCount}`);
+    console.log(`  stepsWithoutRequiredFields: ${marathon.stepsWithoutRequiredFields}`);
     console.log(`  missingBlockTypeCount: ${marathon.missingBlockTypeCount}`);
     console.log(`  unsupportedBlockTypeCount: ${marathon.unsupportedBlockTypeCount}`);
     console.log(`  malformedBlockCount: ${marathon.malformedBlockCount}`);
     console.log(`  invalidSupportedBlockCount: ${marathon.invalidSupportedBlockCount}`);
+    console.log(`  genericInstructionCount: ${marathon.genericInstructionCount}`);
+    console.log(`  genericSettingsLinkCount: ${marathon.genericSettingsLinkCount}`);
+    console.log(`  invalidDownloadLinkCount: ${marathon.invalidDownloadLinkCount}`);
   });
 }
 

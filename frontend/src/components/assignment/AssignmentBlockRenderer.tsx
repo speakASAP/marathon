@@ -9,8 +9,38 @@ type AssignmentBlockRendererProps = {
   block: AssignmentBlock;
   answers: Answers;
   readOnly: boolean;
+  validationError?: string;
   onAnswerChange: (name: string, value: AnswerValue) => void;
 };
+
+function isDownloadHref(href: string) {
+  return /\.(?:pdf|zip|docx?|xlsx?|pptx?|mp3|mp4|wav|ogg)(?:[?#]|$)/i.test(href);
+}
+
+function renderInlineLinkedText(text: string, links?: Array<{ text: string; href: string }>) {
+  const normalizedLinks = (links || []).filter((link) => link.text && link.href);
+  if (!normalizedLinks.length) return text;
+
+  const parts: JSX.Element[] = [];
+  let remaining = text;
+  let key = 0;
+
+  for (const link of normalizedLinks) {
+    const index = remaining.indexOf(link.text);
+    if (index < 0) continue;
+    const before = remaining.slice(0, index);
+    if (before) parts.push(<span key={`text-${key++}`}>{before}</span>);
+    parts.push(
+      <a className="step-assignment-link" href={link.href} key={`link-${key++}`} target="_blank" rel="noreferrer">
+        {link.text}
+      </a>,
+    );
+    remaining = remaining.slice(index + link.text.length);
+  }
+
+  if (remaining) parts.push(<span key={`text-${key++}`}>{remaining}</span>);
+  return parts.length ? parts : text;
+}
 
 function readingRuleParts(item: string) {
   const normalized = item.replace(/\s+/g, " ").trim();
@@ -27,10 +57,14 @@ function readingRuleParts(item: string) {
   return { symbol: normalized, sound: "", example: "" };
 }
 
-export function AssignmentBlockRenderer({ block, answers, readOnly, onAnswerChange }: AssignmentBlockRendererProps) {
+export function AssignmentBlockRenderer({ block, answers, readOnly, validationError, onAnswerChange }: AssignmentBlockRendererProps) {
   if (block.type === "text") {
-    const className = block.style === "heading" ? "step-assignment-heading" : block.style === "lead" ? "step-assignment-lead" : "step-assignment-paragraph";
-    return <p className={className}>{block.text}</p>;
+    if (block.style === "heading") {
+      return <h2 className="step-assignment-heading">{block.text}</h2>;
+    }
+
+    const className = block.style === "lead" ? "step-assignment-lead" : "step-assignment-paragraph";
+    return <p className={className}>{renderInlineLinkedText(block.text, block.links)}</p>;
   }
 
   if (block.type === "quote") {
@@ -65,10 +99,11 @@ export function AssignmentBlockRenderer({ block, answers, readOnly, onAnswerChan
   }
 
   if (block.type === "link") {
+    const isDownload = Boolean(block.download && isDownloadHref(block.href));
     return (
-      <p className="step-assignment-link-row">
-        <a className="step-assignment-download-button" href={block.href} target="_blank" rel="noreferrer" download={block.download || undefined}>
-          <i className="fa fa-download" aria-hidden="true" />
+      <p className={isDownload ? "step-assignment-link-row is-download" : "step-assignment-link-row"}>
+        <a className={isDownload ? "step-assignment-download-button" : "step-assignment-link"} href={block.href} target="_blank" rel="noreferrer" download={isDownload || undefined}>
+          {isDownload && <i className="fa fa-download" aria-hidden="true" />}
           <span>{block.text}</span>
         </a>
       </p>
@@ -111,6 +146,7 @@ export function AssignmentBlockRenderer({ block, answers, readOnly, onAnswerChan
       block={block}
       onChange={onAnswerChange}
       readOnly={readOnly}
+      validationError={validationError}
       value={answers[block.name]}
     />
   );
