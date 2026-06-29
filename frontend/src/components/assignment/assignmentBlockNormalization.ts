@@ -267,6 +267,7 @@ function isTextBlock(block: AssignmentBlock | undefined): block is TextBlock {
 function shouldMergeTextParagraph(previous: TextBlock, current: TextBlock) {
   if (previous.branch !== current.branch) return false;
   if (previous.style === "heading" || current.style === "heading") return false;
+  if (previous.keepSeparate || current.keepSeparate) return false;
 
   const previousText = previous.text.trim();
   const currentText = current.text.trim();

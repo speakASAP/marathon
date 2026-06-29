@@ -15,6 +15,7 @@ export type AssignmentTextBlock = {
   type: 'text';
   text: string;
   links?: AssignmentInlineLink[];
+  keepSeparate?: boolean;
   branch?: AssignmentBranch;
 };
 
@@ -318,7 +319,8 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
       if (type === 'text') {
         const text = normalizeLegacyAssignmentText(cleanString(raw.text));
         const links = normalizeLegacyInlineLinks(text, normalizeInlineLinks(raw.links));
-        return text ? { id, type, text, ...(links.length ? { links } : {}), ...(branch ? { branch } : {}) } : null;
+        const keepSeparate = raw.keepSeparate === true;
+        return text ? { id, type, text, ...(links.length ? { links } : {}), ...(keepSeparate ? { keepSeparate } : {}), ...(branch ? { branch } : {}) } : null;
       }
 
       if (type === 'video') {

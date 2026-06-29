@@ -20,7 +20,7 @@ export interface AssignmentInlineLink {
 }
 
 export type AssignmentBlock =
-  | { id: string; type: 'text'; text: string; links?: AssignmentInlineLink[]; style?: 'paragraph' | 'heading' | 'lead'; branch?: AssignmentBranch }
+  | { id: string; type: 'text'; text: string; links?: AssignmentInlineLink[]; style?: 'paragraph' | 'heading' | 'lead'; keepSeparate?: boolean; branch?: AssignmentBranch }
   | { id: string; type: 'quote'; text: string; branch?: AssignmentBranch }
   | { id: string; type: 'list'; title?: string; items: string[]; branch?: AssignmentBranch }
   | { id: string; type: 'knownWords'; name: string; paragraphs: string[]; label?: string; sourceForm?: string; sourceName?: string; branch?: AssignmentBranch }
