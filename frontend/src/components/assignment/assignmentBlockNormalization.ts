@@ -8,6 +8,14 @@ export function normalizeText(value: string) {
 const TERMINAL_PUNCTUATION_PATTERN = /[.!?…:;]["')\]»”]*$/u;
 const TRAILING_TRANSLATION_PATTERN = /\s+(\([^()]+\))$/u;
 
+export function normalizeParentheticalSpacing(value: string) {
+  return value
+    .replace(/\(\s+/gu, "(")
+    .replace(/\s+\)/gu, ")")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 export function hasTerminalPunctuation(value: string) {
   const text = value.trim();
   if (TERMINAL_PUNCTUATION_PATTERN.test(text)) return true;
@@ -15,7 +23,7 @@ export function hasTerminalPunctuation(value: string) {
 }
 
 export function ensureTerminalPunctuation(value: string) {
-  const text = value.replace(/\s+/g, " ").trim();
+  const text = normalizeParentheticalSpacing(value.replace(/\s+/g, " "));
   if (!text || !/\p{L}/u.test(text) || hasTerminalPunctuation(text)) return text;
   const translation = text.match(TRAILING_TRANSLATION_PATTERN);
   if (translation) return `${text.slice(0, translation.index).trim()}. ${translation[1]}`;
@@ -93,14 +101,19 @@ export function fieldInlineBlankCount(block: FieldBlock) {
 export function isPracticeExerciseField(block: FieldBlock) {
   return block.fieldType === "text"
     && block.required === false
-    && /^([a-z]+)?ex\d+$/i.test(block.name)
+    && /^[a-z]*ex[a-z]*\d+(?:_\d+)?$/i.test(block.name)
     && fieldInlineBlankCount(block) > 0
     && Boolean(block.correctAnswers?.length);
 }
 
 export function practiceExerciseDisplayLabel(block: FieldBlock) {
   if (!isPracticeExerciseField(block)) return block.label;
-  return block.label.replace(/^\s*\d+[.)]?\s*/, "").trim();
+  return normalizeParentheticalSpacing(block.label)
+    .replace(/^\s*<li>\s*/i, "")
+    .replace(/\s*<\/li>\s*$/i, "")
+    .replace(/^\s*\d+[.)]?\s*/, "")
+    .replace(/([.!?])(?=\p{Lu})/gu, "$1 ")
+    .trim();
 }
 
 function splitStoredAnswer(value: string, expectedCount: number) {

@@ -33,6 +33,27 @@ function hasText(value) {
 
 const TERMINAL_PUNCTUATION_PATTERN = /[.!?…:;]["')\]»”]*$/u;
 const TRAILING_TRANSLATION_PATTERN = /\s+(\([^()]+\))$/u;
+const PARENTHETICAL_SPACING_PATTERN = /\(\s+|\s+\)/u;
+const PRACTICE_EXERCISE_NAME_PATTERN = /^[a-z]*ex[a-z]*\d+(?:_\d+)?$/i;
+
+function normalizeParentheticalSpacing(value) {
+  return String(value || '')
+    .replace(/\(\s+/gu, '(')
+    .replace(/\s+\)/gu, ')')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function isPracticeExerciseField(block) {
+  return isRecord(block)
+    && block.type === 'field'
+    && block.fieldType === 'text'
+    && block.required === false
+    && PRACTICE_EXERCISE_NAME_PATTERN.test(String(block.name || ''))
+    && Array.isArray(block.correctAnswers)
+    && block.correctAnswers.length > 0
+    && /\[[^\]]+\]/.test(String(block.label || ''));
+}
 
 function hasTerminalPunctuation(value) {
   const text = String(value || '').trim();
@@ -41,7 +62,7 @@ function hasTerminalPunctuation(value) {
 }
 
 function ensureTerminalPunctuation(value) {
-  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  const text = normalizeParentheticalSpacing(String(value || '').replace(/\s+/g, ' '));
   if (!text || !/\p{L}/u.test(text) || hasTerminalPunctuation(text)) return text;
   const translation = text.match(TRAILING_TRANSLATION_PATTERN);
   if (translation) return `${text.slice(0, translation.index).trim()}. ${translation[1]}`;
@@ -50,10 +71,15 @@ function ensureTerminalPunctuation(value) {
 
 function auditDisplayedText(value, aggregate) {
   if (!hasText(value) || !/\p{L}/u.test(String(value))) return;
+  const text = String(value);
   aggregate.terminalPunctuationTextCount += 1;
-  if (!hasTerminalPunctuation(value)) aggregate.terminalPunctuationNormalizedCount += 1;
-  if (!hasTerminalPunctuation(ensureTerminalPunctuation(value))) {
+  if (!hasTerminalPunctuation(text)) aggregate.terminalPunctuationNormalizedCount += 1;
+  if (!hasTerminalPunctuation(ensureTerminalPunctuation(text))) {
     aggregate.terminalPunctuationIssueCount += 1;
+  }
+  aggregate.parentheticalSpacingTextCount += 1;
+  if (PARENTHETICAL_SPACING_PATTERN.test(text)) {
+    aggregate.parentheticalSpacingIssueCount += 1;
   }
 }
 
@@ -134,6 +160,9 @@ function createEmptyAggregate(marathon) {
     terminalPunctuationTextCount: 0,
     terminalPunctuationNormalizedCount: 0,
     terminalPunctuationIssueCount: 0,
+    parentheticalSpacingTextCount: 0,
+    parentheticalSpacingIssueCount: 0,
+    practiceExerciseNumberingIssueCount: 0,
     violations: [],
     warnings: [],
   };
@@ -205,6 +234,9 @@ function validateSupportedBlock(block, aggregate) {
 function auditStepBlocks(step, aggregate) {
   const blocks = Array.isArray(step.assignmentBlocks) ? step.assignmentBlocks : [];
   const invalidCountBeforeStep = aggregate.invalidSupportedBlockCount;
+  const terminalPunctuationIssueCountBeforeStep = aggregate.terminalPunctuationIssueCount;
+  const parentheticalSpacingIssueCountBeforeStep = aggregate.parentheticalSpacingIssueCount;
+  const practiceExerciseNumberingIssueCountBeforeStep = aggregate.practiceExerciseNumberingIssueCount;
   const requiredFieldCountBeforeStep = aggregate.requiredFieldCount;
   const fieldCountBeforeStep = aggregate.fieldCounts.total;
   if (hasText(step.assignmentContent)) aggregate.stepsWithAssignmentContent += 1;
@@ -253,8 +285,19 @@ function auditStepBlocks(step, aggregate) {
   if (aggregate.invalidSupportedBlockCount > invalidCountBeforeStep) {
     aggregate.violations.push({ code: 'invalid-supported-block-shape', sequence: step.sequence });
   }
-  if (aggregate.terminalPunctuationIssueCount > 0) {
+  blocks.forEach((block) => {
+    if (isPracticeExerciseField(block) && /^\s*\d+[.)]?\s*/.test(String(block.label || ''))) {
+      aggregate.practiceExerciseNumberingIssueCount += 1;
+    }
+  });
+  if (aggregate.terminalPunctuationIssueCount > terminalPunctuationIssueCountBeforeStep) {
     aggregate.violations.push({ code: 'terminal-punctuation', sequence: step.sequence });
+  }
+  if (aggregate.parentheticalSpacingIssueCount > parentheticalSpacingIssueCountBeforeStep) {
+    aggregate.violations.push({ code: 'parenthetical-spacing', sequence: step.sequence });
+  }
+  if (aggregate.practiceExerciseNumberingIssueCount > practiceExerciseNumberingIssueCountBeforeStep) {
+    aggregate.violations.push({ code: 'practice-exercise-numbering', sequence: step.sequence });
   }
   if (blocks.some((block) => isRecord(block) && block.type === 'text' && GENERIC_NEXT_SCHEDULE_INSTRUCTION.test(String(block.text || '')))) {
     aggregate.violations.push({ code: 'generic-next-schedule-instruction', sequence: step.sequence });
@@ -394,6 +437,26 @@ function buildContractChecks(activeCatalog, aggregates) {
       });
     }
 
+    if (aggregate.parentheticalSpacingIssueCount > 0) {
+      checks.push({
+        status: 'fail',
+        code: 'parenthetical-spacing',
+        message: `${label} has ${aggregate.parentheticalSpacingIssueCount} displayed assignment text item(s) with spaces inside parentheses.`,
+      });
+    } else {
+      checks.push({ status: 'pass', code: 'parenthetical-spacing', message: `${label} displayed assignment text has no spaces inside parentheses.` });
+    }
+
+    if (aggregate.practiceExerciseNumberingIssueCount > 0) {
+      checks.push({
+        status: 'fail',
+        code: 'practice-exercise-numbering',
+        message: `${label} has ${aggregate.practiceExerciseNumberingIssueCount} practice exercise label(s) with legacy numeric prefixes.`,
+      });
+    } else {
+      checks.push({ status: 'pass', code: 'practice-exercise-numbering', message: `${label} practice exercise labels have no legacy numeric prefixes.` });
+    }
+
     const rendererDerivedCount = Object.values(aggregate.rendererDerivedTypeCounts).reduce((total, count) => total + count, 0);
     if (rendererDerivedCount > 0) {
       checks.push({
@@ -514,6 +577,9 @@ function printHuman(report) {
     console.log(`  terminalPunctuationTextCount: ${marathon.terminalPunctuationTextCount}`);
     console.log(`  terminalPunctuationNormalizedCount: ${marathon.terminalPunctuationNormalizedCount}`);
     console.log(`  terminalPunctuationIssueCount: ${marathon.terminalPunctuationIssueCount}`);
+    console.log(`  parentheticalSpacingTextCount: ${marathon.parentheticalSpacingTextCount}`);
+    console.log(`  parentheticalSpacingIssueCount: ${marathon.parentheticalSpacingIssueCount}`);
+    console.log(`  practiceExerciseNumberingIssueCount: ${marathon.practiceExerciseNumberingIssueCount}`);
   });
 }
 

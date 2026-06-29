@@ -5945,7 +5945,6 @@ a:hover {
   background: transparent;
   box-shadow: none;
   gap: 8px;
-  counter-reset: step-exercise;
 }
 
 .step-assignment-content.structured::before {
@@ -5956,7 +5955,6 @@ a:hover {
   width: 100%;
   max-width: none;
   flex: none;
-  counter-increment: step-exercise;
 }
 
 .step-assignment-item--choice-field {
@@ -6220,12 +6218,6 @@ a:hover {
 }
 
 .step-inline-exercise-text {
-  font-weight: 400;
-}
-
-.step-inline-exercise-number::before {
-  content: counter(step-exercise) ". ";
-  color: var(--marathon-lesson-text);
   font-weight: 400;
 }
 

@@ -86,7 +86,7 @@ function hasTerminalPunctuation(value: string): boolean {
 }
 
 function ensureTerminalPunctuation(value: string): string {
-  const text = value.replace(/\s+/g, ' ').trim();
+  const text = normalizeParentheticalSpacing(value.replace(/\s+/g, ' '));
   if (!text || !/\p{L}/u.test(text) || hasTerminalPunctuation(text)) return text;
   const translation = text.match(TRAILING_TRANSLATION_PATTERN);
   if (translation) return `${text.slice(0, translation.index).trim()}. ${translation[1]}`;
@@ -163,8 +163,16 @@ function isSentenceContinuation(previousText: string, text: string) {
   return /^[а-яёa-z]/.test(text);
 }
 
+function normalizeParentheticalSpacing(value: string): string {
+  return value
+    .replace(/\(\s+/gu, '(')
+    .replace(/\s+\)/gu, ')')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 function normalizeTextBlockText(text: string) {
-  return text.replace(/\s+/g, " ").trim();
+  return normalizeParentheticalSpacing(text.replace(/\s+/g, " "));
 }
 
 const GENERIC_NEXT_SCHEDULE_INSTRUCTION = /Сформируйте отчет[,.]?\s*Новый этап появится в то\s*(?:⏰\s*)?время,\s*которое вы указали на странице(?:\s*⚙️?)?(?:\s*настроек\.?)?/gi;
@@ -344,11 +352,11 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
 
       if (type === 'field') {
         const name = cleanString(raw.name);
-        const label = cleanString(raw.label) || name;
+        const label = normalizeParentheticalSpacing(cleanString(raw.label) || name);
         const fieldType = raw.fieldType === 'radio' || raw.fieldType === 'checkbox' || raw.fieldType === 'textarea' ? raw.fieldType : 'text';
         if (!name || !label) return null;
         const correctAnswers = normalizeStringList(raw.correctAnswers);
-        const hint = cleanString(raw.hint);
+        const hint = normalizeParentheticalSpacing(cleanString(raw.hint));
         const answerSize = normalizeAnswerSize(raw.answerSize);
         return {
           id,

@@ -185,7 +185,7 @@ export function AssignmentFieldRenderer({ block, value, readOnly, validationErro
       <fieldset className={`${blockClassName} step-question-block--inline-blank`}>
         <legend className="sr-only">{displayLabel}</legend>
         <div className="step-inline-exercise-line">
-          <span className="step-inline-exercise-number" aria-hidden="true" />
+          {!isPracticeExercise && <span className="step-inline-exercise-number" aria-hidden="true" />}
           <span className="step-inline-exercise-text">
             {inlineBlank.segments.map((segment, index) => (
               <span key={`segment-${index}`}>
