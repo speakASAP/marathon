@@ -5263,7 +5263,8 @@ a:hover {
 }
 
 .step-video-block {
-  width: 100%;
+  width: min(50%, 56rem);
+  margin: 0 auto;
   overflow: hidden;
   border-radius: 8px;
   background: #0f172a;
@@ -5275,6 +5276,12 @@ a:hover {
   height: 100%;
   border: 0;
   display: block;
+}
+
+@media (max-width: 640px) {
+  .step-video-block {
+    width: 100%;
+  }
 }
 
 .step-audio-block {
