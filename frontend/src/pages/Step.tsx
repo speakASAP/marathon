@@ -33,10 +33,6 @@ const DRAFT_SAVE_DELAY_MS = 900;
 type Level = 'beginner' | 'medium' | 'advanced' | null;
 type AssignmentFieldBlock = Extract<AssignmentBlock, { type: 'field' }>;
 type KnownWordsBlock = Extract<AssignmentBlock, { type: 'knownWords' }>;
-type KnownWordsReplayEntry = {
-  paragraphs: string[];
-  selected: string[];
-};
 type LocalStepDraft = {
   report: string;
   payload: SubmissionPayload;
@@ -108,10 +104,18 @@ function allPreviousScheduleAnswersCompleted(answers: Answer[] | undefined | nul
   return answers.slice(0, targetIndex).every(isCompletedScheduleAnswer);
 }
 
+const REMOVE_EVERYWHERE_TEXT_PATTERNS = [
+  /Нажимайте на заголовок дважды, если на Вашем устройстве не открывается текст с первого раза\.?/gi,
+];
+
 const GENERIC_NEXT_SCHEDULE_INSTRUCTION = /Сформируйте отчет[,.]?\s*Новый этап появится в то\s*(?:⏰\s*)?время,\s*которое вы указали на странице(?:\s*⚙️?)?(?:\s*настроек\.?)?/gi;
 
+function stripRemovedAssignmentText(value: string) {
+  return REMOVE_EVERYWHERE_TEXT_PATTERNS.reduce((text, pattern) => text.replace(pattern, ''), value);
+}
+
 function stripGenericNextScheduleInstruction(value: string) {
-  return value
+  return stripRemovedAssignmentText(value)
     .replace(GENERIC_NEXT_SCHEDULE_INSTRUCTION, '')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
@@ -125,6 +129,10 @@ function isGenericNextScheduleInstruction(block: AssignmentBlock) {
     && /странице/i.test(block.text);
 }
 
+function isRemovedEverywhereTextInstruction(block: AssignmentBlock) {
+  return block.type === 'text' && !stripRemovedAssignmentText(block.text).trim();
+}
+
 function isGenericSettingsLink(block: AssignmentBlock) {
   return block.type === 'link'
     && /^настроек\.?$/i.test(block.text)
@@ -132,7 +140,7 @@ function isGenericSettingsLink(block: AssignmentBlock) {
 }
 
 function sanitizeAssignmentBlock(block: AssignmentBlock): AssignmentBlock | null {
-  if (isGenericNextScheduleInstruction(block) || isGenericSettingsLink(block)) return null;
+  if (isGenericNextScheduleInstruction(block) || isGenericSettingsLink(block) || isRemovedEverywhereTextInstruction(block)) return null;
   if (block.type !== 'text') return block;
 
   const text = stripGenericNextScheduleInstruction(block.text);
@@ -157,20 +165,6 @@ function isKnownWordsBlock(block: AssignmentBlock): block is KnownWordsBlock {
   return block.type === 'knownWords';
 }
 
-function isLegacyKnownWordsPlaceholder(value: string) {
-  return /^ранее\s+выделенные\s+слова(?:\s+Текст\s+\d+)?\.?$/i.test(value.trim());
-}
-
-function isReplayKnownWordsBlock(block: KnownWordsBlock) {
-  return block.paragraphs.length > 0 && block.paragraphs.every(isLegacyKnownWordsPlaceholder);
-}
-
-function payloadStringList(payload: SubmissionPayload, name: string) {
-  const value = payload[name];
-  if (!Array.isArray(value)) return [];
-  return value.map(String).filter(Boolean);
-}
-
 function mergePayloadDefaults(payload: SubmissionPayload, defaults: SubmissionPayload) {
   if (!Object.keys(defaults).length) return payload;
   const next = { ...defaults, ...payload };
@@ -181,53 +175,6 @@ function mergePayloadDefaults(payload: SubmissionPayload, defaults: SubmissionPa
     }
   });
   return next;
-}
-
-function withKnownWordsReplay(blocks: AssignmentBlock[], replayEntries: KnownWordsReplayEntry[]) {
-  if (!replayEntries.length) return blocks;
-  let replayIndex = 0;
-  return blocks.map((block) => {
-    if (!isKnownWordsBlock(block) || !isReplayKnownWordsBlock(block)) return block;
-    const entry = replayEntries[replayIndex];
-    replayIndex += 1;
-    if (!entry?.paragraphs.length) return block;
-    return { ...block, paragraphs: entry.paragraphs };
-  });
-}
-
-function knownWordsReplayDefaults(blocks: AssignmentBlock[], replayEntries: KnownWordsReplayEntry[]) {
-  const defaults: SubmissionPayload = {};
-  if (!replayEntries.length) return defaults;
-  let replayIndex = 0;
-  blocks.forEach((block) => {
-    if (!isKnownWordsBlock(block) || !isReplayKnownWordsBlock(block)) return;
-    const entry = replayEntries[replayIndex];
-    replayIndex += 1;
-    if (entry?.selected.length) defaults[block.name] = entry.selected;
-  });
-  return defaults;
-}
-
-async function loadKnownWordsReplayEntries(marathon: MyMarathon, participantId: string) {
-  const step3Answers = marathon.answers.filter((answer) => /^Этап\s+3\./i.test(answer.title));
-  const stepResults = await Promise.all(step3Answers.map(async (answer) => {
-    try {
-      const [stepInfo, submission] = await Promise.all([
-        fetchStepInfo(answer.stepId),
-        fetchSavedSubmission(participantId, answer.stepId),
-      ]);
-      if (!stepInfo || !submission.exists || !isPayloadRecord(submission.payload)) return [];
-      return sanitizedDecoratedBlocks(stepInfo.assignmentBlocks)
-        .filter(isKnownWordsBlock)
-        .map((block) => ({
-          paragraphs: block.paragraphs,
-          selected: payloadStringList(submission.payload, block.name),
-        }));
-    } catch {
-      return [];
-    }
-  }));
-  return stepResults.flat();
 }
 
 function findLevelField(blocks: AssignmentBlock[]): AssignmentFieldBlock | undefined {
@@ -381,7 +328,6 @@ export default function Step() {
   const [submissionAuthRequired, setSubmissionAuthRequired] = useState(false);
   const [marathon, setMarathon] = useState<MyMarathon | null>(null);
   const [, setMarathonLoadError] = useState('');
-  const [knownWordsReplayEntries, setKnownWordsReplayEntries] = useState<KnownWordsReplayEntry[]>([]);
   const [reportTime, setReportTime] = useState('13:00');
   const [browserTimeZone] = useState(getBrowserTimeZone);
   const [reportTimeSaving, setReportTimeSaving] = useState(false);
@@ -402,7 +348,6 @@ export default function Step() {
     setSubmissionAuthRequired(false);
     setMarathon(null);
     setMarathonLoadError('');
-    setKnownWordsReplayEntries([]);
     setОтчет('');
     setAssignmentPayload({});
     setDraftStatus('');
@@ -444,26 +389,7 @@ export default function Step() {
       });
   }, [marathonerId]);
 
-  useEffect(() => {
-    const participantId = marathonerId.trim();
-    if (step?.formKey !== 'Step11Form1' || !marathon || !participantId || !getToken()) {
-      setKnownWordsReplayEntries([]);
-      return;
-    }
 
-    let cancelled = false;
-    loadKnownWordsReplayEntries(marathon, participantId)
-      .then((entries) => {
-        if (!cancelled) setKnownWordsReplayEntries(entries);
-      })
-      .catch(() => {
-        if (!cancelled) setKnownWordsReplayEntries([]);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [step?.formKey, marathon?.id, marathonerId]);
 
   useEffect(() => {
     const participantId = marathonerId.trim();
@@ -527,19 +453,21 @@ export default function Step() {
     () => sanitizedDecoratedBlocks(step?.assignmentBlocks),
     [step?.assignmentBlocks],
   );
-  const knownWordsDefaults = useMemo(
-    () => knownWordsReplayDefaults(baseAssignmentBlocks, knownWordsReplayEntries),
-    [baseAssignmentBlocks, knownWordsReplayEntries],
-  );
-  const filteredAssignmentBlocks = useMemo(
-    () => withKnownWordsReplay(baseAssignmentBlocks, knownWordsReplayEntries),
-    [baseAssignmentBlocks, knownWordsReplayEntries],
-  );
+  const filteredAssignmentBlocks = baseAssignmentBlocks;
   const hasStructuredFields = Boolean(filteredAssignmentBlocks.some((block) => block.type === 'field'));
-  const displayedPayload = mergePayloadDefaults(
-    isFinalSubmission && savedSubmission?.payload ? savedSubmission.payload : assignmentPayload,
-    knownWordsDefaults,
-  );
+  const serverKnownWordsDefaults = useMemo(() => {
+    const defaults: SubmissionPayload = {};
+    if (!savedSubmission?.payload) return defaults;
+    baseAssignmentBlocks.filter(isKnownWordsBlock).forEach((block) => {
+      const value = savedSubmission.payload[block.name];
+      if (Array.isArray(value) && value.length > 0 && assignmentPayload[block.name] == null) {
+        defaults[block.name] = value;
+      }
+    });
+    return defaults;
+  }, [assignmentPayload, baseAssignmentBlocks, savedSubmission?.payload]);
+  const effectiveAssignmentPayload = mergePayloadDefaults(assignmentPayload, serverKnownWordsDefaults);
+  const displayedPayload = isFinalSubmission && savedSubmission?.payload ? savedSubmission.payload : effectiveAssignmentPayload;
   const displayedReport = isFinalSubmission && savedSubmission?.report ? savedSubmission.report : report;
   const filteredAssignmentContent = useMemo(
     () => stripGenericNextScheduleInstruction(assignmentContent || ''),
@@ -555,7 +483,7 @@ export default function Step() {
       : [],
     [filteredAssignmentBlocks, randomAnswer],
   );
-  const draftKey = useMemo(() => makeDraftKey(report, assignmentPayload), [report, assignmentPayload]);
+  const draftKey = useMemo(() => makeDraftKey(report, effectiveAssignmentPayload), [report, effectiveAssignmentPayload]);
   const currentScheduleIndex = marathon?.answers.findIndex((answer) => answer.stepId === stepId) ?? -1;
   const currentSchedule = marathon && currentScheduleIndex >= 0 ? marathon.answers[currentScheduleIndex] : null;
   const stepAccessBlocked = Boolean(hasParticipantContext && marathon && currentSchedule && !currentSchedule.can_open);
@@ -604,14 +532,15 @@ export default function Step() {
       return;
     }
 
-    if (hasMeaningfulDraft(report, assignmentPayload)) {
-      writeLocalDraft(participantId, stepId, report, assignmentPayload);
+    if (hasMeaningfulDraft(report, effectiveAssignmentPayload)) {
+      writeLocalDraft(participantId, stepId, report, effectiveAssignmentPayload);
     } else {
       removeLocalDraft(participantId, stepId);
     }
   }, [
     assignmentContent,
     assignmentPayload,
+    effectiveAssignmentPayload,
     isFinalSubmission,
     loadingSavedSubmission,
     marathonerId,
@@ -634,15 +563,15 @@ export default function Step() {
       || submitting
       || isFinalSubmission
       || draftKey === lastSavedDraftKey
-      || !hasMeaningfulDraft(report, assignmentPayload)
+      || !hasMeaningfulDraft(report, effectiveAssignmentPayload)
     ) {
       return;
     }
 
     const timeoutId = window.setTimeout(() => {
       const reportToSave = report.trim();
-      const payloadToSave = assignmentPayload;
-      const savedKey = draftKey;
+      const payloadToSave = effectiveAssignmentPayload;
+      const savedKey = makeDraftKey(report, payloadToSave);
       setDraftSaving(true);
       setDraftStatus('Сохраняем черновик...');
       saveStepDraft(participantId, stepId, reportToSave, payloadToSave)
@@ -675,6 +604,7 @@ export default function Step() {
   }, [
     assignmentContent,
     assignmentPayload,
+    effectiveAssignmentPayload,
     draftKey,
     isFinalSubmission,
     lastSavedDraftKey,
@@ -714,7 +644,8 @@ export default function Step() {
       return;
     }
 
-    const missing = missingRequiredAnswers(filteredAssignmentBlocks, assignmentPayload);
+    const payloadToSubmit = effectiveAssignmentPayload;
+    const missing = missingRequiredAnswers(filteredAssignmentBlocks, payloadToSubmit);
     setInvalidRequiredFieldNames(missing.map((block) => block.name));
     if (missing.length) {
       const firstMissing = missing[0];
@@ -729,26 +660,26 @@ export default function Step() {
     }
 
     const reportToSubmit = report.trim();
-    if (!hasMeaningfulDraft(reportToSubmit, assignmentPayload)) {
+    if (!hasMeaningfulDraft(reportToSubmit, payloadToSubmit)) {
       setSubmitError('Заполните ответы перед отправкой.');
       return;
     }
 
     setSubmitting(true);
     try {
-      const body = await submitStepReport(marathonerId.trim(), stepId, reportToSubmit, assignmentPayload);
+      const body = await submitStepReport(marathonerId.trim(), stepId, reportToSubmit, payloadToSubmit);
       setSavedSubmission({
         exists: true,
         id: body.id,
         report: reportToSubmit,
-        payload: assignmentPayload,
+        payload: payloadToSubmit,
         state: body.state || 'completed',
         is_late: Boolean(body.is_late),
         bonus_left: typeof body.bonus_left === 'number' ? body.bonus_left : 0,
         updated_at: body.updated_at,
       });
       removeLocalDraft(marathonerId.trim(), stepId);
-      setLastSavedDraftKey(makeDraftKey(reportToSubmit, assignmentPayload));
+      setLastSavedDraftKey(makeDraftKey(reportToSubmit, payloadToSubmit));
       setDraftStatus('');
       setSubmitMessage(body.is_late
         ? 'Отчет отправлен. Он отмечен как поздний, ответы зафиксированы и больше не редактируются.'

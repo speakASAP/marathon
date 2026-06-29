@@ -91,6 +91,10 @@ function cleanString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+const REMOVE_EVERYWHERE_TEXT_PATTERNS = [
+  /Нажимайте на заголовок дважды, если на Вашем устройстве не открывается текст с первого раза\.?/gi,
+];
+
 const TERMINAL_PUNCTUATION_PATTERN = /[.!?…:;]["')\]»”]*$/u;
 const TRAILING_TRANSLATION_PATTERN = /\s+(\([^()]+\))$/u;
 
@@ -100,8 +104,12 @@ function hasTerminalPunctuation(value: string): boolean {
   return TERMINAL_PUNCTUATION_PATTERN.test(text.replace(TRAILING_TRANSLATION_PATTERN, ''));
 }
 
+function stripRemovedAssignmentText(value: string): string {
+  return REMOVE_EVERYWHERE_TEXT_PATTERNS.reduce((text, pattern) => text.replace(pattern, ''), value);
+}
+
 function ensureTerminalPunctuation(value: string): string {
-  const text = normalizeParentheticalSpacing(value.replace(/\s+/g, ' '));
+  const text = normalizeParentheticalSpacing(stripRemovedAssignmentText(value).replace(/\s+/g, ' '));
   if (!text || !/\p{L}/u.test(text) || hasTerminalPunctuation(text)) return text;
   const translation = text.match(TRAILING_TRANSLATION_PATTERN);
   if (translation) return `${text.slice(0, translation.index).trim()}. ${translation[1]}`;
@@ -333,9 +341,10 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
 
       if (type === 'text') {
         const text = normalizeLegacyAssignmentText(cleanString(raw.text));
-        const links = normalizeLegacyInlineLinks(text, normalizeInlineLinks(raw.links));
+        const cleanText = stripRemovedAssignmentText(text).trim();
+        const links = normalizeLegacyInlineLinks(cleanText, normalizeInlineLinks(raw.links));
         const keepSeparate = raw.keepSeparate === true;
-        return text ? { id, type, text, ...(links.length ? { links } : {}), ...(keepSeparate ? { keepSeparate } : {}), ...(branch ? { branch } : {}) } : null;
+        return cleanText ? { id, type, text: cleanText, ...(links.length ? { links } : {}), ...(keepSeparate ? { keepSeparate } : {}), ...(branch ? { branch } : {}) } : null;
       }
 
       if (type === 'video') {

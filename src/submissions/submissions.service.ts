@@ -408,7 +408,7 @@ export class SubmissionsService {
     for (const block of knownWordsBlocks) {
       const sourceStepId = sourceStepIdByForm.get(block.sourceForm!);
       const sourcePayload = sourceStepId ? payloadByStepId.get(sourceStepId) : null;
-      const sourceValue = sourcePayload ? sourcePayload[block.sourceName!] : null;
+      const sourceValue = sourcePayload ? this.resolveKnownWordsSourceValue(sourcePayload, block.sourceName!) : null;
       if (Array.isArray(sourceValue) || typeof sourceValue === 'string') {
         hydrated[block.name] = sourceValue;
       }
@@ -421,6 +421,31 @@ export class SubmissionsService {
       return {};
     }
     return value as Record<string, unknown>;
+  }
+
+  private resolveKnownWordsSourceValue(payload: Record<string, unknown>, sourceName: string): unknown {
+    const exact = payload[sourceName];
+    if (Array.isArray(exact) || typeof exact === 'string') return exact;
+
+    const sourceIndex = this.legacyKnownWordsIndex(sourceName);
+    if (sourceIndex == null) return null;
+
+    const knownWordEntries = Object.entries(payload)
+      .filter(([name, value]) => /^known_words/i.test(name) && (Array.isArray(value) || typeof value === 'string'))
+      .sort(([left], [right]) => this.knownWordsPayloadOrder(left) - this.knownWordsPayloadOrder(right));
+
+    return knownWordEntries[sourceIndex]?.[1] ?? null;
+  }
+
+  private legacyKnownWordsIndex(sourceName: string): number | null {
+    const match = sourceName.match(/^known_words(\d+)$/i);
+    if (!match) return null;
+    return Number(match[1]) - 1;
+  }
+
+  private knownWordsPayloadOrder(name: string): number {
+    const numericSuffix = name.match(/(\d+)$/);
+    return numericSuffix ? Number(numericSuffix[1]) : Number.MAX_SAFE_INTEGER;
   }
 
   private async lockParticipantStep(tx: any, participantId: string, stepId: string) {
