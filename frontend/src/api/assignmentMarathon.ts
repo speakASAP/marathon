@@ -39,6 +39,9 @@ export type AssignmentBlock =
       correctAnswers?: string[];
       hint?: string;
       answerSize?: 'short' | 'long';
+      rowLayout?: 'three-column';
+      rowPrefix?: string;
+      rowSuffix?: string;
       branch?: AssignmentBranch;
     };
 

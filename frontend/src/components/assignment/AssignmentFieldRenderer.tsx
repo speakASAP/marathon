@@ -181,6 +181,29 @@ export function AssignmentFieldRenderer({ block, value, readOnly, validationErro
       );
     };
 
+    if (block.rowLayout === "three-column" && (block.rowPrefix || block.rowSuffix)) {
+      return (
+        <fieldset className={`${blockClassName} step-question-block--inline-blank step-question-block--legacy-table-row`}>
+          <legend className="sr-only">{displayLabel}</legend>
+          <div className="step-legacy-table-row">
+            <span className="step-legacy-table-cell step-legacy-table-cell--term">{block.rowPrefix}</span>
+            <span className="step-legacy-table-cell step-legacy-table-cell--input">{renderInlineControl(0)}</span>
+            <span className="step-legacy-table-cell step-legacy-table-cell--result">{block.rowSuffix}</span>
+          </div>
+        {validationError && <div id={validationErrorId} className="step-required-field-message" role="alert">{validationError}</div>}
+        {answerIsWrong && (
+          <div className="step-answer-hint-panel" aria-live="polite">
+            <span>Ответ пока не совпадает с правильным вариантом.</span>
+            <button type="button" className="step-answer-hint-toggle" onClick={() => setHintOpen((open) => !open)}>
+              {hintOpen ? "Скрыть подсказку" : "Показать подсказку"}
+            </button>
+            {hintOpen && <strong>{hintText}</strong>}
+          </div>
+        )}
+      </fieldset>
+      );
+    }
+
     return (
       <fieldset className={`${blockClassName} step-question-block--inline-blank`}>
         <legend className="sr-only">{displayLabel}</legend>

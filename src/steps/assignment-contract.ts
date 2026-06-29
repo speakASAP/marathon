@@ -125,6 +125,13 @@ function fillAssignmentLabelPlaceholder(label: string, answers: string[]): strin
     .trim();
 }
 
+function legacyTableRowAnswer(block: AssignmentFieldBlock, values: string[]): string | null {
+  if (block.rowLayout !== 'three-column' || (!block.rowPrefix && !block.rowSuffix)) return null;
+  const answer = fillAssignmentLabelPlaceholder(block.label, values) || values.join(', ').trim();
+  if (!answer) return null;
+  return [block.rowPrefix, answer, block.rowSuffix].filter(Boolean).join(' ');
+}
+
 function isLegacyDiagnosticField(block: AssignmentFieldBlock): boolean {
   return /^c\d+$/i.test(block.name);
 }
@@ -267,6 +274,11 @@ export function generateAssignmentReportRows(
     const values = stringifyPublicPayloadValues(block.name, payload[block.name], block.choices, inlineBlankCount(block.label));
     const value = values.join(', ');
     if (!value) continue;
+    const rowAnswer = legacyTableRowAnswer(block, values);
+    if (rowAnswer) {
+      rows.push({ id: block.id || block.name, question: '', answer: rowAnswer });
+      continue;
+    }
     const filledSentence = fillAssignmentLabelPlaceholder(block.label, values);
     rows.push(filledSentence
       ? { id: block.id || block.name, question: '', answer: filledSentence }

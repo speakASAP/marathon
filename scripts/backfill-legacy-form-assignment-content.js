@@ -211,7 +211,7 @@ function normalizeInstructionText(text) {
     .trim();
 }
 
-function fieldBlock(fieldName, field, branch, index) {
+function fieldBlock(fieldName, field, branch, index, extra = {}) {
   if (!field || field.hidden || !field.label || field.label.toLowerCase() === 'text') return null;
   const choices = normalizeFirstStepPlatformChoices(
     fieldName,
@@ -235,6 +235,7 @@ function fieldBlock(fieldName, field, branch, index) {
     required: field.required !== false,
     choices,
     ...(correctAnswers.length ? { correctAnswers, hint: correctAnswers.join(', ') } : {}),
+    ...extra,
     ...(branch ? { branch } : {}),
   };
 }
@@ -258,6 +259,27 @@ function htmlAttr(attrs, name) {
   const pattern = new RegExp(`${name}=(['\"])([\\s\\S]*?)\\1`, 'i');
   const match = String(attrs || '').match(pattern);
   return match ? decodeEntities(match[2]).trim() : '';
+}
+
+
+function escapeHtmlAttr(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function legacyTableRowsToTags(html) {
+  return String(html || '').replace(
+    /<tr\b[^>]*>\s*<td\b[^>]*>([\s\S]*?)<\/td>\s*<td\b[^>]*>\s*\{%\s*render_field\s+form\.([A-Za-z0-9_]+)[^%]*%\}\s*<\/td>\s*<td\b[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/gi,
+    (_match, rawPrefix, fieldName, rawSuffix) => {
+      const prefix = stripHtmlToText(rawPrefix);
+      const suffix = stripHtmlToText(rawSuffix);
+      if (!prefix || !suffix) return _match;
+      return `<legacy-table-row data-field="${escapeHtmlAttr(fieldName)}" data-prefix="${escapeHtmlAttr(prefix)}" data-suffix="${escapeHtmlAttr(suffix)}"></legacy-table-row>`;
+    },
+  );
 }
 
 function pushImageBlock(blocks, attrs, branch) {
@@ -395,9 +417,10 @@ function normalizeTextBlockSequence(blocks) {
 }
 
 function renderTemplateBlocks(templatePath, fields) {
-  const html = fs.readFileSync(templatePath, 'utf8')
+  let html = fs.readFileSync(templatePath, 'utf8')
     .replace(/\{#[\s\S]*?#\}/g, '\n')
     .replace(/\{%\s*load_answer\s+[^%]+%\}/g, 'ранее выделенные слова');
+  html = legacyTableRowsToTags(html);
   const tokenPattern = /(\{%[\s\S]*?%\}|<\/?[A-Za-z][^>]*>)/g;
   const blocks = [];
   const stack = [];
@@ -439,6 +462,16 @@ function renderTemplateBlocks(templatePath, fields) {
         const hrefMatch = attrs.match(/href=(["'])([\s\S]*?)\1/i);
         if (tag === 'img') {
           pushImageBlock(blocks, attrs, branch);
+        } else if (tag === 'legacy-table-row') {
+          const fieldName = htmlAttr(attrs, 'data-field');
+          const rowPrefix = stripHtmlToText(htmlAttr(attrs, 'data-prefix'));
+          const rowSuffix = stripHtmlToText(htmlAttr(attrs, 'data-suffix'));
+          const block = fieldBlock(fieldName, fields[fieldName], branch, blocks.length, {
+            rowLayout: 'three-column',
+            rowPrefix,
+            rowSuffix,
+          });
+          if (block) blocks.push(block);
         } else {
           stack.push({ tag, branch: branchFromClass(classMatch ? classMatch[1] : ''), href: tag === 'a' && hrefMatch ? resolveTemplateHref(hrefMatch[2]) : null });
         }
@@ -468,7 +501,10 @@ function blocksToText(blocks) {
     else if (block.type === 'link') parts.push(block.text);
     else if (block.type === 'image' && block.alt) parts.push(block.alt);
     else if (block.type === 'field') {
-      const fieldParts = [`Вопрос: ${block.label}`];
+      const label = block.rowLayout === 'three-column'
+        ? [block.rowPrefix, block.label, block.rowSuffix].filter(Boolean).join(' ')
+        : block.label;
+      const fieldParts = [`Вопрос: ${label}`];
       if (Array.isArray(block.choices) && block.choices.length) {
         fieldParts.push(`Варианты: ${block.choices.map((choice) => choice.label).join('; ')}`);
       }

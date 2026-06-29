@@ -6264,6 +6264,55 @@ a:hover {
   resize: vertical;
 }
 
+.step-question-block--legacy-table-row {
+  padding: 0;
+  overflow: hidden;
+  border-color: #ddd;
+  background: #fff;
+}
+
+.step-legacy-table-row {
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) minmax(118px, 150px) minmax(130px, 0.85fr);
+  align-items: center;
+  min-height: 42px;
+  color: var(--marathon-lesson-text);
+  font-family: var(--marathon-font);
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.step-legacy-table-cell {
+  min-height: 42px;
+  padding: 7px 10px;
+  border-right: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+}
+
+.step-legacy-table-cell:last-child {
+  border-right: 0;
+}
+
+.step-legacy-table-cell--input {
+  justify-content: center;
+}
+
+.step-legacy-table-cell--input input[type="text"] {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .step-legacy-table-row {
+    grid-template-columns: minmax(120px, 1fr) minmax(96px, 120px) minmax(110px, 0.8fr);
+    font-size: 15px;
+  }
+
+  .step-legacy-table-cell {
+    padding: 6px 7px;
+  }
+}
+
 .step-question-block--inline-blank input[type="text"] {
   display: inline-block;
   width: 58px;

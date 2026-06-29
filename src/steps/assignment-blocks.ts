@@ -64,6 +64,9 @@ export type AssignmentFieldBlock = {
   correctAnswers?: string[];
   hint?: string;
   answerSize?: 'short' | 'long';
+  rowLayout?: 'three-column';
+  rowPrefix?: string;
+  rowSuffix?: string;
   branch?: AssignmentBranch;
 };
 
@@ -360,6 +363,9 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
         const correctAnswers = normalizeStringList(raw.correctAnswers);
         const hint = normalizeParentheticalSpacing(cleanString(raw.hint));
         const answerSize = normalizeAnswerSize(raw.answerSize);
+        const rowLayout = raw.rowLayout === 'three-column' ? 'three-column' : undefined;
+        const rowPrefix = normalizeParentheticalSpacing(cleanString(raw.rowPrefix));
+        const rowSuffix = normalizeParentheticalSpacing(cleanString(raw.rowSuffix));
         return {
           id,
           type,
@@ -371,6 +377,9 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
           ...(correctAnswers.length ? { correctAnswers } : {}),
           ...(hint ? { hint } : {}),
           ...(answerSize ? { answerSize } : {}),
+          ...(rowLayout && (rowPrefix || rowSuffix) ? { rowLayout } : {}),
+          ...(rowPrefix ? { rowPrefix } : {}),
+          ...(rowSuffix ? { rowSuffix } : {}),
           ...(branch ? { branch } : {}),
         };
       }

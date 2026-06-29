@@ -152,6 +152,15 @@ function fillAssignmentLabelPlaceholder(label: string, value: AnswerValue | unde
     .trim();
 }
 
+function legacyTableRowReport(block: FieldBlock, value: AnswerValue | undefined) {
+  if (block.rowLayout !== "three-column" || (!block.rowPrefix && !block.rowSuffix)) return null;
+  const blankCount = inlineBlankCount(block.label);
+  const filledLabel = fillAssignmentLabelPlaceholder(block.label, value);
+  const answer = filledLabel || answerPartsFromValue(value, blankCount).join(", ").trim();
+  if (!answer) return null;
+  return [block.rowPrefix, answer, block.rowSuffix].filter(Boolean).join(" ");
+}
+
 export function requiredAnswerValid(block: FieldBlock, value: AnswerValue | undefined) {
   if (block.fieldType === "radio") return typeof value === "string" && value.trim().length > 0;
   if (block.fieldType === "checkbox") return Array.isArray(value) && value.some((item) => item.trim().length > 0);
@@ -178,6 +187,8 @@ export function composeReport(blocks: AssignmentBlock[], answers: Answers, level
       const value = displayValue(block, answers[block.name]);
       const cleanValue = value.trim();
       if (!cleanValue) return "";
+      const rowReport = legacyTableRowReport(block, answers[block.name]);
+      if (rowReport) return ensureTerminalPunctuation(rowReport);
       const filledLabel = fillAssignmentLabelPlaceholder(block.label, answers[block.name]);
       return filledLabel ? ensureTerminalPunctuation(filledLabel) : `${ensureTerminalPunctuation(block.label)}\n${cleanValue}`;
     })
