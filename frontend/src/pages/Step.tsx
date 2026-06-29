@@ -583,7 +583,7 @@ export default function Step() {
     setInvalidRequiredFieldNames(missing.map((block) => block.name));
     if (missing.length) {
       const firstMissing = missing[0];
-      setSubmitError(`Поле «${firstMissing.label}» нужно заполнить минимум ${REQUIRED_REPORT_FIELD_MIN_LENGTH} символами.`);
+      setSubmitError("Это поле нужно заполнить.");
       window.requestAnimationFrame(() => {
         const target = document.querySelector(`[data-assignment-field-name="${cssEscapeValue(firstMissing.name)}"]`);
         target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -723,7 +723,7 @@ export default function Step() {
     return (
       <section className="step-next-control" aria-label="Следующий день">
         <div className="step-next-control-main">
-          <p><strong>Следующий день, {nextSchedule.title}.</strong></p>
+          <p><strong>{nextSchedule.title}</strong></p>
           <p>{nextAvailabilityText}</p>
           {nextOpenAllowed && (
             <Link to={stepUrl(nextSchedule.stepId)} className="btn-profile-open step-next-now">

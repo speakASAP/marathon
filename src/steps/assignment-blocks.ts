@@ -142,9 +142,23 @@ function normalizeTextBlockText(text: string) {
 }
 
 const GENERIC_NEXT_SCHEDULE_INSTRUCTION = /Сформируйте отчет[,.]?\s*Новый этап появится в то\s*(?:⏰\s*)?время,\s*которое вы указали на странице(?:\s*⚙️?)?(?:\s*настроек\.?)?/gi;
+const SPECIAL_CHARACTERS_FAQ_HREF = 'https://marathon.alfares.cz/faq#special-characters';
 
 function stripGenericNextScheduleInstruction(text: string) {
   return text.replace(GENERIC_NEXT_SCHEDULE_INSTRUCTION, "").replace(/\s+/g, " ").trim();
+}
+
+function normalizeLegacyAssignmentText(text: string) {
+  return text
+    .replace(/Спряжение слабых глаголов\. Поставьте глагол в правильную форму$/u, 'Спряжение слабых глаголов. Поставьте глагол в правильную форму.')
+    .replace(/Если не знаете, как это сделать, то смотрите раздел\s*["«]?\s*Помощь\s*$/u, 'Если не знаете, как это сделать, то смотрите раздел «Помощь');
+}
+
+function normalizeLegacyInlineLinks(text: string, links: AssignmentInlineLink[]) {
+  if (!/Если не знаете, как это сделать, то смотрите раздел «Помощь$/u.test(text)) return links;
+  return links.map((link) => (
+    link.text === 'Помощь' ? { ...link, href: SPECIAL_CHARACTERS_FAQ_HREF } : link
+  ));
 }
 
 function isGenericSettingsLink(text: string, href: string) {
@@ -175,6 +189,12 @@ function normalizeTextBlockSequence(blocks: AssignmentBlock[]): AssignmentBlock[
     if (!text || isOptionalStep1Note(text)) continue;
 
     const previous = normalized[normalized.length - 1];
+    const closingQuotePunctuation = text.match(/^[\"”»]\s*([.!?]+)$/);
+    if (closingQuotePunctuation && previous?.type === "text" && sameBranch(previous, block)) {
+      previous.text = `${previous.text}»${closingQuotePunctuation[1]}`;
+      continue;
+    }
+
     const leadingPunctuation = text.match(/^([.!?,;:]+)\s+([\s\S]+)$/);
     if (leadingPunctuation && previous?.type === "text" && sameBranch(previous, block)) {
       previous.text = `${previous.text}${leadingPunctuation[1]}`;
@@ -230,8 +250,8 @@ export function normalizeAssignmentBlocks(value: unknown): AssignmentBlock[] {
       const id = cleanString(raw.id) || `block-${index}`;
 
       if (type === 'text') {
-        const text = cleanString(raw.text);
-        const links = normalizeInlineLinks(raw.links);
+        const text = normalizeLegacyAssignmentText(cleanString(raw.text));
+        const links = normalizeLegacyInlineLinks(text, normalizeInlineLinks(raw.links));
         return text ? { id, type, text, ...(links.length ? { links } : {}), ...(branch ? { branch } : {}) } : null;
       }
 

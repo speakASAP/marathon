@@ -11,7 +11,6 @@ import {
   missingRequiredFields,
   normalizeInitialPayload,
   payloadFromAnswers,
-  REQUIRED_TEXT_MIN_LENGTH,
 } from "./assignment/assignmentBlockNormalization";
 import type { Answers, AnswerValue } from "./assignment/assignmentRendererTypes";
 
@@ -112,7 +111,7 @@ export default function StepAssignmentRenderer({
               onAnswerChange={updateAnswer}
               readOnly={readOnly}
               validationError={block.type === "field" && (invalidFieldNameSet.has(block.name) || currentMissingRequiredNameSet.has(block.name))
-                ? `Это поле нужно заполнить минимум ${REQUIRED_TEXT_MIN_LENGTH} символами.`
+                ? "Это поле нужно заполнить."
                 : undefined}
             />
           </div>
