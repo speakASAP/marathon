@@ -21,6 +21,7 @@ import PublicAnswerReport, {
   peerAnswerRowsFromPayload,
   renderPublicAnswerQuestion,
 } from '../components/assignment/PublicAnswerReport';
+import { answerPartsFromValue, fieldInlineBlankCount } from '../components/assignment/assignmentBlockNormalization';
 
 const DRAFT_SAVE_DELAY_MS = 900;
 
@@ -162,26 +163,17 @@ function branchVisible(branch: AssignmentBlock['branch'], level: Level) {
 
 const REQUIRED_REPORT_FIELD_MIN_LENGTH = 2;
 
-function inlineBlankCount(label: string) {
-  return Array.from(label.matchAll(/\[[^\]]+\]/g)).length;
-}
-
-function textAnswerFilled(value: unknown) {
-  return typeof value === 'string' && value.trim().length >= REQUIRED_REPORT_FIELD_MIN_LENGTH;
-}
-
 function answerFilled(block: AssignmentFieldBlock, value: unknown) {
   if (block.fieldType === 'radio') return typeof value === 'string' && Boolean(value.trim());
   if (block.fieldType === 'checkbox') return Array.isArray(value) && value.some((item) => typeof item === 'string' && Boolean(item.trim()));
-
-  const blankCount = block.fieldType === 'text' ? inlineBlankCount(block.label) : 0;
+  const blankCount = fieldInlineBlankCount(block);
   if (blankCount > 1) {
-    return Array.isArray(value)
-      && value.slice(0, blankCount).length === blankCount
-      && value.slice(0, blankCount).every(textAnswerFilled);
+    if (!Array.isArray(value) && typeof value !== 'string') return false;
+    const parts = answerPartsFromValue(value, blankCount);
+    return parts.length >= blankCount && parts.every((part) => part.length >= REQUIRED_REPORT_FIELD_MIN_LENGTH);
   }
-  if (Array.isArray(value)) return value.some(textAnswerFilled);
-  return textAnswerFilled(value);
+  if (Array.isArray(value)) return value.some((part) => typeof part === 'string' && part.trim().length >= REQUIRED_REPORT_FIELD_MIN_LENGTH);
+  return typeof value === 'string' && value.trim().length >= REQUIRED_REPORT_FIELD_MIN_LENGTH;
 }
 
 function missingRequiredAnswers(blocks: AssignmentBlock[] | null | undefined, payload: SubmissionPayload) {

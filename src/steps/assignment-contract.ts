@@ -77,32 +77,50 @@ function stringifyPublicPayloadValue(name: string, value: unknown, choices: Arra
   return stripLegacyHtml(text);
 }
 
-function stringifyPublicPayloadValues(name: string, value: unknown, choices: Array<{ value: string; label: string }> = []): string[] {
-  if (Array.isArray(value)) {
-    return value.map((item) => stringifyPublicPayloadValue(name, item, choices)).filter(Boolean);
-  }
-  const text = stringifyPublicPayloadValue(name, value, choices);
-  return text ? [text] : [];
+function inlineBlankCount(label: string): number {
+  return label.match(/\[[^\]]+\]/g)?.length || 0;
 }
 
-function fillAssignmentLabelPlaceholder(
-  label: string,
-  value: unknown,
-  name: string,
-  choices: Array<{ value: string; label: string }> = [],
-): string | null {
-  const placeholders = Array.from(label.matchAll(/\[[^\]]+\]/g));
-  if (!placeholders.length) return null;
+function splitStoredAnswer(value: string, expectedCount: number): string[] {
+  const cleanValue = value.trim();
+  if (!cleanValue) return [];
+  if (expectedCount > 1) {
+    const commaParts = cleanValue.split(/\s*,\s*/).map((part) => part.trim()).filter(Boolean);
+    if (commaParts.length === expectedCount) return commaParts;
+  }
+  return [cleanValue];
+}
 
-  const cleanAnswers = stringifyPublicPayloadValues(name, value, choices)
-    .map((answer) => answer.trim())
-    .filter(Boolean);
-  if (!cleanAnswers.length) return null;
-  if (placeholders.length > 1 && cleanAnswers.length < placeholders.length) return null;
+function payloadAnswerParts(value: unknown, expectedCount: number): string[] {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+  if (typeof value === 'string') return splitStoredAnswer(value, expectedCount);
+  return [];
+}
+
+function stringifyPublicPayloadValues(
+  name: string,
+  value: unknown,
+  choices: Array<{ value: string; label: string }> = [],
+  expectedCount = 1,
+): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => stringifyPublicPayloadValue(name, item, choices))
+      .filter(Boolean);
+  }
+
+  const text = stringifyPublicPayloadValue(name, value, choices);
+  return splitStoredAnswer(text, expectedCount);
+}
+
+function fillAssignmentLabelPlaceholder(label: string, answers: string[]): string | null {
+  const blankCount = inlineBlankCount(label);
+  const cleanAnswers = answers.map((answer) => answer.trim()).filter(Boolean);
+  if (!blankCount || cleanAnswers.length < blankCount) return null;
 
   let answerIndex = 0;
   return label
-    .replace(/\[[^\]]+\]/g, () => cleanAnswers[Math.min(answerIndex++, cleanAnswers.length - 1)] || '')
+    .replace(/\[[^\]]+\]/g, () => cleanAnswers[answerIndex++] || '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
@@ -246,9 +264,10 @@ export function generateAssignmentReportRows(
   const visibleFields = isLegacyGermanStep1Payload(payload) ? [] : visiblePublicAssignmentFields(blocks, payload);
   for (const block of visibleFields) {
     if (!Object.prototype.hasOwnProperty.call(payload, block.name)) continue;
-    const value = stringifyPublicPayloadValue(block.name, payload[block.name], block.choices);
+    const values = stringifyPublicPayloadValues(block.name, payload[block.name], block.choices, inlineBlankCount(block.label));
+    const value = values.join(', ');
     if (!value) continue;
-    const filledSentence = fillAssignmentLabelPlaceholder(block.label, payload[block.name], block.name, block.choices);
+    const filledSentence = fillAssignmentLabelPlaceholder(block.label, values);
     rows.push(filledSentence
       ? { id: block.id || block.name, question: '', answer: filledSentence }
       : { id: block.id || block.name, question: block.label.trim(), answer: value });
@@ -293,26 +312,16 @@ export function filterAssignmentPayloadForPublicReport(
   return filtered;
 }
 
-function inlineBlankCount(label: string): number {
-  return Array.from(label.matchAll(/\[[^\]]+\]/g)).length;
-}
-
-function textAnswerFilled(value: unknown): boolean {
-  return typeof value === 'string' && value.trim().length >= REQUIRED_TEXT_MIN_LENGTH;
-}
-
 export function assignmentAnswerFilled(block: AssignmentFieldBlock, value: unknown): boolean {
   if (block.fieldType === 'radio') return typeof value === 'string' && Boolean(value.trim());
   if (block.fieldType === 'checkbox') return Array.isArray(value) && value.some((item) => typeof item === 'string' && Boolean(item.trim()));
-
   const blankCount = block.fieldType === 'text' ? inlineBlankCount(block.label) : 0;
   if (blankCount > 1) {
-    return Array.isArray(value)
-      && value.slice(0, blankCount).length === blankCount
-      && value.slice(0, blankCount).every(textAnswerFilled);
+    const parts = payloadAnswerParts(value, blankCount);
+    return parts.length >= blankCount && parts.every((part) => part.length >= REQUIRED_TEXT_MIN_LENGTH);
   }
-  if (Array.isArray(value)) return value.some(textAnswerFilled);
-  return textAnswerFilled(value);
+  if (Array.isArray(value)) return value.some((part) => typeof part === 'string' && part.trim().length >= REQUIRED_TEXT_MIN_LENGTH);
+  return typeof value === 'string' && value.trim().length >= REQUIRED_TEXT_MIN_LENGTH;
 }
 
 export function missingRequiredAssignmentAnswers(

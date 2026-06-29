@@ -19,20 +19,8 @@ export function isFieldBlock(block: AssignmentBlock): block is FieldBlock {
   return block.type === "field";
 }
 
-export function inlineBlankCount(label: string) {
-  return Array.from(label.matchAll(/\[[^\]]+\]/g)).length;
-}
-
 export function fieldHasInlineBlank(block: FieldBlock) {
   return block.fieldType === "text" && inlineBlankCount(block.label) > 0;
-}
-
-export function fieldHasMultipleInlineBlanks(block: FieldBlock) {
-  return fieldHasInlineBlank(block) && inlineBlankCount(block.label) > 1;
-}
-
-function textAnswerFilled(value: unknown) {
-  return typeof value === "string" && value.trim().length >= REQUIRED_TEXT_MIN_LENGTH;
 }
 
 export function fieldUsesLongAnswer(block: FieldBlock) {
@@ -69,28 +57,46 @@ export function normalizeInitialPayload(payload: Record<string, unknown> | undef
 
 export const REQUIRED_TEXT_MIN_LENGTH = 2;
 
-function displayValues(block: AssignmentBlock, value: AnswerValue | undefined) {
-  if (block.type !== "field") return [];
-  const choiceLabel = (raw: string) => block.choices?.find((choice) => choice.value === raw)?.label || raw;
-  if (Array.isArray(value)) return value.map(choiceLabel).filter(Boolean);
-  return value ? [choiceLabel(value)] : [];
+export function inlineBlankCount(label: string) {
+  return label.match(/\[[^\]]+\]/g)?.length || 0;
+}
+
+export function fieldInlineBlankCount(block: FieldBlock) {
+  return block.fieldType === "text" ? inlineBlankCount(block.label) : 0;
+}
+
+function splitStoredAnswer(value: string, expectedCount: number) {
+  const cleanValue = value.trim();
+  if (!cleanValue) return [];
+  if (expectedCount > 1) {
+    const commaParts = cleanValue.split(/\s*,\s*/).map((part) => part.trim()).filter(Boolean);
+    if (commaParts.length === expectedCount) return commaParts;
+  }
+  return [cleanValue];
+}
+
+export function answerPartsFromValue(value: AnswerValue | undefined, expectedCount = 1) {
+  if (Array.isArray(value)) return value.map((item) => item.trim()).filter(Boolean);
+  if (typeof value === "string") return splitStoredAnswer(value, expectedCount);
+  return [];
 }
 
 export function displayValue(block: AssignmentBlock, value: AnswerValue | undefined) {
-  return displayValues(block, value).join(", ");
+  if (block.type !== "field") return "";
+  const choiceLabel = (raw: string) => block.choices?.find((choice) => choice.value === raw)?.label || raw;
+  const parts = answerPartsFromValue(value, inlineBlankCount(block.label)).map(choiceLabel);
+  if (parts.length) return parts.join(", ");
+  return typeof value === "string" ? choiceLabel(value) : "";
 }
 
-function fillAssignmentLabelPlaceholder(label: string, answer: AnswerValue | undefined, block: AssignmentBlock) {
-  const placeholders = Array.from(label.matchAll(/\[[^\]]+\]/g));
-  if (!placeholders.length) return null;
-
-  const cleanAnswers = displayValues(block, answer).map((item) => item.trim()).filter(Boolean);
-  if (!cleanAnswers.length) return null;
-  if (placeholders.length > 1 && cleanAnswers.length < placeholders.length) return null;
+function fillAssignmentLabelPlaceholder(label: string, value: AnswerValue | undefined) {
+  const blankCount = inlineBlankCount(label);
+  const cleanAnswers = answerPartsFromValue(value, blankCount);
+  if (!blankCount || cleanAnswers.length < blankCount) return null;
 
   let answerIndex = 0;
   return label
-    .replace(/\[[^\]]+\]/g, () => cleanAnswers[Math.min(answerIndex++, cleanAnswers.length - 1)] || "")
+    .replace(/\[[^\]]+\]/g, () => cleanAnswers[answerIndex++] || "")
     .replace(/\s{2,}/g, " ")
     .trim();
 }
@@ -98,14 +104,13 @@ function fillAssignmentLabelPlaceholder(label: string, answer: AnswerValue | und
 export function requiredAnswerValid(block: FieldBlock, value: AnswerValue | undefined) {
   if (block.fieldType === "radio") return typeof value === "string" && value.trim().length > 0;
   if (block.fieldType === "checkbox") return Array.isArray(value) && value.some((item) => item.trim().length > 0);
-  if (fieldHasMultipleInlineBlanks(block)) {
-    const count = inlineBlankCount(block.label);
-    return Array.isArray(value)
-      && value.slice(0, count).length === count
-      && value.slice(0, count).every(textAnswerFilled);
+  const blankCount = fieldInlineBlankCount(block);
+  if (blankCount > 1) {
+    const parts = answerPartsFromValue(value, blankCount);
+    return parts.length >= blankCount && parts.every((part) => part.length >= REQUIRED_TEXT_MIN_LENGTH);
   }
-  if (Array.isArray(value)) return value.some(textAnswerFilled);
-  return textAnswerFilled(value);
+  if (Array.isArray(value)) return value.some((part) => part.trim().length >= REQUIRED_TEXT_MIN_LENGTH);
+  return typeof value === "string" && value.trim().length >= REQUIRED_TEXT_MIN_LENGTH;
 }
 
 export function missingRequiredFields(blocks: AssignmentBlock[], answers: Answers, level: Level) {
@@ -121,7 +126,7 @@ export function composeReport(blocks: AssignmentBlock[], answers: Answers, level
       const value = displayValue(block, answers[block.name]);
       const cleanValue = value.trim();
       if (!cleanValue) return "";
-      return fillAssignmentLabelPlaceholder(block.label, answers[block.name], block) || `${block.label}\n${cleanValue}`;
+      return fillAssignmentLabelPlaceholder(block.label, answers[block.name]) || `${block.label}\n${cleanValue}`;
     })
     .filter(Boolean)
     .join("\n\n");
@@ -134,8 +139,8 @@ export function payloadFromAnswers(blocks: AssignmentBlock[], answers: Answers, 
       if (!branchVisible(block.branch, level)) return;
       const value = answers[block.name];
       if (Array.isArray(value)) {
-        const normalized = block.fieldType === "text" ? value.map((item) => item.trim()) : value;
-        if (normalized.some((item) => item.trim().length > 0)) payload[block.name] = normalized;
+        const cleanParts = value.map((item) => item.trim()).filter(Boolean);
+        if (cleanParts.length) payload[block.name] = cleanParts;
       } else if (value?.trim()) {
         payload[block.name] = value.trim();
       }

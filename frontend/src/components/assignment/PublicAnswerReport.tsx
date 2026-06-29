@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import type { AssignmentBlock, PublicAnswerReportRow, SubmissionPayload } from '../../api/assignmentMarathon';
+import { answerPartsFromValue, inlineBlankCount } from './assignmentBlockNormalization';
 
 type Level = 'beginner' | 'medium' | 'advanced' | null;
 type AssignmentFieldBlock = Extract<AssignmentBlock, { type: 'field' }>;
@@ -105,18 +106,10 @@ function formatPublicAnswerValue(name: string, value: string) {
 
 function formatAnswerValues(block: AssignmentFieldBlock, value: unknown) {
   const choiceLabel = (raw: string) => block.choices?.find((choice) => choice.value === raw)?.label || raw;
-  if (Array.isArray(value)) {
-    return value.map((item) => formatPublicAnswerValue(block.name, choiceLabel(String(item)))).filter(Boolean);
-  }
-  if (typeof value === 'string') {
-    const formatted = formatPublicAnswerValue(block.name, choiceLabel(value));
-    return formatted ? [formatted] : [];
-  }
-  return [];
-}
-
-function formatAnswerValue(block: AssignmentFieldBlock, value: unknown) {
-  return formatAnswerValues(block, value).join(', ');
+  if (!Array.isArray(value) && typeof value !== 'string') return [];
+  return answerPartsFromValue(value, inlineBlankCount(block.label))
+    .map((item) => formatPublicAnswerValue(block.name, choiceLabel(item)))
+    .filter(Boolean);
 }
 
 function splitMutedParenthetical(text: string) {
@@ -143,24 +136,23 @@ export function renderPublicAnswerQuestion(text: string): ReactNode {
   );
 }
 
-function renderInsertedAnswerSentence(label: string, answers: string[] | string): ReactNode | null {
-  const cleanAnswers = (Array.isArray(answers) ? answers : [answers]).map((answer) => answer.trim()).filter(Boolean);
-  if (!cleanAnswers.length || !/\[[^\]]+\]/.test(label)) return null;
+function renderInsertedAnswerSentence(label: string, answers: string[]): ReactNode | null {
+  const blankCount = inlineBlankCount(label);
+  const cleanAnswers = answers.map((answer) => answer.trim()).filter(Boolean);
+  if (!blankCount || cleanAnswers.length < blankCount) return null;
 
   const labelParts = splitMutedParenthetical(label);
   const nodes: ReactNode[] = [];
   let lastIndex = 0;
   let insertIndex = 0;
   const placeholderPattern = /\[[^\]]+\]/g;
-  const placeholders = Array.from(labelParts.main.matchAll(placeholderPattern));
-  if (placeholders.length > 1 && cleanAnswers.length < placeholders.length) return null;
 
-  for (const match of placeholders) {
+  for (const match of labelParts.main.matchAll(placeholderPattern)) {
     const index = match.index ?? 0;
     if (index > lastIndex) nodes.push(labelParts.main.slice(lastIndex, index));
     nodes.push(
       <strong className="step-answer-inserted" key={`answer-${insertIndex}`}>
-        {cleanAnswers[Math.min(insertIndex, cleanAnswers.length - 1)]}
+        {cleanAnswers[insertIndex]}
       </strong>,
     );
     lastIndex = index + match[0].length;

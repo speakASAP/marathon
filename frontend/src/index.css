@@ -6175,6 +6175,15 @@ a:hover {
 
 .step-question-block--inline-blank {
   display: block;
+  padding: 8px 12px;
+  border: 1px solid #dbeaf8;
+  border-radius: 2px;
+  background: var(--marathon-lesson-soft-blue);
+}
+
+.step-assignment-item--field:nth-child(even) .step-question-block--inline-blank {
+  background: #fffdf3;
+  border-color: #f3e7b9;
 }
 
 .step-inline-exercise-line {
@@ -6186,10 +6195,21 @@ a:hover {
   line-height: 38px;
 }
 
+.step-inline-exercise-text {
+  font-weight: 400;
+}
+
 .step-inline-exercise-number::before {
   content: counter(step-exercise) ". ";
   color: var(--marathon-lesson-text);
   font-weight: 400;
+}
+
+.step-inline-answer-accepted {
+  display: inline;
+  margin: 0 4px;
+  color: var(--marathon-lesson-text);
+  font-weight: 700;
 }
 
 .step-question-block textarea,
