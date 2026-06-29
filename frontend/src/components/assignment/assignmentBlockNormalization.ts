@@ -19,8 +19,20 @@ export function isFieldBlock(block: AssignmentBlock): block is FieldBlock {
   return block.type === "field";
 }
 
+export function inlineBlankCount(label: string) {
+  return Array.from(label.matchAll(/\[[^\]]+\]/g)).length;
+}
+
 export function fieldHasInlineBlank(block: FieldBlock) {
-  return block.fieldType === "text" && /\[[^\]]+\]/.test(block.label);
+  return block.fieldType === "text" && inlineBlankCount(block.label) > 0;
+}
+
+export function fieldHasMultipleInlineBlanks(block: FieldBlock) {
+  return fieldHasInlineBlank(block) && inlineBlankCount(block.label) > 1;
+}
+
+function textAnswerFilled(value: unknown) {
+  return typeof value === "string" && value.trim().length >= REQUIRED_TEXT_MIN_LENGTH;
 }
 
 export function fieldUsesLongAnswer(block: FieldBlock) {
@@ -57,23 +69,43 @@ export function normalizeInitialPayload(payload: Record<string, unknown> | undef
 
 export const REQUIRED_TEXT_MIN_LENGTH = 2;
 
-export function displayValue(block: AssignmentBlock, value: AnswerValue | undefined) {
-  if (block.type !== "field") return "";
+function displayValues(block: AssignmentBlock, value: AnswerValue | undefined) {
+  if (block.type !== "field") return [];
   const choiceLabel = (raw: string) => block.choices?.find((choice) => choice.value === raw)?.label || raw;
-  if (Array.isArray(value)) return value.map(choiceLabel).join(", ");
-  return value ? choiceLabel(value) : "";
+  if (Array.isArray(value)) return value.map(choiceLabel).filter(Boolean);
+  return value ? [choiceLabel(value)] : [];
 }
 
-function fillAssignmentLabelPlaceholder(label: string, answer: string) {
-  const cleanAnswer = answer.trim();
-  if (!cleanAnswer || !/\[[^\]]+\]/.test(label)) return null;
-  return label.replace(/\[[^\]]+\]/g, cleanAnswer).replace(/\s{2,}/g, " ").trim();
+export function displayValue(block: AssignmentBlock, value: AnswerValue | undefined) {
+  return displayValues(block, value).join(", ");
+}
+
+function fillAssignmentLabelPlaceholder(label: string, answer: AnswerValue | undefined, block: AssignmentBlock) {
+  const placeholders = Array.from(label.matchAll(/\[[^\]]+\]/g));
+  if (!placeholders.length) return null;
+
+  const cleanAnswers = displayValues(block, answer).map((item) => item.trim()).filter(Boolean);
+  if (!cleanAnswers.length) return null;
+  if (placeholders.length > 1 && cleanAnswers.length < placeholders.length) return null;
+
+  let answerIndex = 0;
+  return label
+    .replace(/\[[^\]]+\]/g, () => cleanAnswers[Math.min(answerIndex++, cleanAnswers.length - 1)] || "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 export function requiredAnswerValid(block: FieldBlock, value: AnswerValue | undefined) {
   if (block.fieldType === "radio") return typeof value === "string" && value.trim().length > 0;
   if (block.fieldType === "checkbox") return Array.isArray(value) && value.some((item) => item.trim().length > 0);
-  return typeof value === "string" && value.trim().length >= REQUIRED_TEXT_MIN_LENGTH;
+  if (fieldHasMultipleInlineBlanks(block)) {
+    const count = inlineBlankCount(block.label);
+    return Array.isArray(value)
+      && value.slice(0, count).length === count
+      && value.slice(0, count).every(textAnswerFilled);
+  }
+  if (Array.isArray(value)) return value.some(textAnswerFilled);
+  return textAnswerFilled(value);
 }
 
 export function missingRequiredFields(blocks: AssignmentBlock[], answers: Answers, level: Level) {
@@ -89,7 +121,7 @@ export function composeReport(blocks: AssignmentBlock[], answers: Answers, level
       const value = displayValue(block, answers[block.name]);
       const cleanValue = value.trim();
       if (!cleanValue) return "";
-      return fillAssignmentLabelPlaceholder(block.label, cleanValue) || `${block.label}\n${cleanValue}`;
+      return fillAssignmentLabelPlaceholder(block.label, answers[block.name], block) || `${block.label}\n${cleanValue}`;
     })
     .filter(Boolean)
     .join("\n\n");
@@ -102,7 +134,8 @@ export function payloadFromAnswers(blocks: AssignmentBlock[], answers: Answers, 
       if (!branchVisible(block.branch, level)) return;
       const value = answers[block.name];
       if (Array.isArray(value)) {
-        if (value.length) payload[block.name] = value;
+        const normalized = block.fieldType === "text" ? value.map((item) => item.trim()) : value;
+        if (normalized.some((item) => item.trim().length > 0)) payload[block.name] = normalized;
       } else if (value?.trim()) {
         payload[block.name] = value.trim();
       }

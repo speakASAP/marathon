@@ -77,10 +77,34 @@ function stringifyPublicPayloadValue(name: string, value: unknown, choices: Arra
   return stripLegacyHtml(text);
 }
 
-function fillAssignmentLabelPlaceholder(label: string, answer: string): string | null {
-  const cleanAnswer = answer.trim();
-  if (!cleanAnswer || !/\[[^\]]+\]/.test(label)) return null;
-  return label.replace(/\[[^\]]+\]/g, cleanAnswer).replace(/\s{2,}/g, ' ').trim();
+function stringifyPublicPayloadValues(name: string, value: unknown, choices: Array<{ value: string; label: string }> = []): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => stringifyPublicPayloadValue(name, item, choices)).filter(Boolean);
+  }
+  const text = stringifyPublicPayloadValue(name, value, choices);
+  return text ? [text] : [];
+}
+
+function fillAssignmentLabelPlaceholder(
+  label: string,
+  value: unknown,
+  name: string,
+  choices: Array<{ value: string; label: string }> = [],
+): string | null {
+  const placeholders = Array.from(label.matchAll(/\[[^\]]+\]/g));
+  if (!placeholders.length) return null;
+
+  const cleanAnswers = stringifyPublicPayloadValues(name, value, choices)
+    .map((answer) => answer.trim())
+    .filter(Boolean);
+  if (!cleanAnswers.length) return null;
+  if (placeholders.length > 1 && cleanAnswers.length < placeholders.length) return null;
+
+  let answerIndex = 0;
+  return label
+    .replace(/\[[^\]]+\]/g, () => cleanAnswers[Math.min(answerIndex++, cleanAnswers.length - 1)] || '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 function isLegacyDiagnosticField(block: AssignmentFieldBlock): boolean {
@@ -224,7 +248,7 @@ export function generateAssignmentReportRows(
     if (!Object.prototype.hasOwnProperty.call(payload, block.name)) continue;
     const value = stringifyPublicPayloadValue(block.name, payload[block.name], block.choices);
     if (!value) continue;
-    const filledSentence = fillAssignmentLabelPlaceholder(block.label, value);
+    const filledSentence = fillAssignmentLabelPlaceholder(block.label, payload[block.name], block.name, block.choices);
     rows.push(filledSentence
       ? { id: block.id || block.name, question: '', answer: filledSentence }
       : { id: block.id || block.name, question: block.label.trim(), answer: value });
@@ -269,10 +293,26 @@ export function filterAssignmentPayloadForPublicReport(
   return filtered;
 }
 
+function inlineBlankCount(label: string): number {
+  return Array.from(label.matchAll(/\[[^\]]+\]/g)).length;
+}
+
+function textAnswerFilled(value: unknown): boolean {
+  return typeof value === 'string' && value.trim().length >= REQUIRED_TEXT_MIN_LENGTH;
+}
+
 export function assignmentAnswerFilled(block: AssignmentFieldBlock, value: unknown): boolean {
   if (block.fieldType === 'radio') return typeof value === 'string' && Boolean(value.trim());
   if (block.fieldType === 'checkbox') return Array.isArray(value) && value.some((item) => typeof item === 'string' && Boolean(item.trim()));
-  return typeof value === 'string' && value.trim().length >= REQUIRED_TEXT_MIN_LENGTH;
+
+  const blankCount = block.fieldType === 'text' ? inlineBlankCount(block.label) : 0;
+  if (blankCount > 1) {
+    return Array.isArray(value)
+      && value.slice(0, blankCount).length === blankCount
+      && value.slice(0, blankCount).every(textAnswerFilled);
+  }
+  if (Array.isArray(value)) return value.some(textAnswerFilled);
+  return textAnswerFilled(value);
 }
 
 export function missingRequiredAssignmentAnswers(

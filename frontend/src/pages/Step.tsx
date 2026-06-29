@@ -162,10 +162,26 @@ function branchVisible(branch: AssignmentBlock['branch'], level: Level) {
 
 const REQUIRED_REPORT_FIELD_MIN_LENGTH = 2;
 
+function inlineBlankCount(label: string) {
+  return Array.from(label.matchAll(/\[[^\]]+\]/g)).length;
+}
+
+function textAnswerFilled(value: unknown) {
+  return typeof value === 'string' && value.trim().length >= REQUIRED_REPORT_FIELD_MIN_LENGTH;
+}
+
 function answerFilled(block: AssignmentFieldBlock, value: unknown) {
   if (block.fieldType === 'radio') return typeof value === 'string' && Boolean(value.trim());
   if (block.fieldType === 'checkbox') return Array.isArray(value) && value.some((item) => typeof item === 'string' && Boolean(item.trim()));
-  return typeof value === 'string' && value.trim().length >= REQUIRED_REPORT_FIELD_MIN_LENGTH;
+
+  const blankCount = block.fieldType === 'text' ? inlineBlankCount(block.label) : 0;
+  if (blankCount > 1) {
+    return Array.isArray(value)
+      && value.slice(0, blankCount).length === blankCount
+      && value.slice(0, blankCount).every(textAnswerFilled);
+  }
+  if (Array.isArray(value)) return value.some(textAnswerFilled);
+  return textAnswerFilled(value);
 }
 
 function missingRequiredAnswers(blocks: AssignmentBlock[] | null | undefined, payload: SubmissionPayload) {
