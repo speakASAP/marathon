@@ -48,8 +48,33 @@ Pre-deploy validation:
 
 ## Deployment Evidence
 
-[MISSING: deploy evidence]
+Deployment:
+
+- Commit deployed: `af08fbc Close Marathon npm audit debt`.
+- Command: `./scripts/deploy.sh af08fbc`.
+- Image: `localhost:5000/marathon:af08fbc`.
+- Image digest: `sha256:abd9c1230a170fc3c4b5c7954a65f8f65fcef5fe3359ac49027a82bde3005c02`.
+- Rollout: `deployment "marathon" successfully rolled out`.
+- Pod after deploy: `marathon-75f9cd46bf-824w5`, `1/1 Running`, `0` restarts.
+
+Deploy validation:
+
+- Hosted Auth contract preflight: `17/17` checks passed.
+- Docker build root install: `found 0 vulnerabilities`.
+- Docker runtime install with `--omit=dev`: `found 0 vulnerabilities`.
+- Docker runtime Prisma install: `found 0 vulnerabilities`.
+- Journey readiness: passed (`13` active marathons, `377` steps, `377` steps with content).
+- User-flow smoke: passed.
+- Production smoke: passed (`participantFinished: true`, `stepsSubmitted: 29`).
+- Live profile HTML asset check:
+  - JS: `/assets/index-DAsPDMVB.js`.
+  - CSS: `/assets/index-BhdXczuJ.css`.
+- Runtime container audit:
+  - Command: `kubectl exec -n statex-apps deploy/marathon -- sh -lc "cd /app && npm audit --audit-level=low"`.
+  - Result: `found 0 vulnerabilities`.
 
 ## Remaining Risk
 
-[MISSING: post-deploy evidence]
+No npm audit vulnerabilities remain in the root package or frontend package at validation time.
+
+Known non-blocking warning: npm printed an allow-scripts notice for `esbuild`/Prisma during install/build. This is npm hardening guidance, not an audit vulnerability, and the production build plus smoke checks passed.
