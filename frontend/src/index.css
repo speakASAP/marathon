@@ -5260,10 +5260,15 @@ a:hover {
     flex-basis: 100%;
     max-width: none;
   }
+
+  .step-video-block {
+    width: 100%;
+  }
 }
 
 .step-video-block {
-  width: 100%;
+  width: min(50%, 56rem);
+  margin: 0 auto;
   overflow: hidden;
   border-radius: 8px;
   background: #0f172a;
