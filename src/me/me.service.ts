@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
 
@@ -35,11 +36,16 @@ export type MyMarathonCertificate = {
 
 export type MyMarathonPrize = {
   id: string;
-  kind: 'certificate' | 'medal' | 'discount' | 'bonus';
+  kind: 'certificate' | 'medal' | 'discount' | 'book' | 'bonus';
   title: string;
   description: string;
   status: 'earned' | 'available';
   urlHint: string | null;
+  actionLabel?: string;
+  actionHref?: string;
+  discountPercent?: number;
+  discountCode?: string;
+  validUntil?: string;
 };
 
 export type MyMarathon = {
@@ -1011,6 +1017,9 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
   ): MyMarathonPrize[] {
     const awardsPath = certificate.shareUrlHint;
     const discountPercent = medal === 'bronze' ? 5 : 10;
+    const discountCode = this.buildLegacyDiscountCode(certificate.id, marathon.languageCode, medal);
+    const validUntil = this.buildLegacyDiscountValidUntil(certificate.finishedAt);
+
     return [
       {
         id: `${certificate.id}:certificate`,
@@ -1019,6 +1028,31 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
         description: `Именной сертификат для ${certificate.participantName} по марафону ${marathon.title}.`,
         status: 'earned',
         urlHint: certificate.downloadUrlHint,
+        actionLabel: 'Скачать сертификат',
+        actionHref: certificate.downloadUrlHint,
+      },
+      {
+        id: `${certificate.id}:book`,
+        kind: 'book',
+        title: 'PDF-книга «Точка выхода»',
+        description: 'Legacy-приз для финалистов: книга о том, как перестать бесконечно учить язык и начать им пользоваться.',
+        status: 'available',
+        urlHint: 'https://speakasap.com/media/steps/german/tochka_vixoda_iz_yazika_ili_kak_brosit_ychit_yazik_buch.pdf',
+        actionLabel: 'Скачать книгу',
+        actionHref: 'https://speakasap.com/media/steps/german/tochka_vixoda_iz_yazika_ili_kak_brosit_ychit_yazik_buch.pdf',
+      },
+      {
+        id: `${certificate.id}:discount`,
+        kind: 'discount',
+        title: `${discountPercent}% скидка на следующий курс SpeakASAP`,
+        description: `Персональный legacy-бонус финалиста: код ${discountCode}, действует 14 дней после финиша.`,
+        status: 'available',
+        urlHint: 'https://speakasap.com/course/',
+        actionLabel: 'Выбрать курс',
+        actionHref: 'https://speakasap.com/course/',
+        discountPercent,
+        discountCode,
+        validUntil,
       },
       {
         id: `${certificate.id}:medal`,
@@ -1029,14 +1063,6 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
         urlHint: awardsPath,
       },
       {
-        id: `${certificate.id}:discount`,
-        kind: 'discount',
-        title: `${discountPercent}% скидка на следующий курс SpeakASAP`,
-        description: 'Персональный бонус финалиста без хранения PDF или отдельной записи сертификата в базе.',
-        status: 'available',
-        urlHint: '/gift',
-      },
-      {
         id: `${certificate.id}:share`,
         kind: 'bonus',
         title: 'Готовый текст для отзыва',
@@ -1045,6 +1071,18 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
         urlHint: awardsPath,
       },
     ];
+  }
+
+  private buildLegacyDiscountCode(certificateId: string, languageCode: string, medal: MarathonMedal): string {
+    const digest = createHash('sha256').update(certificateId).digest('hex').slice(0, 8).toUpperCase();
+    return `MARATHON-${languageCode.toUpperCase()}-${medal.toUpperCase()}-${digest}`;
+  }
+
+  private buildLegacyDiscountValidUntil(finishedAt: string): string {
+    const date = new Date(finishedAt);
+    if (Number.isNaN(date.getTime())) return finishedAt;
+    date.setUTCDate(date.getUTCDate() + 14);
+    return date.toISOString();
   }
 
   private resolveParticipantDisplayName(participant: any): string {

@@ -16,6 +16,7 @@ import {
   type MarathonUserProfileSettings,
 } from '../api/profileMarathon';
 import { stripHeadingTerminalPeriod } from '../components/assignment/assignmentBlockNormalization';
+import FinalistRewards from '../components/FinalistRewards';
 
 type PaymentReturnState = 'success' | 'cancelled' | null;
 type MedalKind = 'gold' | 'silver' | 'bronze';
@@ -48,7 +49,6 @@ const PAYMENT_METHOD_OPTIONS: Array<{ value: PaymentMethod; label: string; detai
   },
 ];
 
-const BOOK_PRIZE_URL = 'https://speakasap.com/media/steps/german/tochka_vixoda_iz_yazika_ili_kak_brosit_ychit_yazik_buch.pdf';
 
 const AWARD_LANGUAGE_COPY: Record<string, { dative: string; hashtag: string; nextStep: string }> = {
   en: { dative: 'английскому', hashtag: '#english_speakASAP', nextStep: 'Скидка на следующий английский курс SpeakASAP' },
@@ -83,14 +83,6 @@ function formatDateTime(value: string) {
   });
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
-
 function resolveParticipantName(profile: MarathonUserProfileSettings | null) {
   return profile?.displayName?.trim() || profile?.email?.trim() || 'Финалист SpeakASAP';
 }
@@ -101,16 +93,6 @@ function resolveAwardLanguageCopy(code: string) {
     dative: 'выбранному',
     hashtag: '#speakASAP_marathon',
     nextStep: 'Скидка на следующий курс SpeakASAP',
-  };
-}
-
-function makeShareLinks(text: string, url: string) {
-  const encodedText = encodeURIComponent(text);
-  const encodedUrl = encodeURIComponent(url);
-  return {
-    telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
-    whatsapp: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
-    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
   };
 }
 
@@ -170,7 +152,7 @@ export default function ProfileDetail() {
   const [npsSaving, setNpsSaving] = useState(false);
   const [npsMessage, setNpsMessage] = useState('');
   const [npsError, setNpsError] = useState('');
-  const [shareMessage, setShareMessage] = useState('');
+  const [, setShareMessage] = useState('');
 
   useEffect(() => {
     const payment = new URLSearchParams(window.location.search).get('payment');
@@ -312,12 +294,18 @@ export default function ProfileDetail() {
   const showBonusDays = data.bonus_total > 0;
   const medal = data.medal ? MEDAL_LABELS[data.medal] : null;
   const participantName = resolveParticipantName(profile);
-  const finishedDate = data.finished_at ? formatDate(data.finished_at) : '';
   const awardCopy = resolveAwardLanguageCopy(data.languageCode);
-  const certificateId = `speakasap-${data.languageCode}-${data.id.slice(0, 8)}`;
-  const shareUrl = typeof window === 'undefined' ? '' : window.location.href;
+  const awardsPath = `/profile/${encodeURIComponent(data.id)}/awards`;
+  const shareUrl = typeof window === 'undefined' ? awardsPath : `${window.location.origin}${awardsPath}`;
   const shareText = `Я завершил(а) языковой марафон SpeakASAP: ${stripHeadingTerminalPeriod(data.title)}. ${medal?.prize || 'Мой сертификат готов'}! ${awardCopy.hashtag}`;
-  const shareLinks = makeShareLinks(shareText, shareUrl);
+  const finalistPrizes = data.prizes.length ? data.prizes.map((prize) => ({
+    id: prize.id,
+    title: prize.title,
+    description: prize.description,
+    actionLabel: prize.actionLabel || (prize.urlHint ? 'Открыть' : undefined),
+    actionHref: prize.actionHref || prize.urlHint || undefined,
+    badge: prize.kind === 'certificate' ? 'PNG' : prize.kind === 'discount' ? '%' : prize.kind === 'book' ? 'PDF' : prize.kind === 'medal' ? '🏆' : '↗',
+  })) : undefined;
   const paymentProcessing = paymentReturn === 'success' && data.payment_required;
   const paymentReturnTitle = paymentReturn === 'success'
     ? (paymentProcessing ? 'Платеж обрабатывается' : 'Оплата подтверждена')
@@ -392,7 +380,7 @@ export default function ProfileDetail() {
         await navigator.share({ title: 'Мой сертификат SpeakASAP', text: shareText, url: shareUrl });
         return;
       }
-      await navigator.clipboard?.writeText(`${shareText} ${shareUrl}`);
+      await navigator.clipboard?.writeText(`${data.certificate?.shareText || shareText} ${shareUrl}`);
       setShareMessage('Ссылка скопирована.');
     } catch (error) {
       if ((error as Error)?.name !== 'AbortError') {
@@ -421,53 +409,25 @@ export default function ProfileDetail() {
         </section>
       )}
       {isFinished && (
-        <section className={`profile-finalist-panel profile-finalist-panel--${data.medal || 'complete'}`}>
-          <div className="profile-finalist-copy">
-            <p className="profile-completion-kicker">Марафон завершен</p>
-            <h1>{medal?.title || 'Финалист марафона'}</h1>
-            <p>{medal?.detail || `Финиш зафиксирован ${data.finished_at ? formatDateTime(data.finished_at) : ''}.`}</p>
-            <div className="profile-finalist-prizes" aria-label="Призы финалиста">
-              <a href="#profile-certificate" className="profile-finalist-prize">Диплом финалиста</a>
-              {medal && <span className="profile-finalist-prize">{medal.prize}</span>}
-              <a href={BOOK_PRIZE_URL} className="profile-finalist-prize" target="_blank" rel="noreferrer">PDF-книга</a>
-              <Link to="/faq" className="profile-finalist-prize">{awardCopy.nextStep}</Link>
-            </div>
-          </div>
-          <div className="profile-finalist-award">
-            {medal && (
-              <span className={`medal-badge medal-badge--${data.medal}`}>
-                <span className="medal-badge__medal" aria-hidden="true">
-                  <span className="medal-badge__ribbon" />
-                  <span className="medal-badge__coin">1</span>
-                </span>
-                <span className="medal-badge__label">{medal.prize}</span>
-              </span>
-            )}
-            <div className="profile-trophy" aria-hidden="true">
-              <span className="profile-trophy-cup" />
-              <span className="profile-trophy-base" />
-            </div>
-          </div>
-          <div id="profile-certificate" className="profile-finalist-certificate" aria-label="Именной диплом SpeakASAP">
-            <div className="profile-certificate-sheet">
-              <span className="profile-certificate-mark">SpeakASAP</span>
-              <h2>Сертификат SpeakASAP</h2>
-              <p className="profile-certificate-subtitle">подтверждает участие в языковом марафоне SpeakASAP</p>
-              <strong>{participantName}</strong>
-              <p>{stripHeadingTerminalPeriod(data.title)}</p>
-              <small>Финиш: {finishedDate}</small>
-              <span className="profile-certificate-id">{certificateId}</span>
-            </div>
-            <div className="profile-certificate-actions">
-              <button type="button" className="btn-profile-open" onClick={downloadCertificatePdf}>Скачать PDF</button>
-              <button type="button" className="btn-profile-login" onClick={shareCertificate}>Поделиться</button>
-              <a href={shareLinks.telegram} className="profile-share-link" target="_blank" rel="noreferrer">Telegram</a>
-              <a href={shareLinks.whatsapp} className="profile-share-link" target="_blank" rel="noreferrer">WhatsApp</a>
-              <a href={shareLinks.facebook} className="profile-share-link" target="_blank" rel="noreferrer">Facebook</a>
-            </div>
-            {shareMessage && <p className="profile-share-message">{shareMessage}</p>}
-          </div>
-        </section>
+        <FinalistRewards
+          participant={{
+            name: data.certificate?.participantName || participantName,
+            displayName: participantName,
+          }}
+          certificate={{
+            title: data.certificate?.title || undefined,
+            subtitle: medal?.detail || undefined,
+            languageLabel: awardCopy.dative,
+          }}
+          prizes={finalistPrizes}
+          medal={data.medal}
+          marathonTitle={stripHeadingTerminalPeriod(data.title)}
+          finishedAt={data.finished_at}
+          shareUrl={shareUrl}
+          shareText={data.certificate?.shareText || shareText}
+          onDownloadPdf={downloadCertificatePdf}
+          onShare={shareCertificate}
+        />
       )}
       {paymentReturn && (
         <section className={`profile-payment-return profile-payment-return-${paymentReturn}`}>

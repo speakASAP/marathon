@@ -244,3 +244,36 @@ export default function FinalistRewards({
 
         <div className="finalist-rewards__side">
           <section className="finalist-rewards__prizes" aria-label="Призы и скидки финалиста">
+            <h3>Призы и скидки</h3>
+            <ul>
+              {prizes.map((prize) => (
+                <li key={prize.id}>
+                  <span className="finalist-rewards__prize-badge" aria-hidden="true">{prize.badge || '•'}</span>
+                  <span>
+                    <strong>{prize.title}</strong>
+                    <small>{prize.description}</small>
+                    {prize.actionHref && prize.actionLabel ? (
+                      <a href={prize.actionHref} target="_blank" rel="noreferrer">{prize.actionLabel}</a>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+          {shareLinks.length > 0 ? (
+            <section className="finalist-rewards__share" aria-label="Поделиться результатом">
+              <h3>Поделиться</h3>
+              <div className="finalist-rewards__share-links">
+                {shareLinks.map((link) => (
+                  <a key={link.id} href={link.href} target="_blank" rel="noreferrer">
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}

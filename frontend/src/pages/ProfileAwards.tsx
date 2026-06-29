@@ -73,8 +73,8 @@ function certificateImage(medal: MedalKind) {
   return `/img/certificates/${medal}_en.png`;
 }
 
-function resolveParticipantName(profile: MarathonUserProfileSettings | null) {
-  return profile?.displayName?.trim() || 'Финалист SpeakASAP';
+function resolveParticipantName(data: MyMarathon | null, profile: MarathonUserProfileSettings | null) {
+  return data?.certificate?.participantName?.trim() || profile?.displayName?.trim() || 'Финалист SpeakASAP';
 }
 
 function resolveAwardLanguageCopy(code: string) {
@@ -135,10 +135,13 @@ export default function ProfileAwards() {
   const participantName = resolveParticipantName(profile);
   const medal = data?.medal || null;
   const medalCopy = medal ? MEDAL_COPY[medal] : null;
-  const languageLabel = data ? formatLanguageLabel(data.languageCode, data.title) : '';
+  const languageLabel = data ? formatLanguageLabel(data.languageCode) : '';
   const awardCopy = data ? resolveAwardLanguageCopy(data.languageCode) : resolveAwardLanguageCopy('');
   const certificateLanguage = awardCopy.dative;
   const finishedDate = data?.finished_at ? formatDate(data.finished_at) : '';
+  const bookPrize = data?.prizes?.find((prize) => prize.kind === 'book') || null;
+  const discountPrize = data?.prizes?.find((prize) => prize.kind === 'discount') || null;
+  const discountValidUntil = discountPrize?.validUntil ? formatDate(discountPrize.validUntil) : '';
 
   const certificateLines = useMemo(() => [
     participantName,
@@ -296,23 +299,29 @@ export default function ProfileAwards() {
           <span className="profile-awards-card-icon">PDF</span>
           <h2>Книга «Точка выхода»</h2>
           <p>Legacy-приз для финалистов: PDF-книга о том, как перестать бесконечно учить язык и начать им пользоваться.</p>
-          <a className="btn-profile-open" href={BOOK_PRIZE_URL} target="_blank" rel="noreferrer">
-            Скачать книгу
+          <a className="btn-profile-open" href={bookPrize?.actionHref || BOOK_PRIZE_URL} target="_blank" rel="noreferrer">
+            {bookPrize?.actionLabel || 'Скачать книгу'}
           </a>
         </article>
         <article>
           <span className="profile-awards-card-icon">%</span>
           <h2>Скидка на следующий курс</h2>
-          <p>{medalCopy?.discount}. Legacy-страница выдавала персональный код на 14 дней после финиша.</p>
-          <Link className="btn-profile-open" to="/faq">
-            Получить код через поддержку
-          </Link>
+          <p>{discountPrize?.title || medalCopy?.discount}. Legacy-страница выдавала персональный код на 14 дней после финиша.</p>
+          {discountPrize?.discountCode ? (
+            <p className="profile-awards-code"><strong>{discountPrize.discountCode}</strong></p>
+          ) : null}
+          {discountValidUntil ? <p>Действует до {discountValidUntil}.</p> : null}
+          {discountPrize?.actionHref ? (
+            <a className="btn-profile-open" href={discountPrize.actionHref} target="_blank" rel="noreferrer">
+              {discountPrize.actionLabel || 'Выбрать курс'}
+            </a>
+          ) : null}
         </article>
         <article>
           <span className="profile-awards-card-icon">🏆</span>
           <h2>Кубок и медаль финалиста</h2>
           <p>
-            Ваш результат сохранен в профиле и в списке финалистов: {formatLanguageLabel(data.languageCode, languageLabel)}.
+            Ваш результат сохранен в профиле и в списке финалистов: {languageLabel}.
             Legacy-хэштег для отзыва: {awardCopy.hashtag}.
           </p>
           <Link className="btn-profile-open" to="/winners">

@@ -35,6 +35,37 @@ export interface MarathonUserProfileSettings {
   bio: string;
 }
 
+export interface MyMarathonCertificate {
+  id: string;
+  participantName: string;
+  participantEmail: string | null;
+  marathonTitle: string;
+  languageCode: string;
+  medal: 'gold' | 'silver' | 'bronze';
+  finishedAt: string;
+  issuedAt: string;
+  title: string;
+  shareText: string;
+  shareUrlHint: string;
+  downloadUrlHint: string;
+  imageUrlHint: string;
+  generatedOnRead: true;
+}
+
+export interface MyMarathonPrize {
+  id: string;
+  kind: 'certificate' | 'medal' | 'discount' | 'book' | 'bonus';
+  title: string;
+  description: string;
+  status: 'earned' | 'available';
+  urlHint: string | null;
+  actionLabel?: string;
+  actionHref?: string;
+  discountPercent?: number;
+  discountCode?: string;
+  validUntil?: string;
+}
+
 export interface MyMarathonSummary {
   id: string;
   title: string;
@@ -68,6 +99,8 @@ export interface MyMarathon {
   answers: Answer[];
   finished_at: string | null;
   medal: 'gold' | 'silver' | 'bronze' | null;
+  certificate: MyMarathonCertificate | null;
+  prizes: MyMarathonPrize[];
   nps_survey: NpsSurvey | null;
   can_generate_progress_report: boolean;
 }
