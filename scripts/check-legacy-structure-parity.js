@@ -150,16 +150,13 @@ function isDatabaseConnectionError(error) {
   return message.includes("Can't reach database server") || message.includes('P1001') || message.includes('ECONNREFUSED') || message.includes('ENOTFOUND') || message.includes('getaddrinfo');
 }
 
-async function buildReport() {
-  const legacyRoot = argValue('--legacy-root', DEFAULT_LEGACY_ROOT);
-  const templatesRoot = path.join(legacyRoot, 'marathon', 'templates', 'marathon', 'steps');
-  const focusSequence = argValue('--sequence', '');
-  const focusFormKey = argValue('--form-key', '');
-  const onlyViolations = hasArg('--violations-only');
+async function loadCurrentMarathons() {
+  const currentJson = argValue('--current-json', '');
+  if (currentJson) return JSON.parse(fs.readFileSync(currentJson, 'utf8'));
   const { PrismaClient } = require('@prisma/client');
   const prisma = new PrismaClient();
   try {
-    const marathons = await prisma.marathon.findMany({
+    return await prisma.marathon.findMany({
       where: { active: true },
       orderBy: [{ languageCode: 'asc' }, { slug: 'asc' }],
       select: {
@@ -171,7 +168,19 @@ async function buildReport() {
         },
       },
     });
-    const report = {
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+async function buildReport() {
+  const legacyRoot = argValue('--legacy-root', DEFAULT_LEGACY_ROOT);
+  const templatesRoot = path.join(legacyRoot, 'marathon', 'templates', 'marathon', 'steps');
+  const focusSequence = argValue('--sequence', '');
+  const focusFormKey = argValue('--form-key', '');
+  const onlyViolations = hasArg('--violations-only');
+  const marathons = await loadCurrentMarathons();
+  const report = {
       ok: true,
       checkedAt: new Date().toISOString(),
       legacyRoot,
@@ -180,8 +189,8 @@ async function buildReport() {
       summary: { violations: 0, stepsWithViolations: 0, listViolationSteps: 0, radioViolationSteps: 0, inlineViolationSteps: 0 },
       checks: [],
       marathons: [],
-    };
-    for (const marathon of marathons) {
+  };
+  for (const marathon of marathons) {
       const marathonReport = { languageCode: marathon.languageCode, slug: marathon.slug, folder: LANGUAGE_FOLDERS[String(marathon.languageCode || '').toLowerCase()] || null, steps: [] };
       for (const step of marathon.steps) {
         if (focusSequence && String(step.sequence) !== String(focusSequence)) continue;
@@ -204,10 +213,7 @@ async function buildReport() {
       }
       if (!onlyViolations || marathonReport.steps.length) report.marathons.push(marathonReport);
     }
-    return report;
-  } finally {
-    await prisma.$disconnect();
-  }
+  return report;
 }
 
 function printHuman(report) {

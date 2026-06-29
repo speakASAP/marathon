@@ -4840,6 +4840,18 @@ a:hover {
   align-items: stretch;
 }
 
+.profile-certificate-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.profile-certificate-downloads .btn-profile-open,
+.profile-certificate-downloads .btn-profile-login {
+  height: 48px;
+}
+
 .profile-awards-page .profile-payment-actions .btn-profile-open,
 .profile-awards-page .profile-payment-actions .btn-profile-login {
   height: 48px;
@@ -7398,20 +7410,4 @@ a:hover {
   .finalist-rewards__prizes li {
     grid-template-columns: 1fr;
   }
-}
-
-
-.profile-awards-code {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 10px 14px;
-  border: 1px dashed #9ca3af;
-  background: #f8fafc;
-  color: #111827;
-  font-family: "Courier New", monospace;
-  font-size: 16px;
-  letter-spacing: 0;
-  word-break: break-word;
 }

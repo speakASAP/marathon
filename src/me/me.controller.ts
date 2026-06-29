@@ -4,6 +4,7 @@ import { AuthGuard } from '../shared/auth.guard';
 import {
   MeService,
   MyMarathon,
+  MarathonCertificateNameInput,
   MyMarathonProgressReport,
   MyMarathonSurvey,
   MarathonReportTimeInput,
@@ -136,6 +137,36 @@ export class MeController {
       }
       this.logger.error(
         `My marathon detail failed: userId=${userId}, marathonerId=${marathonerId}, error=${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
+  }
+
+  @Patch(':marathonerId/certificate-name')
+  async confirmCertificateName(
+    @Req() req: RequestWithUser,
+    @Param('marathonerId') marathonerId: string,
+    @Body() body: MarathonCertificateNameInput,
+  ): Promise<MyMarathon> {
+    const userId = req.user!.id;
+
+    this.logger.log(`My marathon certificate name confirmation received: userId=${userId}, marathonerId=${marathonerId}`);
+
+    try {
+      const marathon = await this.meService.confirmCertificateName(userId, marathonerId, body);
+      if (!marathon) {
+        this.logger.warn(`My marathon certificate name target not found: userId=${userId}, marathonerId=${marathonerId}`);
+        throw new NotFoundException('Marathon not found');
+      }
+      this.logger.log(`My marathon certificate name confirmed: userId=${userId}, marathonerId=${marathonerId}`);
+      return marathon;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        `My marathon certificate name confirmation failed: userId=${userId}, marathonerId=${marathonerId}, error=${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
       throw error;

@@ -60,6 +60,8 @@ model MarathonParticipant {
   hasWarning       Boolean  @default(false)
   createdAt        DateTime @default(now())
   finishedAt       DateTime?
+  certificateName  String?
+  certificateNameConfirmedAt DateTime?
   marathon         Marathon @relation(fields: [marathonId], references: [id])
   submissions      StepSubmission[]
   penaltyReports   PenaltyReport[]

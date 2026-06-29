@@ -13,6 +13,13 @@ import { formatLanguageLabel } from '../languages';
 import { stripHeadingTerminalPeriod } from '../components/assignment/assignmentBlockNormalization';
 
 type MedalKind = 'gold' | 'silver' | 'bronze';
+type CertificateDownloadFormat = 'png' | 'jpeg' | 'pdf';
+
+const CERTIFICATE_DOWNLOAD_FORMATS: Array<{ format: CertificateDownloadFormat; label: string }> = [
+  { format: 'png', label: 'PNG' },
+  { format: 'pdf', label: 'PDF' },
+  { format: 'jpeg', label: 'JPEG' },
+];
 
 const BOOK_PRIZE_URL = 'https://speakasap.com/media/steps/german/tochka_vixoda_iz_yazika_ili_kak_brosit_ychit_yazik_buch.pdf';
 
@@ -73,8 +80,8 @@ function certificateImage(medal: MedalKind) {
   return `/img/certificates/${medal}_en.png`;
 }
 
-function resolveParticipantName(data: MyMarathon | null, profile: MarathonUserProfileSettings | null) {
-  return data?.certificate?.participantName?.trim() || profile?.displayName?.trim() || 'Финалист SpeakASAP';
+function resolveParticipantName(profile: MarathonUserProfileSettings | null) {
+  return profile?.displayName?.trim() || 'Финалист SpeakASAP';
 }
 
 function resolveAwardLanguageCopy(code: string) {
@@ -93,6 +100,84 @@ async function loadImage(src: string): Promise<HTMLImageElement> {
   return image;
 }
 
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+      } else {
+        reject(new Error('Сертификат не удалось подготовить для скачивания.'));
+      }
+    }, type, quality);
+  });
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function dataUrlToBytes(dataUrl: string) {
+  const base64 = dataUrl.split(',')[1] || '';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
+}
+
+function buildPdfBlobFromCanvas(canvas: HTMLCanvasElement) {
+  const encoder = new TextEncoder();
+  const jpegBytes = dataUrlToBytes(canvas.toDataURL('image/jpeg', 0.94));
+  const pageWidth = canvas.width;
+  const pageHeight = canvas.height;
+  const content = `q\n${pageWidth} 0 0 ${pageHeight} 0 0 cm\n/CertificateImage Do\nQ\n`;
+  const chunks: BlobPart[] = [];
+  const offsets: number[] = [];
+  let byteLength = 0;
+
+  const append = (chunk: string | Uint8Array) => {
+    const bytes = typeof chunk === 'string' ? encoder.encode(chunk) : chunk;
+    chunks.push(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
+    byteLength += bytes.length;
+  };
+  const appendObject = (id: number, body: string | Uint8Array, suffix = '\nendobj\n') => {
+    offsets[id] = byteLength;
+    append(`${id} 0 obj\n`);
+    append(body);
+    append(suffix);
+  };
+
+  append('%PDF-1.4\n');
+  appendObject(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  appendObject(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  appendObject(
+    3,
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /CertificateImage 4 0 R >> >> /Contents 5 0 R >>`,
+  );
+  offsets[4] = byteLength;
+  append(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`);
+  append(jpegBytes);
+  append('\nendstream\nendobj\n');
+  appendObject(5, `<< /Length ${encoder.encode(content).length} >>\nstream\n${content}endstream`);
+
+  const xrefOffset = byteLength;
+  append('xref\n0 6\n0000000000 65535 f \n');
+  for (let id = 1; id <= 5; id += 1) {
+    append(`${String(offsets[id]).padStart(10, '0')} 00000 n \n`);
+  }
+  append(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`);
+
+  return new Blob(chunks, { type: 'application/pdf' });
+}
+
 export default function ProfileAwards() {
   const { marathonerId } = useParams<{ marathonerId: string }>();
   const [data, setData] = useState<MyMarathon | null>(null);
@@ -102,7 +187,7 @@ export default function ProfileAwards() {
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [downloadError, setDownloadError] = useState('');
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingFormat, setDownloadingFormat] = useState<CertificateDownloadFormat | null>(null);
 
   useEffect(() => {
     if (!marathonerId) return;
@@ -150,38 +235,51 @@ export default function ProfileAwards() {
     finishedDate,
   ], [certificateLanguage, finishedDate, participantName]);
 
-  const downloadCertificate = async () => {
+  const buildCertificateCanvas = async () => {
     if (!data?.medal || !data.finished_at) return;
-    setDownloading(true);
+    const image = await loadImage(certificateImage(data.medal));
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth || 620;
+    canvas.height = image.naturalHeight || 877;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas is not available');
+
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    context.fillStyle = '#26324a';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.font = '700 30px Georgia, serif';
+    context.fillText(participantName, canvas.width / 2, Math.round(canvas.height * 0.63), canvas.width * 0.72);
+    context.font = '500 22px Georgia, serif';
+    context.fillText('За успешный забег по', canvas.width / 2, Math.round(canvas.height * 0.68), canvas.width * 0.7);
+    context.fillText(`${certificateLanguage} языку`, canvas.width / 2, Math.round(canvas.height * 0.71), canvas.width * 0.7);
+    context.font = '500 18px Georgia, serif';
+    context.fillText(finishedDate, canvas.width / 2, Math.round(canvas.height * 0.775), canvas.width * 0.4);
+
+    return canvas;
+  };
+
+  const downloadCertificate = async (format: CertificateDownloadFormat) => {
+    if (!data?.medal || !data.finished_at) return;
+    setDownloadingFormat(format);
     setDownloadError('');
     try {
-      const image = await loadImage(certificateImage(data.medal));
-      const canvas = document.createElement('canvas');
-      canvas.width = image.naturalWidth || 620;
-      canvas.height = image.naturalHeight || 877;
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('Canvas is not available');
-
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      context.fillStyle = '#26324a';
-      context.textAlign = 'center';
-      context.textBaseline = 'middle';
-      context.font = '700 30px Georgia, serif';
-      context.fillText(participantName, canvas.width / 2, Math.round(canvas.height * 0.63), canvas.width * 0.72);
-      context.font = '500 22px Georgia, serif';
-      context.fillText('За успешный забег по', canvas.width / 2, Math.round(canvas.height * 0.68), canvas.width * 0.7);
-      context.fillText(`${certificateLanguage} языку`, canvas.width / 2, Math.round(canvas.height * 0.71), canvas.width * 0.7);
-      context.font = '500 18px Georgia, serif';
-      context.fillText(finishedDate, canvas.width / 2, Math.round(canvas.height * 0.775), canvas.width * 0.4);
-
-      const link = document.createElement('a');
-      link.href = canvas.toDataURL('image/png');
-      link.download = `speakASAP_Marathon_${data.languageCode}_${data.medal}.png`;
-      link.click();
+      const canvas = await buildCertificateCanvas();
+      if (!canvas) return;
+      const filenameBase = `speakASAP_Marathon_${data.languageCode}_${data.medal}`;
+      if (format === 'pdf') {
+        downloadBlob(buildPdfBlobFromCanvas(canvas), `${filenameBase}.pdf`);
+      } else if (format === 'jpeg') {
+        downloadBlob(await canvasToBlob(canvas, 'image/jpeg', 0.94), `${filenameBase}.jpg`);
+      } else {
+        downloadBlob(await canvasToBlob(canvas, 'image/png'), `${filenameBase}.png`);
+      }
     } catch (error) {
       setDownloadError(error instanceof Error ? error.message : 'Сертификат не удалось сформировать.');
     } finally {
-      setDownloading(false);
+      setDownloadingFormat(null);
     }
   };
 
@@ -282,10 +380,18 @@ export default function ProfileAwards() {
             Legacy Marathon генерировал такой сертификат из медальной заготовки, имени участника,
             языка и даты финиша. В новой версии сертификат формируется прямо на этой странице.
           </p>
-          <div className="profile-payment-actions">
-            <button type="button" className="btn-profile-open" onClick={downloadCertificate} disabled={downloading}>
-              {downloading ? 'Формируем...' : 'Скачать сертификат PNG'}
-            </button>
+          <div className="profile-certificate-downloads" aria-label="Скачать сертификат">
+            {CERTIFICATE_DOWNLOAD_FORMATS.map(({ format, label }) => (
+              <button
+                key={format}
+                type="button"
+                className="btn-profile-open"
+                onClick={() => downloadCertificate(format)}
+                disabled={downloadingFormat !== null}
+              >
+                {downloadingFormat === format ? 'Формируем...' : `Скачать ${label}`}
+              </button>
+            ))}
             <Link to={`/profile/${encodeURIComponent(data.id)}`} className="btn-profile-login">
               Вернуться в профиль
             </Link>

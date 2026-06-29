@@ -48,6 +48,14 @@ export type MyMarathonPrize = {
   validUntil?: string;
 };
 
+export type MyMarathonCertificateNameConfirmation = {
+  required: boolean;
+  confirmed: boolean;
+  currentName: string;
+  confirmedName: string | null;
+  confirmedAt: string | null;
+};
+
 export type MyMarathon = {
   title: string;
   languageCode: string;
@@ -65,6 +73,7 @@ export type MyMarathon = {
   finished_at: string | null;
   medal: MarathonMedal | null;
   certificate: MyMarathonCertificate | null;
+  certificate_name_confirmation: MyMarathonCertificateNameConfirmation;
   prizes: MyMarathonPrize[];
   nps_survey: MyMarathonSurvey | null;
   can_generate_progress_report: boolean;
@@ -95,6 +104,10 @@ export type MarathonUserProfileInput = {
   phone?: string;
   avatarUrl?: string;
   bio?: string;
+};
+
+export type MarathonCertificateNameInput = {
+  displayName?: string;
 };
 
 export type ProgressReportStep = {
@@ -295,6 +308,56 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       avatarUrl: profile.avatarUrl || '',
       bio: profile.bio || '',
     };
+  }
+
+  async confirmCertificateName(userId: string, marathonerId: string, input: MarathonCertificateNameInput): Promise<MyMarathon | null> {
+    const displayName = this.normalizeProfileText(input.displayName, 120, 'Name');
+    if (!displayName) {
+      throw new BadRequestException('Укажите имя для сертификата.');
+    }
+
+    const participant = await this.prisma.marathonParticipant.findFirst({
+      where: {
+        id: marathonerId,
+        OR: [{ userId }, { userId: null }],
+      },
+      select: { id: true },
+    });
+
+    if (!participant) {
+      return null;
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.marathonUserProfile.upsert({
+        where: { userId },
+        create: {
+          userId,
+          displayName,
+          avatarUrl: '',
+          bio: '',
+          avatarSource: 'user',
+        },
+        update: { displayName },
+      });
+
+      await tx.marathonParticipant.updateMany({
+        where: { userId },
+        data: { name: displayName },
+      });
+
+      await tx.marathonParticipant.update({
+        where: { id: participant.id },
+        data: {
+          userId,
+          name: displayName,
+          certificateName: displayName,
+          certificateNameConfirmedAt: new Date(),
+        },
+      });
+    });
+
+    return this.getMarathonById(userId, marathonerId);
   }
 
   async listMarathons(userId: string): Promise<MyMarathon[]> {
@@ -961,7 +1024,10 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     const canChangeReportTime = participant.active && !this.isWinner(participant, steps);
     const medal = this.getParticipantMedal(participant, steps);
     const finishedAt = participant.finishedAt ? participant.finishedAt.toISOString() : null;
-    const certificate = medal && finishedAt ? this.buildCertificatePayload(participant, marathon, medal, finishedAt) : null;
+    const certificateNameConfirmation = this.buildCertificateNameConfirmation(participant, Boolean(medal && finishedAt));
+    const certificate = medal && finishedAt && certificateNameConfirmation.confirmed
+      ? this.buildCertificatePayload(participant, marathon, medal, finishedAt)
+      : null;
 
     return {
       title: marathon.title,
@@ -980,6 +1046,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       finished_at: finishedAt,
       medal,
       certificate,
+      certificate_name_confirmation: certificateNameConfirmation,
       prizes: certificate && medal ? this.buildPrizePayload(marathon, medal, certificate) : [],
       nps_survey: participant.surveyResponse ? this.mapSurvey(participant.surveyResponse) : null,
       can_generate_progress_report: this.canGenerateProgressReport(participant),
@@ -988,7 +1055,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
 
 
   private buildCertificatePayload(participant: any, marathon: any, medal: MarathonMedal, finishedAt: string): MyMarathonCertificate {
-    const participantName = this.resolveParticipantDisplayName(participant);
+    const participantName = this.resolveConfirmedCertificateName(participant) || this.resolveParticipantDisplayName(participant);
     const awardsPath = `/profile/${encodeURIComponent(participant.id)}/awards`;
     const title = `${this.formatMedalLabel(medal)} сертификат финалиста`;
 
@@ -1091,6 +1158,26 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     const email = typeof participant.email === 'string' ? participant.email.trim() : '';
     if (email) return email;
     return 'Участник марафона';
+  }
+
+  private resolveConfirmedCertificateName(participant: any): string {
+    const certificateName = typeof participant.certificateName === 'string' ? participant.certificateName.trim() : '';
+    if (certificateName) return certificateName;
+    return '';
+  }
+
+  private buildCertificateNameConfirmation(participant: any, required: boolean): MyMarathonCertificateNameConfirmation {
+    const confirmedName = this.resolveConfirmedCertificateName(participant);
+    const confirmedAt = participant.certificateNameConfirmedAt instanceof Date
+      ? participant.certificateNameConfirmedAt.toISOString()
+      : null;
+    return {
+      required,
+      confirmed: Boolean(required && confirmedName && confirmedAt),
+      currentName: this.resolveParticipantDisplayName(participant),
+      confirmedName: confirmedName || null,
+      confirmedAt,
+    };
   }
 
   private formatMedalLabel(medal: MarathonMedal): string {

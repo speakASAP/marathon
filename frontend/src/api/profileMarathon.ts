@@ -66,6 +66,14 @@ export interface MyMarathonPrize {
   validUntil?: string;
 }
 
+export interface MyMarathonCertificateNameConfirmation {
+  required: boolean;
+  confirmed: boolean;
+  currentName: string;
+  confirmedName: string | null;
+  confirmedAt: string | null;
+}
+
 export interface MyMarathonSummary {
   id: string;
   title: string;
@@ -100,6 +108,7 @@ export interface MyMarathon {
   finished_at: string | null;
   medal: 'gold' | 'silver' | 'bronze' | null;
   certificate: MyMarathonCertificate | null;
+  certificate_name_confirmation: MyMarathonCertificateNameConfirmation;
   prizes: MyMarathonPrize[];
   nps_survey: NpsSurvey | null;
   can_generate_progress_report: boolean;
@@ -162,6 +171,22 @@ export async function fetchMyMarathon(marathonerId: string): Promise<MyMarathon>
   if (response.status === 404) throw new MarathonNotFoundError();
   if (!response.ok) throw new Error(`profile:${response.status}`);
   return response.json() as Promise<MyMarathon>;
+}
+
+export async function confirmCertificateName(marathonerId: string, displayName: string): Promise<MyMarathon> {
+  const response = await authFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}/certificate-name`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ displayName }),
+  });
+  if (response.status === 401) throw new MarathonAuthRequiredError();
+  if (response.status === 404) throw new MarathonNotFoundError();
+
+  const body = await readJsonBody<MyMarathon & { message?: string; error?: string }>(response);
+  if (!response.ok) {
+    throw new Error(body.message || body.error || `Certificate name confirmation failed (${response.status})`);
+  }
+  return body;
 }
 
 export async function updateReportTime(marathonerId: string, reportTime: string, timeZone?: string): Promise<MyMarathon> {
