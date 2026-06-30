@@ -361,6 +361,7 @@ export default function Landing() {
           id="landing-certificate"
           className="home-certificate-band"
           showStatus={false}
+          showMockDetails
           title="Что получает финалист"
           lead="После финиша марафона участник получает статус «Сертификат» и медальную версию сертификата по результату прохождения."
         />

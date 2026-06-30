@@ -461,12 +461,79 @@ a:hover {
     #fff7f1;
 }
 
+.certificate-card__certificate-frame {
+  position: relative;
+  width: min(100%, 310px);
+  aspect-ratio: 936 / 1320;
+  color: #806427;
+  font-family: Georgia, 'Times New Roman', serif;
+  filter: drop-shadow(0 16px 42px rgba(16, 24, 50, 0.22));
+}
+
 .certificate-card img {
   display: block;
-  width: min(100%, 310px);
-  height: auto;
+  width: 100%;
+  height: 100%;
   border-radius: 4px;
-  box-shadow: 0 16px 42px rgba(16, 24, 50, 0.22);
+  object-fit: cover;
+}
+
+.certificate-card__mock-fields {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.certificate-card__mock-fields span {
+  position: absolute;
+  left: 50%;
+  display: block;
+  max-width: 72%;
+  transform: translate(-50%, -50%);
+  color: #806427;
+  line-height: 1.08;
+  text-align: center;
+  text-shadow: 0 1px 0 rgba(255, 250, 232, 0.72);
+  white-space: nowrap;
+}
+
+.certificate-card__mock-name {
+  top: 64.9%;
+  font-size: clamp(0.96rem, 2.55vw, 1.36rem);
+  font-weight: 900;
+}
+
+.certificate-card__mock-line {
+  font-size: clamp(0.62rem, 1.45vw, 0.86rem);
+  font-weight: 800;
+}
+
+.certificate-card__mock-line-one {
+  top: 70.0%;
+}
+
+.certificate-card__mock-line-two {
+  top: 73.2%;
+}
+
+.certificate-card__mock-signature {
+  top: 79.4%;
+  left: 28%;
+  max-width: 24%;
+  font-size: clamp(0.48rem, 1.15vw, 0.68rem);
+  font-style: italic;
+}
+
+.certificate-card__mock-date {
+  top: 80.9%;
+  font-size: clamp(0.52rem, 1.2vw, 0.72rem);
+  font-weight: 800;
+}
+
+.certificate-card__mock-site {
+  top: 89.7%;
+  font-size: clamp(0.58rem, 1.35vw, 0.78rem);
+  font-style: italic;
 }
 
 .certificate-card__body {
@@ -512,7 +579,7 @@ a:hover {
   padding: 18px 14px;
 }
 
-.certificate-showcase--compact .certificate-card img {
+.certificate-showcase--compact .certificate-card__certificate-frame {
   width: min(100%, 250px);
 }
 
@@ -561,8 +628,8 @@ a:hover {
     min-height: 260px;
   }
 
-  .certificate-card img,
-  .certificate-showcase--compact .certificate-card img {
+  .certificate-card__certificate-frame,
+  .certificate-showcase--compact .certificate-card__certificate-frame {
     width: min(100%, 230px);
   }
 }
