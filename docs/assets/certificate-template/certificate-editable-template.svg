@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="936" height="1320" viewBox="0 0 936 1320">
+  <image href="certificate-base-clean-from-your-image.png" x="0" y="0" width="936" height="1320"/>
+  <style>
+    .ink { fill:#7e5b24; font-family: Georgia, "Times New Roman", serif; }
+    .center { text-anchor: middle; }
+    .bold { font-weight:700; }
+    .italic { font-style:italic; }
+    .line { stroke:#7e5b24; stroke-width:2; }
+  </style>
+  <text id="award_title" class="ink center bold" x="468" y="527" font-size="42">Золотым кубком</text>
+  <image id="trophy" href="trophy-gold-from-your-image-transparent.png" x="343" y="555" width="250" height="242"/>
+  <text id="recipient_name" class="ink center bold" x="468" y="863" font-size="55">{{ИМЯ УЧАСТНИКА}}</text>
+  <text class="ink center bold" x="468" y="929" font-size="36">За успешный забег по</text>
+  <text id="language" class="ink center bold" x="468" y="974" font-size="36">{{ЯЗЫК}} языку</text>
+  <text id="signature" class="ink italic" x="163" y="1048" font-size="28">{{ПОДПИСЬ}}</text>
+  <line class="line" x1="160" y1="1050" x2="370" y2="1050"/>
+  <text id="date" class="ink center bold" x="468" y="1069" font-size="31">{{ДАТА}}</text>
+  <line class="line" x1="565" y1="1050" x2="766" y2="1050"/>
+  <rect x="205" y="1100" width="526" height="94" fill="#f5f0dd" opacity=".52"/>
+  <line class="line" x1="205" y1="1150" x2="731" y2="1150"/>
+  <text id="site_url" class="ink center italic" x="468" y="1184" font-size="35">{{SITE_URL}}</text>
+</svg>

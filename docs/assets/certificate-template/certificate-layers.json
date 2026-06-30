@@ -1,0 +1,57 @@
+{
+  "source": "/var/folders/mg/j43_tvc53kzfxcggj49_b3_00000gn/T/TemporaryItems/NSIRD_screencaptureui_i5UUSi/Screenshot 2026-06-30 at 12.36.45.png",
+  "canvas": {
+    "width": 936,
+    "height": 1320
+  },
+  "base": "certificate-base-clean-from-your-image.png",
+  "overlays": {
+    "gold": "overlay-fields-gold-from-your-image.png",
+    "silver": "overlay-fields-silver-from-your-image.png",
+    "bronze": "overlay-fields-bronze-from-your-image.png"
+  },
+  "fields": [
+    {
+      "id": "award_title",
+      "x": 468,
+      "y": 527,
+      "anchor": "center"
+    },
+    {
+      "id": "trophy",
+      "x": 343,
+      "y": 555,
+      "width": 250
+    },
+    {
+      "id": "recipient_name",
+      "x": 468,
+      "y": 863,
+      "anchor": "center"
+    },
+    {
+      "id": "language",
+      "x": 468,
+      "y": 974,
+      "anchor": "center"
+    },
+    {
+      "id": "signature",
+      "x": 163,
+      "y": 1048,
+      "anchor": "left"
+    },
+    {
+      "id": "date",
+      "x": 468,
+      "y": 1069,
+      "anchor": "center"
+    },
+    {
+      "id": "site_url",
+      "x": 468,
+      "y": 1184,
+      "anchor": "center"
+    }
+  ]
+}
