@@ -85,7 +85,7 @@ function formatDate(value: string) {
 }
 
 function certificateImage(medal: MedalKind) {
-  return `/img/certificates/${medal}_en.png`;
+  return `/img/certificates/${medal}_en.png?v=20260630-clean-template`;
 }
 
 function resolveParticipantName(data: MyMarathon | null, profile: MarathonUserProfileSettings | null) {
@@ -207,7 +207,6 @@ export default function ProfileAwards() {
   const [sharingCertificate, setSharingCertificate] = useState(false);
   const [winnerLinkStatus, setWinnerLinkStatus] = useState('');
   const [certificatePreviewUrl, setCertificatePreviewUrl] = useState('');
-  const [certificatePreviewUrl, setCertificatePreviewUrl] = useState('');
   useEffect(() => {
     if (!marathonerId) return;
     setLoading(true);
@@ -295,26 +294,6 @@ export default function ProfileAwards() {
     };
   }, [data?.medal, data?.finished_at, participantName, certificateLanguage, finishedDate]);
 
-
-  useEffect(() => {
-    if (!data?.medal || !data.finished_at) {
-      setCertificatePreviewUrl('');
-      return;
-    }
-
-    let cancelled = false;
-    buildCertificateCanvas()
-      .then((canvas) => {
-        if (!cancelled) setCertificatePreviewUrl(canvas?.toDataURL('image/png') || '');
-      })
-      .catch(() => {
-        if (!cancelled) setCertificatePreviewUrl('');
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [data?.medal, data?.finished_at, participantName, certificateLanguage, finishedDate]);
 
   const downloadCertificate = async (format: CertificateDownloadFormat) => {
     if (!data?.medal || !data.finished_at) return;

@@ -7729,8 +7729,10 @@ a:hover {
 }
 
 .finalist-rewards__certificate-date {
-  top: 81%;
-  font-size: clamp(0.78rem, 1.15vw, 0.94rem);
+  top: 78.8%;
+  left: 71%;
+  width: 24%;
+  font-size: clamp(0.72rem, 1.05vw, 0.88rem);
   font-weight: 600;
 }
 

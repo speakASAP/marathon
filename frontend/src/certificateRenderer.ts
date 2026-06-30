@@ -8,7 +8,7 @@ export type CertificateRenderInput = {
 
 const CERTIFICATE_TEXT_COLOR = '#806427';
 const CERTIFICATE_SIGNATURE = 'Елена Шипилова';
-const CERTIFICATE_SITE_URL = 'spikasoft.com';
+const CERTIFICATE_SITE_URL = 'speakasap.com';
 
 function fitCanvasText(
   context: CanvasRenderingContext2D,
@@ -44,26 +44,26 @@ export function drawCertificateFields(
   context.textBaseline = 'middle';
   context.lineJoin = 'round';
 
-  fitCanvasText(context, input.participantName, canvas.width * 0.72, size(55), '900');
+  fitCanvasText(context, input.participantName, canvas.width * 0.68, size(44), '900');
   context.lineWidth = Math.max(1, size(2));
-  context.strokeText(input.participantName, x(468), y(850), canvas.width * 0.72);
-  context.fillText(input.participantName, x(468), y(850), canvas.width * 0.72);
+  context.strokeText(input.participantName, x(468), y(835), canvas.width * 0.68);
+  context.fillText(input.participantName, x(468), y(835), canvas.width * 0.68);
 
   context.lineWidth = 0;
-  context.font = `700 ${size(35)}px Georgia, "Times New Roman", serif`;
-  context.fillText('За успешный забег по', x(468), y(920), canvas.width * 0.7);
-  context.fillText(`${input.languageDative} языку`, x(468), y(965), canvas.width * 0.7);
-
   context.font = `700 ${size(30)}px Georgia, "Times New Roman", serif`;
-  context.fillText(input.finishedDate, x(468), y(1052), canvas.width * 0.4);
+  context.fillText('За успешный забег по', x(468), y(910), canvas.width * 0.66);
+  context.fillText(`${input.languageDative} языку`, x(468), y(952), canvas.width * 0.66);
 
-  context.font = `italic ${size(27)}px Georgia, "Times New Roman", serif`;
+  context.font = `700 ${size(27)}px Georgia, "Times New Roman", serif`;
+  context.fillText(input.finishedDate, x(665), y(1040), canvas.width * 0.22);
+
+  context.font = `italic ${size(24)}px Georgia, "Times New Roman", serif`;
   context.textAlign = 'left';
-  context.fillText(CERTIFICATE_SIGNATURE, x(165), y(1030), canvas.width * 0.24);
+  context.fillText(CERTIFICATE_SIGNATURE, x(165), y(1032), canvas.width * 0.24);
 
   context.textAlign = 'center';
-  context.font = `italic ${size(34)}px Georgia, "Times New Roman", serif`;
-  context.fillText(CERTIFICATE_SITE_URL, x(468), y(1168), canvas.width * 0.56);
+  context.font = `italic ${size(30)}px Georgia, "Times New Roman", serif`;
+  context.fillText(CERTIFICATE_SITE_URL, x(468), y(1162), canvas.width * 0.5);
 
   context.restore();
 }
