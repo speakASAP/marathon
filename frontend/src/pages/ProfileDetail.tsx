@@ -928,7 +928,7 @@ export default function ProfileDetail() {
   };
 
   return (
-    <div className="container page-static profile-dashboard">
+    <div id="top" className="container page-static profile-dashboard">
       {!isFinished && (
         <section className="profile-hero-panel">
           <div>
@@ -1375,6 +1375,9 @@ export default function ProfileDetail() {
                 <Link
                   className="profile-step-action profile-awards-step-action"
                   to={`/profile/${encodeURIComponent(data.id)}#top`}
+                  onClick={() => {
+                    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+                  }}
                 >
                   Открыть призы
                 </Link>

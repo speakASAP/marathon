@@ -7491,62 +7491,6 @@ a:hover {
   transform: translateY(16px);
 }
 
-.finalist-rewards__laurel {
-  position: absolute;
-  top: 176px;
-  display: block;
-  width: 82px;
-  height: 92px;
-  border-bottom: 10px solid #e3ad28;
-  border-radius: 50%;
-  opacity: 0.9;
-}
-
-.finalist-rewards__laurel--left {
-  left: 18px;
-  transform: rotate(38deg);
-}
-
-.finalist-rewards__laurel--right {
-  right: 18px;
-  transform: scaleX(-1) rotate(38deg);
-}
-
-.finalist-rewards__laurel::after {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 36px;
-  width: 70px;
-  height: 30px;
-  background: repeating-linear-gradient(90deg, #f0bd3e 0 9px, transparent 9px 18px);
-  clip-path: polygon(0 58%, 8% 18%, 18% 55%, 29% 6%, 39% 54%, 51% 0, 62% 54%, 74% 8%, 84% 56%, 94% 18%, 100% 58%, 50% 100%);
-}
-
-.finalist-rewards__confetti {
-  position: absolute;
-  display: block;
-  width: 92px;
-  height: 92px;
-  background:
-    radial-gradient(circle at 18% 20%, #f2b627 0 4px, transparent 5px),
-    radial-gradient(circle at 78% 26%, #e8a20f 0 3px, transparent 4px),
-    radial-gradient(circle at 30% 82%, #f2b627 0 3px, transparent 4px),
-    linear-gradient(45deg, transparent 48%, #d79517 49% 54%, transparent 55%);
-  opacity: 0.78;
-}
-
-.finalist-rewards__confetti--one {
-  left: 12px;
-  top: 82px;
-}
-
-.finalist-rewards__confetti--two {
-  right: 8px;
-  top: 104px;
-  transform: rotate(28deg);
-}
-
 .finalist-rewards__summary {
   min-width: 0;
 }

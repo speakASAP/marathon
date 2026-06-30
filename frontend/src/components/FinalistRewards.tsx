@@ -205,10 +205,6 @@ export default function FinalistRewards({
       <div className="finalist-rewards__main">
         <div className="finalist-rewards__medal-stage" aria-hidden="true">
           <span className="finalist-rewards__ribbon" />
-          <span className="finalist-rewards__laurel finalist-rewards__laurel--left" />
-          <span className="finalist-rewards__laurel finalist-rewards__laurel--right" />
-          <span className="finalist-rewards__confetti finalist-rewards__confetti--one" />
-          <span className="finalist-rewards__confetti finalist-rewards__confetti--two" />
           <span className="finalist-rewards__medal-disc">
             <span className="finalist-rewards__medal-stars">★ ★ ★</span>
             <span className="finalist-rewards__medal-cup">🏆</span>
