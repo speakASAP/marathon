@@ -420,7 +420,7 @@ export default function ProfileAwards() {
         <h1>Призы откроются на финише</h1>
         <section className="profile-empty-panel" role="alert">
           <p>Эта страница открывается после завершения оплаченного марафона.</p>
-          <Link to={`/profile/${encodeURIComponent(data.id)}`} className="btn-profile-open">Вернуться в профиль</Link>
+          <Link to={`/profile/${encodeURIComponent(data.id)}`} className="btn-profile-open">Вернуться в профиль марафона</Link>
         </section>
       </div>
     );
@@ -495,7 +495,7 @@ export default function ProfileAwards() {
               </button>
             ))}
             <Link to={`/profile/${encodeURIComponent(data.id)}`} className="btn-profile-login">
-              Вернуться в профиль
+              Вернуться в профиль марафона
             </Link>
           </div>
           {shareStatus && <p className={`profile-certificate-share-status profile-certificate-share-status--${shareStatus.kind}`}>{shareStatus.message}</p>}
