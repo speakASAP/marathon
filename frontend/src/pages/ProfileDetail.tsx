@@ -287,9 +287,9 @@ function buildPdfBlobFromCanvas(canvas: HTMLCanvasElement) {
   );
 
   const xrefOffset = byteLength;
-  append("xref\n0 6\n0000000000 65535 f \n");
+  append("xref\n0 6\n0000000000 65535 f\n");
   for (let id = 1; id <= 5; id += 1) {
-    append(`${String(offsets[id]).padStart(10, "0")} 00000 n \n`);
+    append(`${String(offsets[id]).padStart(10, "0")} 00000 n\n`);
   }
   append(
     `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`,

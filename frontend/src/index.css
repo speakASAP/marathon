@@ -4992,6 +4992,17 @@ a:hover {
   height: 48px;
 }
 
+.profile-awards-next .profile-payment-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 760px);
+}
+
+.profile-awards-next .profile-payment-actions .btn-profile-open,
+.profile-awards-next .profile-payment-actions .btn-profile-login {
+  width: 100%;
+}
+
 .profile-awards-next {
   margin-bottom: 24px;
   padding: 24px 28px;

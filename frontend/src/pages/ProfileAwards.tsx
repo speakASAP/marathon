@@ -100,6 +100,16 @@ function resolveAwardLanguageCopy(code: string) {
   };
 }
 
+function buildBasicCourseUrl(code: string) {
+  const normalized = code.toLowerCase().replace(/[^a-z]/g, '');
+  const courseCode = AWARD_LANGUAGE_ALIASES[normalized] || normalized || 'de';
+  const url = new URL(`https://speakasap.com/${courseCode}/`);
+  url.searchParams.set('utm_source', 'marathon');
+  url.searchParams.set('utm_medium', 'awards_next_step');
+  url.searchParams.set('utm_campaign', 'basic_20_week_course');
+  return url.toString();
+}
+
 async function loadImage(src: string): Promise<HTMLImageElement> {
   const image = new Image();
   image.src = src;
@@ -180,9 +190,9 @@ function buildPdfBlobFromCanvas(canvas: HTMLCanvasElement) {
   appendObject(5, `<< /Length ${encoder.encode(content).length} >>\nstream\n${content}endstream`);
 
   const xrefOffset = byteLength;
-  append('xref\n0 6\n0000000000 65535 f \n');
+  append('xref\n0 6\n0000000000 65535 f\n');
   for (let id = 1; id <= 5; id += 1) {
-    append(`${String(offsets[id]).padStart(10, '0')} 00000 n \n`);
+    append(`${String(offsets[id]).padStart(10, '0')} 00000 n\n`);
   }
   append(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`);
 
@@ -235,6 +245,7 @@ export default function ProfileAwards() {
   const medalCopy = medal ? MEDAL_COPY[medal] : null;
   const languageLabel = data ? formatLanguageLabel(data.languageCode) : '';
   const awardCopy = data ? resolveAwardLanguageCopy(data.languageCode) : resolveAwardLanguageCopy('');
+  const basicCourseUrl = data ? buildBasicCourseUrl(data.languageCode) : buildBasicCourseUrl('de');
   const certificateLanguage = awardCopy.dative;
   const finishedDate = data?.finished_at ? formatDate(data.finished_at) : '';
   const bookPrize = data?.prizes?.find((prize) => prize.kind === 'book') || null;
@@ -557,7 +568,7 @@ export default function ProfileAwards() {
         <p>{awardCopy.nextStep}</p>
         <div className="profile-payment-actions">
           <Link className="btn-profile-open" to="/register">Выбрать следующий марафон</Link>
-          <Link className="btn-profile-login" to="/reviews">Оставить отзыв</Link>
+          <a className="btn-profile-open" href={basicCourseUrl} target="_blank" rel="noreferrer">Записаться на курс</a>
         </div>
       </section>
     </main>
