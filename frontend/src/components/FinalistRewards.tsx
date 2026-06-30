@@ -123,7 +123,7 @@ function normalizeName(participant: FinalistParticipant) {
 }
 
 function certificateImage(medal: FinalistMedalKind | null) {
-  return `/img/certificates/${medal || "gold"}_en.png?v=20260630-clean-template`;
+  return `/img/certificates/${medal || "gold"}_en.png?v=20260630-seal`;
 }
 
 function formatCertificateLanguage(certificate: FinalistCertificate | null, marathonTitle: string) {

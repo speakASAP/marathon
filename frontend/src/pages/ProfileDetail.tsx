@@ -182,7 +182,7 @@ function formatCertificateDate(value: string) {
 }
 
 function certificateImage(medal: MedalKind) {
-  return `/img/certificates/${medal}_en.png?v=20260630-clean-template`;
+  return `/img/certificates/${medal}_en.png?v=20260630-seal`;
 }
 
 async function loadImage(src: string): Promise<HTMLImageElement> {

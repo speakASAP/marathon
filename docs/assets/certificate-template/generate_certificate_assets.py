@@ -127,9 +127,13 @@ def template_for(tone: str) -> Image.Image:
     d.line((160, 1054, 370, 1054), fill=pal['ink'], width=2)
     d.line((565, 1054, 766, 1054), fill=pal['ink'], width=2)
     seal = Image.open(SOURCE / LEGACY_SEAL).convert('RGBA')
-    seal_size = 96
+    seal_size = 148
     seal = seal.resize((seal_size, seal_size), Image.Resampling.LANCZOS)
-    img.alpha_composite(seal, ((W - seal_size) // 2, 1054 - seal_size // 2))
+    seal = ImageEnhance.Color(seal).enhance(1.2)
+    seal = ImageEnhance.Contrast(seal).enhance(1.15)
+    alpha = seal.getchannel('A').point(lambda value: min(255, int(value * 1.35)))
+    seal.putalpha(alpha)
+    img.alpha_composite(seal, ((W - seal_size) // 2, 1062 - seal_size // 2))
     return img
 
 
