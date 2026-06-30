@@ -76,6 +76,7 @@ export default function Winners() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [highlightedWinner, setHighlightedWinner] = useState<WinnerSummary | null>(null);
+  const [highlightedWinnerLoading, setHighlightedWinnerLoading] = useState(false);
 
   useEffect(() => {
     document.title = 'Медали финалистов языковых марафонов — SpeakASAP®';
@@ -103,15 +104,20 @@ export default function Winners() {
     let cancelled = false;
     if (!highlightedWinnerId) {
       setHighlightedWinner(null);
+      setHighlightedWinnerLoading(false);
       return;
     }
 
+    setHighlightedWinnerLoading(true);
     fetchWinnerDetail(highlightedWinnerId)
       .then((winner) => {
         if (!cancelled) setHighlightedWinner(winner);
       })
       .catch(() => {
         if (!cancelled) setHighlightedWinner(null);
+      })
+      .finally(() => {
+        if (!cancelled) setHighlightedWinnerLoading(false);
       });
 
     return () => {
@@ -120,14 +126,19 @@ export default function Winners() {
   }, [highlightedWinnerId]);
 
   const baseItems = data?.items || [];
-  const items = highlightedWinner ? [highlightedWinner, ...baseItems.filter((w) => w.id !== highlightedWinner.id)] : baseItems;
-  const hasLoadError = !loading && Boolean(loadError);
-  const hasLoadedEmptyState = !loading && !loadError && baseItems.length === 0 && !highlightedWinner;
+  const waitingForHighlightedWinner = Boolean(highlightedWinnerId && highlightedWinnerLoading);
+  const items = waitingForHighlightedWinner
+    ? []
+    : highlightedWinner
+      ? [highlightedWinner, ...baseItems.filter((w) => w.id !== highlightedWinner.id)]
+      : baseItems;
+  const hasLoadError = !loading && !highlightedWinnerLoading && Boolean(loadError);
+  const hasLoadedEmptyState = !loading && !highlightedWinnerLoading && !loadError && baseItems.length === 0 && !highlightedWinner;
 
   return (
     <div className="container page-winners">
       <h1>Медали финалистов языковых марафонов</h1>
-      {loading && items.length === 0 && <p>Загрузка…</p>}
+      {(loading || highlightedWinnerLoading) && items.length === 0 && <p>Загрузка…</p>}
       {hasLoadError && items.length === 0 && (
         <section className="profile-empty-panel" role="alert">
           <h2>Результаты финалистов временно недоступны</h2>
