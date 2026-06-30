@@ -11,6 +11,7 @@ import {
 } from '../api/profileMarathon';
 import { formatLanguageLabel } from '../languages';
 import { stripHeadingTerminalPeriod } from '../components/assignment/assignmentBlockNormalization';
+import { drawCertificateFields } from '../certificateRenderer';
 
 type MedalKind = 'gold' | 'silver' | 'bronze';
 type CertificateDownloadFormat = 'png' | 'jpeg' | 'pdf';
@@ -277,16 +278,11 @@ export default function ProfileAwards() {
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    context.fillStyle = '#806427';
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.font = '700 30px Georgia, serif';
-    context.fillText(participantName, canvas.width / 2, Math.round(canvas.height * 0.63), canvas.width * 0.72);
-    context.font = '500 22px Georgia, serif';
-    context.fillText('За успешный забег по', canvas.width / 2, Math.round(canvas.height * 0.68), canvas.width * 0.7);
-    context.fillText(`${certificateLanguage} языку`, canvas.width / 2, Math.round(canvas.height * 0.71), canvas.width * 0.7);
-    context.font = '500 18px Georgia, serif';
-    context.fillText(finishedDate, canvas.width / 2, Math.round(canvas.height * 0.775), canvas.width * 0.4);
+    drawCertificateFields(context, canvas, {
+      participantName,
+      languageDative: certificateLanguage,
+      finishedDate,
+    });
 
     return canvas;
   };

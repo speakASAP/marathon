@@ -123,7 +123,6 @@ export default function Home() {
           id="home-certificate-fallback"
           className="home-certificate-band"
           showStatus={false}
-          showMockDetails
           title="Что получает финалист"
           lead="После финиша марафона участник получает статус «Сертификат» и медальную версию сертификата по результату прохождения."
         />
@@ -253,7 +252,6 @@ export default function Home() {
         id="home-certificate"
         className="home-certificate-band"
         showStatus={false}
-        showMockDetails
         title="Что получает финалист"
         lead="После финиша марафона участник получает статус «Сертификат» и медальную версию сертификата по результату прохождения."
       />
