@@ -33,7 +33,7 @@ python3 docs/assets/certificate-template/generate_certificate_assets.py
 npm run build:frontend
 ```
 
-The generator creates three empty templates and three demo certificates with mock names. It uses the base certificate image and trophy cutouts in this directory.
+The generator creates three empty templates and three demo certificates with mock names. It uses the base certificate image, trophy cutouts, and the recovered legacy Marathon seal in this directory.
 
 ## User Certificate Generation
 
@@ -43,7 +43,7 @@ Real participant certificates are generated in the browser from the empty templa
 - marathon/language dative copy
 - finish date
 
-The signature is always `Елена Шипилова`; the site URL is always `spikasoft.com`. They are constants in the renderer, not caller-supplied variables.
+The signature is always `Елена Шипилова`; the site URL is always `speakasap.com`. They are constants in the renderer, not caller-supplied variables.
 
 `ProfileAwards.tsx` and `ProfileDetail.tsx` call this shared renderer before PNG/JPEG/PDF download or share. Do not add CSS text overlays to the certificate showcase; generate a PNG instead.
 
@@ -53,7 +53,7 @@ The signature is always `Елена Шипилова`; the site URL is always `s
 - Goal Impact: participant certificates should look like the supplied original diploma, not a newly invented design.
 - System: Marathon profile awards certificate generation.
 - Feature: medal-specific empty certificate templates and programmatic participant text overlay.
-- Task: generate gold, silver, and bronze templates plus homepage demo PNGs.
+- Task: generate gold, silver, and bronze templates plus homepage demo PNGs, preserving the recovered legacy Marathon seal between the signature/date lines.
 - Execution Plan: generate runtime templates, generate demo PNGs, use shared frontend canvas renderer for real users, and show demo PNGs on the homepage.
 - Coding Prompt: use the user-provided PNG-derived template as the canonical base.
 - Code: `generate_certificate_assets.py`, `frontend/src/certificateRenderer.ts`, and certificate runtime assets.

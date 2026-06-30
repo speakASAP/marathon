@@ -384,6 +384,7 @@ export default function ProfileDetail() {
   const [downloadingFormat, setDownloadingFormat] =
     useState<CertificateDownloadFormat | null>(null);
   const [sharingCertificate, setSharingCertificate] = useState(false);
+  const [certificatePreviewUrl, setCertificatePreviewUrl] = useState("");
   const [winnerLinkStatus, setWinnerLinkStatus] = useState("");
   const [certificateNameDraft, setCertificateNameDraft] = useState("");
   const [certificateNameEditing, setCertificateNameEditing] = useState(false);
@@ -447,6 +448,59 @@ export default function ProfileDetail() {
     data?.id,
     data?.certificate_name_confirmation.confirmedName,
     data?.certificate_name_confirmation.currentName,
+    profile?.displayName,
+    profile?.email,
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCertificatePreviewUrl("");
+
+    if (!data?.medal || !data.finished_at) return undefined;
+
+    const certificateNameConfirmation = data.certificate_name_confirmation;
+    const certificateNameConfirmed =
+      !certificateNameConfirmation.required || certificateNameConfirmation.confirmed;
+    if (!certificateNameConfirmed) return undefined;
+
+    const finishedDate = formatCertificateDate(data.finished_at);
+    const certificateLanguage = resolveAwardLanguageCopy(data.languageCode).dative;
+    const participantName =
+      data.certificate?.participantName || resolveParticipantName(profile);
+
+    loadImage(certificateImage(data.medal))
+      .then((image) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = image.naturalWidth || 620;
+        canvas.height = image.naturalHeight || 877;
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Canvas is not available");
+
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        drawCertificateFields(context, canvas, {
+          participantName,
+          languageDative: certificateLanguage,
+          finishedDate,
+        });
+
+        if (!cancelled) setCertificatePreviewUrl(canvas.toDataURL("image/png"));
+      })
+      .catch(() => {
+        if (!cancelled) setCertificatePreviewUrl("");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    data?.medal,
+    data?.finished_at,
+    data?.certificate?.participantName,
+    data?.certificate_name_confirmation.required,
+    data?.certificate_name_confirmation.confirmed,
+    data?.languageCode,
     profile?.displayName,
     profile?.email,
   ]);
@@ -964,6 +1018,7 @@ export default function ProfileDetail() {
             title: data.certificate?.title || undefined,
             subtitle: medal?.detail || undefined,
             languageLabel: awardCopy.dative,
+            previewImageUrl: certificatePreviewUrl || undefined,
           }}
           prizes={finalistPrizes}
           medal={data.medal}
@@ -973,6 +1028,56 @@ export default function ProfileDetail() {
           shareText={data.certificate?.shareText || shareText}
           onDownloadPdf={() => downloadCertificate("pdf")}
           onShare={shareCertificate}
+          certificateActions={(
+            <section
+              className="profile-finalist-details"
+              aria-label="Скачать диплом и поделиться результатом"
+            >
+              <div className="profile-finalist-details__actions">
+                <div>
+                  <h2>Скачать диплом и поделиться результатом</h2>
+                  <p>
+                    PDF подходит для печати и архива, PNG или JPEG удобно отправить
+                    в чат, Telegram, WhatsApp или соцсети.
+                  </p>
+                </div>
+                <div
+                  className="profile-certificate-downloads"
+                  aria-label="Скачать сертификат"
+                >
+                  {CERTIFICATE_DOWNLOAD_FORMATS.map(({ format, label }) => (
+                    <button
+                      key={format}
+                      type="button"
+                      className="btn-profile-open"
+                      onClick={() => downloadCertificate(format)}
+                      disabled={downloadingFormat !== null || sharingCertificate}
+                    >
+                      {downloadingFormat === format
+                        ? "Формируем..."
+                        : `Скачать ${label}`}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="btn-profile-login"
+                    onClick={shareCertificate}
+                    disabled={sharingCertificate || downloadingFormat !== null}
+                  >
+                    {sharingCertificate ? "Готовим..." : "Поделиться сертификатом"}
+                  </button>
+                </div>
+                {shareStatus && (
+                  <p
+                    className={`profile-certificate-share-status profile-certificate-share-status--${shareStatus.kind}`}
+                  >
+                    {shareStatus.message}
+                  </p>
+                )}
+                {downloadError && <p className="ml-error">{downloadError}</p>}
+              </div>
+            </section>
+          )}
         />
       )}
       {isFinished && certificateNameConfirmed && (
@@ -980,50 +1085,6 @@ export default function ProfileDetail() {
           className="profile-finalist-details"
           aria-label="Все призы финалиста"
         >
-          <div className="profile-finalist-details__actions">
-            <div>
-              <h2>Скачать диплом и поделиться результатом</h2>
-              <p>
-                PDF подходит для печати и архива, PNG или JPEG удобно отправить
-                в чат, Telegram, WhatsApp или соцсети.
-              </p>
-            </div>
-            <div
-              className="profile-certificate-downloads"
-              aria-label="Скачать сертификат"
-            >
-              {CERTIFICATE_DOWNLOAD_FORMATS.map(({ format, label }) => (
-                <button
-                  key={format}
-                  type="button"
-                  className="btn-profile-open"
-                  onClick={() => downloadCertificate(format)}
-                  disabled={downloadingFormat !== null || sharingCertificate}
-                >
-                  {downloadingFormat === format
-                    ? "Формируем..."
-                    : `Скачать ${label}`}
-                </button>
-              ))}
-              <button
-                type="button"
-                className="btn-profile-login"
-                onClick={shareCertificate}
-                disabled={sharingCertificate || downloadingFormat !== null}
-              >
-                {sharingCertificate ? "Готовим..." : "Поделиться сертификатом"}
-              </button>
-            </div>
-            {shareStatus && (
-              <p
-                className={`profile-certificate-share-status profile-certificate-share-status--${shareStatus.kind}`}
-              >
-                {shareStatus.message}
-              </p>
-            )}
-            {downloadError && <p className="ml-error">{downloadError}</p>}
-          </div>
-
           <div className="profile-awards-grid profile-finalist-details__grid">
             <article>
               <span className="profile-awards-card-icon">PDF</span>
@@ -1301,7 +1362,7 @@ export default function ProfileDetail() {
             >
               <div className="profile-step-main">
                 <div className="profile-step-heading">
-                  <span className="answer-title">Финиш. Точка награждения</span>
+                  <span className="answer-title">Награждение</span>
                   <span className="answer-state">{isFinished ? "Призы" : "Закрыто"}</span>
                 </div>
                 <span className="profile-step-meta">
@@ -1313,7 +1374,7 @@ export default function ProfileDetail() {
               {isFinished ? (
                 <Link
                   className="profile-step-action profile-awards-step-action"
-                  to={`/profile/${encodeURIComponent(data.id)}/awards`}
+                  to={`/profile/${encodeURIComponent(data.id)}#top`}
                 >
                   Открыть призы
                 </Link>

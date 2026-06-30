@@ -55,7 +55,7 @@ export function drawCertificateFields(
   context.fillText(`${input.languageDative} языку`, x(468), y(952), canvas.width * 0.66);
 
   context.font = `700 ${size(27)}px Georgia, "Times New Roman", serif`;
-  context.fillText(input.finishedDate, x(665), y(1040), canvas.width * 0.22);
+  context.fillText(input.finishedDate, x(665), y(1028), canvas.width * 0.22);
 
   context.font = `italic ${size(24)}px Georgia, "Times New Roman", serif`;
   context.textAlign = 'left';
@@ -63,7 +63,7 @@ export function drawCertificateFields(
 
   context.textAlign = 'center';
   context.font = `italic ${size(30)}px Georgia, "Times New Roman", serif`;
-  context.fillText(CERTIFICATE_SITE_URL, x(468), y(1162), canvas.width * 0.5);
+  context.fillText(CERTIFICATE_SITE_URL, x(468), y(1138), canvas.width * 0.5);
 
   context.restore();
 }

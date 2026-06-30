@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 export type FinalistMedalKind = 'gold' | 'silver' | 'bronze';
 
 export type FinalistParticipant = {
@@ -11,6 +13,7 @@ export type FinalistCertificate = {
   downloadPdfUrl?: string | null;
   verificationUrl?: string | null;
   languageLabel?: string | null;
+  previewImageUrl?: string | null;
 };
 
 export type FinalistPrize = {
@@ -40,6 +43,7 @@ export type FinalistRewardsProps = {
   className?: string;
   onDownloadPdf?: () => void;
   onShare?: () => void;
+  certificateActions?: ReactNode;
 };
 
 type MedalCopy = {
@@ -167,6 +171,7 @@ export default function FinalistRewards({
   className = '',
   onDownloadPdf,
   onShare,
+  certificateActions,
 }: FinalistRewardsProps) {
   const medalCopy = medal ? MEDAL_COPY[medal] : FALLBACK_MEDAL_COPY;
   const participantName = normalizeName(participant);
@@ -174,6 +179,8 @@ export default function FinalistRewards({
   const certificateTitle = certificate?.title?.trim() || medalCopy.diploma;
   const certificateSubtitle = certificate?.subtitle?.trim() || medalCopy.summary;
   const certificateLanguage = formatCertificateLanguage(certificate, marathonTitle);
+  const certificatePreviewUrl = certificate?.previewImageUrl?.trim();
+  const shouldRenderCertificateText = !certificatePreviewUrl;
   const resolvedShareText = shareText?.trim() || `${participantName} завершил(а) ${marathonTitle} и получил(а) ${medalCopy.prize}.`;
   const shareLinks = createShareLinks(shareUrl, resolvedShareText);
   const canDownloadPdf = Boolean(certificate?.downloadPdfUrl || onDownloadPdf);
@@ -243,10 +250,14 @@ export default function FinalistRewards({
 
         <article className="finalist-rewards__certificate" aria-label={certificateTitle}>
           <div className="finalist-rewards__paper">
-            <img src={certificateImage(medal)} alt={certificateTitle} width="936" height="1320" />
-            <span className="finalist-rewards__certificate-name">{participantName}</span>
-            <span className="finalist-rewards__certificate-language">{certificateLanguage}</span>
-            {finishedDate ? <span className="finalist-rewards__certificate-date">{finishedDate}</span> : null}
+            <img src={certificatePreviewUrl || certificateImage(medal)} alt={certificateTitle} width="936" height="1320" />
+            {shouldRenderCertificateText ? (
+              <>
+                <span className="finalist-rewards__certificate-name">{participantName}</span>
+                <span className="finalist-rewards__certificate-language">{certificateLanguage}</span>
+                {finishedDate ? <span className="finalist-rewards__certificate-date">{finishedDate}</span> : null}
+              </>
+            ) : null}
           </div>
           {certificate?.verificationUrl ? (
             <a className="finalist-rewards__verify" href={certificate.verificationUrl} target="_blank" rel="noreferrer">
@@ -255,6 +266,8 @@ export default function FinalistRewards({
           ) : null}
         </article>
       </div>
+
+      {certificateActions}
 
       <div className="finalist-rewards__prize-strip" aria-label="Ваши призы за успех">
         <h3><span aria-hidden="true">🎁</span> Ваши призы за успех</h3>

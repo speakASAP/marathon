@@ -3,22 +3,22 @@ from __future__ import annotations
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageEnhance, ImageFont
 
-ROOT = Path('/home/ssf/Documents/Github/marathon')
+ROOT = Path.cwd()
 SOURCE = ROOT / 'docs/assets/certificate-template'
 FRONTEND_CERTS = ROOT / 'frontend/public/img/certificates'
 PUBLIC_CERTS = ROOT / 'public/img/certificates'
 EXAMPLES = FRONTEND_CERTS / 'examples'
 PUBLIC_EXAMPLES = PUBLIC_CERTS / 'examples'
-DOC_TEMPLATES = SOURCE / "generated/templates"
-DOC_EXAMPLES = SOURCE / "generated/examples"
+DOC_TEMPLATES = SOURCE / 'generated/templates'
+DOC_EXAMPLES = SOURCE / 'generated/examples'
 W, H = 936, 1320
 CERTIFICATE_SIGNATURE = 'Елена Шипилова'
 CERTIFICATE_SITE_URL = 'speakasap.com'
+LEGACY_SEAL = 'legacy-marathon-seal.png'
 
 FONT_REG = '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf'
 FONT_BOLD = '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf'
 FONT_ITALIC = '/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf'
-FONT_BOLD_ITALIC = '/usr/share/fonts/truetype/liberation/LiberationSerif-BoldItalic.ttf'
 
 PALETTE = {
     'gold': {
@@ -52,26 +52,6 @@ def font(path: str, size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(path, size=size)
 
 
-def centered(draw: ImageDraw.ImageDraw, text: str, y: int, fnt: ImageFont.FreeTypeFont, fill, max_width: int | None = None, stroke_width: int = 0):
-    if max_width:
-        while fnt.size > 18 and draw.textlength(text, font=fnt) > max_width:
-            fnt = font(getattr(fnt, 'path', FONT_BOLD), fnt.size - 2) if hasattr(fnt, 'path') else fnt
-            break
-    box = draw.textbbox((0, 0), text, font=fnt, stroke_width=stroke_width)
-    x = (W - (box[2] - box[0])) / 2
-    draw.text((x, y), text, font=fnt, fill=fill, stroke_width=stroke_width, stroke_fill=(248, 242, 220, 150))
-
-
-def centered_at(draw: ImageDraw.ImageDraw, text: str, center_x: int, y: int, fnt: ImageFont.FreeTypeFont, fill, max_width: int | None = None, stroke_width: int = 0):
-    if max_width:
-        while fnt.size > 18 and draw.textlength(text, font=fnt) > max_width:
-            fnt = font(getattr(fnt, 'path', FONT_BOLD), fnt.size - 2) if hasattr(fnt, 'path') else fnt
-            break
-    box = draw.textbbox((0, 0), text, font=fnt, stroke_width=stroke_width)
-    x = center_x - (box[2] - box[0]) / 2
-    draw.text((x, y), text, font=fnt, fill=fill, stroke_width=stroke_width, stroke_fill=(248, 242, 220, 150))
-
-
 def fit_font(draw: ImageDraw.ImageDraw, text: str, font_path: str, size: int, max_width: int) -> ImageFont.FreeTypeFont:
     while size > 18:
         fnt = font(font_path, size)
@@ -79,6 +59,22 @@ def fit_font(draw: ImageDraw.ImageDraw, text: str, font_path: str, size: int, ma
             return fnt
         size -= 2
     return font(font_path, size)
+
+
+def centered(draw: ImageDraw.ImageDraw, text: str, y: int, fnt: ImageFont.FreeTypeFont, fill, max_width: int | None = None, stroke_width: int = 0):
+    if max_width:
+        fnt = fit_font(draw, text, getattr(fnt, 'path', FONT_BOLD), fnt.size, max_width)
+    box = draw.textbbox((0, 0), text, font=fnt, stroke_width=stroke_width)
+    x = (W - (box[2] - box[0])) / 2
+    draw.text((x, y), text, font=fnt, fill=fill, stroke_width=stroke_width, stroke_fill=(248, 242, 220, 150))
+
+
+def centered_at(draw: ImageDraw.ImageDraw, text: str, center_x: int, y: int, fnt: ImageFont.FreeTypeFont, fill, max_width: int | None = None, stroke_width: int = 0):
+    if max_width:
+        fnt = fit_font(draw, text, getattr(fnt, 'path', FONT_BOLD), fnt.size, max_width)
+    box = draw.textbbox((0, 0), text, font=fnt, stroke_width=stroke_width)
+    x = center_x - (box[2] - box[0]) / 2
+    draw.text((x, y), text, font=fnt, fill=fill, stroke_width=stroke_width, stroke_fill=(248, 242, 220, 150))
 
 
 def recolor_base(base: Image.Image, tone: str) -> Image.Image:
@@ -93,7 +89,6 @@ def recolor_base(base: Image.Image, tone: str) -> Image.Image:
             if a == 0:
                 continue
             mx, mn = max(r, g, b), min(r, g, b)
-            # Recolor gold/brown ornament and text while keeping parchment light.
             if mx - mn > 16 and not (r > 218 and g > 211 and b > 190):
                 lum = int(0.299 * r + 0.587 * g + 0.114 * b)
                 if lum < 96:
@@ -129,9 +124,12 @@ def template_for(tone: str) -> Image.Image:
     trophy = trophy.resize((trophy_w, int(trophy.height * trophy_w / trophy.width)), Image.Resampling.LANCZOS)
     img.alpha_composite(trophy, ((W - trophy.width) // 2, 548))
 
-    # Empty generation guides: keep the legacy signature/date rules visible without masking the ornament.
     d.line((160, 1054, 370, 1054), fill=pal['ink'], width=2)
     d.line((565, 1054, 766, 1054), fill=pal['ink'], width=2)
+    seal = Image.open(SOURCE / LEGACY_SEAL).convert('RGBA')
+    seal_size = 96
+    seal = seal.resize((seal_size, seal_size), Image.Resampling.LANCZOS)
+    img.alpha_composite(seal, ((W - seal_size) // 2, 1054 - seal_size // 2))
     return img
 
 
@@ -142,15 +140,15 @@ def draw_fields(img: Image.Image, tone: str, name: str, language_dative: str, da
     ink = pal['ink']
     stroke = (248, 242, 220, 160)
 
-    name_font = fit_font(d, name, FONT_BOLD, 58, int(W * 0.72))
+    name_font = fit_font(d, name, FONT_BOLD, 44, int(W * 0.68))
     box = d.textbbox((0, 0), name, font=name_font, stroke_width=1)
-    d.text(((W - (box[2] - box[0])) / 2, 830), name, font=name_font, fill=ink, stroke_width=1, stroke_fill=stroke)
+    d.text(((W - (box[2] - box[0])) / 2, 812), name, font=name_font, fill=ink, stroke_width=1, stroke_fill=stroke)
 
-    centered(d, 'За успешный забег по', 908, font(FONT_BOLD, 36), ink)
-    centered(d, f'{language_dative} языку', 952, font(FONT_BOLD, 36), ink)
-    d.text((165, 1024), CERTIFICATE_SIGNATURE, font=font(FONT_ITALIC, 29), fill=ink, stroke_width=1, stroke_fill=stroke)
-    centered_at(d, date, 665, 1038, font(FONT_BOLD, 32), ink, max_width=190)
-    centered(d, CERTIFICATE_SITE_URL, 1158, font(FONT_ITALIC, 36), ink, stroke_width=1)
+    centered(d, 'За успешный забег по', 895, font(FONT_BOLD, 30), ink)
+    centered(d, f'{language_dative} языку', 937, font(FONT_BOLD, 30), ink)
+    d.text((165, 1022), CERTIFICATE_SIGNATURE, font=font(FONT_ITALIC, 24), fill=ink, stroke_width=1, stroke_fill=stroke)
+    centered_at(d, date, 665, 1018, font(FONT_BOLD, 27), ink, max_width=190)
+    centered(d, CERTIFICATE_SITE_URL, 1132, font(FONT_ITALIC, 30), ink, stroke_width=1)
     return out
 
 
@@ -162,10 +160,12 @@ def main() -> None:
         template = template_for(tone)
         template.save(FRONTEND_CERTS / f'{tone}_en.png')
         template.save(PUBLIC_CERTS / f'{tone}_en.png')
+        template.save(DOC_TEMPLATES / f'{tone}_en.png')
         name, language, date = PALETTE[tone]['demo']
         demo = draw_fields(template, tone, name, language, date)
         demo.save(EXAMPLES / f'{tone}_demo.png')
         demo.save(PUBLIC_EXAMPLES / f'{tone}_demo.png')
+        demo.save(DOC_EXAMPLES / f'{tone}_demo.png')
 
     readme = '''# Certificate assets
 
