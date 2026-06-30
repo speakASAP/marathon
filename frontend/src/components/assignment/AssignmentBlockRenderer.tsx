@@ -23,6 +23,14 @@ function isLegacyChoiceTextLink(text: string, href: string) {
   return /^#choice-\d+$/i.test(href.trim()) && /^Текст\s+\d+\.?$/i.test(text.trim());
 }
 
+function isLegacyChoiceTextBlock(block: Extract<AssignmentBlock, { type: "text" }>) {
+  if (!/^Текст\s+\d+\.?$/i.test(block.text.trim())) return false;
+  return Boolean(
+    block.links?.some((link) => isLegacyChoiceTextLink(link.text, link.href))
+      || block.content?.some((run) => run.href && isLegacyChoiceTextLink(run.text, run.href)),
+  );
+}
+
 const SPEAKASAP_YOUTUBE_CHANNEL_URL = "https://www.youtube.com/@Speak_ASAP";
 const SPEAKASAP_YOUTUBE_VIEWS_CONTEXT = "миллионы просмотров на youtube";
 const SPEAKASAP_YOUTUBE_VIEWS_PREFIX = "миллионы просмотров на ";
@@ -236,6 +244,7 @@ function renderListItem(
 
 export function AssignmentBlockRenderer({ block, answers, readOnly, validationError, onAnswerChange, sourceValue }: AssignmentBlockRendererProps) {
   if (block.type === "text") {
+    if (isLegacyChoiceTextBlock(block)) return null;
     if (block.style === "heading") {
       return <h2 className="step-assignment-heading">{stripHeadingTerminalPeriod(block.text)}</h2>;
     }
