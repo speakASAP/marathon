@@ -6,6 +6,16 @@ import MarathonFooterLinks from './MarathonFooterLinks';
 import { clearToken, getLoginUrl, getToken } from '../auth';
 import { PUBLIC_MARATHON_LANGUAGES, formatLanguageFlag, formatLanguageLabel, formatLanguageOptionLabel, getMarathonLandingPathFromSlug } from '../languages';
 
+const MAIN_SITE_URL = 'https://speakasap.com';
+
+const LEGAL_LINKS = [
+  { href: `${MAIN_SITE_URL}/policy/`, label: 'Политика конфиденциальности' },
+  { href: `${MAIN_SITE_URL}/cookies/`, label: 'Политика использования cookie' },
+  { href: `${MAIN_SITE_URL}/refund/`, label: 'Политика возврата средств' },
+  { href: `${MAIN_SITE_URL}/terms/`, label: 'Условия использования' },
+  { href: `${MAIN_SITE_URL}/offerta/`, label: 'Договор оферта' },
+];
+
 function getCompletedCount(marathon: MyMarathonSummary) {
   return marathon.answers.filter((answer) => answer.state === 'completed' || answer.state === 'done' || answer.state === 'checked').length;
 }
@@ -301,9 +311,10 @@ export default function Layout() {
       <footer className="main-footer">
         <div className="container footer-inner">
           <div className="footer-col">
-            <p className="footer-company">Компания SpeakASAP®</p>
-            <p>Skopalikova 1144/11<br />615 00, Brno, Czech Republic</p>
+            <p className="footer-company">Alfares s.r.o.</p>
+            <p>IČ: 27138038<br />DIČ: CZ27138038<br />Cetechovice 70<br />PSČ 768 02</p>
             <p><a href="mailto:marathon@speakasap.com">marathon@speakasap.com</a></p>
+            <p><a href={MAIN_SITE_URL} target="_blank" rel="noopener noreferrer">speakasap.com</a></p>
           </div>
           <div className="footer-col footer-social">
             <a href="https://www.youtube.com/@Speak_ASAP?sub_confirmation=1" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i className="fa fa-youtube" /></a>
@@ -312,9 +323,13 @@ export default function Layout() {
             <a href="https://t.me/speak_ASAP" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i className="fa fa-telegram" /></a>
             <a href="https://instagram.com/shipilova_speakasap" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i className="fa fa-instagram" /></a>
           </div>
-          <div className="footer-col">
-            <a href="https://speakasap.com/policy/" target="_blank" rel="noopener noreferrer">Политика конфиденциальности</a>
-          </div>
+          <nav className="footer-col footer-legal" aria-label="Юридические документы SpeakASAP">
+            {LEGAL_LINKS.map((link) => (
+              <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer">
+                {link.label}
+              </a>
+            ))}
+          </nav>
           <MarathonFooterLinks className="footer-marathons" />
         </div>
         <div className="container footer-copy">
