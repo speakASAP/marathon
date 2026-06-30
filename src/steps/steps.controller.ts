@@ -1,12 +1,16 @@
-import { Controller, Get, Logger, NotFoundException, Param, Query, Req } from '@nestjs/common';
-import { Request } from 'express';
+import { Controller, Get, Logger, NotFoundException, Param, Query, Req, Res } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { StepsService, StepSummary } from './steps.service';
+import { RadioStreamService } from './radio-stream.service';
 
 @Controller('steps')
 export class StepsController {
   private readonly logger = new Logger(StepsController.name);
 
-  constructor(private readonly stepsService: StepsService) {}
+  constructor(
+    private readonly stepsService: StepsService,
+    private readonly radioStreamService: RadioStreamService,
+  ) {}
 
   @Get()
   async list(
@@ -18,6 +22,14 @@ export class StepsController {
       return [];
     }
     return this.stepsService.listByMarathonId(marathonId);
+  }
+
+  @Get('radio-stream')
+  async radioStream(
+    @Query('url') url: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    return this.radioStreamService.proxy(url, res);
   }
 
   @Get(':stepId')

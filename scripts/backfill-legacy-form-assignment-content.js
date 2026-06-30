@@ -123,7 +123,7 @@ const LEGACY_RADIOS = {
   german: [
     ['http://live.alternativefm.de/afm_128.mp3', 'Rock'],
     ['https://stream.lokalradio.nrw/444zchk', 'Radio Herne'],
-    ['http://br-mp3-b5aktuell-s.akacast.akamaistream.net/7/773/142694/v1/gnl.akacast.akamaistream.net/br_mp3_b5aktuell_s', 'B5 Aktuell'],
+    ['https://dispatcher.rndfnk.com/br/br24/live/mp3/mid', 'BR24'],
   ],
   english: [
     ['http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio5live_mf_p', 'BBC 5 Live'],

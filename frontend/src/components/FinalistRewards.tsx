@@ -53,21 +53,21 @@ type MedalCopy = {
 const MEDAL_COPY: Record<FinalistMedalKind, MedalCopy> = {
   gold: {
     title: 'Золотой финалист',
-    prize: 'Золотая медаль',
+    prize: 'золотая медаль',
     diploma: 'Золотой диплом финалиста',
     summary: 'Марафон завершен без потери темпа. Сертификат и призы готовы.',
     initial: 'G',
   },
   silver: {
     title: 'Серебряный финалист',
-    prize: 'Серебряная медаль',
+    prize: 'серебряная медаль',
     diploma: 'Серебряный диплом финалиста',
     summary: 'Марафон завершен с сильным результатом. Сертификат и призы готовы.',
     initial: 'S',
   },
   bronze: {
     title: 'Бронзовый финалист',
-    prize: 'Бронзовая медаль',
+    prize: 'бронзовая медаль',
     diploma: 'Бронзовый диплом финалиста',
     summary: 'Финиш зафиксирован. Сертификат и призы готовы в профиле.',
     initial: 'B',
@@ -125,23 +125,23 @@ function createShareLinks(shareUrl: string | null | undefined, shareText: string
   return [
     {
       id: 'telegram',
-      label: 'Telegram',
+      label: '✈',
       href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
     },
     {
       id: 'vk',
-      label: 'VK',
+      label: 'vk',
       href: `https://vk.com/share.php?url=${encodedUrl}&title=${encodedText}`,
     },
     {
       id: 'whatsapp',
-      label: 'WhatsApp',
+      label: '☘',
       href: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
     },
     {
-      id: 'email',
-      label: 'Email',
-      href: `mailto:?subject=${encodedText}&body=${encodedText}%0A${encodedUrl}`,
+      id: 'link',
+      label: '🔗',
+      href: shareUrl,
     },
   ];
 }
@@ -164,7 +164,6 @@ export default function FinalistRewards({
   const finishedDate = formatDate(finishedAt);
   const certificateTitle = certificate?.title?.trim() || medalCopy.diploma;
   const certificateSubtitle = certificate?.subtitle?.trim() || medalCopy.summary;
-  const languageLabel = certificate?.languageLabel?.trim() || 'языковому марафону';
   const resolvedShareText = shareText?.trim() || `${participantName} завершил(а) ${marathonTitle} и получил(а) ${medalCopy.prize}.`;
   const shareLinks = createShareLinks(shareUrl, resolvedShareText);
   const canDownloadPdf = Boolean(certificate?.downloadPdfUrl || onDownloadPdf);
@@ -186,54 +185,64 @@ export default function FinalistRewards({
 
   return (
     <section className={`finalist-rewards finalist-rewards--${medal || 'finalist'}${className ? ` ${className}` : ''}`}>
-      <div className="finalist-rewards__hero">
-        <div className="finalist-rewards__summary">
-          <p className="finalist-rewards__eyebrow">Финальный результат</p>
-          <h2>{medalCopy.title}</h2>
-          <p>{certificateSubtitle}</p>
-          <div className="finalist-rewards__actions">
-            {certificate?.downloadPdfUrl ? (
-              <a className="btn-profile-open" href={certificate.downloadPdfUrl} target="_blank" rel="noreferrer">
-                Скачать PDF
-              </a>
-            ) : (
-              <button type="button" className="btn-profile-open" onClick={onDownloadPdf} disabled={!canDownloadPdf}>
-                Скачать PDF
-              </button>
-            )}
-            <button type="button" className="btn-profile-login" onClick={handleShare} disabled={!shareUrl && !onShare}>
-              Поделиться
-            </button>
-          </div>
-        </div>
-
-        <div className="finalist-rewards__award" aria-label={medalCopy.prize}>
-          <div className="finalist-rewards__trophy" aria-hidden="true">
-            <span className="finalist-rewards__trophy-cup" />
-            <span className="finalist-rewards__trophy-stem" />
-            <span className="finalist-rewards__trophy-base" />
-          </div>
-          <span className={`medal-badge medal-badge--${medal || 'gold'}`}>
-            <span className="medal-badge__medal" aria-hidden="true">
-              <span className="medal-badge__ribbon" />
-              <span className="medal-badge__coin">{medalCopy.initial}</span>
-            </span>
-            <span className="medal-badge__label">{medalCopy.prize}</span>
+      <div className="finalist-rewards__main">
+        <div className="finalist-rewards__medal-stage" aria-hidden="true">
+          <span className="finalist-rewards__ribbon" />
+          <span className="finalist-rewards__laurel finalist-rewards__laurel--left" />
+          <span className="finalist-rewards__laurel finalist-rewards__laurel--right" />
+          <span className="finalist-rewards__confetti finalist-rewards__confetti--one" />
+          <span className="finalist-rewards__confetti finalist-rewards__confetti--two" />
+          <span className="finalist-rewards__medal-disc">
+            <span className="finalist-rewards__medal-stars">★ ★ ★</span>
+            <span className="finalist-rewards__medal-cup">♕</span>
           </span>
         </div>
-      </div>
 
-      <div className="finalist-rewards__body">
+        <div className="finalist-rewards__summary">
+          <h1><span aria-hidden="true">🎉</span> Марафон завершен</h1>
+          <h2>✨ {medalCopy.title} ✨</h2>
+          <p className="finalist-rewards__prize-line">🥇 Ваш приз: {medalCopy.prize.toLowerCase()}</p>
+          <p className="finalist-rewards__summary-text">{certificateSubtitle}</p>
+          <div className="finalist-rewards__actions">
+            {certificate?.downloadPdfUrl ? (
+              <a className="btn-profile-open finalist-rewards__primary-action" href={certificate.downloadPdfUrl} target="_blank" rel="noreferrer">
+                <span aria-hidden="true">↓</span> Скачать PDF
+              </a>
+            ) : (
+              <button type="button" className="btn-profile-open finalist-rewards__primary-action" onClick={onDownloadPdf} disabled={!canDownloadPdf}>
+                <span aria-hidden="true">↓</span> Скачать PDF
+              </button>
+            )}
+            <button type="button" className="btn-profile-login finalist-rewards__secondary-action" onClick={handleShare} disabled={!shareUrl && !onShare}>
+              <span aria-hidden="true">⌯</span> Поделиться
+            </button>
+          </div>
+          {shareLinks.length > 0 ? (
+            <div className="finalist-rewards__socials" aria-label="Поделиться в соцсетях">
+              <span>Поделиться в соцсетях</span>
+              <div className="finalist-rewards__social-links">
+                {shareLinks.map((link) => (
+                  <a key={link.id} className={`finalist-rewards__social finalist-rewards__social--${link.id}`} href={link.href} target="_blank" rel="noreferrer">
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
         <article className="finalist-rewards__certificate" aria-label={certificateTitle}>
           <div className="finalist-rewards__paper">
-            <span className="finalist-rewards__seal" aria-hidden="true">{medalCopy.initial}</span>
-            <p className="finalist-rewards__certificate-kicker">SpeakASAP Marathon</p>
-            <h3>{certificateTitle}</h3>
+            <span className="finalist-rewards__certificate-corner finalist-rewards__certificate-corner--tl" aria-hidden="true" />
+            <span className="finalist-rewards__certificate-corner finalist-rewards__certificate-corner--br" aria-hidden="true" />
+            <h3>Сертификат SpeakASAP</h3>
+            <span className="finalist-rewards__ornament" aria-hidden="true" />
+            <p className="finalist-rewards__certificate-kicker">подтверждает, что</p>
             <p className="finalist-rewards__certificate-name">{participantName}</p>
-            <p className="finalist-rewards__certificate-text">
-              За успешное завершение марафона «{marathonTitle}» по {languageLabel}
-            </p>
-            {finishedDate ? <p className="finalist-rewards__certificate-date">{finishedDate}</p> : null}
+            <p className="finalist-rewards__certificate-text">подтверждает участие в языковом марафоне SpeakASAP</p>
+            <p className="finalist-rewards__certificate-language">🏁 {marathonTitle}</p>
+            {finishedDate ? <p className="finalist-rewards__certificate-date">Дата завершения: {finishedDate}</p> : null}
+            <span className="finalist-rewards__seal" aria-hidden="true">{medalCopy.initial}</span>
             {certificate?.verificationUrl ? (
               <a className="finalist-rewards__verify" href={certificate.verificationUrl} target="_blank" rel="noreferrer">
                 Проверить сертификат
@@ -241,38 +250,24 @@ export default function FinalistRewards({
             ) : null}
           </div>
         </article>
+      </div>
 
-        <div className="finalist-rewards__side">
-          <section className="finalist-rewards__prizes" aria-label="Призы и скидки финалиста">
-            <h3>Призы и скидки</h3>
-            <ul>
-              {prizes.map((prize) => (
-                <li key={prize.id}>
-                  <span className="finalist-rewards__prize-badge" aria-hidden="true">{prize.badge || '•'}</span>
-                  <span>
-                    <strong>{prize.title}</strong>
-                    <small>{prize.description}</small>
-                    {prize.actionHref && prize.actionLabel ? (
-                      <a href={prize.actionHref} target="_blank" rel="noreferrer">{prize.actionLabel}</a>
-                    ) : null}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-          {shareLinks.length > 0 ? (
-            <section className="finalist-rewards__share" aria-label="Поделиться результатом">
-              <h3>Поделиться</h3>
-              <div className="finalist-rewards__share-links">
-                {shareLinks.map((link) => (
-                  <a key={link.id} href={link.href} target="_blank" rel="noreferrer">
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            </section>
-          ) : null}
-        </div>
+      <div className="finalist-rewards__prize-strip" aria-label="Ваши призы за успех">
+        <h3><span aria-hidden="true">🎁</span> Ваши призы<br />за успех</h3>
+        <ul>
+          {prizes.map((prize) => (
+            <li key={prize.id}>
+              <span className="finalist-rewards__prize-badge" aria-hidden="true">{prize.badge || '★'}</span>
+              <span>
+                <strong>{prize.title}</strong>
+                <small>{prize.description}</small>
+                {prize.actionHref && prize.actionLabel ? (
+                  <a href={prize.actionHref} target="_blank" rel="noreferrer">{prize.actionLabel}</a>
+                ) : null}
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

@@ -201,6 +201,7 @@ export default function ProfileAwards() {
   const [shareStatus, setShareStatus] = useState<{ kind: ShareStatusKind; message: string } | null>(null);
   const [downloadingFormat, setDownloadingFormat] = useState<CertificateDownloadFormat | null>(null);
   const [sharingCertificate, setSharingCertificate] = useState(false);
+  const [winnerLinkStatus, setWinnerLinkStatus] = useState('');
   useEffect(() => {
     if (!marathonerId) return;
     setLoading(true);
@@ -240,6 +241,8 @@ export default function ProfileAwards() {
   const discountPrize = data?.prizes?.find((prize) => prize.kind === 'discount') || null;
   const discountValidUntil = discountPrize?.validUntil ? formatDate(discountPrize.validUntil) : '';
   const shareUrl = data ? `${window.location.origin}/profile/${encodeURIComponent(data.id)}/awards` : window.location.href;
+  const finalistProfilePath = data?.certificate?.winnerUrlHint || '/winners';
+  const finalistProfileUrl = data ? `${window.location.origin}${finalistProfilePath}` : window.location.href;
   const shareText = data
     ? `Я завершил(а) ${stripHeadingTerminalPeriod(data.title)} и получил(а) сертификат SpeakASAP.`
     : 'Мой сертификат SpeakASAP готов.';
@@ -346,6 +349,20 @@ export default function ProfileAwards() {
     } finally {
       window.setTimeout(() => setSharingCertificate(false), SHARE_FALLBACK_DELAY_MS);
     }
+  };
+
+  const copyFinalistProfileLink = async () => {
+    setWinnerLinkStatus('');
+    try {
+      await navigator.clipboard?.writeText(finalistProfileUrl);
+      setWinnerLinkStatus('Ссылка на ваш профиль финалиста скопирована.');
+    } catch {
+      setWinnerLinkStatus('Скопируйте ссылку из адресной строки после открытия профиля.');
+    }
+
+    window.setTimeout(() => {
+      setWinnerLinkStatus('');
+    }, 5000);
   };
 
   if (loading) {
@@ -516,12 +533,22 @@ export default function ProfileAwards() {
           <span className="profile-awards-card-icon">🏆</span>
           <h2>Кубок и медаль финалиста</h2>
           <p>
-            Ваш результат сохранен в профиле и в списке финалистов по марафону: {languageLabel}.
-            Это ваша медаль за путь, который вы прошли до конца.
+            Ваш результат сохранен в списке финалистов по марафону: {languageLabel}. Откройте
+            персональную ссылку, чтобы увидеть себя самым первым среди финалистов, со своими
+            медалями и фотографией из профиля.
           </p>
-          <Link className="btn-profile-open" to="/winners">
-            Посмотреть финалистов
-          </Link>
+          <p className="profile-awards-profile-link">
+            Ссылка на ваш профиль финалиста: <span>{finalistProfileUrl}</span>
+          </p>
+          <div className="profile-awards-card-actions">
+            <Link className="btn-profile-open" to={finalistProfilePath}>
+              Посмотреть меня среди финалистов
+            </Link>
+            <button type="button" className="btn-profile-login" onClick={copyFinalistProfileLink}>
+              Скопировать ссылку
+            </button>
+          </div>
+          {winnerLinkStatus ? <p className="profile-awards-link-status">{winnerLinkStatus}</p> : null}
         </article>
       </section>
 

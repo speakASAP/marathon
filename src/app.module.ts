@@ -24,7 +24,7 @@ import { AdminModule } from './admin/admin.module';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
       serveRoot: '/',
-      exclude: ['/api', '/health', '/info'],
+      exclude: ['/api', '/health', '/info', '/winners', '/winners/(.*)'],
     }),
     MarathonsModule,
     RegistrationsModule,

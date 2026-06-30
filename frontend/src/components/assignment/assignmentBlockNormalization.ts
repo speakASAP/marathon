@@ -515,6 +515,27 @@ function isFinalMarathonFeedbackIntro(text: string) {
   return /^Нам очень интересно все, что происходило с вами за это время, а именно:?$/i.test(text.trim());
 }
 
+function isStandaloneBookTitle(block: AssignmentBlock | undefined): block is TextBlock {
+  return block?.type === "text" && /^Джон К[еэ]хо[\s“"]+Подсознание может вс[её][”"]?\.?$/i.test(block.text.trim());
+}
+
+function finalGoalBookIntro(block: TextBlock, titleBlock: TextBlock): TextBlock {
+  const bookTitle = "Джон Кехо, Подсознание может всё";
+  const introText = block.text.replace(/[\s.]+$/u, "");
+
+  return {
+    ...block,
+    text: introText + " " + bookTitle + ".",
+    content: [
+      { text: introText + " " },
+      { text: bookTitle, marks: ["strong"] },
+      { text: "." },
+    ],
+    links: undefined,
+    ...(titleBlock.branch && !block.branch ? { branch: titleBlock.branch } : {}),
+  };
+}
+
 function ensureAtLeastOneRequiredField(blocks: AssignmentBlock[]): AssignmentBlock[] {
   const firstFieldIndex = blocks.findIndex((block) => block.type === "field");
   if (firstFieldIndex < 0) return blocks;
@@ -583,6 +604,15 @@ export function decorateBlocks(blocks: AssignmentBlock[]): AssignmentBlock[] {
         decorated.push({ ...block, text: lead, links: undefined });
         decorated.push({ id: `${block.id}-german-adjective-links`, type: "list", items });
         index += 2;
+        continue;
+      }
+    }
+
+    if (block.type === "text" && /^Я рекомендую вам прочитать ее\. Книга называется\.?$/i.test(block.text.trim())) {
+      const next = blocks[index + 1];
+      if (isStandaloneBookTitle(next)) {
+        decorated.push(finalGoalBookIntro(block, next));
+        index += 1;
         continue;
       }
     }

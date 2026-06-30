@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AssignmentBlock, AssignmentInlineRun } from "../../api/assignmentMarathon";
 import { ensureTerminalPunctuation, isReadingRulesTitle, stripHeadingTerminalPeriod } from "./assignmentBlockNormalization";
 import { AssignmentFieldRenderer } from "./AssignmentFieldRenderer";
@@ -11,16 +12,25 @@ type AssignmentBlockRendererProps = {
   readOnly: boolean;
   validationError?: string;
   onAnswerChange: (name: string, value: AnswerValue) => void;
+  sourceValue?: AnswerValue;
 };
 
 function isDownloadHref(href: string) {
   return /\.(?:pdf|zip|docx?|xlsx?|pptx?|mp3|mp4|wav|ogg)(?:[?#]|$)/i.test(href);
 }
 
+function isLegacyChoiceTextLink(text: string, href: string) {
+  return /^#choice-\d+$/i.test(href.trim()) && /^Текст\s+\d+\.?$/i.test(text.trim());
+}
+
 const SPEAKASAP_YOUTUBE_CHANNEL_URL = "https://www.youtube.com/@Speak_ASAP";
 const SPEAKASAP_YOUTUBE_VIEWS_CONTEXT = "миллионы просмотров на youtube";
 const SPEAKASAP_YOUTUBE_VIEWS_PREFIX = "миллионы просмотров на ";
 const SPEAKASAP_YOUTUBE_LINK_TEXT = "youtube";
+const BR24_STREAM_URL = "https://dispatcher.rndfnk.com/br/br24/live/mp3/mid";
+
+type RadioBlock = Extract<AssignmentBlock, { type: "radio" }>;
+type RadioStation = RadioBlock["stations"][number];
 
 type InlineLink = {
   text: string;
@@ -32,7 +42,7 @@ function inlineLinksForText(text: string, links?: Array<{ text: string; href: st
   const configuredLinks: InlineLink[] = [];
   let searchFrom = 0;
   for (const link of links || []) {
-    if (!link.text || !link.href) continue;
+    if (!link.text || !link.href || isLegacyChoiceTextLink(link.text, link.href)) continue;
     let index = text.indexOf(link.text, searchFrom);
     if (index < 0) index = text.indexOf(link.text);
     if (index < 0) continue;
@@ -60,6 +70,67 @@ function inlineLinksForText(text: string, links?: Array<{ text: string; href: st
   return configuredLinks.sort((a, b) => a.index - b.index);
 }
 
+function normalizeRadioStation(station: RadioStation): RadioStation {
+  const legacyLabel = /^(?:B5|P5)\s+Aktuell$/i.test(station.label.trim());
+  const legacyUrl = /b5aktuell|br_mp3_b5aktuell/i.test(station.url);
+  if (legacyLabel || legacyUrl) return { label: "BR24", url: BR24_STREAM_URL };
+  return station;
+}
+
+function radioStreamSourceUrl(url: string) {
+  return `/api/v1/steps/radio-stream?url=${encodeURIComponent(url)}`;
+}
+
+function uniqueRadioStations(stations: RadioStation[]) {
+  const seen = new Set<string>();
+  return stations.map(normalizeRadioStation).filter((station) => {
+    const key = station.url.trim().toLowerCase();
+    if (!station.label.trim() || !key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function RadioAssignmentBlock({ block }: { block: RadioBlock }) {
+  const stations = useMemo(() => uniqueRadioStations(block.stations), [block.stations]);
+  const [selectedUrl, setSelectedUrl] = useState(() => stations[0]?.url || "");
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (!stations.length) return;
+    if (!stations.some((station) => station.url === selectedUrl)) setSelectedUrl(stations[0].url);
+  }, [selectedUrl, stations]);
+
+  useEffect(() => {
+    audioRef.current?.load();
+  }, [selectedUrl]);
+
+  const selectedStation = stations.find((station) => station.url === selectedUrl) || stations[0];
+  if (!selectedStation) return null;
+
+  return (
+    <section className="step-radio-block" aria-label={block.title || "Радио"}>
+      {block.title && <strong>{ensureTerminalPunctuation(block.title)}</strong>}
+      <div className="step-radio-stations" role="list" aria-label="Выбор радиостанции">
+        {stations.map((station, index) => {
+          const active = station.url === selectedStation.url;
+          return (
+            <button
+              className={active ? "step-radio-station is-active" : "step-radio-station"}
+              key={`${block.id}-${index}`}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setSelectedUrl(station.url)}
+            >
+              {station.label}
+            </button>
+          );
+        })}
+      </div>
+      <audio ref={audioRef} controls preload="none" src={radioStreamSourceUrl(selectedStation.url)} />
+    </section>
+  );
+}
 function renderRichRun(run: AssignmentInlineRun, key: string) {
   const classNames = [
     run.marks?.includes("strong") ? "step-rich-strong" : "",
@@ -67,7 +138,7 @@ function renderRichRun(run: AssignmentInlineRun, key: string) {
     run.tone ? `step-rich-${run.tone}` : "",
   ].filter(Boolean).join(" ");
   const body = <span className={classNames || undefined}>{run.text}</span>;
-  if (!run.href) return <span key={key}>{body}</span>;
+  if (!run.href || isLegacyChoiceTextLink(run.text, run.href)) return <span key={key}>{body}</span>;
   return <a className="step-assignment-link" href={run.href} key={key} target="_blank" rel="noopener noreferrer">{body}</a>;
 }
 
@@ -163,7 +234,7 @@ function renderListItem(
   );
 }
 
-export function AssignmentBlockRenderer({ block, answers, readOnly, validationError, onAnswerChange }: AssignmentBlockRendererProps) {
+export function AssignmentBlockRenderer({ block, answers, readOnly, validationError, onAnswerChange, sourceValue }: AssignmentBlockRendererProps) {
   if (block.type === "text") {
     if (block.style === "heading") {
       return <h2 className="step-assignment-heading">{stripHeadingTerminalPeriod(block.text)}</h2>;
@@ -210,25 +281,10 @@ export function AssignmentBlockRenderer({ block, answers, readOnly, validationEr
     );
   }
 
-  if (block.type === "radio") {
-    const firstStation = block.stations[0];
-    if (!firstStation) return null;
-    return (
-      <section className="step-radio-block" aria-label={block.title || "Радио"}>
-        {block.title && <strong>{ensureTerminalPunctuation(block.title)}</strong>}
-        <div className="step-radio-stations">
-          {block.stations.map((station, index) => (
-            <a className={index === 0 ? "step-radio-station is-active" : "step-radio-station"} href={station.url} key={`${block.id}-${index}`} target="_blank" rel="noopener noreferrer">
-              {station.label}
-            </a>
-          ))}
-        </div>
-        <audio controls preload="none" src={firstStation.url} />
-      </section>
-    );
-  }
+  if (block.type === "radio") return <RadioAssignmentBlock block={block} />;
 
   if (block.type === "link") {
+    if (isLegacyChoiceTextLink(block.text, block.href)) return null;
     const isDownload = Boolean(block.download && isDownloadHref(block.href));
     return (
       <p className={isDownload ? "step-assignment-link-row is-download" : "step-assignment-link-row"}>
@@ -241,7 +297,7 @@ export function AssignmentBlockRenderer({ block, answers, readOnly, validationEr
   }
 
   if (block.type === "knownWords") {
-    return <KnownWordsBlock block={block} onChange={onAnswerChange} readOnly={readOnly} value={answers[block.name]} />;
+    return <KnownWordsBlock block={block} onChange={onAnswerChange} readOnly={readOnly} sourceValue={sourceValue} value={answers[block.name]} />;
   }
 
   if (block.type === "image") {

@@ -199,6 +199,15 @@ function normalizeInlineContent(value: unknown): AssignmentInlineRun[] {
     .filter((run): run is AssignmentInlineRun => Boolean(run));
 }
 
+const BR24_STREAM_URL = 'https://dispatcher.rndfnk.com/br/br24/live/mp3/mid';
+
+function normalizeRadioStation(station: AssignmentRadioStation): AssignmentRadioStation {
+  const legacyLabel = /^(?:B5|P5)\s+Aktuell$/i.test(station.label.trim());
+  const legacyUrl = /b5aktuell|br_mp3_b5aktuell/i.test(station.url);
+  if (legacyLabel || legacyUrl) return { label: 'BR24', url: BR24_STREAM_URL };
+  return station;
+}
+
 function normalizeRadioStations(value: unknown): AssignmentRadioStation[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -207,7 +216,7 @@ function normalizeRadioStations(value: unknown): AssignmentRadioStation[] {
       const label = cleanString(station.label);
       const url = cleanString(station.url);
       if (!label || !/^https?:\/\//i.test(url)) return null;
-      return { label, url };
+      return normalizeRadioStation({ label, url });
     })
     .filter((station): station is AssignmentRadioStation => Boolean(station));
 }

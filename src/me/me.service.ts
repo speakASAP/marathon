@@ -29,6 +29,7 @@ export type MyMarathonCertificate = {
   title: string;
   shareText: string;
   shareUrlHint: string;
+  winnerUrlHint: string | null;
   downloadUrlHint: string;
   imageUrlHint: string;
   generatedOnRead: true;
@@ -228,21 +229,34 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly prisma: PrismaService) {}
 
   async getUserProfile(userId: string): Promise<MarathonUserProfileSettings> {
-    const [profile, participant] = await Promise.all([
+    const [profile, participant, participantWithPhone] = await Promise.all([
       this.prisma.marathonUserProfile.findUnique({ where: { userId } }),
       this.prisma.marathonParticipant.findFirst({
         where: { userId },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         select: { name: true, email: true, phone: true },
+      }),
+      this.prisma.marathonParticipant.findFirst({
+        where: {
+          userId,
+          AND: [
+            { phone: { not: null } },
+            { phone: { not: "" } },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+        select: { phone: true },
       }),
     ]);
 
+    const participantPhone = participant?.phone?.trim() || participantWithPhone?.phone?.trim() || "";
+
     return {
-      displayName: profile?.displayName || participant?.name || '',
-      email: participant?.email || '',
-      phone: participant?.phone || '',
-      avatarUrl: profile?.avatarUrl || '',
-      bio: profile?.bio || '',
+      displayName: profile?.displayName || participant?.name || "",
+      email: participant?.email || "",
+      phone: participantPhone,
+      avatarUrl: profile?.avatarUrl || "",
+      bio: profile?.bio || "",
     };
   }
 
@@ -404,7 +418,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       reconciledParticipants.push(await this.reconcileCompletedParticipant(participant));
     }
 
-    return reconciledParticipants.map((participant) => this.mapToMyMarathon(participant));
+    return Promise.all(reconciledParticipants.map((participant) => this.mapToMyMarathon(participant)));
   }
 
   async getMarathonById(userId: string, marathonerId: string): Promise<MyMarathon | null> {
@@ -998,7 +1012,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     return participant.marathon.steps.find((step: any) => !completedStepIds.has(step.id)) || null;
   }
 
-  private mapToMyMarathon(participant: any): MyMarathon {
+  private async mapToMyMarathon(participant: any): Promise<MyMarathon> {
     const marathon = participant.marathon;
     const steps = marathon.steps;
     const submissions = participant.submissions;
@@ -1025,8 +1039,9 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     const medal = this.getParticipantMedal(participant, steps);
     const finishedAt = participant.finishedAt ? participant.finishedAt.toISOString() : null;
     const certificateNameConfirmation = this.buildCertificateNameConfirmation(participant, Boolean(medal && finishedAt));
+    const winnerUrlHint = medal && finishedAt ? await this.resolveWinnerUrlHint(participant) : null;
     const certificate = medal && finishedAt && certificateNameConfirmation.confirmed
-      ? this.buildCertificatePayload(participant, marathon, medal, finishedAt)
+      ? this.buildCertificatePayload(participant, marathon, medal, finishedAt, winnerUrlHint)
       : null;
 
     return {
@@ -1054,7 +1069,28 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
   }
 
 
-  private buildCertificatePayload(participant: any, marathon: any, medal: MarathonMedal, finishedAt: string): MyMarathonCertificate {
+  private async resolveWinnerUrlHint(participant: any): Promise<string | null> {
+    if (!participant.userId) {
+      return null;
+    }
+
+    const winner = await this.prisma.marathonWinner.findFirst({
+      where: {
+        userId: participant.userId,
+        OR: [
+          { goldCount: { gt: 0 } },
+          { silverCount: { gt: 0 } },
+          { bronzeCount: { gt: 0 } },
+        ],
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+
+    return winner ? `/winners?me=${encodeURIComponent(winner.id)}` : null;
+  }
+
+  private buildCertificatePayload(participant: any, marathon: any, medal: MarathonMedal, finishedAt: string, winnerUrlHint: string | null): MyMarathonCertificate {
     const participantName = this.resolveConfirmedCertificateName(participant) || this.resolveParticipantDisplayName(participant);
     const awardsPath = `/profile/${encodeURIComponent(participant.id)}/awards`;
     const title = `${this.formatMedalLabel(medal)} сертификат финалиста`;
@@ -1071,6 +1107,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       title,
       shareText: `${participantName} завершил(а) ${marathon.title} и получил(а) ${title.toLowerCase()}.`,
       shareUrlHint: awardsPath,
+      winnerUrlHint,
       downloadUrlHint: `${awardsPath}?download=certificate`,
       imageUrlHint: `/img/certificates/${medal}_en.png`,
       generatedOnRead: true,

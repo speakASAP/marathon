@@ -1,4 +1,4 @@
-import { AssignmentBlock, AssignmentBranch, AssignmentFieldBlock } from './assignment-blocks';
+import { AssignmentBlock, AssignmentBranch, AssignmentFieldBlock, AssignmentKnownWordsBlock } from './assignment-blocks';
 
 export type AssignmentLevel = 'beginner' | 'medium' | 'advanced' | null;
 export type AssignmentPayload = Record<string, unknown>;
@@ -75,6 +75,51 @@ function stringifyPublicPayloadValue(name: string, value: unknown, choices: Arra
     return stripLegacyHtml(text);
   }
   return stripLegacyHtml(text);
+}
+
+function splitKnownWordTokens(text: string): string[] {
+  return text.split(/(\s+)/).filter((token) => token.length > 0);
+}
+
+function normalizeKnownWordToken(token: string): string {
+  return stripLegacyHtml(token)
+    .replace(/^[\s.,!?;:()[\]{}"'«»“”„]+|[\s.,!?;:()[\]{}"'«»“”„]+$/gu, '')
+    .trim();
+}
+
+function knownWordTokenByKey(block: AssignmentKnownWordsBlock, value: string): string {
+  const keyMatch = value.match(/^(\d+):(\d+):([\s\S]+)$/);
+  if (!keyMatch) return normalizeKnownWordToken(value);
+
+  const paragraphIndex = Number(keyMatch[1]);
+  const tokenIndex = Number(keyMatch[2]);
+  const fallbackToken = keyMatch[3];
+  const paragraph = block.paragraphs[paragraphIndex];
+  const token = typeof paragraph === 'string'
+    ? splitKnownWordTokens(paragraph)[tokenIndex] || fallbackToken
+    : fallbackToken;
+  return normalizeKnownWordToken(token);
+}
+
+function stringifyKnownWordsPayloadValue(block: AssignmentKnownWordsBlock, value: unknown): string {
+  const values = Array.isArray(value) ? value : (typeof value === 'string' ? [value] : []);
+  const words = values
+    .map((item) => knownWordTokenByKey(block, String(item)))
+    .filter(Boolean);
+
+  return Array.from(new Set(words)).join(', ');
+}
+
+function visibleKnownWordsBlocks(
+  blocks: AssignmentBlock[],
+  payload: AssignmentPayload,
+): AssignmentKnownWordsBlock[] {
+  const level = resolveAssignmentPayloadLevel(blocks, payload);
+  return flattenAssignmentBlocks(blocks).filter((block): block is AssignmentKnownWordsBlock => (
+    block.type === 'knownWords'
+    && assignmentBranchVisible(block.branch, level)
+    && Object.prototype.hasOwnProperty.call(payload, block.name)
+  ));
 }
 
 function inlineBlankCount(label: string): number {
@@ -301,7 +346,20 @@ export function generateAssignmentReportRows(
       : { id: block.id || block.name, question: block.label.trim(), answer: value });
   }
 
+  const visibleKnownWords = visibleKnownWordsBlocks(blocks, payload);
+  const visibleKnownWordNames = new Set(visibleKnownWords.map((block) => block.name));
+  for (const block of visibleKnownWords) {
+    const value = stringifyKnownWordsPayloadValue(block, payload[block.name]);
+    if (!value) continue;
+    rows.push({
+      id: block.id || block.name,
+      question: block.label?.trim() || 'Какие новые слова вы выделили в тексте?',
+      answer: value,
+    });
+  }
+
   for (const entry of legacyPublicAssignmentFields(payload, visibleFields)) {
+    if (visibleKnownWordNames.has(entry.name)) continue;
     if (!entry.value) continue;
     rows.push({
       id: entry.name,
@@ -332,7 +390,16 @@ export function filterAssignmentPayloadForPublicReport(
     filtered[block.name] = value;
   }
 
+  const visibleKnownWords = visibleKnownWordsBlocks(blocks, payload);
+  const visibleKnownWordNames = new Set(visibleKnownWords.map((block) => block.name));
+  for (const block of visibleKnownWords) {
+    const value = stringifyKnownWordsPayloadValue(block, payload[block.name]);
+    if (!value) continue;
+    filtered[block.name] = value;
+  }
+
   for (const entry of legacyPublicAssignmentFields(payload, visibleFields)) {
+    if (visibleKnownWordNames.has(entry.name)) continue;
     if (!entry.value) continue;
     filtered[entry.name] = entry.value;
   }

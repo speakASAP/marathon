@@ -18,6 +18,7 @@ type StepAssignmentRendererProps = {
   blocks?: AssignmentBlock[] | null;
   fallbackContent?: string;
   initialPayload?: SubmissionPayload;
+  knownWordsSourcePayload?: SubmissionPayload;
   readOnly?: boolean;
   validationAttempted?: boolean;
   invalidFieldNames?: string[];
@@ -46,6 +47,7 @@ export default function StepAssignmentRenderer({
   blocks,
   fallbackContent,
   initialPayload,
+  knownWordsSourcePayload,
   readOnly = false,
   validationAttempted = false,
   invalidFieldNames = [],
@@ -110,6 +112,7 @@ export default function StepAssignmentRenderer({
               block={block}
               onAnswerChange={updateAnswer}
               readOnly={readOnly}
+              sourceValue={block.type === "knownWords" ? normalizeInitialPayload(knownWordsSourcePayload)[block.name] : undefined}
               validationError={block.type === "field" && (invalidFieldNameSet.has(block.name) || currentMissingRequiredNameSet.has(block.name))
                 ? "Это поле нужно заполнить."
                 : undefined}

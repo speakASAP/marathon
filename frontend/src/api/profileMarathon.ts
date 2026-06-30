@@ -47,6 +47,7 @@ export interface MyMarathonCertificate {
   title: string;
   shareText: string;
   shareUrlHint: string;
+  winnerUrlHint?: string | null;
   downloadUrlHint: string;
   imageUrlHint: string;
   generatedOnRead: true;

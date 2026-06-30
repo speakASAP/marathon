@@ -4,6 +4,7 @@ import type { AnswerValue, KnownWordsBlockModel } from "./assignmentRendererType
 type KnownWordsBlockProps = {
   block: KnownWordsBlockModel;
   value: AnswerValue | undefined;
+  sourceValue?: AnswerValue;
   readOnly: boolean;
   onChange: (name: string, value: string[]) => void;
 };
@@ -16,8 +17,9 @@ function splitKnownWordTokens(text: string) {
   return text.split(/(\s+)/).filter((token) => token.length > 0);
 }
 
-export function KnownWordsBlock({ block, value, readOnly, onChange }: KnownWordsBlockProps) {
+export function KnownWordsBlock({ block, value, sourceValue, readOnly, onChange }: KnownWordsBlockProps) {
   const selected = new Set(Array.isArray(value) ? value : []);
+  const sourceSelected = new Set(Array.isArray(sourceValue) ? sourceValue : []);
   const label = ensureTerminalPunctuation(block.label || "Текст для выделения знакомых слов");
   const toggle = (key: string) => {
     if (readOnly) return;
@@ -36,10 +38,16 @@ export function KnownWordsBlock({ block, value, readOnly, onChange }: KnownWords
             if (/^\s+$/.test(token)) return token;
             const key = wordKey(paragraphIndex, tokenIndex, token);
             const isSelected = selected.has(key);
+            const isSourceSelected = sourceSelected.has(key);
+            const className = [
+              "step-known-word",
+              isSourceSelected ? "source-selected" : "",
+              isSelected ? "selected" : "",
+            ].filter(Boolean).join(" ");
             return (
               <button
                 aria-pressed={isSelected}
-                className={`step-known-word${isSelected ? " selected" : ""}`}
+                className={className}
                 disabled={readOnly}
                 key={key}
                 onClick={(event) => {

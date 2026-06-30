@@ -165,18 +165,6 @@ function isKnownWordsBlock(block: AssignmentBlock): block is KnownWordsBlock {
   return block.type === 'knownWords';
 }
 
-function mergePayloadDefaults(payload: SubmissionPayload, defaults: SubmissionPayload) {
-  if (!Object.keys(defaults).length) return payload;
-  const next = { ...defaults, ...payload };
-  Object.entries(defaults).forEach(([name, value]) => {
-    const current = payload[name];
-    if (Array.isArray(current) && current.length === 0 && Array.isArray(value) && value.length > 0) {
-      next[name] = value;
-    }
-  });
-  return next;
-}
-
 function findLevelField(blocks: AssignmentBlock[]): AssignmentFieldBlock | undefined {
   return blocks.find((block): block is AssignmentFieldBlock => isFieldBlock(block) && block.name === 'q1')
     || blocks.find((block): block is AssignmentFieldBlock => (
@@ -466,7 +454,8 @@ export default function Step() {
     });
     return defaults;
   }, [assignmentPayload, baseAssignmentBlocks, savedSubmission?.payload]);
-  const effectiveAssignmentPayload = mergePayloadDefaults(assignmentPayload, serverKnownWordsDefaults);
+  const knownWordsSourcePayload = serverKnownWordsDefaults;
+  const effectiveAssignmentPayload = assignmentPayload;
   const displayedPayload = isFinalSubmission && savedSubmission?.payload ? savedSubmission.payload : effectiveAssignmentPayload;
   const displayedReport = isFinalSubmission && savedSubmission?.report ? savedSubmission.report : report;
   const filteredAssignmentContent = useMemo(
@@ -968,6 +957,7 @@ export default function Step() {
                 blocks={filteredAssignmentBlocks}
                 fallbackContent={filteredAssignmentContent}
                 initialPayload={displayedPayload}
+                knownWordsSourcePayload={knownWordsSourcePayload}
                 readOnly={isFinalSubmission || stepAccessBlocked}
                 onPayloadChange={(payload, draft) => {
                   setAssignmentPayload(payload);

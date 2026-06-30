@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { fetchWinnerPage, type WinnerLanguage, type WinnerPage } from '../api/publicMarathon';
+import { Link, useSearchParams } from 'react-router-dom';
+import { fetchWinnerDetail, fetchWinnerPage, type WinnerLanguage, type WinnerPage, type WinnerSummary } from '../api/publicMarathon';
 import { formatLanguageFlag, formatLanguageLabel, getMarathonLandingPath } from '../languages';
 
 type MedalKind = 'gold' | 'silver' | 'bronze';
@@ -70,10 +70,12 @@ function WinnerLanguageFlags({ languages }: { languages?: WinnerLanguage[] }) {
  * Winners list (Phase 2a). Paginated via GET /api/v1/winners. Legacy card grid.
  */
 export default function Winners() {
+  const [searchParams] = useSearchParams();
   const [data, setData] = useState<WinnerPage | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [highlightedWinner, setHighlightedWinner] = useState<WinnerSummary | null>(null);
 
   useEffect(() => {
     document.title = 'Медали финалистов языковых марафонов — SpeakASAP®';
@@ -96,9 +98,31 @@ export default function Winners() {
       });
   }, [page]);
 
-  const items = data?.items || [];
+  const highlightedWinnerId = searchParams.get('me')?.trim() || '';
+  useEffect(() => {
+    let cancelled = false;
+    if (!highlightedWinnerId) {
+      setHighlightedWinner(null);
+      return;
+    }
+
+    fetchWinnerDetail(highlightedWinnerId)
+      .then((winner) => {
+        if (!cancelled) setHighlightedWinner(winner);
+      })
+      .catch(() => {
+        if (!cancelled) setHighlightedWinner(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [highlightedWinnerId]);
+
+  const baseItems = data?.items || [];
+  const items = highlightedWinner ? [highlightedWinner, ...baseItems.filter((w) => w.id !== highlightedWinner.id)] : baseItems;
   const hasLoadError = !loading && Boolean(loadError);
-  const hasLoadedEmptyState = !loading && !loadError && items.length === 0;
+  const hasLoadedEmptyState = !loading && !loadError && baseItems.length === 0 && !highlightedWinner;
 
   return (
     <div className="container page-winners">
@@ -135,9 +159,18 @@ export default function Winners() {
           </div>
         </section>
       )}
+      {highlightedWinner ? (
+        <section className="winners-highlight-note" aria-label="Персональная ссылка финалиста">
+          <h2>Ваш профиль финалиста</h2>
+          <p>
+            Этой ссылкой можно поделиться с друзьями.
+          </p>
+        </section>
+      ) : null}
       <div className="winners-grid">
         {items.map((w) => (
-          <article key={w.id} className="card-winner">
+          <article key={w.id} className={`card-winner${highlightedWinner?.id === w.id ? ' card-winner--highlighted' : ''}`}>
+            {highlightedWinner?.id === w.id ? <span className="card-winner__highlight-label">Ваш профиль</span> : null}
             {w.avatar ? (
               <img src={w.avatar} alt="" className="card-winner__avatar" width={80} height={80} loading="lazy" />
             ) : (
