@@ -118,6 +118,15 @@ function normalizeName(participant: FinalistParticipant) {
   return participant.displayName?.trim() || participant.name.trim() || 'Финалист SpeakASAP';
 }
 
+function certificateImage(medal: FinalistMedalKind | null) {
+  return `/img/certificates/${medal || "gold"}_en.png`;
+}
+
+function formatCertificateLanguage(certificate: FinalistCertificate | null, marathonTitle: string) {
+  const language = certificate?.languageLabel?.trim();
+  return language ? `${language} языку` : marathonTitle;
+}
+
 function createShareLinks(shareUrl: string | null | undefined, shareText: string): FinalistShareLink[] {
   if (!shareUrl) return [];
   const encodedUrl = encodeURIComponent(shareUrl);
@@ -164,6 +173,7 @@ export default function FinalistRewards({
   const finishedDate = formatDate(finishedAt);
   const certificateTitle = certificate?.title?.trim() || medalCopy.diploma;
   const certificateSubtitle = certificate?.subtitle?.trim() || medalCopy.summary;
+  const certificateLanguage = formatCertificateLanguage(certificate, marathonTitle);
   const resolvedShareText = shareText?.trim() || `${participantName} завершил(а) ${marathonTitle} и получил(а) ${medalCopy.prize}.`;
   const shareLinks = createShareLinks(shareUrl, resolvedShareText);
   const canDownloadPdf = Boolean(certificate?.downloadPdfUrl || onDownloadPdf);
@@ -194,7 +204,7 @@ export default function FinalistRewards({
           <span className="finalist-rewards__confetti finalist-rewards__confetti--two" />
           <span className="finalist-rewards__medal-disc">
             <span className="finalist-rewards__medal-stars">★ ★ ★</span>
-            <span className="finalist-rewards__medal-cup">♕</span>
+            <span className="finalist-rewards__medal-cup">🏆</span>
           </span>
         </div>
 
@@ -233,27 +243,21 @@ export default function FinalistRewards({
 
         <article className="finalist-rewards__certificate" aria-label={certificateTitle}>
           <div className="finalist-rewards__paper">
-            <span className="finalist-rewards__certificate-corner finalist-rewards__certificate-corner--tl" aria-hidden="true" />
-            <span className="finalist-rewards__certificate-corner finalist-rewards__certificate-corner--br" aria-hidden="true" />
-            <h3>Сертификат SpeakASAP</h3>
-            <span className="finalist-rewards__ornament" aria-hidden="true" />
-            <p className="finalist-rewards__certificate-kicker">подтверждает, что</p>
-            <p className="finalist-rewards__certificate-name">{participantName}</p>
-            <p className="finalist-rewards__certificate-text">подтверждает участие в языковом марафоне SpeakASAP</p>
-            <p className="finalist-rewards__certificate-language">🏁 {marathonTitle}</p>
-            {finishedDate ? <p className="finalist-rewards__certificate-date">Дата завершения: {finishedDate}</p> : null}
-            <span className="finalist-rewards__seal" aria-hidden="true">{medalCopy.initial}</span>
-            {certificate?.verificationUrl ? (
-              <a className="finalist-rewards__verify" href={certificate.verificationUrl} target="_blank" rel="noreferrer">
-                Проверить сертификат
-              </a>
-            ) : null}
+            <img src={certificateImage(medal)} alt={certificateTitle} width="936" height="1320" />
+            <span className="finalist-rewards__certificate-name">{participantName}</span>
+            <span className="finalist-rewards__certificate-language">{certificateLanguage}</span>
+            {finishedDate ? <span className="finalist-rewards__certificate-date">{finishedDate}</span> : null}
           </div>
+          {certificate?.verificationUrl ? (
+            <a className="finalist-rewards__verify" href={certificate.verificationUrl} target="_blank" rel="noreferrer">
+              Проверить сертификат
+            </a>
+          ) : null}
         </article>
       </div>
 
       <div className="finalist-rewards__prize-strip" aria-label="Ваши призы за успех">
-        <h3><span aria-hidden="true">🎁</span> Ваши призы<br />за успех</h3>
+        <h3><span aria-hidden="true">🎁</span> Ваши призы за успех</h3>
         <ul>
           {prizes.map((prize) => (
             <li key={prize.id}>

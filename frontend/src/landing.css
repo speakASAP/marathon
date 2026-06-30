@@ -100,7 +100,7 @@
 .home-launch-copy h1 {
   max-width: 760px;
   margin: 0 0 24px;
-  color: var(--ml-ink);
+  color: #173a68;
   font-size: clamp(3rem, 6.2vw, 6.3rem);
   line-height: 0.98;
   font-weight: 900;

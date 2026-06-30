@@ -35,6 +35,20 @@ export function getMarathonLandingPath(code: string): string | null {
   return language ? getMarathonLandingPathFromSlug(language.slug) : getMarathonLandingPathFromSlug(encodeURIComponent(normalized));
 }
 
+const SPEAKASAP_BASIC_COURSE_LANGUAGE_ALIASES: Record<string, string> = {
+  cs: 'cz',
+  da: 'dk',
+  nb: 'no',
+  nn: 'no',
+  sv: 'se',
+};
+
+export function buildSpeakAsapBasicCourseUrl(code: string): string {
+  const normalized = code.toLowerCase().replace(/[^a-z]/g, '');
+  const courseCode = SPEAKASAP_BASIC_COURSE_LANGUAGE_ALIASES[normalized] || normalized || 'de';
+  return `https://speakasap.com/${courseCode}/basic/`;
+}
+
 export const LANGUAGE_LABELS: Record<string, string> = {
   de: 'Немецкий',
   en: 'Английский',

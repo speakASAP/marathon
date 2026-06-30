@@ -18,6 +18,8 @@ import {
 } from "../api/profileMarathon";
 import { stripHeadingTerminalPeriod } from "../components/assignment/assignmentBlockNormalization";
 import FinalistRewards from "../components/FinalistRewards";
+import { drawCertificateFields } from "../certificateRenderer";
+import { buildSpeakAsapBasicCourseUrl } from "../languages";
 
 type PaymentReturnState = "success" | "cancelled" | null;
 type MedalKind = "gold" | "silver" | "bronze";
@@ -572,6 +574,7 @@ export default function ProfileDetail() {
   const medal = data.medal ? MEDAL_LABELS[data.medal] : null;
   const participantName = resolveParticipantName(profile);
   const awardCopy = resolveAwardLanguageCopy(data.languageCode);
+  const basicCourseUrl = buildSpeakAsapBasicCourseUrl(data.languageCode);
   const profilePath = `/profile/${encodeURIComponent(data.id)}`;
   const shareUrl =
     typeof window === "undefined"
@@ -705,36 +708,11 @@ export default function ProfileDetail() {
     context.fillStyle = "#ffffff";
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    context.fillStyle = "#806427";
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.font = "700 30px Georgia, serif";
-    context.fillText(
-      data.certificate?.participantName || participantName,
-      canvas.width / 2,
-      Math.round(canvas.height * 0.63),
-      canvas.width * 0.72,
-    );
-    context.font = "500 22px Georgia, serif";
-    context.fillText(
-      "За успешный забег по",
-      canvas.width / 2,
-      Math.round(canvas.height * 0.68),
-      canvas.width * 0.7,
-    );
-    context.fillText(
-      `${certificateLanguage} языку`,
-      canvas.width / 2,
-      Math.round(canvas.height * 0.71),
-      canvas.width * 0.7,
-    );
-    context.font = "500 18px Georgia, serif";
-    context.fillText(
+    drawCertificateFields(context, canvas, {
+      participantName: data.certificate?.participantName || participantName,
+      languageDative: certificateLanguage,
       finishedDate,
-      canvas.width / 2,
-      Math.round(canvas.height * 0.775),
-      canvas.width * 0.4,
-    );
+    });
 
     return canvas;
   };
@@ -1120,17 +1098,14 @@ export default function ProfileDetail() {
 
           <section className="profile-awards-next profile-finalist-details__next">
             <h2>Что дальше?</h2>
-            <p>
-              Вы можете выбрать следующий языковой марафон или сохранить эту
-              страницу как личный архив финиша.
-            </p>
+            <p>{awardCopy.nextStep}</p>
             <div className="profile-payment-actions">
               <Link className="btn-profile-open" to="/register">
                 Выбрать следующий марафон
               </Link>
-              <Link className="btn-profile-login" to="/reviews">
-                Отзывы финалистов
-              </Link>
+              <a className="btn-profile-open" href={basicCourseUrl} target="_blank" rel="noreferrer">
+                Записаться на курс
+              </a>
             </div>
           </section>
         </section>
@@ -1320,6 +1295,35 @@ export default function ProfileDetail() {
               </li>
             );
           })}
+          {data.answers.length > 0 && (
+            <li
+              className={`profile-awards-step answer-state-${isFinished ? "active" : "inactive"}`}
+            >
+              <div className="profile-step-main">
+                <div className="profile-step-heading">
+                  <span className="answer-title">Финиш. Точка награждения</span>
+                  <span className="answer-state">{isFinished ? "Призы" : "Закрыто"}</span>
+                </div>
+                <span className="profile-step-meta">
+                  {isFinished
+                    ? "Сертификат за марафон и другие призы находятся здесь."
+                    : "Сертификат за марафон и призы откроются здесь после завершения всех этапов."}
+                </span>
+              </div>
+              {isFinished ? (
+                <Link
+                  className="profile-step-action profile-awards-step-action"
+                  to={`/profile/${encodeURIComponent(data.id)}/awards`}
+                >
+                  Открыть призы
+                </Link>
+              ) : (
+                <span className="profile-step-action profile-step-action-disabled">
+                  Закрыто
+                </span>
+              )}
+            </li>
+          )}
         </ul>
       </section>
     </div>

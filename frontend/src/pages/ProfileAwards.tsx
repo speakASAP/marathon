@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getLoginUrl, getPasswordResetUrl } from '../auth';
 import {
   MarathonAuthRequiredError,
@@ -9,8 +9,9 @@ import {
   type MarathonUserProfileSettings,
   type MyMarathon,
 } from '../api/profileMarathon';
-import { formatLanguageLabel } from '../languages';
+import { buildSpeakAsapBasicCourseUrl, formatLanguageLabel } from '../languages';
 import { stripHeadingTerminalPeriod } from '../components/assignment/assignmentBlockNormalization';
+import { drawCertificateFields } from '../certificateRenderer';
 
 type MedalKind = 'gold' | 'silver' | 'bronze';
 type CertificateDownloadFormat = 'png' | 'jpeg' | 'pdf';
@@ -27,22 +28,25 @@ const BOOK_PRIZE_URL = 'https://speakasap.com/media/steps/german/tochka_vixoda_i
 const SHARE_FALLBACK_DELAY_MS = 3600;
 
 
-const MEDAL_COPY: Record<MedalKind, { title: string; certificate: string; discount: string; className: string }> = {
+const MEDAL_COPY: Record<MedalKind, { title: string; certificate: string; certificateInstrumental: string; discount: string; className: string }> = {
   gold: {
     title: 'Золотой финиш',
     certificate: 'Золотой сертификат финалиста',
+    certificateInstrumental: 'золотым сертификатом финалиста',
     discount: '10% скидка на следующий курс SpeakASAP',
     className: 'gold',
   },
   silver: {
     title: 'Серебряный финиш',
     certificate: 'Серебряный сертификат финалиста',
+    certificateInstrumental: 'серебряным сертификатом финалиста',
     discount: '10% скидка на следующий курс SpeakASAP',
     className: 'silver',
   },
   bronze: {
     title: 'Бронзовый финиш',
     certificate: 'Бронзовый сертификат финалиста',
+    certificateInstrumental: 'бронзовым сертификатом финалиста',
     discount: '10% скидка на следующий курс SpeakASAP',
     className: 'bronze',
   },
@@ -98,16 +102,6 @@ function resolveAwardLanguageCopy(code: string) {
     nextStep: 'Вы можете выбрать для себя дальнейший путь изучения языка с нами:',
     hashtag: '#speakASAP_marathon',
   };
-}
-
-function buildBasicCourseUrl(code: string) {
-  const normalized = code.toLowerCase().replace(/[^a-z]/g, '');
-  const courseCode = AWARD_LANGUAGE_ALIASES[normalized] || normalized || 'de';
-  const url = new URL(`https://speakasap.com/${courseCode}/`);
-  url.searchParams.set('utm_source', 'marathon');
-  url.searchParams.set('utm_medium', 'awards_next_step');
-  url.searchParams.set('utm_campaign', 'basic_20_week_course');
-  return url.toString();
 }
 
 async function loadImage(src: string): Promise<HTMLImageElement> {
@@ -212,6 +206,8 @@ export default function ProfileAwards() {
   const [downloadingFormat, setDownloadingFormat] = useState<CertificateDownloadFormat | null>(null);
   const [sharingCertificate, setSharingCertificate] = useState(false);
   const [winnerLinkStatus, setWinnerLinkStatus] = useState('');
+  const [certificatePreviewUrl, setCertificatePreviewUrl] = useState('');
+  const [certificatePreviewUrl, setCertificatePreviewUrl] = useState('');
   useEffect(() => {
     if (!marathonerId) return;
     setLoading(true);
@@ -245,7 +241,7 @@ export default function ProfileAwards() {
   const medalCopy = medal ? MEDAL_COPY[medal] : null;
   const languageLabel = data ? formatLanguageLabel(data.languageCode) : '';
   const awardCopy = data ? resolveAwardLanguageCopy(data.languageCode) : resolveAwardLanguageCopy('');
-  const basicCourseUrl = data ? buildBasicCourseUrl(data.languageCode) : buildBasicCourseUrl('de');
+  const basicCourseUrl = data ? buildSpeakAsapBasicCourseUrl(data.languageCode) : buildSpeakAsapBasicCourseUrl('de');
   const certificateLanguage = awardCopy.dative;
   const finishedDate = data?.finished_at ? formatDate(data.finished_at) : '';
   const bookPrize = data?.prizes?.find((prize) => prize.kind === 'book') || null;
@@ -257,13 +253,6 @@ export default function ProfileAwards() {
   const shareText = data
     ? `Я завершил(а) ${stripHeadingTerminalPeriod(data.title)} и получил(а) сертификат SpeakASAP.`
     : 'Мой сертификат SpeakASAP готов.';
-
-  const certificateLines = useMemo(() => [
-    participantName,
-    'За успешный забег по',
-    `${certificateLanguage} языку`,
-    finishedDate,
-  ], [certificateLanguage, finishedDate, participantName]);
 
   const buildCertificateCanvas = async () => {
     if (!data?.medal || !data.finished_at) return;
@@ -277,19 +266,55 @@ export default function ProfileAwards() {
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    context.fillStyle = '#806427';
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.font = '700 30px Georgia, serif';
-    context.fillText(participantName, canvas.width / 2, Math.round(canvas.height * 0.63), canvas.width * 0.72);
-    context.font = '500 22px Georgia, serif';
-    context.fillText('За успешный забег по', canvas.width / 2, Math.round(canvas.height * 0.68), canvas.width * 0.7);
-    context.fillText(`${certificateLanguage} языку`, canvas.width / 2, Math.round(canvas.height * 0.71), canvas.width * 0.7);
-    context.font = '500 18px Georgia, serif';
-    context.fillText(finishedDate, canvas.width / 2, Math.round(canvas.height * 0.775), canvas.width * 0.4);
+    drawCertificateFields(context, canvas, {
+      participantName,
+      languageDative: certificateLanguage,
+      finishedDate,
+    });
 
     return canvas;
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    setCertificatePreviewUrl('');
+    if (!data?.medal || !data.finished_at) return undefined;
+
+    buildCertificateCanvas()
+      .then((canvas) => {
+        if (!cancelled && canvas) {
+          setCertificatePreviewUrl(canvas.toDataURL('image/png'));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCertificatePreviewUrl('');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data?.medal, data?.finished_at, participantName, certificateLanguage, finishedDate]);
+
+
+  useEffect(() => {
+    if (!data?.medal || !data.finished_at) {
+      setCertificatePreviewUrl('');
+      return;
+    }
+
+    let cancelled = false;
+    buildCertificateCanvas()
+      .then((canvas) => {
+        if (!cancelled) setCertificatePreviewUrl(canvas?.toDataURL('image/png') || '');
+      })
+      .catch(() => {
+        if (!cancelled) setCertificatePreviewUrl('');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data?.medal, data?.finished_at, participantName, certificateLanguage, finishedDate]);
 
   const downloadCertificate = async (format: CertificateDownloadFormat) => {
     if (!data?.medal || !data.finished_at) return;
@@ -444,10 +469,9 @@ export default function ProfileAwards() {
           <p className="profile-completion-kicker">Теперь самое время получать призы</p>
           <h1>{medalCopy?.title}</h1>
           <p>
-            {stripHeadingTerminalPeriod(data.title)} завершен {finishedDate}. Поздравляем с
-            {` ${medalCopy?.certificate.toLowerCase()}`}: ниже собраны ваши заслуженные призы -
-            книга, сертификат, медаль и персональная скидка за труд, время и усилия, которые привели
-            вас к финишу.
+            Марафон по {certificateLanguage} языку завершен {finishedDate}.
+            <br />
+            Поздравляем с {medalCopy?.certificateInstrumental}.
           </p>
         </div>
         <div className="profile-awards-medal" aria-label={medalCopy?.certificate}>
@@ -463,11 +487,12 @@ export default function ProfileAwards() {
 
       <section className="profile-awards-certificate">
         <div className="profile-certificate-preview" aria-label="Именной сертификат финалиста">
-          <img src={certificateImage(data.medal)} alt={medalCopy?.certificate} width="620" height="877" />
-          <span className="profile-certificate-name">{certificateLines[0]}</span>
-          <span className="profile-certificate-line profile-certificate-line-one">{certificateLines[1]}</span>
-          <span className="profile-certificate-line profile-certificate-line-two">{certificateLines[2]}</span>
-          <span className="profile-certificate-date">{certificateLines[3]}</span>
+          <img
+            src={certificatePreviewUrl || certificateImage(data.medal)}
+            alt={medalCopy?.certificate}
+            width="620"
+            height="877"
+          />
         </div>
         <div className="profile-awards-copy">
           <h2>Сертификат об окончании марафона</h2>
