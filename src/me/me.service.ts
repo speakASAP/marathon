@@ -1167,17 +1167,9 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       {
         id: `${certificate.id}:medal`,
         kind: 'medal',
-        title: `${this.formatMedalLabel(medal)} медаль`,
+        title: `${this.formatMedalFeminineLabel(medal)} медаль`,
         description: `Медаль финалиста за завершение марафона ${marathon.title}.`,
         status: 'earned',
-        urlHint: awardsPath,
-      },
-      {
-        id: `${certificate.id}:share`,
-        kind: 'bonus',
-        title: 'Готовый текст для отзыва',
-        description: certificate.shareText,
-        status: 'available',
         urlHint: awardsPath,
       },
     ];
@@ -1244,6 +1236,12 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     if (medal === 'gold') return 'Золотой';
     if (medal === 'silver') return 'Серебряный';
     return 'Бронзовый';
+  }
+
+  private formatMedalFeminineLabel(medal: MarathonMedal): string {
+    if (medal === 'gold') return 'Золотая';
+    if (medal === 'silver') return 'Серебряная';
+    return 'Бронзовая';
   }
 
   private mapSurvey(survey: any): MyMarathonSurvey {

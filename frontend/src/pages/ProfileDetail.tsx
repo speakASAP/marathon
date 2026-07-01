@@ -644,9 +644,6 @@ export default function ProfileDetail() {
         id: prize.id,
         title: prize.title,
         description: prize.description,
-        actionLabel:
-          prize.actionLabel || (prize.urlHint ? "Открыть" : undefined),
-        actionHref: prize.actionHref || prize.urlHint || undefined,
         badge:
           prize.kind === "certificate"
             ? "PNG"
