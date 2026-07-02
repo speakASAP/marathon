@@ -6462,7 +6462,15 @@ a:hover {
 }
 
 .main-nav-links a:hover,
-.main-nav-links a:focus-visible,
+.main-nav-links a:focus-visible {
+  color: #fff;
+  background: rgba(255, 247, 216, 0.18);
+  box-shadow: 0 9px 0 rgba(8, 17, 38, 0.2), 0 16px 28px rgba(8, 17, 38, 0.24);
+  transform: translateY(-4px);
+  text-decoration: none;
+  text-shadow: 0 2px 0 rgba(8, 17, 38, 0.28);
+}
+
 .navbar-login-link:hover,
 .navbar-login-link:focus-visible {
   color: #fff7cf;
