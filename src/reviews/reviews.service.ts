@@ -43,21 +43,23 @@ export class ReviewsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(page = 1, limit = DEFAULT_PAGE_SIZE): Promise<ReviewsPaginated> {
+  async list(page = 1, limit = DEFAULT_PAGE_SIZE, languageCode?: string): Promise<ReviewsPaginated> {
     const safePage = Number.isFinite(page) ? Math.max(1, Math.floor(page)) : 1;
     const safeLimit = Number.isFinite(limit)
       ? Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(limit)))
       : DEFAULT_PAGE_SIZE;
     const offset = (safePage - 1) * safeLimit;
+    const safeLanguageCode = this.normalizeLanguageCode(languageCode);
+    const languageWhere = safeLanguageCode ? ` WHERE LOWER("languageCode") = '${safeLanguageCode}'` : '';
 
-    this.logger.debug(`Reviews list requested: page=${safePage}, limit=${safeLimit}`);
+    this.logger.debug(`Reviews list requested: page=${safePage}, limit=${safeLimit}, language=${safeLanguageCode || 'all'}`);
 
     const [countRow] = await this.prisma.$queryRawUnsafe<Array<{ total: bigint | number | string }>>(
-      this.reviewCountSql(),
+      this.reviewCountSql(languageWhere),
     );
     const total = Number(countRow?.total || 0);
     const rows = await this.prisma.$queryRawUnsafe<ReviewRow[]>(
-      `${this.reviewRowsSql()} LIMIT ${safeLimit} OFFSET ${offset}`,
+      `${this.reviewRowsSql(languageWhere)} LIMIT ${safeLimit} OFFSET ${offset}`,
     );
     const totalPages = total > 0 ? Math.ceil(total / safeLimit) : 0;
 
@@ -72,14 +74,14 @@ export class ReviewsService {
     };
   }
 
-  private reviewCountSql(): string {
+  private reviewCountSql(languageWhere = ''): string {
     return `
       WITH public_reviews AS (${this.publicReviewsSql()})
-      SELECT COUNT(*)::int AS total FROM public_reviews
+      SELECT COUNT(*)::int AS total FROM public_reviews${languageWhere}
     `;
   }
 
-  private reviewRowsSql(): string {
+  private reviewRowsSql(languageWhere = ''): string {
     return `
       WITH public_reviews AS (${this.publicReviewsSql()})
       SELECT
@@ -91,9 +93,13 @@ export class ReviewsService {
         marathon,
         "languageCode",
         completed
-      FROM public_reviews
+      FROM public_reviews${languageWhere}
       ORDER BY completed DESC NULLS LAST, id ASC
     `;
+  }
+
+  private normalizeLanguageCode(languageCode?: string): string {
+    return (languageCode || '').toLowerCase().replace(/[^a-z]/g, '').slice(0, 8);
   }
 
   private publicReviewsSql(): string {

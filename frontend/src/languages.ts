@@ -25,7 +25,7 @@ const LANDING_LANGUAGE_CODE_ALIASES: Record<string, string> = {
 };
 
 export function getMarathonLandingPathFromSlug(slug: string): string {
-  return `/marathon/${slug.replace(/^\/+|\/+$/g, '')}`;
+  return `/${slug.replace(/^\/+|\/+$/g, '')}`;
 }
 
 export function getMarathonLandingPath(code: string): string | null {

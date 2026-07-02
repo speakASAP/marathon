@@ -200,7 +200,7 @@ async function checkVisitorTraversal(report, options) {
   assertOk(languages.response, '/api/v1/marathons/languages');
   const languageList = Array.isArray(languages.json) ? languages.json : [];
   const selectedLanguage = options.language || languageList[0]?.code || 'en';
-  const routes = new Set([...STATIC_ROUTES, `/${encodeURIComponent(selectedLanguage)}/`, `/marathon/${encodeURIComponent(selectedLanguage)}`]);
+  const routes = new Set([...STATIC_ROUTES, `/${encodeURIComponent(selectedLanguage)}/`]);
 
   const winners = await requestJson(report, '/api/v1/winners?page=1&limit=1');
   assertOk(winners.response, '/api/v1/winners');

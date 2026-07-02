@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, FormEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, FormEvent } from 'react';
 import {
   clearPendingRegistration,
   clearToken,
@@ -18,10 +18,13 @@ import {
   submitMarathonRegistration,
   type RegistrationInput,
 } from '../api/journeyMarathon';
+import { formatLanguageFlag, formatLanguageLabel } from '../languages';
+import type { MarathonLanguage } from '../api/publicMarathon';
 
 export interface RegistrationFormProps {
   languageCode: string;
   marathonTitle: string;
+  languages?: MarathonLanguage[];
   onSuccess?: (marathonerId: string, redirectUrl?: string) => void;
   onError?: (message: string) => void;
 }
@@ -36,10 +39,12 @@ function getRegistrationReturnPath(languageCode: string): string {
 export default function RegistrationForm({
   languageCode,
   marathonTitle,
+  languages = [],
   onSuccess,
   onError,
 }: RegistrationFormProps) {
-  const initialPendingRegistration = getPendingRegistration(languageCode);
+  const initialPendingRegistration = getPendingRegistration(languageCode) || getPendingRegistration();
+  const [selectedLanguageCode, setSelectedLanguageCode] = useState(() => initialPendingRegistration?.languageCode || languageCode);
   const [email, setEmail] = useState(() => initialPendingRegistration?.email || '');
   const [name, setName] = useState(() => initialPendingRegistration?.name || '');
   const [phone, setPhone] = useState(() => initialPendingRegistration?.phone || '');
@@ -51,6 +56,34 @@ export default function RegistrationForm({
   const [availabilityStatus, setAvailabilityStatus] = useState<'idle' | 'checking' | 'available'>('idle');
   const availabilityRequestRef = useRef(0);
   const autoSubmitRef = useRef(false);
+  const didSyncLanguagePropRef = useRef(false);
+  const languagePickerName = `marathon-language-${useId()}`;
+
+  useEffect(() => {
+    if (didSyncLanguagePropRef.current) {
+      setSelectedLanguageCode(languageCode);
+      return;
+    }
+    didSyncLanguagePropRef.current = true;
+  }, [languageCode]);
+
+  const selectableLanguages = useMemo(() => {
+    const byCode = new Map<string, MarathonLanguage>();
+    languages.forEach((language) => {
+      if (language.code) byCode.set(language.code.toLowerCase(), language);
+    });
+    if (!byCode.has(languageCode.toLowerCase())) {
+      byCode.set(languageCode.toLowerCase(), { code: languageCode, name: marathonTitle });
+    }
+    return [...byCode.values()].sort((a, b) =>
+      formatLanguageLabel(a.code, a.name).localeCompare(formatLanguageLabel(b.code, b.name), 'ru'),
+    );
+  }, [languageCode, languages, marathonTitle]);
+
+  const selectedLanguage = selectableLanguages.find((language) => language.code === selectedLanguageCode);
+  const selectedLanguageTitle = selectedLanguage
+    ? formatLanguageLabel(selectedLanguage.code, selectedLanguage.name)
+    : marathonTitle;
 
   const getAuthPrefill = (input?: Partial<RegistrationInput>) => ({
     email: input?.email || email.trim() || undefined,
@@ -111,12 +144,12 @@ export default function RegistrationForm({
         clearToken();
         storePendingRegistration(input);
         onError?.('Сессия регистрации истекла. Войдите снова, чтобы привязать марафон к вашему профилю.');
-        redirectToLogin(getRegistrationReturnPath(languageCode), getAuthPrefill(input));
+        redirectToLogin(getRegistrationReturnPath(input.languageCode), getAuthPrefill(input));
         return;
       }
       if (err instanceof MarathonRegistrationExistingAccountError) {
         storePendingRegistration(input);
-        setExistingAccountLoginPath(getRegistrationReturnPath(languageCode));
+        setExistingAccountLoginPath(getRegistrationReturnPath(input.languageCode));
         setExistingAccountMessage(err.message);
         return;
       }
@@ -152,12 +185,12 @@ export default function RegistrationForm({
       void checkMarathonRegistrationAvailability({
         email: canCheckEmail ? normalizedEmail : undefined,
         phone: canCheckPhone ? normalizedPhone : undefined,
-        languageCode,
+        languageCode: selectedLanguageCode,
       })
         .then((result) => {
           if (availabilityRequestRef.current !== requestId) return;
           if (result.registered) {
-            setExistingAccountLoginPath(getRegistrationReturnPath(languageCode));
+            setExistingAccountLoginPath(getRegistrationReturnPath(selectedLanguageCode));
             setExistingAccountMessage(result.message || 'Этот email или телефон уже зарегистрирован.');
             setAvailabilityStatus('idle');
             return;
@@ -175,11 +208,11 @@ export default function RegistrationForm({
     return () => {
       window.clearTimeout(timer);
     };
-  }, [email, phone, languageCode]);
+  }, [email, phone, selectedLanguageCode]);
 
   useEffect(() => {
     if (!getToken() || autoSubmitRef.current) return;
-    const pending = getPendingRegistration(languageCode);
+    const pending = getPendingRegistration(selectedLanguageCode);
     autoSubmitRef.current = true;
     if (pending) {
       setEmail(pending.email);
@@ -194,9 +227,9 @@ export default function RegistrationForm({
       return;
     }
 
-    void finishRegistration({ languageCode }, 'authenticated');
+    void finishRegistration({ languageCode: selectedLanguageCode }, 'authenticated');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [languageCode]);
+  }, [selectedLanguageCode]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -216,18 +249,18 @@ export default function RegistrationForm({
       email: email.trim(),
       name: name.trim() || undefined,
       phone: phone.trim() || undefined,
-      languageCode,
+      languageCode: selectedLanguageCode,
     });
   };
 
-  const loginPath = existingAccountLoginPath || getRegistrationReturnPath(languageCode);
+  const loginPath = existingAccountLoginPath || getRegistrationReturnPath(selectedLanguageCode);
   const saveCurrentPendingRegistration = () => {
     savePendingRegistration({
       email: email.trim(),
       phone: phone.trim(),
       name: name.trim() || undefined,
-      languageCode,
-      returnPath: getRegistrationReturnPath(languageCode),
+      languageCode: selectedLanguageCode,
+      returnPath: getRegistrationReturnPath(selectedLanguageCode),
     });
   };
   const isAuthenticated = Boolean(getToken());
@@ -236,7 +269,7 @@ export default function RegistrationForm({
     return (
       <section className="landing-form landing-form-authenticated" aria-live="polite">
         <h4>Регистрация на марафон</h4>
-        <p className="landing-form-marathon">{marathonTitle}</p>
+        <p className="landing-form-marathon">{selectedLanguageTitle} язык</p>
         <p className="landing-form-handoff" role="status">
           {authenticatedStatus === 'error'
             ? 'Не удалось открыть марафон автоматически. Обновите страницу или войдите снова.'
@@ -258,7 +291,31 @@ export default function RegistrationForm({
   return (
     <form onSubmit={handleSubmit} className="landing-form">
       <h4>Регистрация на марафон</h4>
-      <p className="landing-form-marathon">{marathonTitle}</p>
+      <p className="landing-form-marathon">{selectedLanguageTitle} язык</p>
+      {selectableLanguages.length > 1 && (
+        <fieldset className="landing-form-language-picker" aria-label="Язык марафона">
+          <legend>Выберите язык марафона</legend>
+          <div>
+            {selectableLanguages.map((language) => {
+              const code = language.code;
+              const label = formatLanguageLabel(code, language.name);
+              return (
+                <label key={code} className={selectedLanguageCode === code ? 'is-selected' : undefined}>
+                  <input
+                    type="radio"
+                    name={languagePickerName}
+                    value={code}
+                    checked={selectedLanguageCode === code}
+                    onChange={() => setSelectedLanguageCode(code)}
+                  />
+                  <span aria-hidden="true">{formatLanguageFlag(code)}</span>
+                  {label}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
       {handoffMessage && <p className="landing-form-handoff" role="status">{handoffMessage}</p>}
       <div>
         <label htmlFor="reg-email">Email *</label>
@@ -312,10 +369,10 @@ export default function RegistrationForm({
           </div>
         </div>
       )}
-      <a href={getLoginUrl(getRegistrationReturnPath(languageCode), getAuthPrefill())} className="landing-form-login-link" onClick={saveCurrentPendingRegistration}>
+      <a href={getLoginUrl(getRegistrationReturnPath(selectedLanguageCode), getAuthPrefill())} className="landing-form-login-link" onClick={saveCurrentPendingRegistration}>
         Войти через единый аккаунт
       </a>
-      <a href={getRegistrationUrl(getRegistrationReturnPath(languageCode), getAuthPrefill())} className="landing-form-login-link">
+      <a href={getRegistrationUrl(getRegistrationReturnPath(selectedLanguageCode), getAuthPrefill())} className="landing-form-login-link">
         Создать аккаунт в Alfares
       </a>
     </form>

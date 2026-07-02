@@ -5,14 +5,14 @@ import {
   fetchMarathonLanguages,
   fetchPublicReviews,
   fetchWinnerSummaries,
-  getMarathonRegisterPath,
   type CatalogReadiness,
   type MarathonLanguage,
   type PublicReview,
   type WinnerSummary,
 } from '../api/publicMarathon';
-import { PUBLIC_MARATHON_LANGUAGES, formatLanguageLabel, formatLanguageOptionLabel } from '../languages';
+import { PUBLIC_MARATHON_LANGUAGES, formatLanguageLabel } from '../languages';
 import CertificateShowcase from '../components/CertificateShowcase';
+import RegistrationForm from '../components/RegistrationForm';
 import '../landing.css';
 
 function formatMissingGate(value: string): string {
@@ -49,6 +49,8 @@ export default function Home() {
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [registeredId, setRegisteredId] = useState('');
 
   useEffect(() => {
     document.title = 'Марафон от SpeakASAP — начните языковой марафон';
@@ -95,7 +97,7 @@ export default function Home() {
   );
   const featuredLanguages = sortedLanguages.length ? sortedLanguages : fallbackLanguages;
   const primaryLanguage = featuredLanguages[0];
-  const startPath = primaryLanguage ? getMarathonRegisterPath(primaryLanguage) : '/register';
+  const startPath = '/register';
   const approvedSteps = readiness ? `${readiness.counts.stepsWithContent}/${readiness.counts.steps}` : '377/377';
   const heroTitle = registrationOpen
     ? 'Начните языковой марафон сегодня'
@@ -191,15 +193,25 @@ export default function Home() {
       <section className="home-language-band" aria-labelledby="home-language-title">
         <div>
           <h2 id="home-language-title">Выберите язык марафона</h2>
-          <p>Выберите любой доступный языковой марафон. Если регистрация еще закрыта, страница языка покажет маршрут и статус запуска.</p>
+          <p>Выберите язык прямо здесь, укажите email и телефон — регистрация начнется без лишних переходов.</p>
         </div>
-        <div className="home-language-rail">
-          {featuredLanguages.map((language) => (
-            <Link key={language.code} to={getMarathonRegisterPath(language)} className="home-language-chip">
-              {formatLanguageOptionLabel(language.code, language.name)}
-            </Link>
-          ))}
-          {!loading && featuredLanguages.length === 0 && (
+        <div className="home-language-register">
+          {registrationOpen && primaryLanguage ? (
+            <>
+              <RegistrationForm
+                languageCode={primaryLanguage.code}
+                marathonTitle={formatLanguageLabel(primaryLanguage.code, primaryLanguage.name)}
+                languages={featuredLanguages}
+                onSuccess={(marathonerId) => {
+                  setFormError('');
+                  setRegisteredId(marathonerId);
+                }}
+                onError={setFormError}
+              />
+              {registeredId && <p className="ml-success">Регистрация получена. ID участника: {registeredId}</p>}
+              {formError && <p className="ml-error">{formError}</p>}
+            </>
+          ) : (
             <Link to="/register" className="home-language-chip is-status">
               Статус регистрации
             </Link>

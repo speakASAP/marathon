@@ -5,16 +5,21 @@ import {
   type PublicReview,
   type PublicReviewsPage,
 } from '../api/publicMarathon';
-import { formatLanguageFlag, formatLanguageLabel, getMarathonLandingPath } from '../languages';
+import { PUBLIC_MARATHON_LANGUAGES, formatLanguageFlag, formatLanguageLabel, getMarathonLandingPath } from '../languages';
 
 const PAGE_SIZE = 24;
 const PAGE_QUERY_PARAM = 'page';
+const LANGUAGE_QUERY_PARAM = 'language';
 
 type PageButton = number | 'gap';
 
 function readPageParam(searchParams: URLSearchParams): number {
   const rawPage = Number(searchParams.get(PAGE_QUERY_PARAM) || '1');
   return Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
+}
+
+function readLanguageParam(searchParams: URLSearchParams): string {
+  return (searchParams.get(LANGUAGE_QUERY_PARAM) || '').toLowerCase().replace(/[^a-z]/g, '');
 }
 
 function buildPageButtons(currentPage: number, totalPages: number): PageButton[] {
@@ -62,6 +67,7 @@ function ReviewMarathonLink({ review }: { review: PublicReview }) {
 export default function Reviews() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentPage = readPageParam(searchParams);
+  const selectedLanguageCode = readLanguageParam(searchParams);
   const [reviews, setReviews] = useState<PublicReview[]>([]);
   const [pageInfo, setPageInfo] = useState<PublicReviewsPage | null>(null);
   const [jumpPage, setJumpPage] = useState(String(currentPage));
@@ -78,7 +84,7 @@ export default function Reviews() {
     setLoading(true);
     setJumpPage(String(currentPage));
 
-    fetchPublicReviewsPage(currentPage, PAGE_SIZE)
+    fetchPublicReviewsPage(currentPage, PAGE_SIZE, selectedLanguageCode)
       .then((data) => {
         if (cancelled) return;
         setPageInfo(data);
@@ -99,7 +105,7 @@ export default function Reviews() {
     return () => {
       cancelled = true;
     };
-  }, [currentPage]);
+  }, [currentPage, selectedLanguageCode]);
 
   const shownPages = useMemo(() => {
     if (!pageInfo || pageInfo.totalPages === 0) {
@@ -113,6 +119,10 @@ export default function Reviews() {
     [currentPage, pageInfo],
   );
 
+  const selectedLanguageLabel = selectedLanguageCode
+    ? formatLanguageLabel(selectedLanguageCode)
+    : 'всем языкам';
+
   function goToPage(page: number) {
     const totalPages = pageInfo?.totalPages || page;
     const safePage = Math.min(Math.max(1, Math.floor(page)), Math.max(1, totalPages));
@@ -121,6 +131,17 @@ export default function Reviews() {
       nextParams.delete(PAGE_QUERY_PARAM);
     } else {
       nextParams.set(PAGE_QUERY_PARAM, String(safePage));
+    }
+    setSearchParams(nextParams);
+  }
+
+  function selectLanguage(languageCode: string) {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete(PAGE_QUERY_PARAM);
+    if (languageCode) {
+      nextParams.set(LANGUAGE_QUERY_PARAM, languageCode);
+    } else {
+      nextParams.delete(LANGUAGE_QUERY_PARAM);
     }
     setSearchParams(nextParams);
   }
@@ -151,9 +172,35 @@ export default function Reviews() {
         </dl>
       </header>
 
+      <section className="reviews-language-filter" aria-label="Фильтр отзывов по языку">
+        <div className="reviews-language-filter__label">Отзывы по языку</div>
+        <div className="reviews-language-filter__buttons">
+          <button
+            type="button"
+            className="review-language-badge reviews-language-filter__all"
+            aria-pressed={!selectedLanguageCode}
+            onClick={() => selectLanguage('')}
+          >
+            Все языки
+          </button>
+          {PUBLIC_MARATHON_LANGUAGES.map((language) => (
+            <button
+              key={language.code}
+              type="button"
+              className="review-language-badge"
+              aria-pressed={selectedLanguageCode === language.code}
+              onClick={() => selectLanguage(language.code)}
+            >
+              <span aria-hidden="true">{formatLanguageFlag(language.code)}</span>
+              {formatLanguageLabel(language.code)}
+            </button>
+          ))}
+        </div>
+      </section>
+
       {loading && <p>Загрузка…</p>}
       {error && <p className="ml-error">{error}</p>}
-      {!loading && reviews.length === 0 && !error && <p>Нет отзывов.</p>}
+      {!loading && reviews.length === 0 && !error && <p>Нет отзывов по фильтру: {selectedLanguageLabel}.</p>}
       {!loading && reviews.length > 0 && (
         <>
           <ul className="reviews-list-page">

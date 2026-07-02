@@ -91,6 +91,7 @@ export interface MyMarathonSummary {
   answers: Answer[];
   medal: 'gold' | 'silver' | 'bronze' | null;
   can_generate_progress_report?: boolean;
+  is_started?: boolean;
 }
 
 export interface MyMarathon {
@@ -113,6 +114,7 @@ export interface MyMarathon {
   prizes: MyMarathonPrize[];
   nps_survey: NpsSurvey | null;
   can_generate_progress_report: boolean;
+  is_started: boolean;
 }
 
 export interface NpsSurvey {

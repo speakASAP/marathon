@@ -200,7 +200,7 @@ export default function Winners() {
             </div>
             <div className="card-winner__actions">
               <Link to={`/winners/${w.id}`} className="btn btn-winner-link">
-                Подробнее
+                Отзывы о марафонах
               </Link>
             </div>
           </article>

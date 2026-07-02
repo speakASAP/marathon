@@ -332,6 +332,9 @@ function getStepMeta(answer: Answer) {
   if (answer.block_reason === "payment_required") {
     return "Для открытия задания нужна оплата марафона.";
   }
+  if (answer.block_reason === "marathon_not_started") {
+    return "Марафон начнется после отправки первого отчета. Сроки и бонусные дни пока не списываются.";
+  }
   if (answer.state === "inactive") {
     if (answer.is_scheduled_future) {
       return `По расписанию: ${formatDateTime(answer.start)}. Можно открыть заранее.`;

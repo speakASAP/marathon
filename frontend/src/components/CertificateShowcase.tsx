@@ -60,18 +60,22 @@ export default function CertificateShowcase({
       </div>
 
       <div className="certificate-showcase__gallery" aria-label="Примеры сертификатов финалиста">
-        {certificatePreviews.map((certificate) => (
-          <article key={certificate.medal} className={`certificate-card certificate-card--${certificate.medal}`}>
-            <div className="certificate-card__image-wrap">
+        <div className="certificate-stack" aria-label="Стопка из золотого, серебряного и бронзового сертификатов">
+          {certificatePreviews.map((certificate) => (
+            <figure key={certificate.medal} className={`certificate-stack__item certificate-stack__item--${certificate.medal}`}>
               <img src={certificate.image} alt={certificate.alt} loading="lazy" width="936" height="1320" />
-            </div>
-            <div className="certificate-card__body">
-              <span>Пример</span>
+            </figure>
+          ))}
+        </div>
+
+        <div className="certificate-showcase__medals" aria-label="Варианты сертификата">
+          {certificatePreviews.map((certificate) => (
+            <article key={certificate.medal} className={`certificate-medal-summary certificate-medal-summary--${certificate.medal}`}>
               <h3>{certificate.title}</h3>
               <p>{certificate.subtitle}</p>
-            </div>
-          </article>
-        ))}
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );

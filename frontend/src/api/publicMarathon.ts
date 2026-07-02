@@ -169,8 +169,12 @@ export async function fetchPublicReviews(): Promise<PublicReview[]> {
   }
 }
 
-export async function fetchPublicReviewsPage(page = 1, limit = 24): Promise<PublicReviewsPage> {
-  const body = await fetchJson<Partial<PublicReviewsPage>>(`/api/v1/reviews?page=${page}&limit=${limit}`);
+export async function fetchPublicReviewsPage(page = 1, limit = 24, languageCode = ""): Promise<PublicReviewsPage> {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (languageCode) {
+    params.set("language", languageCode);
+  }
+  const body = await fetchJson<Partial<PublicReviewsPage>>(`/api/v1/reviews?${params.toString()}`);
   return {
     items: asArray<PublicReview>(body.items),
     page: typeof body.page === 'number' ? body.page : page,

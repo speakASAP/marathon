@@ -12,6 +12,7 @@ export class ReviewsController {
   async list(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('language') language?: string,
     @Req() req?: Request,
   ): Promise<ReviewsPaginated> {
     const pageNum = page ? Math.max(1, parseInt(page, 10) || 1) : 1;
@@ -26,7 +27,7 @@ export class ReviewsController {
     })}`);
 
     try {
-      const reviews = await this.reviewsService.list(pageNum, limitNum);
+      const reviews = await this.reviewsService.list(pageNum, limitNum, language);
       this.logger.log(
         `Reviews list response: total=${reviews.total}, items=${reviews.items.length}, page=${reviews.page}`,
       );

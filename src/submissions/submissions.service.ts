@@ -101,9 +101,11 @@ export class SubmissionsService {
       }
 
       const existing = this.pickEditableSubmission(existingSubmissions);
-      const startAt = existing?.startAt || this.resolveStartAt(participant.reportHour, step.sequence);
+      const isFirstCompletedReport = completed && !this.hasCompletedSubmission(participant);
+      const scheduleReportHour = isFirstCompletedReport ? now : participant.reportHour;
+      const startAt = existing?.startAt || this.resolveStartAt(scheduleReportHour, step.sequence);
       const endAt = now;
-      const isLate = endAt > this.resolveDueAt(participant.reportHour, step.sequence);
+      const isLate = !isFirstCompletedReport && endAt > this.resolveDueAt(scheduleReportHour, step.sequence);
       const payloadJson = {
         ...(existing?.payloadJson && typeof existing.payloadJson === 'object' ? existing.payloadJson as Record<string, unknown> : {}),
         ...extraPayload,
@@ -140,8 +142,28 @@ export class SubmissionsService {
 
       await this.deleteSiblingDrafts(tx, participant.id, step.id, submission.id);
 
+      if (isFirstCompletedReport) {
+        await tx.penaltyReport.deleteMany({
+          where: {
+            participantId: participant.id,
+            value: {
+              path: ["reason"],
+              equals: "missed_deadline",
+            },
+          },
+        });
+        await tx.marathonParticipant.update({
+          where: { id: participant.id },
+          data: {
+            reportHour: scheduleReportHour,
+            bonusDaysLeft: 7,
+            canUsePenalty: true,
+          },
+        });
+      }
+
       let penaltyReported = false;
-      let bonusDaysLeft = participant.bonusDaysLeft;
+      let bonusDaysLeft = isFirstCompletedReport ? 7 : participant.bonusDaysLeft;
       if (completed && isLate) {
         const existingPenalty = await tx.penaltyReport.findFirst({
           where: {
@@ -327,6 +349,10 @@ export class SubmissionsService {
       });
     }
     return participant;
+  }
+
+  private hasCompletedSubmission(participant: any): boolean {
+    return (participant.submissions || []).some((submission: any) => submission.isCompleted);
   }
 
   private assertRequiredAnswers(blocks: AssignmentBlock[], payload: Record<string, unknown>) {

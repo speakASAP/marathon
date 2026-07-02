@@ -207,7 +207,7 @@ export class MarathonsService {
       const paymentUrl = marathon.product
         ? `${base}/marathon/${marathon.slug}/pay`
         : '';
-      const url = `${base}/marathon/${publicSlug}`;
+      const url = `${base}/${publicSlug}`;
 
       return {
         id: marathon.id,

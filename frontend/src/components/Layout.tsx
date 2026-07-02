@@ -198,9 +198,9 @@ export default function Layout() {
     <div className="layout-wrap">
       <header className="main-header" id="main-nav">
         <div className="container header-inner">
-          <Link to="/" className="navbar-brand" aria-label="Главная Марафон от speakasap">
+          <Link to="/" className="navbar-brand" aria-label="Главная Марафон от SpeakASAP">
             Марафон
-            <span className="navbar-brand-provider">от speakasap</span>
+            <span className="navbar-brand-provider">от SpeakASAP</span>
           </Link>
           <nav className={`main-nav-links ${menuOpen ? 'main-nav-links--open' : ''}`}>
             <Link to="/winners">Финалисты</Link>

@@ -251,9 +251,9 @@ export class RegistrationsService {
   }
 
   private buildRedirectUrl(languageCode: string): string | undefined {
-    // Build redirect URL matching legacy: marathon.get_absolute_url() -> /marathon/{languageCode}
+    // Build redirect URL for the public short landing path: /{languageCode}
     const base = (process.env.PUBLIC_BASE_URL || process.env.FRONTEND_URL || '').replace(/\/$/, '');
-    return base ? `${base}/marathon/${languageCode}` : undefined;
+    return base ? `${base}/${languageCode}` : undefined;
   }
 
   private assertRegistrationReady(marathon: {

@@ -498,7 +498,7 @@ async function assertFrontendHandoffSource(report, rootHtml) {
   }
   if (
     !js.includes('Отзывы появятся после первого запуска марафона.') ||
-    !js.includes('Карточки финалистов и отзывы участников появятся после того, как реальные участники завершат')
+    !js.includes('Отзывы участников появятся после того, как реальные участники завершат')
   ) {
     throw new Error('Built frontend bundle does not include honest language landing review empty state.');
   }
@@ -590,7 +590,8 @@ async function assertFrontendHandoffSource(report, rootHtml) {
     ) ||
     (
       js.includes('Регистрация на марафон') &&
-      js.includes('Марафон от SpeakASAP') &&
+      js.includes('О марафоне') &&
+      js.includes('Правила марафона') &&
       js.includes('языковой марафон') &&
       js.includes('SpeakASAP')
     );

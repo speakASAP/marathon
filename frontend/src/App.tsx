@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import Landing from './pages/Landing';
-import Home from './pages/Home';
 import Winners from './pages/Winners';
 import WinnerDetail from './pages/WinnerDetail';
 import Reviews from './pages/Reviews';
@@ -48,7 +47,7 @@ function App() {
       <ScrollToHash />
       <Routes>
         <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/register" element={<Register />} />
           <Route path="/awards" element={<Awards />} />
           <Route path="/leave-confirm" element={<LeaveConfirm />} />
@@ -68,6 +67,7 @@ function App() {
           <Route path="/landing" element={<Landing />} />
           <Route path="/marathon/:langSlug" element={<Landing />} />
           <Route path="/admin/marathons/prices" element={<AdminMarathonPrices />} />
+          <Route path="/:langSlug" element={<Landing />} />
           <Route path="/:langSlug/" element={<Landing />} />
         </Route>
       </Routes>

@@ -78,6 +78,7 @@ export type MyMarathon = {
   prizes: MyMarathonPrize[];
   nps_survey: MyMarathonSurvey | null;
   can_generate_progress_report: boolean;
+  is_started: boolean;
 };
 
 export type MarathonReportTimeInput = {
@@ -803,6 +804,12 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       WHERE p.active = true
         AND p."finishedAt" IS NULL
         AND completed_submission.id IS NULL
+        AND EXISTS (
+          SELECT 1
+          FROM "StepSubmission" started_submission
+          WHERE started_submission."participantId" = p.id
+            AND started_submission."isCompleted" = true
+        )
         AND p."reportHour" + make_interval(days => s.sequence) <= now()
         AND p."reportHour" + make_interval(days => s.sequence) > now() - make_interval(mins => ${DEADLINE_RECONCILIATION_LOOKBACK_MINUTES}::int)
       ORDER BY p.id
@@ -811,7 +818,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async reconcileMissedDeadlines(participant: any): Promise<any> {
-    if (!participant.active || this.isWinner(participant, participant.marathon.steps)) {
+    if (!participant.active || this.isWinner(participant, participant.marathon.steps) || !this.hasStarted(participant)) {
       return participant;
     }
 
@@ -1022,7 +1029,8 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
 
     const paymentRequired = this.calculatePaymentRequired(participant, latestStep, marathon);
     const paymentStatus = this.getPaymentStatus(participant);
-    const answers = this.buildSchedule(participant, steps, submissions, paymentRequired);
+    const hasStarted = this.hasStarted(participant);
+    const answers = this.buildSchedule(participant, steps, submissions, paymentRequired, hasStarted);
     const latestOpenSubmissionStep = latestSubmission && latestStep
       ? answers.find((answer) => answer.stepId === latestSubmission.stepId && answer.can_open && answer.state !== 'completed' && answer.state !== 'done')
       : null;
@@ -1052,10 +1060,10 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       registered: true,
       id: participant.id,
       bonus_total: BONUS_DAYS,
-      bonus_left: participant.bonusDaysLeft,
-      can_change_report_time: canChangeReportTime,
-      report_time: participant.reportHour ? participant.reportHour.toISOString() : null,
-      report_time_label: participant.reportHour ? this.formatReportTime(participant.reportHour) : null,
+      bonus_left: hasStarted ? participant.bonusDaysLeft : BONUS_DAYS,
+      can_change_report_time: hasStarted && canChangeReportTime,
+      report_time: hasStarted && participant.reportHour ? participant.reportHour.toISOString() : null,
+      report_time_label: hasStarted && participant.reportHour ? this.formatReportTime(participant.reportHour) : null,
       current_step: currentStep,
       answers,
       finished_at: finishedAt,
@@ -1065,6 +1073,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       prizes: certificate && medal ? this.buildPrizePayload(marathon, medal, certificate) : [],
       nps_survey: participant.surveyResponse ? this.mapSurvey(participant.surveyResponse) : null,
       can_generate_progress_report: this.canGenerateProgressReport(participant),
+      is_started: hasStarted,
     };
   }
 
@@ -1263,7 +1272,7 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     const marathon = participant.marathon;
     const paymentRequired = this.calculatePaymentRequired(participant, this.latestStep(participant.submissions), marathon);
     const paymentStatus = this.getPaymentStatus(participant);
-    const schedule = this.buildSchedule(participant, marathon.steps, participant.submissions, paymentRequired);
+    const schedule = this.buildSchedule(participant, marathon.steps, participant.submissions, paymentRequired, this.hasStarted(participant));
     const steps = this.mapProgressReportSteps(schedule, marathon.steps, participant.submissions);
     const totalSteps = steps.length;
     const completedSteps = steps.filter((step) => step.state === 'completed' || step.state === 'checked' || step.state === 'done').length;
@@ -1336,14 +1345,14 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       start: submission.startAt.toISOString(),
       stop: submission.endAt.toISOString(),
       state: submission.isCompleted && submission.isChecked ? 'checked' : submission.isCompleted ? 'completed' : 'active',
-      is_late: step.isPenalized && submission.endAt > this.resolveDueAt(participant.reportHour, step.sequence),
+      is_late: this.hasStarted(participant) && step.isPenalized && submission.endAt > this.resolveDueAt(participant.reportHour, step.sequence),
       can_open: true,
       is_scheduled_future: false,
       block_reason: null,
     };
   }
 
-  private buildSchedule(participant: any, steps: any[], submissions: any[], paymentRequired: boolean): Answer[] {
+  private buildSchedule(participant: any, steps: any[], submissions: any[], paymentRequired: boolean, hasStarted = this.hasStarted(participant)): Answer[] {
     const schedule: Answer[] = [];
     const submissionMap = new Map();
     for (const submission of submissions) {
@@ -1355,8 +1364,8 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
     const now = new Date();
 
     for (const step of steps) {
-      const startAt = this.resolveStartAt(participant.reportHour, step.sequence);
-      const dueAt = this.resolveDueAt(participant.reportHour, step.sequence);
+      const startAt = hasStarted ? this.resolveStartAt(participant.reportHour, step.sequence) : now;
+      const dueAt = hasStarted ? this.resolveDueAt(participant.reportHour, step.sequence) : now;
       const submission = submissionMap.get(step.id);
       const blockedByPayment = paymentRequired;
 
@@ -1370,16 +1379,19 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
         previousStepsCompleted = submission.isCompleted;
       } else {
         const blockedByPreviousReport = !previousStepsCompleted;
-        const scheduledFuture = startAt > now;
+        const waitingForFirstReport = !hasStarted && step.sequence === 1 && !blockedByPayment && !blockedByPreviousReport;
+        const scheduledFuture = hasStarted && startAt > now;
         const canOpen = !blockedByPayment && !blockedByPreviousReport;
         const state = canOpen && !scheduledFuture ? 'active' : 'inactive';
-        const blockReason = blockedByPayment
-          ? 'payment_required'
-          : blockedByPreviousReport
-            ? 'previous_report_pending'
-            : scheduledFuture
-              ? 'scheduled_future'
-              : null;
+        const blockReason = waitingForFirstReport
+          ? 'marathon_not_started'
+          : blockedByPayment
+            ? 'payment_required'
+            : blockedByPreviousReport
+              ? 'previous_report_pending'
+              : scheduledFuture
+                ? 'scheduled_future'
+                : null;
 
         schedule.push({
           id: 0,
@@ -1427,6 +1439,10 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
         blockReason: answer.block_reason ?? null,
       };
     });
+  }
+
+  private hasStarted(participant: any): boolean {
+    return (participant.submissions || []).some((submission: any) => submission.isCompleted);
   }
 
   private latestStep(submissions: any[]): any | null {

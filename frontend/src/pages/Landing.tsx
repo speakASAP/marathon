@@ -13,7 +13,7 @@ import {
   type PublicReview,
   type PublicReviewsPage,
 } from '../api/publicMarathon';
-import { formatLanguageLabel } from '../languages';
+import { PUBLIC_MARATHON_LANGUAGES, formatLanguageLabel } from '../languages';
 import '../landing.css';
 
 
@@ -54,7 +54,7 @@ export default function Landing() {
   const isLanguageLanding = Boolean(langSlug && langSlug !== 'landing');
   const effectiveLangSlug = isLanguageLanding && langSlug ? langSlug : 'de';
   const [marathon, setMarathon] = useState<MarathonSummary | null>(null);
-  const [, setLanguages] = useState<MarathonLanguage[]>([]);
+  const [languages, setLanguages] = useState<MarathonLanguage[]>([]);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [reviews, setReviews] = useState<PublicReview[]>([]);
   const [reviewsPage, setReviewsPage] = useState<PublicReviewsPage | null>(null);
@@ -62,6 +62,7 @@ export default function Landing() {
   const [loadError, setLoadError] = useState('');
   const [formError, setFormError] = useState('');
   const [registeredId, setRegisteredId] = useState('');
+  const languageBandRef = useRef<HTMLElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -105,11 +106,16 @@ export default function Landing() {
 
   useEffect(() => {
     if (!marathon) return;
-    const langName = formatLanguageName(marathon);
-    const metaReady = marathon.id !== 'fallback' && readiness?.registrationOpen === true;
-    document.title = metaReady
-      ? `${langName} марафон — языковая практика SpeakASAP`
-      : `${langName} марафон — статус регистрации`;
+
+    if (!isLanguageLanding) {
+      document.title = 'Языковой марафон SpeakASAP — выберите язык';
+    } else {
+      const langName = formatLanguageName(marathon);
+      const metaReady = marathon.id !== 'fallback' && readiness?.registrationOpen === true;
+      document.title = metaReady
+        ? `${langName} марафон — языковая практика SpeakASAP`
+        : `${langName} марафон — статус регистрации`;
+    }
 
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
@@ -117,12 +123,21 @@ export default function Landing() {
       meta.setAttribute('name', 'description');
       document.head.appendChild(meta);
     }
-    meta.setAttribute(
-      'content',
-      metaReady
-        ? `Присоединяйтесь к марафону ${langName} от SpeakASAP: утвержденные задания, оплату через профиль и отслеживание прогресса.`
-        : `Регистрация на марафон ${langName} откроется после загрузки утвержденного каталога, заданий и платежного продукта.`,
-    );
+    if (!isLanguageLanding) {
+      meta.setAttribute(
+        'content',
+        'Выберите языковой марафон SpeakASAP: 30-дневный маршрут, ежедневные задания, прогресс и финиш с результатом уровня A1.',
+      );
+    } else {
+      const langName = formatLanguageName(marathon);
+      const metaReady = marathon.id !== 'fallback' && readiness?.registrationOpen === true;
+      meta.setAttribute(
+        'content',
+        metaReady
+          ? `Присоединяйтесь к марафону ${langName} от SpeakASAP: утвержденные задания, оплату через профиль и отслеживание прогресса.`
+          : `Регистрация на марафон ${langName} откроется после загрузки утвержденного каталога, заданий и платежного продукта.`,
+      );
+    }
 
     let canonical = document.querySelector('link[rel="canonical"]');
     if (!canonical) {
@@ -130,10 +145,25 @@ export default function Landing() {
       canonical.setAttribute('rel', 'canonical');
       document.head.appendChild(canonical);
     }
-    canonical.setAttribute('href', `${window.location.origin}/${marathon.languageCode}/`);
-  }, [marathon, readiness]);
+    canonical.setAttribute('href', isLanguageLanding ? `${window.location.origin}/${marathon.languageCode}/` : `${window.location.origin}/`);
+  }, [isLanguageLanding, marathon, readiness]);
 
+  const fallbackLanguages = useMemo<MarathonLanguage[]>(
+    () => PUBLIC_MARATHON_LANGUAGES.map((language) => ({
+      code: language.code,
+      name: language.label.replace(/\s+A1$/, ''),
+      url: `/${language.slug}/`,
+    })),
+    [],
+  );
+  const featuredLanguages = useMemo(() => {
+    const source = languages.length ? languages : fallbackLanguages;
+    return [...source].sort((a, b) => formatLanguageLabel(a.code, a.name).localeCompare(formatLanguageLabel(b.code, b.name), 'ru'));
+  }, [fallbackLanguages, languages]);
   const featuredReviews = useMemo(() => reviews.slice(0, 3), [reviews]);
+  const defaultRegistrationLanguage = isLanguageLanding
+    ? { code: marathon?.languageCode || effectiveLangSlug, name: marathon ? formatLanguageName(marathon) : effectiveLangSlug }
+    : featuredLanguages[0];
   const reviewCount = reviewsPage?.total ?? reviews.length;
   const reviewsCtaLabel = reviewCount > 0
     ? `Почитать ${formatCount(reviewCount)} ${formatReviewWord(reviewCount)}`
@@ -148,8 +178,9 @@ export default function Landing() {
   }, [loading, loadError, marathon]);
 
 
-  const scrollToForm = () => {
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const scrollToStart = () => {
+    const target = isLanguageLanding ? formRef.current : languageBandRef.current;
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleRegisterSuccess = (marathonerId: string) => {
@@ -175,9 +206,6 @@ export default function Landing() {
             <button type="button" className="btn-profile-open" onClick={() => window.location.reload()}>
               Обновить
             </button>
-            <Link to="/faq" className="btn-profile-login">
-              Связаться с поддержкой
-            </Link>
           </div>
         </section>
       </div>
@@ -188,45 +216,58 @@ export default function Landing() {
     return (
       <div className="container page-static">
         <p>Данные марафона временно недоступны.</p>
-        <Link to="/faq">Связаться с поддержкой</Link>
       </div>
     );
   }
 
-  const raceLanguageName = formatLanguageName(marathon);
+  const raceLanguageName = isLanguageLanding ? formatLanguageName(marathon) : 'языковой марафон';
   const participantCount = isLanguageLanding
     ? marathon.participantCount
     : readiness?.counts.registeredParticipants;
   const participantLabel = isLanguageLanding ? 'участников в этом марафоне' : 'участников уже зарегистрированы';
-  const resultLevel = marathon.languageCode.toLowerCase() === 'en' ? 'pre-intermediate' : 'A1';
+  const resultLevel = isLanguageLanding && marathon.languageCode.toLowerCase() === 'en' ? 'pre-intermediate' : 'A1';
   const hasActiveMarathon = marathon.id !== 'fallback';
-  const registrationOpen = hasActiveMarathon && readiness?.registrationOpen === true;
-  const registrationStatusId = registrationOpen ? undefined : 'registration-status-note';
-  const heroCtaLabel = registrationOpen ? 'Начать 30-дневный марафон' : 'Посмотреть маршрут на 30 дней';
+  const registrationOpen = isLanguageLanding ? hasActiveMarathon && readiness?.registrationOpen === true : readiness?.registrationOpen === true;
+  const registrationStatusId = !registrationOpen && isLanguageLanding ? 'registration-status-note' : undefined;
+  const heroCtaLabel = isLanguageLanding ? (registrationOpen ? 'Начать 30-дневный марафон' : 'Посмотреть маршрут на 30 дней') : 'Выбрать язык марафона';
+  const heroStatusLabel = isLanguageLanding
+    ? (registrationOpen ? 'Регистрация открыта' : 'Регистрация скоро откроется')
+    : 'Выберите язык';
+  const heroStatusStrong = isLanguageLanding
+    ? (registrationOpen ? 'Начать сегодня' : 'Предпросмотр маршрута')
+    : 'Открыть список марафонов';
   const heroSecondary = registrationOpen
     ? { to: '/profile', label: 'Открыть мой марафон' }
-    : { to: '/faq', label: 'Связаться с поддержкой' };
+    : { to: '/register', label: 'Выбрать язык марафона' };
   const pricingIntro = `Марафон устроен как забег: начните со старта, каждый день выполняйте одно задание и придите к финишу с результатом уровня ${resultLevel}.`;
-  const heroTitle = registrationOpen
-    ? `Пройдите марафон ${raceLanguageName} за 30 дней`
-    : `Марафон ${raceLanguageName} начинается с движения.`;
-  const heroIntro = registrationOpen
-    ? `Начните с первого дня, каждый день выполняйте одно языковое задание, следите за темпом в профиле и на финише получите результат уровня ${resultLevel}.`
-    : `Наглядный 30-дневный маршрут от старта до финиша: каждый день вы проходите один этап, выполняете задание и движетесь к результату уровня ${resultLevel}.`;
-  const registerTitle = registrationOpen ? `Старт марафона: ${raceLanguageName}` : 'Регистрация скоро откроется';
+  const heroTitle = isLanguageLanding
+    ? (registrationOpen ? `Пройдите марафон ${raceLanguageName} за 30 дней` : `Марафон ${raceLanguageName} начинается с движения.`)
+    : 'Пройдите языковой марафон за 30 дней';
+  const heroIntro = isLanguageLanding
+    ? (registrationOpen
+      ? `Начните с первого дня, каждый день выполняйте одно языковое задание, следите за темпом в профиле и на финише получите результат уровня ${resultLevel}.`
+      : `Наглядный 30-дневный маршрут от старта до финиша: каждый день вы проходите один этап, выполняете задание и движетесь к результату уровня ${resultLevel}.`)
+    : `Выберите язык, начните с первого дня, каждый день выполняйте одно задание и двигайтесь к результату уровня ${resultLevel}.`;
+  const registerTitle = isLanguageLanding
+    ? (registrationOpen ? `Старт марафона: ${raceLanguageName}` : 'Регистрация скоро откроется')
+    : 'Выберите язык марафона';
   const missingLaunchGates = readiness?.missing ?? [];
   const faqItems = registrationOpen
     ? [
-      ['Сколько времени нужно каждый день?', 'На один языковой марафон планируйте от 15 минут в день. Дальше время зависит от задания и от того, сколько вы сами хотите заниматься.'],
-      ['Когда открываются задания?', 'Задания открываются после регистрации и оплаты марафона в профиле участника.'],
-      ['Есть ли бесплатные этапы?', 'Нет. Сейчас марафон оплачивается целиком, а после подтверждения оплаты открывается маршрут заданий.'],
+      ['Сколько времени нужно каждый день?', 'На один языковой марафон планируйте от 30 минут в день. Дальше время зависит от задания и от того, сколько вы сами хотите заниматься.'],
+      ['Когда открываются задания?', 'Задания открываются ежедневно по расписанию. По желанию участника можно открыть внеочередные задания и идти быстрее.'],
       ['Как работают задания?', 'У каждого утвержденного задания есть инструкции, статус отчета и прогресс в профиле марафона.'],
+      ['Где оплатить участие?', 'После выбора языка перейдите к регистрации. Оплата открывается на странице марафона и в профиле участника.'],
+      ['Можно ли проходить марафон быстрее?', 'Да. Если хотите идти быстрее ежедневного расписания, открывайте внеочередные задания и выполняйте их в удобном темпе.'],
+      ['Где смотреть свой прогресс?', 'Прогресс, открытые задания, отчеты и статус оплаты отображаются в профиле участника.'],
+      ['Что делать, если пропустили день?', 'Продолжайте с текущего открытого задания. Марафон сохраняет ваш прогресс, и вы можете вернуться к выполнению в профиле.'],
+      ['Можно ли участвовать в нескольких марафонах?', 'Да, можно выбрать несколько языков. На каждый языковой марафон планируйте отдельные 30 минут в день.'],
     ]
     : [
       ['Как устроен марафон?', `Вы проходите 30-дневный маршрут: старт, ежедневные задания, проверка прогресса, оплата марафона и финиш с результатом уровня ${resultLevel}.`],
       ['Что происходит каждый день?', 'Каждый день есть одно языковое задание. Вы выполняете его, отправляете отчет и переходите к следующему дню.'],
       ['Почему регистрация закрыта?', 'Регистрация откроется после загрузки утвержденного активного марафона, заданий, платежного продукта.'],
-      ['Где посмотреть статус запуска?', 'Откройте поддержку, чтобы посмотреть рабочие инструкции и проверки готовности.'],
+      ['Где посмотреть статус запуска?', 'Статус регистрации и доступные языки отображаются на странице регистрации.'],
     ];
 
   return (
@@ -240,14 +281,14 @@ export default function Landing() {
               <button
                 type="button"
                 className={`ml-primary-action large${registrationOpen ? '' : ' is-closed'}`}
-                onClick={scrollToForm}
+                onClick={scrollToStart}
                 aria-describedby={registrationStatusId}
               >
                 {heroCtaLabel}
               </button>
               <Link to={heroSecondary.to} className="ml-outline-action">{heroSecondary.label}</Link>
             </div>
-            {!registrationOpen && (
+            {!registrationOpen && isLanguageLanding && (
               <p className="ml-availability-note" id="registration-status-note">
                 Регистрация еще не открыта, но маршрут уже можно посмотреть: старт, ежедневное задание, отчет и финиш.
               </p>
@@ -273,14 +314,40 @@ export default function Landing() {
             <button
               type="button"
               className="ml-race-status"
-              onClick={scrollToForm}
+              onClick={scrollToStart}
               aria-describedby={registrationStatusId}
             >
-              <span>{registrationOpen ? 'Регистрация открыта' : 'Регистрация скоро откроется'}</span>
-              <strong>{registrationOpen ? 'Начать сегодня' : 'Предпросмотр маршрута'}</strong>
+              <span>{heroStatusLabel}</span>
+              <strong>{heroStatusStrong}</strong>
             </button>
           </div>
         </section>
+
+        {!isLanguageLanding && (
+          <section className="home-language-band" aria-labelledby="home-language-title" ref={languageBandRef}>
+            <div>
+              <h2 id="home-language-title">Выберите язык марафона</h2>
+              <p>Выберите язык прямо здесь, укажите email и телефон — регистрация начнется без лишнего перехода.</p>
+            </div>
+            <div className="home-language-register">
+              {registrationOpen && defaultRegistrationLanguage ? (
+                <>
+                  <RegistrationForm
+                    languageCode={defaultRegistrationLanguage.code}
+                    marathonTitle={formatLanguageLabel(defaultRegistrationLanguage.code, defaultRegistrationLanguage.name)}
+                    languages={featuredLanguages}
+                    onSuccess={handleRegisterSuccess}
+                    onError={setFormError}
+                  />
+                  {registeredId && <p className="ml-success">Регистрация получена. ID участника: {registeredId}</p>}
+                  {formError && <p className="ml-error">{formError}</p>}
+                </>
+              ) : (
+                <Link to="/register" className="home-language-chip is-status">Статус регистрации</Link>
+              )}
+            </div>
+          </section>
+        )}
 
         <section className="ml-how" id="how">
           <div className="ml-section-head">
@@ -430,7 +497,7 @@ export default function Landing() {
 
         <section className="ml-faq" id="faq">
           <div>
-            <h2>Есть вопросы? Мы поможем.</h2>
+            <h2>Частые вопросы перед стартом</h2>
             <div className="ml-faq-list">
               {faqItems.map(([question, answer]) => (
                 <details key={question}>
@@ -441,18 +508,19 @@ export default function Landing() {
             </div>
           </div>
           <aside>
-            <h3>Остались вопросы?</h3>
-            <p>Поддержка поможет с регистрацией, доступом к профилю, оплатой и вопросами по заданиям.</p>
-            <Link to="/faq" className="ml-outline-action">Связаться с поддержкой</Link>
+            <h3>Готовы начать?</h3>
+            <p>Выберите язык марафона, оплатите участие на странице регистрации и приступайте к заданиям в профиле.</p>
+            <button type="button" className="ml-outline-action" onClick={scrollToStart}>Перейти к регистрации</button>
           </aside>
         </section>
 
         <section className={`ml-register${registrationOpen ? ' is-form-only' : ''}`} ref={formRef} id="register">
-          {registrationOpen ? (
+          {registrationOpen && defaultRegistrationLanguage ? (
             <div className="ml-register-form-stack">
               <RegistrationForm
-                languageCode={marathon.languageCode}
-                marathonTitle={`${raceLanguageName} язык`}
+                languageCode={defaultRegistrationLanguage.code}
+                marathonTitle={formatLanguageLabel(defaultRegistrationLanguage.code, defaultRegistrationLanguage.name)}
+                languages={featuredLanguages}
                 onSuccess={handleRegisterSuccess}
                 onError={setFormError}
               />
@@ -465,11 +533,11 @@ export default function Landing() {
             <>
               <div className="ml-register-copy">
                 <h2>{registerTitle}</h2>
-                <p>Регистрация откроется, когда этот языковой маршрут будет готов. Структуру 30-дневного марафона уже видно выше.</p>
+                <p>{isLanguageLanding ? 'Регистрация откроется, когда этот языковой маршрут будет готов. Структуру 30-дневного марафона уже видно выше.' : 'На главной странице выберите язык. Регистрация и конкретный маршрут откроются на странице выбранного марафона.'}</p>
               </div>
               <div className="ml-registration-unavailable">
-                <h3>Регистрация еще не открыта</h3>
-                <p>Кнопка старта откроется после готовности утвержденного маршрута, ежедневных заданий, платежного продукта в production.</p>
+                <h3>{isLanguageLanding ? 'Регистрация еще не открыта' : 'Сначала выберите язык'}</h3>
+                <p>{isLanguageLanding ? 'Кнопка старта откроется после готовности утвержденного маршрута, ежедневных заданий, платежного продукта в production.' : 'Каждый языковой марафон ведет к своей странице с маршрутом, статусом и регистрацией.'}</p>
                 {missingLaunchGates.length ? (
                   <div className="ml-missing-gates" aria-label="Недостающие условия запуска">
                     <strong>Блокеры запуска</strong>
@@ -480,7 +548,9 @@ export default function Landing() {
                     </div>
                   </div>
                 ) : null}
-                <Link to="/faq" className="ml-outline-action">Связаться с поддержкой</Link>
+                <button type="button" className="ml-outline-action" onClick={scrollToStart}>
+                  {isLanguageLanding ? 'Посмотреть регистрацию' : 'Выбрать язык'}
+                </button>
               </div>
             </>
           )}

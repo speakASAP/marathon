@@ -1,37 +1,13 @@
-import { type CSSProperties, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   fetchCatalogReadiness,
   fetchMarathonLanguages,
-  getMarathonRegisterPath,
   type CatalogReadiness,
   type MarathonLanguage,
 } from '../api/publicMarathon';
-import { formatLanguageFlag, formatLanguageLabel } from '../languages';
-
-
-const LANGUAGE_VISUAL_CODES: Record<string, string> = {
-  cs: 'cz',
-  da: 'dk',
-  nb: 'no',
-  nn: 'no',
-  sv: 'se',
-};
-
-type RegisterLanguageStyle = CSSProperties & {
-  '--register-language-image': string;
-};
-
-function getLanguageVisualCode(code: string): string {
-  const normalized = code.toLowerCase();
-  return LANGUAGE_VISUAL_CODES[normalized] || normalized;
-}
-
-function getLanguageCardStyle(code: string): RegisterLanguageStyle {
-  return {
-    '--register-language-image': `url('/img/bg/${getLanguageVisualCode(code)}.jpg')`,
-  };
-}
+import RegistrationForm from '../components/RegistrationForm';
+import { formatLanguageLabel } from '../languages';
 
 function formatMissingGate(value: string): string {
   return value
@@ -48,6 +24,8 @@ export default function Register() {
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [registeredId, setRegisteredId] = useState('');
 
   useEffect(() => {
     document.title = 'Регистрация на марафон — Марафон';
@@ -75,12 +53,13 @@ export default function Register() {
     [languages],
   );
   const visibleLanguages = registrationClosed ? [] : sortedLanguages;
+  const defaultLanguage = visibleLanguages[0];
 
   return (
     <div className="container page-static page-register">
       <header className="register-hero">
         <h1>Регистрация на марафон</h1>
-        <p>Выберите язык марафона и перейдите на страницу регистрации.</p>
+        <p>Выберите язык прямо в форме, укажите email и телефон — регистрация начнется без лишнего перехода на другую страницу.</p>
       </header>
       {loading && <p className="register-loading">Загрузка…</p>}
       {loadError && (
@@ -125,31 +104,20 @@ export default function Register() {
           <Link to="/faq" className="btn-profile-login">Связаться с поддержкой</Link>
         </section>
       )}
-      {visibleLanguages.length > 0 && (
-        <section className="register-language-section" aria-label="Выбор языка марафона">
-          <ul className="register-lang-list">
-            {visibleLanguages.map((lang) => {
-              const languageName = formatLanguageLabel(lang.code, lang.name);
-              return (
-                <li key={lang.code}>
-                  <Link
-                    className="register-lang-card"
-                    style={getLanguageCardStyle(lang.code)}
-                    to={getMarathonRegisterPath(lang)}
-                    aria-label={`Перейти к регистрации: ${languageName}`}
-                  >
-                    <span className="register-lang-image" aria-hidden="true">
-                      <span className="register-lang-flag">{formatLanguageFlag(lang.code)}</span>
-                    </span>
-                    <span className="register-lang-content">
-                      <span className="register-lang-title">{languageName}</span>
-                      <span className="register-lang-action">Перейти к регистрации</span>
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+      {defaultLanguage && (
+        <section className="register-form-section" aria-label="Форма регистрации на марафон">
+          <RegistrationForm
+            languageCode={defaultLanguage.code}
+            marathonTitle={formatLanguageLabel(defaultLanguage.code, defaultLanguage.name)}
+            languages={visibleLanguages}
+            onSuccess={(marathonerId) => {
+              setFormError('');
+              setRegisteredId(marathonerId);
+            }}
+            onError={setFormError}
+          />
+          {registeredId && <p className="ml-success">Регистрация получена. ID участника: {registeredId}</p>}
+          {formError && <p className="ml-error">{formError}</p>}
         </section>
       )}
     </div>
