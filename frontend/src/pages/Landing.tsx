@@ -6,11 +6,12 @@ import {
   fetchCatalogReadiness,
   fetchMarathonByLanguage,
   fetchMarathonLanguages,
-  fetchPublicReviews,
+  fetchPublicReviewsPage,
   type CatalogReadiness,
   type MarathonLanguage,
   type MarathonSummary,
   type PublicReview,
+  type PublicReviewsPage,
 } from '../api/publicMarathon';
 import { formatLanguageLabel } from '../languages';
 import '../landing.css';
@@ -39,6 +40,15 @@ function formatCount(value: number | undefined): string {
   return new Intl.NumberFormat('ru-RU').format(value);
 }
 
+function formatReviewWord(count: number): string {
+  const mod10 = Math.abs(count) % 10;
+  const mod100 = Math.abs(count) % 100;
+
+  if (mod10 === 1 && mod100 !== 11) return 'отзыв';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'отзыва';
+  return 'отзывов';
+}
+
 export default function Landing() {
   const { langSlug } = useParams<{ langSlug: string }>();
   const isLanguageLanding = Boolean(langSlug && langSlug !== 'landing');
@@ -47,6 +57,7 @@ export default function Landing() {
   const [, setLanguages] = useState<MarathonLanguage[]>([]);
   const [readiness, setReadiness] = useState<CatalogReadiness | null>(null);
   const [reviews, setReviews] = useState<PublicReview[]>([]);
+  const [reviewsPage, setReviewsPage] = useState<PublicReviewsPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [formError, setFormError] = useState('');
@@ -60,7 +71,15 @@ export default function Landing() {
       fetchMarathonByLanguage(effectiveLangSlug),
       fetchMarathonLanguages(),
       fetchCatalogReadiness(),
-      fetchPublicReviews(),
+      fetchPublicReviewsPage(1, 24).catch((): PublicReviewsPage => ({
+        items: [],
+        page: 1,
+        limit: 24,
+        total: 0,
+        totalPages: 0,
+        nextPage: null,
+        prevPage: null,
+      })),
     ])
       .then(([marathonData, langs, readinessData, reviewsData]) => {
         setMarathon(marathonData || {
@@ -70,13 +89,15 @@ export default function Landing() {
         });
         setLanguages(langs);
         setReadiness(readinessData);
-        setReviews(Array.isArray(reviewsData) ? reviewsData : []);
+        setReviews(reviewsData.items);
+        setReviewsPage(reviewsData);
       })
       .catch(() => {
         setMarathon(null);
         setLanguages([]);
         setReadiness(null);
         setReviews([]);
+        setReviewsPage(null);
         setLoadError('Страница марафона не загрузилась. Обновите страницу или обратитесь в поддержку, если проблема повторится.');
       })
       .finally(() => setLoading(false));
@@ -113,6 +134,10 @@ export default function Landing() {
   }, [marathon, readiness]);
 
   const featuredReviews = useMemo(() => reviews.slice(0, 3), [reviews]);
+  const reviewCount = reviewsPage?.total ?? reviews.length;
+  const reviewsCtaLabel = reviewCount > 0
+    ? `Почитать ${formatCount(reviewCount)} ${formatReviewWord(reviewCount)}`
+    : 'Почитать отзывы';
 
   useEffect(() => {
     if (loading || loadError || !marathon || window.location.hash !== "#register") return;
@@ -379,7 +404,7 @@ export default function Landing() {
             <div>
               <h3>Старт. 30 дней. Уровень {resultLevel}.</h3>
               <p>Ежедневные задания делают маршрут измеримым. Финиш не абстрактный: через 30 дней участник достигает конкретной цели и получает результат уровня {resultLevel}.</p>
-              <Link to="/winners" className="ml-primary-action">Посмотреть финалистов</Link>
+              <Link to="/reviews" className="ml-primary-action">{reviewsCtaLabel}</Link>
             </div>
           </div>
           <div className="ml-review-grid">
@@ -393,14 +418,14 @@ export default function Landing() {
               <article className="ml-review-empty" aria-live="polite">
                 <h3>Отзывы появятся после первого запуска марафона.</h3>
                 <p>
-                  Карточки финалистов и отзывы участников появятся после того, как реальные участники завершат
+                  Отзывы участников появятся после того, как реальные участники завершат
                   утвержденные production-марафоны.
                 </p>
                 <Link to="/faq" className="ml-outline-action">Статус запуска</Link>
               </article>
             )}
           </div>
-          <Link to="/winners" className="ml-text-link">Посмотреть финалистов</Link>
+          <Link to="/reviews" className="ml-text-link">{reviewsCtaLabel}</Link>
         </section>
 
         <section className="ml-faq" id="faq">
