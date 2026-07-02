@@ -404,7 +404,7 @@ export default function Landing() {
             <div>
               <h3>Старт. 30 дней. Уровень {resultLevel}.</h3>
               <p>Ежедневные задания делают маршрут измеримым. Финиш не абстрактный: через 30 дней участник достигает конкретной цели и получает результат уровня {resultLevel}.</p>
-              <Link to="/reviews" className="ml-primary-action">{reviewsCtaLabel}</Link>
+              <Link to="/winners" className="ml-primary-action">Посмотреть финалистов</Link>
             </div>
           </div>
           <div className="ml-review-grid">
