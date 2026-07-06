@@ -177,3 +177,21 @@ Not complete:
 - Cross-service use is not fully blocked solely by Auth role state because several consumers accept generic authenticated users.
 - One numeric legacy orphan remains without a safe Auth identity binding.
 
+
+## Prepared consumer guard patches
+
+After the boundary scan, the three high-priority generic-auth consumer repos were patched in separate Codex lanes:
+
+- `orders-microservice` branch `codex/orders-marathon-auth-guard`
+  - Patch: `authenticated:user` no longer admits marathon-only Auth users.
+  - Validation: `npm run build`, `npm run verify:auth-marathon-only-boundary`, `git diff --check`.
+
+- `catalog-microservice` branch `codex/catalog-marathon-auth-boundary`
+  - Patch: `catalog:authenticated` no longer admits marathon-only Auth users, including nested `perApplicationPreferences.authSources.marathon` markers.
+  - Validation: `npm test -- src/auth/catalog-auth.guard.spec.ts --runInBand`, `npm run build`, `git diff --check`.
+
+- `invoices-microservice` branch `codex/marathon-only-customer-auth`
+  - Patch: `CustomerAuthGuard` no longer admits marathon-only Auth users, including nested `perApplicationPreferences.authSources.marathon` markers.
+  - Validation: `npm test -- --runTestsByPath test/account-invoices.spec.ts`, `npm run build`, `git diff --check`.
+
+This prepares the access-boundary correction but does not deploy it. Final completion still requires review/merge/deploy of these consumer guard patches and a post-deploy masked smoke proving Marathon remains 200 while these consumer generic routes deny marathon-only users.
