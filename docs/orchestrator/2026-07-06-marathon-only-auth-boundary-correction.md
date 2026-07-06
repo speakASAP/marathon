@@ -194,4 +194,27 @@ After the boundary scan, the three high-priority generic-auth consumer repos wer
   - Patch: `CustomerAuthGuard` no longer admits marathon-only Auth users, including nested `perApplicationPreferences.authSources.marathon` markers.
   - Validation: `npm test -- --runTestsByPath test/account-invoices.spec.ts`, `npm run build`, `git diff --check`.
 
-This prepares the access-boundary correction but does not deploy it. Final completion still requires review/merge/deploy of these consumer guard patches and a post-deploy masked smoke proving Marathon remains 200 while these consumer generic routes deny marathon-only users.
+These access-boundary corrections were merged to main, pushed, deployed, and post-deploy validated. Marathon remained 200 for profile/history access while Catalog, Orders, and Invoices deployed guard smokes denied marathon-only users on generic authenticated routes.
+
+## Prepared numeric orphan correction helper
+
+The final numeric legacy participant gap now has an approval-gated helper and runbook:
+
+- `scripts/apply-marathon-numeric-orphan-correction.js`
+- `docs/orchestrator/2026-07-06-marathon-numeric-orphan-correction-runbook.md`
+
+Dry-run evidence:
+
+- `numericRows`: 1
+- `finishedRows`: 1
+- `rowsWithSubmissions`: 1
+- `rowsWithEmail`: 1
+- `duplicateContactUsers`: 0
+- `willCreateAuthUser`: true
+- `willCreateMapping`: true
+
+Fail-closed evidence:
+
+- `node scripts/apply-marathon-numeric-orphan-correction.js --apply` without approval exits non-zero and reports missing `MARATHON_NUMERIC_ORPHAN_APPLY` and `MARATHON_NUMERIC_ORPHAN_TICKET` gates.
+
+Apply remains blocked until the owner approves generating a new Auth UUID identity and rewriting the one numeric participant.
