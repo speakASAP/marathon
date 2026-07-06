@@ -43,6 +43,17 @@ function kubectl(args, options = {}) {
   return run('kubectl', ['-n', namespace, ...args], options);
 }
 
+function readyPodName(appLabel) {
+  const raw = kubectl(['get', 'pod', '-l', `app=${appLabel}`, '-o', 'json']);
+  const podList = JSON.parse(raw);
+  const pod = (podList.items || []).find((item) => {
+    const ready = (item.status?.conditions || []).some((condition) => condition.type === 'Ready' && condition.status === 'True');
+    return item.status?.phase === 'Running' && ready && !item.metadata?.deletionTimestamp;
+  });
+  if (!pod?.metadata?.name) throw new Error(`ready pod not found for app=${appLabel}`);
+  return pod.metadata.name;
+}
+
 function parseJson(raw, label) {
   try {
     return JSON.parse(raw);
@@ -205,11 +216,11 @@ function countDuplicateTargets(rows) {
 }
 
 const client = new Client({
-  host: process.env.DB_HOST,
+  host: process.env.DB_HOST || "db-server-postgres",
   port: Number(process.env.DB_PORT || 5432),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || "auth",
+  user: process.env.DB_USER || "dbadmin",
+  password: typeof process.env.DB_PASSWORD === "string" ? process.env.DB_PASSWORD : "",
 });
 
 (async () => {
@@ -380,7 +391,7 @@ async function main() {
       '--',
       'sh',
       '-lc',
-      `cd /app && node - <<'NODE'\n${marathonCollector}\nNODE`,
+      `set -e\ncd /app\nnode - <<'NODE'\n${marathonCollector}\nNODE`,
     ]);
     const marathonStats = parseJson(marathonRaw, 'Marathon collector');
     if (!marathonStats.ok) {
@@ -396,14 +407,7 @@ async function main() {
       uuidLike: marathonStats.uuidLike,
     }));
 
-    const authPod = kubectl([
-      'get',
-      'pod',
-      '-l',
-      'app=auth-microservice',
-      '-o',
-      'jsonpath={.items[0].metadata.name}',
-    ]).trim();
+    const authPod = readyPodName('auth-microservice');
     if (!authPod) {
       throw new Error('Auth pod not found');
     }
@@ -415,7 +419,7 @@ async function main() {
       '--',
       'sh',
       '-lc',
-      `cd /app && node - ${remoteStatsPath} <<'NODE'\n${authAnalyzer}\nNODE\nrm -f ${remoteStatsPath}`,
+      `set -e\ncd /app\nnode - ${remoteStatsPath} <<'NODE'\n${authAnalyzer}\nNODE\nrm -f ${remoteStatsPath}`,
     ]);
 
     const report = parseJson(reportRaw, 'Auth analyzer');

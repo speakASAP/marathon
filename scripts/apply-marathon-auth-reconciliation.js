@@ -46,6 +46,17 @@ function kubectl(args, options = {}) {
   return run('kubectl', ['-n', namespace, ...args], options);
 }
 
+function readyPodName(appLabel) {
+  const raw = kubectl(['get', 'pod', '-l', `app=${appLabel}`, '-o', 'json']);
+  const podList = JSON.parse(raw);
+  const pod = (podList.items || []).find((item) => {
+    const ready = (item.status?.conditions || []).some((condition) => condition.type === 'Ready' && condition.status === 'True');
+    return item.status?.phase === 'Running' && ready && !item.metadata?.deletionTimestamp;
+  });
+  if (!pod?.metadata?.name) throw new Error(`ready pod not found for app=${appLabel}`);
+  return pod.metadata.name;
+}
+
 function parseJson(raw, label) {
   try {
     return JSON.parse(raw);
@@ -185,11 +196,11 @@ const numericIds = Object.keys(stats.numeric || {}).map(Number);
 const limitedNumericIds = mode === "apply" ? numericIds.slice(0, limit) : numericIds;
 
 const client = new Client({
-  host: process.env.DB_HOST,
+  host: process.env.DB_HOST || "db-server-postgres",
   port: Number(process.env.DB_PORT || 5432),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || "auth",
+  user: process.env.DB_USER || "dbadmin",
+  password: typeof process.env.DB_PASSWORD === "string" ? process.env.DB_PASSWORD : "",
 });
 
 async function q(text, params = []) {
@@ -389,8 +400,8 @@ async function main() {
   const marathonNeedsApply = apply && ['marathon', 'both'].includes(phase);
 
   try {
-    const marathonPod = kubectl(['get', 'pod', '-l', 'app=marathon', '-o', 'jsonpath={.items[0].metadata.name}']).trim();
-    const authPod = kubectl(['get', 'pod', '-l', 'app=auth-microservice', '-o', 'jsonpath={.items[0].metadata.name}']).trim();
+    const marathonPod = readyPodName('marathon');
+    const authPod = readyPodName('auth-microservice');
     if (!marathonPod || !authPod) throw new Error('required pod not found');
 
     const collectorRaw = kubectl([
@@ -399,7 +410,7 @@ async function main() {
       '--',
       'sh',
       '-lc',
-      `cd /app && node - ${remoteStatsPath} <<'NODE'\n${marathonCollector}\nNODE`,
+      `set -e\ncd /app\nnode - ${remoteStatsPath} <<'NODE'\n${marathonCollector}\nNODE`,
     ]);
     const collector = parseJson(collectorRaw, 'Marathon collector');
     kubectl(['cp', `${marathonPod}:${remoteStatsPath}`, localStatsPath], { stdio: ['pipe', 'ignore', 'pipe'] });
@@ -412,7 +423,7 @@ async function main() {
       '--',
       'sh',
       '-lc',
-      `cd /app && RECONCILE_APPLY=${authNeedsApply ? 'true' : 'false'} RECONCILE_LIMIT=${apply ? limit : 0} node - ${remoteStatsPath} ${remoteMappingPath} <<'NODE'\n${authPhase}\nNODE`,
+      `set -e\ncd /app\nRECONCILE_APPLY=${authNeedsApply ? 'true' : 'false'} RECONCILE_LIMIT=${apply ? limit : 0} node - ${remoteStatsPath} ${remoteMappingPath} <<'NODE'\n${authPhase}\nNODE`,
     ]);
     const authReport = parseJson(authRaw, 'Auth phase');
     kubectl(['cp', `${authPod}:${remoteMappingPath}`, localMappingPath], { stdio: ['pipe', 'ignore', 'pipe'] });
@@ -425,7 +436,7 @@ async function main() {
       '--',
       'sh',
       '-lc',
-      `cd /app && RECONCILE_APPLY=${marathonNeedsApply ? 'true' : 'false'} node - ${remoteMappingPath} <<'NODE'\n${marathonPhase}\nNODE\nrm -f ${remoteMappingPath}`,
+      `set -e\ncd /app\nRECONCILE_APPLY=${marathonNeedsApply ? 'true' : 'false'} node - ${remoteMappingPath} <<'NODE'\n${marathonPhase}\nNODE\nrm -f ${remoteMappingPath}`,
     ]);
     const marathonReport = parseJson(marathonRaw, 'Marathon phase');
 
