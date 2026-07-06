@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../shared/prisma.service';
+import type { AuthUser } from '../shared/auth-client';
 
 export type Answer = {
   id: string | number;
@@ -102,8 +103,6 @@ export type MarathonUserProfileSettings = {
 
 export type MarathonUserProfileInput = {
   displayName?: string;
-  email?: string;
-  phone?: string;
   avatarUrl?: string;
   bio?: string;
 };
@@ -229,7 +228,8 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async getUserProfile(userId: string): Promise<MarathonUserProfileSettings> {
+  async getUserProfile(user: AuthUser): Promise<MarathonUserProfileSettings> {
+    const userId = user.id;
     const [profile, participant, participantWithPhone] = await Promise.all([
       this.prisma.marathonUserProfile.findUnique({ where: { userId } }),
       this.prisma.marathonParticipant.findFirst({
@@ -250,47 +250,25 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
       }),
     ]);
 
+    const authDisplayName = user.name?.trim() || [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
     const participantPhone = participant?.phone?.trim() || participantWithPhone?.phone?.trim() || "";
 
     return {
-      displayName: profile?.displayName || participant?.name || "",
-      email: participant?.email || "",
-      phone: participantPhone,
+      displayName: profile?.displayName || authDisplayName || participant?.name || "",
+      email: user.email?.trim() || participant?.email || "",
+      phone: user.phone?.trim() || participantPhone,
       avatarUrl: profile?.avatarUrl || "",
       bio: profile?.bio || "",
     };
   }
 
-  async updateUserProfile(userId: string, input: MarathonUserProfileInput): Promise<MarathonUserProfileSettings> {
-    const currentParticipant = await this.prisma.marathonParticipant.findFirst({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      select: { email: true, phone: true },
-    });
-    const displayName = this.normalizeProfileText(input.displayName, 120, "Name");
-    const email = input.email === undefined ? currentParticipant?.email || null : this.normalizeEmail(input.email);
-    const phone = input.phone === undefined ? currentParticipant?.phone || null : this.normalizeProfileText(input.phone, 40, "Phone");
+  async updateUserProfile(user: AuthUser, input: MarathonUserProfileInput): Promise<MarathonUserProfileSettings> {
+    const userId = user.id;
+    const displayName = this.normalizeProfileText(input.displayName, 120, "Marathon display name");
     const bio = this.normalizeProfileText(input.bio, 500, "Profile bio");
     const avatarUrl = this.normalizeAvatarUrl(input.avatarUrl);
 
-    if (email || phone) {
-      const duplicateParticipant = await this.prisma.marathonParticipant.findFirst({
-        where: {
-          active: true,
-          NOT: { userId },
-          OR: [
-            ...(email ? [{ email }] : []),
-            ...(phone ? [{ phone }] : []),
-          ],
-        },
-        select: { id: true },
-      });
-      if (duplicateParticipant) {
-        throw new BadRequestException('Этот email или телефон уже используется другим участником марафона.');
-      }
-    }
-
-    const profile = await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       const savedProfile = await tx.marathonUserProfile.upsert({
         where: { userId },
         create: {
@@ -310,19 +288,13 @@ export class MeService implements OnModuleInit, OnModuleDestroy {
 
       await tx.marathonParticipant.updateMany({
         where: { userId },
-        data: { name: displayName, email, phone },
+        data: { name: displayName },
       });
 
       return savedProfile;
     });
 
-    return {
-      displayName: profile.displayName || '',
-      email: email || '',
-      phone: phone || '',
-      avatarUrl: profile.avatarUrl || '',
-      bio: profile.bio || '',
-    };
+    return this.getUserProfile(user);
   }
 
   async confirmCertificateName(userId: string, marathonerId: string, input: MarathonCertificateNameInput): Promise<MyMarathon | null> {

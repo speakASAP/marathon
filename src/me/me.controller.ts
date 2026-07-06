@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Logger, NotFoundException, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthGuard } from '../shared/auth.guard';
+import type { AuthUser } from '../shared/auth-client';
 import {
   MeService,
   MyMarathon,
@@ -12,7 +13,7 @@ import {
   MarathonUserProfileSettings,
 } from './me.service';
 
-type RequestWithUser = Request & { user?: { id: string } };
+type RequestWithUser = Request & { user?: AuthUser };
 
 
 @Controller('me/profile')
@@ -26,7 +27,7 @@ export class MeProfileController {
   async getProfile(@Req() req: RequestWithUser): Promise<MarathonUserProfileSettings> {
     const userId = req.user!.id;
     this.logger.log(`Marathon user profile request received: userId=${userId}`);
-    return this.meService.getUserProfile(userId);
+    return this.meService.getUserProfile(req.user!);
   }
 
   @Patch()
@@ -36,7 +37,7 @@ export class MeProfileController {
   ): Promise<MarathonUserProfileSettings> {
     const userId = req.user!.id;
     this.logger.log(`Marathon user profile update received: userId=${userId}`);
-    return this.meService.updateUserProfile(userId, body);
+    return this.meService.updateUserProfile(req.user!, body);
   }
 }
 

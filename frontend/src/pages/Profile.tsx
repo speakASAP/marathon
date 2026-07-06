@@ -255,7 +255,8 @@ export default function Profile() {
     setProfileSaveError('');
     setProfileSaveMessage('');
     try {
-      const updated = await updateMyProfile(accountProfile);
+      const { displayName, avatarUrl, bio } = accountProfile;
+      const updated = await updateMyProfile({ displayName, avatarUrl, bio });
       setAccountProfile(updated);
       window.dispatchEvent(new CustomEvent('marathon-profile-updated', { detail: updated }));
       setProfileSaveMessage('Профиль сохранен.');
@@ -409,7 +410,7 @@ export default function Profile() {
               </div>
             )}
             <form className="profile-settings-form" onSubmit={handleProfileSubmit}>
-              <label htmlFor="profile-display-name">Имя</label>
+              <label htmlFor="profile-display-name">Имя для марафона</label>
               <input
                 id="profile-display-name"
                 type="text"
@@ -426,8 +427,9 @@ export default function Profile() {
                     value={accountProfile.email}
                     maxLength={254}
                     autoComplete="email"
-                    onChange={(event) => setAccountProfile({ ...accountProfile, email: event.target.value })}
+                    readOnly
                   />
+                  <small>Редактируется в аккаунте SpeakASAP.</small>
                 </div>
                 <div>
                   <label htmlFor="profile-phone">Телефон</label>
@@ -437,8 +439,9 @@ export default function Profile() {
                     value={accountProfile.phone}
                     maxLength={40}
                     autoComplete="tel"
-                    onChange={(event) => setAccountProfile({ ...accountProfile, phone: event.target.value })}
+                    readOnly
                   />
+                  <small>Редактируется в аккаунте SpeakASAP.</small>
                 </div>
               </div>
               <div className="profile-payment-actions">

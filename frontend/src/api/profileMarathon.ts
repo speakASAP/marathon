@@ -154,7 +154,7 @@ export async function fetchMyProfile(): Promise<MarathonUserProfileSettings> {
   return response.json() as Promise<MarathonUserProfileSettings>;
 }
 
-export async function updateMyProfile(input: MarathonUserProfileSettings): Promise<MarathonUserProfileSettings> {
+export async function updateMyProfile(input: Pick<MarathonUserProfileSettings, 'displayName' | 'avatarUrl' | 'bio'>): Promise<MarathonUserProfileSettings> {
   const response = await authFetch('/api/v1/me/profile', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
