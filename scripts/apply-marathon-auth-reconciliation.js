@@ -351,28 +351,70 @@ const prisma = new PrismaClient();
 const mappingPath = process.argv[2];
 const mode = process.env.RECONCILE_APPLY === "true" ? "apply" : "dry-run";
 const mappings = JSON.parse(fs.readFileSync(mappingPath, "utf8")).mappings || [];
+const chunkSize = 1000;
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function sanitizedMappings() {
+  return mappings.map((mapping) => {
+    const legacyUserId = String(mapping.legacyUserId);
+    const authUserId = String(mapping.authUserId);
+    if (!/^\d+$/.test(legacyUserId)) {
+      throw new Error("invalid legacy user id in mapping file");
+    }
+    if (!uuid.test(authUserId)) {
+      throw new Error("invalid auth user id in mapping file");
+    }
+    return { legacyUserId, authUserId };
+  });
+}
+
+function valuesSql(chunk) {
+  return chunk.map((_, index) => {
+    const offset = index * 2;
+    return `($${offset + 1}::text, $${offset + 2}::text)`;
+  }).join(",");
+}
+
+function valuesParams(chunk) {
+  return chunk.flatMap((mapping) => [mapping.legacyUserId, mapping.authUserId]);
+}
 
 (async () => {
   let candidateRows = 0;
   let updatedRows = 0;
-  for (const mapping of mappings) {
-    const legacyUserId = String(mapping.legacyUserId);
-    const authUserId = String(mapping.authUserId);
-    const count = await prisma.marathonParticipant.count({ where: { userId: legacyUserId } });
-    candidateRows += count;
-    if (mode === "apply" && count > 0) {
-      const result = await prisma.marathonParticipant.updateMany({
-        where: { userId: legacyUserId },
-        data: { userId: authUserId },
-      });
-      updatedRows += result.count;
+  const sanitized = sanitizedMappings();
+
+  for (let start = 0; start < sanitized.length; start += chunkSize) {
+    const chunk = sanitized.slice(start, start + chunkSize);
+    const sqlValues = valuesSql(chunk);
+    const params = valuesParams(chunk);
+
+    const countRows = await prisma.$queryRawUnsafe(
+      `SELECT COUNT(*)::int AS count
+         FROM "MarathonParticipant" p
+         JOIN (VALUES ${sqlValues}) AS m("legacyUserId", "authUserId")
+           ON p."userId" = m."legacyUserId"`,
+      ...params,
+    );
+    candidateRows += Number(countRows[0]?.count || 0);
+
+    if (mode === "apply") {
+      const result = await prisma.$executeRawUnsafe(
+        `UPDATE "MarathonParticipant" AS p
+            SET "userId" = m."authUserId"
+           FROM (VALUES ${sqlValues}) AS m("legacyUserId", "authUserId")
+          WHERE p."userId" = m."legacyUserId"`,
+        ...params,
+      );
+      updatedRows += Number(result || 0);
     }
   }
+
   console.log(JSON.stringify({
     ok: true,
     mode,
     phase: "marathon",
-    mappingCount: mappings.length,
+    mappingCount: sanitized.length,
     candidateRows,
     updatedRows,
   }));
