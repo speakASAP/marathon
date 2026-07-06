@@ -164,7 +164,8 @@ Source-level hardening patches were prepared on 2026-07-06. No deploy was run.
 - Marathon-only Auth users without a local Crypto AI row should receive `403`.
 - Added `backend/tests/test_auth_entitlements.py` for accepted Crypto roles, Marathon-only rejection, and malformed/missing role rejection.
 - Validation: `python3 -m py_compile app/dependencies/auth.py tests/test_auth_entitlements.py` passed; AST parse passed; `git diff --check` passed.
-- Validation blocker: `python3 -m pytest tests/test_auth_entitlements.py -v` could not run because `pytest` is not installed in the remote backend environment.
+- Host validation note: `pytest` and FastAPI are not installed directly in the remote backend host Python environment.
+- Container validation: `docker run --rm -v "$PWD":/app -w /app python:3.12-slim sh -lc "pip install --no-cache-dir -q -r requirements.txt && python -m pytest tests/test_auth_entitlements.py -q"` passed with `4 passed, 1 warning`.
 
 Remaining hardening caveats:
 
