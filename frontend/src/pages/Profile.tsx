@@ -429,7 +429,6 @@ export default function Profile() {
                     autoComplete="email"
                     readOnly
                   />
-                  <small>Редактируется в аккаунте SpeakASAP.</small>
                 </div>
                 <div>
                   <label htmlFor="profile-phone">Телефон</label>
@@ -441,7 +440,6 @@ export default function Profile() {
                     autoComplete="tel"
                     readOnly
                   />
-                  <small>Редактируется в аккаунте SpeakASAP.</small>
                 </div>
               </div>
               <div className="profile-payment-actions">
