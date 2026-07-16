@@ -38,5 +38,6 @@ data:
   SUPPORT_CHAT_AI_TIMEOUT_MS: "12000"
   PAYMENT_CALLBACK_URL: "https://marathon.alfares.cz/api/v1/payments/webhook"
   PAYMENT_DEFAULT_METHOD: "stripe"
+  SPEAKASAP_PORTAL_URL: "https://speakasap.com"
   MARATHON_ADMIN_USER_IDS: ""
   MARATHON_ADMIN_EMAILS: "test@example.com,ssfskype@gmail.com"
