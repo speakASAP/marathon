@@ -5,6 +5,7 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "test": "jest",
     "start": "node dist/main.js",
     "prisma:generate": "prisma generate",
     "postinstall": "npm run prisma:generate",
@@ -29,6 +30,12 @@
   "prisma": {
     "seed": "node prisma/seed.js"
   },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$"
+  },
   "dependencies": {
     "@nestjs/common": "^11.1.27",
     "@nestjs/core": "^11.1.27",
@@ -42,9 +49,12 @@
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.11.30",
+    "jest": "^30.4.2",
     "prisma": "^5.11.0",
+    "ts-jest": "^29.4.11",
     "typescript": "^5.4.5"
   },
   "overrides": {

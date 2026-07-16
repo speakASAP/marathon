@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { validateToken, validatePortalToken } from './auth-client';
+import { validateToken, resolvePortalUser } from './auth-client';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -18,7 +18,7 @@ export class AuthGuard implements CanActivate {
     const token = auth.slice(7);
     let user = await validateToken(token);
     if (!user) {
-      user = validatePortalToken(token);
+      user = await resolvePortalUser(token);
     }
     if (!user) {
       throw new UnauthorizedException('Invalid or expired token');

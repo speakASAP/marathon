@@ -7,7 +7,7 @@ import {
   RegistrationRequest,
   RegistrationResponse,
 } from './registrations.service';
-import { validatePortalToken, validateToken, type AuthUser } from '../shared/auth-client';
+import { resolvePortalUser, validateToken, type AuthUser } from '../shared/auth-client';
 
 @Controller('registrations')
 export class RegistrationsController {
@@ -78,7 +78,7 @@ export class RegistrationsController {
       throw new UnauthorizedException('Invalid registration authorization header');
     }
     const token = auth.slice(7);
-    const user = (await validateToken(token)) || validatePortalToken(token);
+    const user = (await validateToken(token)) || (await resolvePortalUser(token));
     if (!user) {
       throw new UnauthorizedException('Invalid or expired registration token');
     }
