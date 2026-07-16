@@ -10,7 +10,7 @@ import {
 import { PrismaService } from '../shared/prisma.service';
 import { AuthUser } from '../shared/auth-client';
 import { NotificationsService } from '../shared/notifications.service';
-import { PortalLedgerClient } from './portal-ledger.client';
+import { PortalPaymentClient } from './portal-payment.client';
 
 type CheckoutRequest = {
   marathonerId?: string;
@@ -68,7 +68,7 @@ const BANK_TRANSFER_LANGUAGE_NAMES: Record<string, string> = {
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
-  private readonly portalLedger = new PortalLedgerClient();
+  private readonly portalPayment = new PortalPaymentClient();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -204,6 +204,19 @@ export class PaymentsService {
       },
     });
 
+    const providerPaymentId = this.extractProviderPaymentId(responseBody);
+    if (providerPaymentId) {
+      await this.registerPortalPayment(
+        participant,
+        product,
+        orderId,
+        providerPaymentId,
+        paymentMethod,
+        amount,
+        currency,
+      );
+    }
+
     return {
       status: 'checkout_created',
       marathonerId: participant.id,
@@ -257,7 +270,7 @@ export class PaymentsService {
       throw new BadRequestException('Payment provider ID is not available for this checkout');
     }
     if (attempt.status === 'confirmed') {
-      await this.syncPortalLedger(attempt, attempt.providerPaymentId);
+      await this.syncPortalPayment(attempt, attempt.providerPaymentId);
       return { status: 'payment_confirmed', marathonerId: attempt.participantId, orderId: attempt.orderId, idempotent: true };
     }
 
@@ -437,7 +450,7 @@ export class PaymentsService {
 
   private async confirmPaymentAttempt(attempt: any, providerPaymentId: string, callbackPayload: Record<string, unknown>) {
     if (attempt.status === 'confirmed') {
-      await this.syncPortalLedger(attempt, providerPaymentId || attempt.providerPaymentId);
+      await this.syncPortalPayment(attempt, providerPaymentId || attempt.providerPaymentId);
       return { status: 'payment_confirmed', marathonerId: attempt.participantId, orderId: attempt.orderId, idempotent: true };
     }
 
@@ -466,7 +479,7 @@ export class PaymentsService {
     });
 
     await this.sendPaymentConfirmedNotification(attempt.participant);
-    await this.syncPortalLedger(attempt, providerPaymentId);
+    await this.syncPortalPayment(attempt, providerPaymentId);
 
     this.logger.log(
       `Marathon payment confirmed: marathonerId=${attempt.participantId}, paymentId=${providerPaymentId || ''}, orderId=${attempt.orderId}`,
@@ -474,7 +487,35 @@ export class PaymentsService {
     return { status: 'payment_confirmed', marathonerId: attempt.participantId, orderId: attempt.orderId };
   }
 
-  private async syncPortalLedger(attempt: any, providerPaymentId: string): Promise<void> {
+  private async registerPortalPayment(
+    participant: any,
+    product: any,
+    orderId: string,
+    providerPaymentId: string,
+    paymentMethod: string,
+    amount: number,
+    currency: string,
+  ): Promise<void> {
+    const email = (participant.email || '').trim();
+    const title = product?.title || participant.marathon?.title || 'Марафон';
+    if (!email || !providerPaymentId) {
+      this.logger.warn(
+        `Skipping portal payment register: marathonerId=${participant.id}, hasEmail=${Boolean(email)}, hasPaymentId=${Boolean(providerPaymentId)}`,
+      );
+      return;
+    }
+    await this.portalPayment.registerPending({
+      email,
+      amount,
+      paymentMethod,
+      title,
+      externalPaymentId: providerPaymentId,
+      marathonOrderId: orderId,
+      currency,
+    });
+  }
+
+  private async syncPortalPayment(attempt: any, providerPaymentId: string): Promise<void> {
     const email = (attempt.participant?.email || '').trim();
     const title =
       attempt.product?.title ||
@@ -483,19 +524,27 @@ export class PaymentsService {
       'Марафон';
     if (!email || !providerPaymentId) {
       this.logger.warn(
-        `Skipping portal ledger sync: marathonerId=${attempt.participantId}, hasEmail=${Boolean(email)}, hasPaymentId=${Boolean(providerPaymentId)}`,
+        `Skipping portal payment sync: marathonerId=${attempt.participantId}, hasEmail=${Boolean(email)}, hasPaymentId=${Boolean(providerPaymentId)}`,
       );
       return;
     }
-    await this.portalLedger.recordPayment({
+    // Ensure pending Order+ExternalPayment exists (idempotent), then complete via standard webhook.
+    await this.portalPayment.registerPending({
       email,
       amount: attempt.amount,
       paymentMethod: attempt.paymentMethod,
       title,
       externalPaymentId: providerPaymentId,
       marathonOrderId: attempt.orderId,
-      confirmedAt: attempt.confirmedAt || new Date(),
       currency: attempt.currency || 'EUR',
+    });
+    await this.portalPayment.confirmViaWebhook({
+      externalPaymentId: providerPaymentId,
+      marathonOrderId: attempt.orderId,
+      paymentMethod: attempt.paymentMethod,
+      amount: attempt.amount,
+      currency: attempt.currency || 'EUR',
+      timestamp: attempt.confirmedAt || new Date(),
     });
   }
 
