@@ -7,9 +7,11 @@ function ctx(headers: Record<string, string>) {
 
 describe('ApiKeyGuard', () => {
   const originalKey = process.env.PAYMENT_WEBHOOK_API_KEY;
+  const originalAdminKey = process.env.MARATHON_ADMIN_API_KEY;
 
   beforeEach(() => {
     process.env.PAYMENT_WEBHOOK_API_KEY = 'test-key';
+    process.env.MARATHON_ADMIN_API_KEY = 'admin-key';
   });
 
   afterAll(() => {
@@ -18,6 +20,22 @@ describe('ApiKeyGuard', () => {
     } else {
       process.env.PAYMENT_WEBHOOK_API_KEY = originalKey;
     }
+    if (originalAdminKey === undefined) {
+      delete process.env.MARATHON_ADMIN_API_KEY;
+    } else {
+      process.env.MARATHON_ADMIN_API_KEY = originalAdminKey;
+    }
+  });
+
+  it('accepts the dedicated admin key', () => {
+    expect(new ApiKeyGuard().canActivate(ctx({ 'x-api-key': 'admin-key' }))).toBe(true);
+  });
+
+  it('rejects the admin key value when its env is unset', () => {
+    delete process.env.MARATHON_ADMIN_API_KEY;
+    expect(() => new ApiKeyGuard().canActivate(ctx({ 'x-api-key': 'admin-key' }))).toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('accepts the correct key', () => {

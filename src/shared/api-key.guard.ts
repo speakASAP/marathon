@@ -1,8 +1,9 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 
 /**
- * Guards internal admin endpoints with the same API key used by the payment
- * webhook (PAYMENT_WEBHOOK_API_KEY), passed via the `x-api-key` header.
+ * Guards internal admin endpoints via the `x-api-key` header. Accepts either
+ * MARATHON_ADMIN_API_KEY (the key the speakasap portal holds as
+ * MARATHON_API_KEY) or PAYMENT_WEBHOOK_API_KEY (payments-microservice).
  */
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
@@ -10,8 +11,10 @@ export class ApiKeyGuard implements CanActivate {
     const req = context.switchToHttp().getRequest();
     const header = req.headers['x-api-key'];
     const provided = String(Array.isArray(header) ? header[0] : header || '');
-    const expected = process.env.PAYMENT_WEBHOOK_API_KEY || '';
-    if (!expected || !provided || provided !== expected) {
+    const allowed = [process.env.MARATHON_ADMIN_API_KEY, process.env.PAYMENT_WEBHOOK_API_KEY].filter(
+      (key): key is string => Boolean(key),
+    );
+    if (!provided || !allowed.includes(provided)) {
       throw new UnauthorizedException('Invalid API key');
     }
     return true;

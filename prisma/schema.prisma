@@ -45,6 +45,9 @@ model MarathonStep {
   @@unique([marathonId, sequence])
 }
 
+/// Partial unique index (raw SQL migration 20260716171455, not expressible in Prisma DSL):
+/// ("userId","marathonId") WHERE active AND "finishedAt" IS NULL AND "userId" IS NOT NULL
+/// — one live registration per user per marathon; re-registration allowed after finish.
 model MarathonParticipant {
   id               String   @id @default(uuid())
   userId           String?

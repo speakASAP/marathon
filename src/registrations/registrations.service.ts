@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../shared/prisma.service';
 import { NotificationsService } from '../shared/notifications.service';
 import { registerMarathonContact, type AuthUser } from '../shared/auth-client';
@@ -211,19 +212,45 @@ export class RegistrationsService {
     const reportHour = new Date();
     reportHour.setMinutes(0, 0, 0);
 
-    const participant = await this.prisma.marathonParticipant.create({
-      data: {
-        marathonId: marathon.id,
-        email,
-        phone,
-        name,
-        userId: centralUserId,
-        paid: false,
-        bonusDaysLeft: 7,
-        canUsePenalty: true,
-        reportHour,
-      },
-    });
+    let participant;
+    try {
+      participant = await this.prisma.marathonParticipant.create({
+        data: {
+          marathonId: marathon.id,
+          email,
+          phone,
+          name,
+          userId: centralUserId,
+          paid: false,
+          bonusDaysLeft: 7,
+          canUsePenalty: true,
+          reportHour,
+        },
+      });
+    } catch (error) {
+      // Concurrent double-submit: the partial unique index on
+      // ("userId","marathonId") WHERE active AND "finishedAt" IS NULL rejected a
+      // duplicate created in the race window after the pre-create check. Reuse
+      // the winning row so the endpoint stays idempotent.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const existing = await this.prisma.marathonParticipant.findFirst({
+          where: { userId: centralUserId, marathonId: marathon.id, active: true, finishedAt: null },
+          orderBy: { createdAt: 'desc' },
+          select: { id: true },
+        });
+        if (existing) {
+          this.logger.log(
+            `marathon.registration.reused_existing marathonerId=${existing.id} marathonId=${marathon.id} userBound=${Boolean(centralUserId)} reason=unique_race`,
+          );
+          return {
+            marathonerId: existing.id,
+            redirectUrl: this.buildRedirectUrl(marathon.languageCode),
+            userBound: Boolean(centralUserId),
+          };
+        }
+      }
+      throw error;
+    }
 
     const redirectUrl = this.buildRedirectUrl(marathon.languageCode);
 
