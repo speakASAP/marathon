@@ -17,6 +17,7 @@ export interface AdminParticipantResult {
   marathonerId: string;
   marathonId: string;
   marathonTitle: string | null;
+  productTitle: string | null;
   email: string | null;
   name: string | null;
   paid: boolean;
@@ -55,8 +56,8 @@ export class AdminParticipantsController {
     const participants = await this.prisma.marathonParticipant.findMany({
       where: { email: { equals: normalized, mode: 'insensitive' } },
       include: {
-        marathon: true,
-        paymentAttempts: { orderBy: { createdAt: 'desc' } },
+        marathon: { include: { product: true } },
+        paymentAttempts: { orderBy: { createdAt: 'desc' }, include: { product: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -73,6 +74,10 @@ export class AdminParticipantsController {
           marathonerId: p.id,
           marathonId: p.marathonId,
           marathonTitle: p.marathon?.title ?? null,
+          productTitle:
+            p.paymentAttempts.find((a) => a.product?.title)?.product?.title
+            ?? p.marathon?.product?.title
+            ?? null,
           email: p.email,
           name: p.name,
           paid: p.paid,

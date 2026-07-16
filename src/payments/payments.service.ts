@@ -10,6 +10,7 @@ import {
 import { PrismaService } from '../shared/prisma.service';
 import { AuthUser } from '../shared/auth-client';
 import { NotificationsService } from '../shared/notifications.service';
+import { PortalLedgerClient } from './portal-ledger.client';
 
 type CheckoutRequest = {
   marathonerId?: string;
@@ -71,6 +72,7 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly portalLedger = new PortalLedgerClient(),
   ) {}
 
   async createCheckout(user: AuthUser, payload: CheckoutRequest) {
@@ -255,6 +257,7 @@ export class PaymentsService {
       throw new BadRequestException('Payment provider ID is not available for this checkout');
     }
     if (attempt.status === 'confirmed') {
+      await this.syncPortalLedger(attempt, attempt.providerPaymentId);
       return { status: 'payment_confirmed', marathonerId: attempt.participantId, orderId: attempt.orderId, idempotent: true };
     }
 
@@ -434,6 +437,7 @@ export class PaymentsService {
 
   private async confirmPaymentAttempt(attempt: any, providerPaymentId: string, callbackPayload: Record<string, unknown>) {
     if (attempt.status === 'confirmed') {
+      await this.syncPortalLedger(attempt, providerPaymentId || attempt.providerPaymentId);
       return { status: 'payment_confirmed', marathonerId: attempt.participantId, orderId: attempt.orderId, idempotent: true };
     }
 
@@ -462,11 +466,37 @@ export class PaymentsService {
     });
 
     await this.sendPaymentConfirmedNotification(attempt.participant);
+    await this.syncPortalLedger(attempt, providerPaymentId);
 
     this.logger.log(
       `Marathon payment confirmed: marathonerId=${attempt.participantId}, paymentId=${providerPaymentId || ''}, orderId=${attempt.orderId}`,
     );
     return { status: 'payment_confirmed', marathonerId: attempt.participantId, orderId: attempt.orderId };
+  }
+
+  private async syncPortalLedger(attempt: any, providerPaymentId: string): Promise<void> {
+    const email = (attempt.participant?.email || '').trim();
+    const title =
+      attempt.product?.title ||
+      attempt.participant?.marathon?.product?.title ||
+      attempt.participant?.marathon?.title ||
+      'Марафон';
+    if (!email || !providerPaymentId) {
+      this.logger.warn(
+        `Skipping portal ledger sync: marathonerId=${attempt.participantId}, hasEmail=${Boolean(email)}, hasPaymentId=${Boolean(providerPaymentId)}`,
+      );
+      return;
+    }
+    await this.portalLedger.recordPayment({
+      email,
+      amount: attempt.amount,
+      paymentMethod: attempt.paymentMethod,
+      title,
+      externalPaymentId: providerPaymentId,
+      marathonOrderId: attempt.orderId,
+      confirmedAt: attempt.confirmedAt || new Date(),
+      currency: attempt.currency || 'EUR',
+    });
   }
 
   private async sendPaymentConfirmedNotification(participant: any): Promise<void> {

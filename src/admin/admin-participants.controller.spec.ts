@@ -36,7 +36,7 @@ describe('AdminParticipantsController', () => {
     active: true,
     createdAt: new Date('2026-07-07T15:59:33.547Z'),
     finishedAt: null,
-    marathon: { title: 'Польский язык' },
+    marathon: { title: 'Польский язык', product: { title: 'Марафон по польскому языку' } },
     paymentAttempts: [
       {
         orderId: 'o1',
@@ -45,6 +45,7 @@ describe('AdminParticipantsController', () => {
         status: 'confirmed',
         confirmedAt: new Date('2026-07-14T14:55:35.356Z'),
         createdAt: new Date('2026-07-14T14:54:00.000Z'),
+        product: { title: 'Марафон по польскому языку' },
       },
       {
         orderId: 'o0',
@@ -53,6 +54,7 @@ describe('AdminParticipantsController', () => {
         status: 'checkout_failed',
         confirmedAt: null,
         createdAt: new Date('2026-07-13T10:00:00.000Z'),
+        product: { title: 'Марафон по польскому языку' },
       },
     ],
   };
@@ -63,6 +65,7 @@ describe('AdminParticipantsController', () => {
     expect(res.results).toHaveLength(1);
     expect(res.results[0].paid).toBe(true);
     expect(res.results[0].marathonTitle).toBe('Польский язык');
+    expect(res.results[0].productTitle).toBe('Марафон по польскому языку');
     expect(res.results[0].payment?.currency).toBe('EUR');
     expect(res.results[0].payment?.amount).toBe('29');
     expect(prisma.marathonParticipant.findMany).toHaveBeenCalledWith(
