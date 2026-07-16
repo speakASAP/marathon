@@ -48,6 +48,7 @@
     "stream-json": "^1.7.6"
   },
   "devDependencies": {
+    "@nestjs/testing": "^11.1.28",
     "@types/express": "^4.17.21",
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.5",
