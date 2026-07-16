@@ -1,6 +1,7 @@
 import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiKeyGuard } from '../shared/api-key.guard';
 import { PrismaService } from '../shared/prisma.service';
+import { AdminParticipantPaymentsService, AdminPaymentRecord } from './admin-participant-payments.service';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -23,17 +24,27 @@ export interface AdminParticipantResult {
   createdAt: Date;
   finishedAt: Date | null;
   payment: AdminParticipantPayment | null;
+  /**
+   * Authoritative financial records from payments-microservice for every
+   * payment attempt of this participant, including refund transactions.
+   * null when payments-microservice is unavailable (fail-soft).
+   */
+  payments: AdminPaymentRecord[] | null;
 }
 
 /**
  * Internal search endpoint for the portal manager UI.
- * Guarded by x-api-key (PAYMENT_WEBHOOK_API_KEY) — returns PII, never expose unauthenticated.
+ * Guarded by x-api-key (MARATHON_ADMIN_API_KEY / PAYMENT_WEBHOOK_API_KEY) —
+ * returns PII, never expose unauthenticated.
  * Returns participation and payment facts only; no step submissions / progress data.
  */
 @Controller('admin/participants')
 @UseGuards(ApiKeyGuard)
 export class AdminParticipantsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly participantPayments: AdminParticipantPaymentsService,
+  ) {}
 
   @Get('search')
   async search(@Query('email') email: string): Promise<{ results: AdminParticipantResult[] }> {
@@ -45,35 +56,44 @@ export class AdminParticipantsController {
       where: { email: { equals: normalized, mode: 'insensitive' } },
       include: {
         marathon: true,
-        paymentAttempts: {
-          where: { status: 'confirmed' },
-          orderBy: { confirmedAt: 'desc' },
-          take: 1,
-        },
+        paymentAttempts: { orderBy: { createdAt: 'desc' } },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    const allOrderIds = participants.flatMap((p) => p.paymentAttempts.map((a) => a.orderId));
+    const paymentsByOrderId = await this.participantPayments.getPaymentsByOrderIds(allOrderIds);
+
     return {
-      results: participants.map((p) => ({
-        marathonerId: p.id,
-        marathonId: p.marathonId,
-        marathonTitle: p.marathon?.title ?? null,
-        email: p.email,
-        name: p.name,
-        paid: p.paid,
-        active: p.active,
-        createdAt: p.createdAt,
-        finishedAt: p.finishedAt,
-        payment: p.paymentAttempts[0]
-          ? {
-              orderId: p.paymentAttempts[0].orderId,
-              amount: String(p.paymentAttempts[0].amount),
-              currency: p.paymentAttempts[0].currency,
-              status: p.paymentAttempts[0].status,
-              confirmedAt: p.paymentAttempts[0].confirmedAt,
-            }
-          : null,
-      })),
+      results: participants.map((p) => {
+        const confirmed = p.paymentAttempts
+          .filter((a) => a.status === 'confirmed' && a.confirmedAt)
+          .sort((a, b) => (b.confirmedAt as Date).getTime() - (a.confirmedAt as Date).getTime())[0];
+        return {
+          marathonerId: p.id,
+          marathonId: p.marathonId,
+          marathonTitle: p.marathon?.title ?? null,
+          email: p.email,
+          name: p.name,
+          paid: p.paid,
+          active: p.active,
+          createdAt: p.createdAt,
+          finishedAt: p.finishedAt,
+          payment: confirmed
+            ? {
+                orderId: confirmed.orderId,
+                amount: String(confirmed.amount),
+                currency: confirmed.currency,
+                status: confirmed.status,
+                confirmedAt: confirmed.confirmedAt,
+              }
+            : null,
+          payments:
+            paymentsByOrderId === null
+              ? null
+              : p.paymentAttempts.flatMap((a) => paymentsByOrderId.get(a.orderId) || []),
+        };
+      }),
     };
   }
 }
