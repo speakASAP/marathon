@@ -68,11 +68,11 @@ const BANK_TRANSFER_LANGUAGE_NAMES: Record<string, string> = {
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
+  private readonly portalLedger = new PortalLedgerClient();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
-    private readonly portalLedger = new PortalLedgerClient(),
   ) {}
 
   async createCheckout(user: AuthUser, payload: CheckoutRequest) {
