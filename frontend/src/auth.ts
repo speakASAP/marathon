@@ -160,6 +160,18 @@ function getCurrentReturnPath(): string {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
 }
 
+function resolveMarathonAuthLang(): string {
+  const pathMatch = window.location.pathname.match(/^\/([a-z]{2})(?:\/|$)/i);
+  const fromPath = pathMatch?.[1]?.toLowerCase() || '';
+  if (fromPath === 'en' || fromPath === 'cs' || fromPath === 'ru') {
+    return fromPath;
+  }
+  if (fromPath === 'cz') {
+    return 'cs';
+  }
+  return 'ru';
+}
+
 function appendAuthReturnParams(base: string, currentPath: string, prefill?: AuthPrefill): string {
   const returnUrl = window.location.origin + currentPath;
   const url = new URL(base, window.location.origin);
@@ -167,6 +179,7 @@ function appendAuthReturnParams(base: string, currentPath: string, prefill?: Aut
   url.searchParams.set(usesLegacyPortal ? 'next' : 'return_url', returnUrl);
   if (!usesLegacyPortal) {
     url.searchParams.set('client_id', (import.meta.env.VITE_AUTH_CLIENT_ID as string) || 'marathon');
+    url.searchParams.set('lang', resolveMarathonAuthLang());
     const identifier = prefill?.identifier || prefill?.email || prefill?.phone || '';
     if (identifier) {
       url.searchParams.set('login_hint', identifier);
