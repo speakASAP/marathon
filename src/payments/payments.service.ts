@@ -436,7 +436,33 @@ export class PaymentsService {
       throw new BadRequestException('Payment callback provider payment ID is required');
     }
     this.validateCallbackProviderPaymentId(providerPaymentId, attempt.providerPaymentId);
-    const callbackAmountCurrency = await this.resolveCallbackAmountCurrency(payload, providerPaymentId);
+    // Callbacks are not trusted on their own: payments-microservice is the
+    // source of truth. A "completed" callback for a payment the service still
+    // reports as pending/processing (e.g. forged or premature) must not confirm.
+    const remotePayment = await this.fetchPaymentStatus(providerPaymentId);
+    const remoteStatus = String(remotePayment.status || '').toLowerCase();
+    if (!SUCCESS_STATUSES.has(remoteStatus)) {
+      await this.prisma.marathonPaymentAttempt.update({
+        where: { orderId },
+        data: {
+          callbackPayload: this.compactRecord({
+            ...callbackSummary,
+            rejectedReason: 'payments_service_status_not_success',
+            paymentsServiceStatus: remoteStatus || 'unknown',
+          }) as any,
+          providerPaymentId: attempt.providerPaymentId || providerPaymentId,
+        },
+      });
+      this.logger.warn(
+        `Rejecting completed callback not backed by payments service: marathonerId=${attempt.participantId}, orderId=${orderId}, paymentsServiceStatus=${remoteStatus || 'unknown'}`,
+      );
+      throw new BadRequestException('Payment is not completed at the payments service');
+    }
+
+    const callbackAmountCurrency: CallbackAmountCurrency =
+      payload.amount != null && payload.currency
+        ? { amount: Number(payload.amount), currency: payload.currency, source: 'callback' }
+        : { amount: Number(remotePayment.amount), currency: remotePayment.currency, source: 'payment_status' };
     this.validateCallbackAmount(
       callbackAmountCurrency.amount,
       callbackAmountCurrency.currency,
@@ -753,26 +779,6 @@ export class PaymentsService {
     if (!currency || currency.toUpperCase() !== expectedCurrency.toUpperCase()) {
       throw new BadRequestException('Payment callback currency does not match checkout order');
     }
-  }
-
-  private async resolveCallbackAmountCurrency(
-    payload: PaymentCallback,
-    providerPaymentId: string,
-  ): Promise<CallbackAmountCurrency> {
-    if (payload.amount != null && payload.currency) {
-      return {
-        amount: Number(payload.amount),
-        currency: payload.currency,
-        source: 'callback',
-      };
-    }
-
-    const paymentStatus = await this.fetchPaymentStatus(providerPaymentId);
-    return {
-      amount: Number(paymentStatus.amount),
-      currency: paymentStatus.currency,
-      source: 'payment_status',
-    };
   }
 
   private async fetchPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {

@@ -192,50 +192,61 @@ async function verifyPaymentUnlock(token, marathon) {
     throw new Error("payment attempt ledger did not include productId for callback reconciliation");
   }
 
-  const callback = await jsonFetch("/api/v1/payments/webhook", {
-    method: "POST",
-    label: "payment webhook settlement",
-    headers: { "x-api-key": process.env.PAYMENT_WEBHOOK_API_KEY },
-    body: JSON.stringify({
-      paymentId,
-      orderId: checkout.orderId,
-      status: "completed",
-      paymentMethod: checkoutAttempt.paymentMethod,
-      event: "completed",
-      metadata: {
-        marathonerId,
-        participantId: marathonerId,
-        marathonId: marathon.id,
-        productId: checkoutAttempt.productId,
-      },
-    }),
-  });
-  if (callback?.status !== "payment_confirmed") {
-    throw new Error(`payment webhook did not confirm payment: ${callback?.status || "missing status"}`);
+  // NEVER settle payments in production. Payments are confirmed only by the
+  // standard flow: Stripe -> payments-microservice webhook -> marathon callback.
+  // The smoke proof is the inverse: a forged "completed" callback for a payment
+  // the payments service has not completed MUST be rejected and MUST NOT
+  // mark the participant as paid.
+  let forgedCallbackRejected = false;
+  try {
+    await jsonFetch("/api/v1/payments/webhook", {
+      method: "POST",
+      label: "forged payment webhook (must be rejected)",
+      headers: { "x-api-key": process.env.PAYMENT_WEBHOOK_API_KEY },
+      body: JSON.stringify({
+        paymentId,
+        orderId: checkout.orderId,
+        status: "completed",
+        paymentMethod: checkoutAttempt.paymentMethod,
+        event: "completed",
+        metadata: {
+          marathonerId,
+          participantId: marathonerId,
+          marathonId: marathon.id,
+          productId: checkoutAttempt.productId,
+        },
+      }),
+    });
+  } catch (error) {
+    if (!/HTTP 400/.test(String(error && error.message))) throw error;
+    forgedCallbackRejected = true;
+  }
+  if (!forgedCallbackRejected) {
+    throw new Error("payment webhook accepted a completed callback for an unpaid payment (guard missing)");
   }
 
   const afterProfile = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}`, {
     token,
-    label: "payment profile after webhook",
+    label: "payment profile after forged webhook",
   });
-  if (afterProfile?.payment_required !== false || afterProfile?.payment_status !== "paid") {
-    throw new Error("payment participant did not become paid after webhook");
+  if (afterProfile?.payment_required !== true || afterProfile?.payment_status === "paid") {
+    throw new Error("participant became paid from a forged webhook - standard-flow guard is broken");
   }
 
   const attempt = await prisma.marathonPaymentAttempt.findUnique({
     where: { orderId: checkout.orderId },
     select: { status: true, confirmedAt: true },
   });
-  if (attempt?.status !== "confirmed" || !attempt?.confirmedAt) {
-    throw new Error("payment attempt ledger was not confirmed");
+  if (attempt?.status === "confirmed" || attempt?.confirmedAt) {
+    throw new Error("payment attempt ledger was confirmed by a forged webhook");
   }
 
   return {
     marathonerId: mask(marathonerId),
     orderId: mask(checkout.orderId),
-    status: callback.status,
+    forgedCallbackRejected,
     paymentStatus: afterProfile.payment_status,
-    ledgerStatus: attempt.status,
+    ledgerStatus: attempt?.status || "unknown",
   };
 }
 
