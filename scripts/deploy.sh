@@ -17,7 +17,26 @@ SKIP_MUTATING_SMOKE="${SKIP_MUTATING_SMOKE:-false}"
 NAMESPACE="${NAMESPACE:-statex-apps}"
 K8S_DIR="$PROJECT_ROOT/k8s"
 REGISTRY="localhost:5000"
-DEFAULT_TAG="$(cd "$PROJECT_ROOT" && git rev-parse --short HEAD 2>/dev/null || echo "build-$(date -u +%Y%m%d%H%M%S)")"
+# The image is always built from the working tree, so the tag must describe the
+# working tree too. A tag derived from HEAD alone repeats itself whenever files
+# changed without a commit, which makes `kubectl set image` a no-op and silently
+# leaves the previous image running.
+compute_default_tag() {
+  local head dirty
+  head="$(git -C "$PROJECT_ROOT" rev-parse --short HEAD 2>/dev/null || true)"
+  if [ -z "$head" ]; then
+    echo "build-$(date -u +%Y%m%d%H%M%S)"
+    return
+  fi
+  dirty="$(git -C "$PROJECT_ROOT" status --porcelain 2>/dev/null || true)"
+  if [ -n "$dirty" ]; then
+    echo "${head}-wt$(date -u +%Y%m%d%H%M%S)"
+  else
+    echo "$head"
+  fi
+}
+
+DEFAULT_TAG="$(compute_default_tag)"
 IMAGE_TAG="${1:-$DEFAULT_TAG}"
 IMAGE="${REGISTRY}/${SERVICE_NAME}:${IMAGE_TAG}"
 IMAGE_LATEST="${REGISTRY}/${SERVICE_NAME}:latest"
@@ -139,19 +158,16 @@ fi
 
 deploy_timing_run_phase "Preflight" preflight_cluster
 
-if [ "${NODE_ENV:-}" = "production" ]; then
-  deploy_timing_phase_start "Git sync"
-  echo -e "${YELLOW}Syncing git (NODE_ENV=production)...${NC}"
-  cd "$PROJECT_ROOT"
-  git fetch origin
-  git stash || true
-  git pull origin main
-  git stash pop || true
-  deploy_timing_phase_end "Git sync"
-fi
+# No git fetch/pull/stash here on purpose: the deploy ships exactly the code in
+# $PROJECT_ROOT. Pulling would replace the tree being tested with origin/main.
 
 deploy_timing_phase_start "Build image"
-echo -e "${YELLOW}Building image ${IMAGE}...${NC}"
+echo -e "${YELLOW}Building image ${IMAGE} from working tree ${PROJECT_ROOT}${NC}"
+WORKTREE_CHANGES="$(git -C "$PROJECT_ROOT" status --porcelain 2>/dev/null || true)"
+if [ -n "$WORKTREE_CHANGES" ]; then
+  echo -e "${YELLOW}Uncommitted changes below are part of this build:${NC}"
+  printf '%s\n' "$WORKTREE_CHANGES" | sed 's/^/    /'
+fi
 docker build -t "$IMAGE" -t "$IMAGE_LATEST" "$PROJECT_ROOT"
 echo -e "${GREEN}OK image built${NC}"
 deploy_timing_phase_end "Build image"
@@ -162,6 +178,12 @@ docker push "$IMAGE"
 docker push "$IMAGE_LATEST"
 echo -e "${GREEN}OK images pushed${NC}"
 deploy_timing_phase_end "Push image"
+
+# Read the live image BEFORE applying manifests: deployment.yaml pins
+# ":latest", so after `kubectl apply` the spec no longer reflects what is
+# actually running and the comparison below would never match.
+RUNNING_IMAGE="$(kubectl get "deployment/${SERVICE_NAME}" -n "$NAMESPACE" \
+  -o jsonpath='{.spec.template.spec.containers[?(@.name=="app")].image}' 2>/dev/null || true)"
 
 deploy_timing_phase_start "Apply Kubernetes manifests"
 echo -e "${YELLOW}Applying Kubernetes manifests...${NC}"
@@ -176,6 +198,12 @@ deploy_timing_phase_end "Apply Kubernetes manifests"
 deploy_timing_phase_start "Set deployment image"
 echo -e "${YELLOW}Setting deployment image to ${IMAGE}...${NC}"
 kubectl set image "deployment/${SERVICE_NAME}" app="$IMAGE" -n "$NAMESPACE"
+if [ "$RUNNING_IMAGE" = "$IMAGE" ]; then
+  # Same tag as the pod that was already running: the template ends up
+  # byte-identical, so the rebuilt image would never be pulled. Force a rollout.
+  echo -e "${YELLOW}Image reference unchanged; restarting rollout to pull the rebuilt image.${NC}"
+  kubectl rollout restart "deployment/${SERVICE_NAME}" -n "$NAMESPACE"
+fi
 deploy_timing_phase_end "Set deployment image"
 
 deploy_timing_phase_start "Wait for rollout"
