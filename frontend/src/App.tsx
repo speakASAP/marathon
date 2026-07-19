@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
+import ConsentBanner from './components/ConsentBanner';
 import Landing from './pages/Landing';
 import Winners from './pages/Winners';
 import WinnerDetail from './pages/WinnerDetail';
@@ -71,6 +72,7 @@ function App() {
           <Route path="/:langSlug/" element={<Landing />} />
         </Route>
       </Routes>
+      <ConsentBanner />
     </>
   );
 }
