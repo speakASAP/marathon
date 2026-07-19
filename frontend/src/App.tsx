@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import ConsentBanner from './components/ConsentBanner';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import Landing from './pages/Landing';
 import Winners from './pages/Winners';
 import WinnerDetail from './pages/WinnerDetail';
@@ -56,6 +57,7 @@ function App() {
           <Route path="/winners/:winnerId" element={<WinnerDetail />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/about" element={<About />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/rules" element={<Rules />} />
           <Route path="/faq" element={<Faq />} />
           <Route path="/profile" element={<Profile />} />
