@@ -15,6 +15,7 @@ const AUTH_HANDOFF_HASH_PARAMS = new Set([
   'state',
   'marathon_token',
 ]);
+const DEFAULT_AUTH_BASE_URL = 'https://auth.alfares.cz';
 const DEFAULT_AUTH_LOGIN_URL = 'https://auth.alfares.cz/login';
 const DEFAULT_AUTH_REGISTER_URL = 'https://auth.alfares.cz/register';
 const DEFAULT_PORTAL_PASSWORD_RESET_URL = 'https://speakasap.com/password_reset/';
@@ -74,6 +75,10 @@ function removeSessionStorage(key: string): void {
 
 export function getToken(): string | null {
   return localStorage.getItem(STORAGE_KEY);
+}
+
+export function getAuthBaseUrl(): string {
+  return ((import.meta.env.VITE_AUTH_BASE_URL as string) || DEFAULT_AUTH_BASE_URL).replace(/\/$/, '');
 }
 
 export function setToken(token: string): void {

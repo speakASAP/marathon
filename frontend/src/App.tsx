@@ -19,6 +19,8 @@ import Register from './pages/Register';
 import Awards from './pages/Awards';
 import LeaveConfirm from './pages/LeaveConfirm';
 import AdminMarathonPrices from './pages/AdminMarathonPrices';
+import Unsubscribe from './pages/Unsubscribe';
+import MarketingConsentPage from './pages/MarketingConsentPage';
 
 function ScrollToHash() {
   const { pathname, search, hash } = useLocation();
@@ -53,6 +55,8 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/awards" element={<Awards />} />
           <Route path="/leave-confirm" element={<LeaveConfirm />} />
+          <Route path="/unsubscribe" element={<Unsubscribe />} />
+          <Route path="/account/marketing-consent" element={<MarketingConsentPage />} />
           <Route path="/winners" element={<Winners />} />
           <Route path="/winners/:winnerId" element={<WinnerDetail />} />
           <Route path="/reviews" element={<Reviews />} />
