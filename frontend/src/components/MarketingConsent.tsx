@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { getAuthBaseUrl, getToken } from '../auth';
+import { getAuthBaseUrl, getLoginUrl, getToken } from '../auth';
 import { MARKETING_CONSENT_VERSION } from '../lib/consentVersion';
 
 const PRODUCT = 'marathon';
@@ -21,6 +21,7 @@ export default function MarketingConsent() {
   const [state, setState] = useState<ConsentState | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadFailure, setLoadFailure] = useState<'signed_out' | 'failed' | null>(null);
 
   const request = useCallback(async (path: string, init?: RequestInit) => {
     const token = getToken();
@@ -51,7 +52,11 @@ export default function MarketingConsent() {
   }, [request]);
 
   useEffect(() => {
-    load().catch(() => setError('Не удалось загрузить настройки рассылок.'));
+    load().catch((cause) =>
+      setLoadFailure(
+        cause instanceof Error && cause.message === 'not_signed_in' ? 'signed_out' : 'failed',
+      ),
+    );
   }, [load]);
 
   const grant = useCallback(async () => {
@@ -87,6 +92,27 @@ export default function MarketingConsent() {
       setBusy(false);
     }
   }, [request, load]);
+
+  // A failed load must say so. Falling through to the "loading" branch would
+  // leave a signed-out visitor staring at a spinner that never resolves.
+  if (loadFailure === 'signed_out') {
+    return (
+      <p>
+        Чтобы управлять рассылками, <a href={getLoginUrl('/account/marketing-consent')}>войдите в
+        аккаунт</a>. Отписаться можно и без входа — по ссылке из любого нашего маркетингового
+        письма.
+      </p>
+    );
+  }
+
+  if (loadFailure === 'failed') {
+    return (
+      <p role="alert">
+        Не удалось загрузить настройки рассылок. Обновите страницу или воспользуйтесь ссылкой для
+        отписки из любого нашего маркетингового письма.
+      </p>
+    );
+  }
 
   if (!state) {
     return <p>Загружаем настройки рассылок…</p>;
