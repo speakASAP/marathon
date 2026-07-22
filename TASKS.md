@@ -2,6 +2,25 @@
 
 ## Backlog
 
+- [ ] TASK-MAR-070: **A 29 EUR payment is stuck between marathon and payments** (priority: 1).
+      `MarathonPaymentAttempt` says `confirmed` (confirmedAt 2026-07-17 07:19:03); the
+      `payments` service row for the same `orderId` still says **`processing`**, with no
+      `completedAt` and no `refundedAt`, ~5 weeks later. Its `providerTransactionId` is
+      Stripe-shaped, so a real Stripe object exists and real money moved.
+
+      Participant `04bc5946-126e-440c-94a7-ef908f1fc637`,
+      order `marathon:04bc5946-…:1784272740704`, auth user `72a05927-…`.
+
+      Two sides disagreeing about whether a payment completed is the kind of defect that shows
+      up as a refund request, not as an alert. Check Stripe for the real state first, then
+      decide which side is wrong — do not "fix" either row to match the other before that.
+
+      Note the participant's e-mail is `marathon-prod-smoke-…@example.invalid`: a smoke-test
+      address on a reserved TLD that can never receive mail. The likeliest reading is a smoke
+      test that ran a **live-mode** charge rather than a real customer, which would mean the
+      29 EUR came off the owner's own card. Either way the record is real and was preserved
+      during the 2026-07-22 test-data cleanup, which deleted the other 609 smoke accounts.
+
 - [x] TASK-MAR-069: Build full support-chat Marathon knowledge context (goal_id: support-knowledge, priority: 1)
 - [x] T1: Implement VIP checkout endpoint calling payments-microservice:3468 (goal_id: vip-payment, priority: 1)
 - [x] T2: Implement payment webhook handler — set isFree=false, paymentReported=true on confirmation (goal_id: vip-payment, priority: 1)
