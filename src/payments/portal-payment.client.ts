@@ -37,6 +37,10 @@ export class PortalPaymentClient {
     marathonOrderId: string;
     currency?: string;
     portalUserId?: string | null;
+    // Carried through so the portal can register a buyer who has no legacy
+    // account yet — both systems hold the account during the transition.
+    name?: string | null;
+    phone?: string | null;
   }): Promise<'registered' | 'exists' | 'skipped' | 'failed'> {
     const base = this.portalBase();
     if (!base) {
@@ -68,6 +72,8 @@ export class PortalPaymentClient {
           orderId: payload.marathonOrderId,
           currency: payload.currency || 'EUR',
           portalUserId: payload.portalUserId || undefined,
+          name: payload.name || undefined,
+          phone: payload.phone || undefined,
         }),
       });
       const text = await response.text();

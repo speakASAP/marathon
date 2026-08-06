@@ -538,6 +538,8 @@ export class PaymentsService {
       externalPaymentId: providerPaymentId,
       marathonOrderId: orderId,
       currency,
+      name: participant.name,
+      phone: participant.phone,
     });
   }
 
@@ -563,6 +565,8 @@ export class PaymentsService {
       externalPaymentId: providerPaymentId,
       marathonOrderId: attempt.orderId,
       currency: attempt.currency || 'EUR',
+      name: attempt.participant?.name,
+      phone: attempt.participant?.phone,
     });
     await this.portalPayment.confirmViaWebhook({
       externalPaymentId: providerPaymentId,
