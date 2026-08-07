@@ -11,6 +11,11 @@ export class MarathonLogger implements LoggerService {
     Number(process.env.LOGGING_SERVICE_TIMEOUT) || 2000,
     5000,
   );
+  // logging-microservice runs LogIngestGuard with LOG_INGEST_REQUIRE_AUTH=true, so an
+  // unauthenticated POST is rejected with 401. emit() is fire-and-forget and ignores
+  // non-ok responses, so a missing token silently drops every line instead of failing
+  // loudly -- which is how marathon stayed absent from the log index.
+  private readonly loggingToken = process.env.LOGGING_SERVICE_TOKEN?.trim();
   private readonly loggingFallbackUrls = this.getLoggingFallbackUrls();
 
   log(message: unknown, context?: string): void {
@@ -63,7 +68,12 @@ export class MarathonLogger implements LoggerService {
           try {
             const response = await fetch(`${baseUrl}${this.loggingPath}`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                ...(this.loggingToken
+                  ? { Authorization: `Bearer ${this.loggingToken}` }
+                  : {}),
+              },
               body: JSON.stringify(payload),
               signal: controller.signal,
             });
