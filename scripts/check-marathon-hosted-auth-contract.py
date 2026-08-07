@@ -149,7 +149,11 @@ def check_phone_required(checks: list[Check]) -> None:
             "const userId = authUser?.id",
             "authUser?.email",
             "authUser?.phone",
-            "This marathon is not linked to your account yet and your Auth profile has no email.",
+            # An authenticated user is identified by userId, so a missing address must not
+            # block enrolment. This previously pinned the "Auth profile has no email"
+            # rejection, which stranded signed-in users whose portal token resolved
+            # without one; the email guard now applies to anonymous registration only.
+            "if (!email && !userId)",
         ]
     )
     add_check(

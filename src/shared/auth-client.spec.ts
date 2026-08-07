@@ -26,7 +26,7 @@ describe('resolvePortalUser', () => {
     });
     global.fetch = fetchMock as unknown as typeof fetch;
     const user = await resolvePortalUser(portalToken('310740'));
-    expect(user).toEqual({ id: 'e9c0e180-c837-404e-a954-a37b56241a80' });
+    expect(user).toEqual({ id: 'e9c0e180-c837-404e-a954-a37b56241a80', email: 'x@y.z' });
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toBe('http://auth-test/internal/users/by-legacy-id?system=speakasap-portal&legacyUserId=310740');
     expect((init.headers as Record<string, string>)['x-internal-service-token']).toBe('internal-test-token');
@@ -41,6 +41,27 @@ describe('resolvePortalUser', () => {
     await resolvePortalUser(portalToken('310740'));
     await resolvePortalUser(portalToken('310740'));
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('serves the mapping email from cache on the second call', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ authUserId: 'e9c0e180-c837-404e-a954-a37b56241a80', normalizedEmail: 'X@Y.Z ' }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+    await resolvePortalUser(portalToken('310740'));
+    const cached = await resolvePortalUser(portalToken('310740'));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(cached).toEqual({ id: 'e9c0e180-c837-404e-a954-a37b56241a80', email: 'x@y.z' });
+  });
+
+  it('omits email when the mapping has none', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ authUserId: 'e9c0e180-c837-404e-a954-a37b56241a80', normalizedEmail: null }),
+    }) as unknown as typeof fetch;
+    const user = await resolvePortalUser(portalToken('310740'));
+    expect(user).toEqual({ id: 'e9c0e180-c837-404e-a954-a37b56241a80', email: undefined });
   });
 
   it('falls back to raw sub when lookup 404s', async () => {

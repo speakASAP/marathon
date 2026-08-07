@@ -157,13 +157,13 @@ export class RegistrationsService {
           userBound: true,
         };
       }
-
-      if (!email) {
-        throw new BadRequestException('This marathon is not linked to your account yet and your Auth profile has no email.');
-      }
     }
 
-    if (!email) {
+    // An authenticated user is identified by `userId`, not by contact details: the email
+    // is only stored on the participant and used as a notification address. Refusing to
+    // enrol them when the auth lookup returned no address stranded signed-in users on a
+    // marathon they were entitled to join, so only anonymous registration requires it.
+    if (!email && !userId) {
       throw new BadRequestException('Email is required');
     }
     if (!userId && !phone) {
@@ -217,8 +217,10 @@ export class RegistrationsService {
       participant = await this.prisma.marathonParticipant.create({
         data: {
           marathonId: marathon.id,
-          email,
-          phone,
+          // Null rather than '': blank strings collide with each other in the
+          // contact-based duplicate lookups above, which match on equality.
+          email: email || null,
+          phone: phone || null,
           name,
           userId: centralUserId,
           paid: false,

@@ -88,7 +88,7 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
 
 const internalToken = process.env.AUTH_INTERNAL_SERVICE_TOKEN;
 const PORTAL_RESOLUTION_TTL_MS = 10 * 60 * 1000;
-const portalResolutionCache = new Map<string, { id: string; expiresAt: number }>();
+const portalResolutionCache = new Map<string, { id: string; email?: string; expiresAt: number }>();
 
 export function __clearPortalResolutionCacheForTests(): void {
   portalResolutionCache.clear();
@@ -105,7 +105,7 @@ export async function resolvePortalUser(token: string): Promise<AuthUser | null>
   if (!/^\d+$/.test(raw.id)) return raw;
 
   const cached = portalResolutionCache.get(raw.id);
-  if (cached && cached.expiresAt > Date.now()) return { id: cached.id };
+  if (cached && cached.expiresAt > Date.now()) return { id: cached.id, email: cached.email };
 
   if (!baseUrl || !internalToken) return raw;
   const url = buildAuthUrl(`/internal/users/by-legacy-id?system=speakasap-portal&legacyUserId=${raw.id}`);
@@ -122,10 +122,16 @@ export async function resolvePortalUser(token: string): Promise<AuthUser | null>
       logger.debug(`Legacy mapping lookup failed: status=${res.status} sub=${raw.id}`);
       return raw;
     }
-    const data = (await res.json()) as { authUserId?: string };
+    const data = (await res.json()) as { authUserId?: string; normalizedEmail?: string | null };
     if (!data?.authUserId) return raw;
-    portalResolutionCache.set(raw.id, { id: data.authUserId, expiresAt: Date.now() + PORTAL_RESOLUTION_TTL_MS });
-    return { id: data.authUserId };
+    // Carry the mapping's email through: portal JWTs hold only `sub`, so this lookup is
+    // the sole point where a portal session learns its own address. Dropping it made
+    // registration reject the user for "no email" on a profile that has one.
+    const email = typeof data.normalizedEmail === 'string' && data.normalizedEmail.trim()
+      ? data.normalizedEmail.trim().toLowerCase()
+      : undefined;
+    portalResolutionCache.set(raw.id, { id: data.authUserId, email, expiresAt: Date.now() + PORTAL_RESOLUTION_TTL_MS });
+    return { id: data.authUserId, email };
   } catch {
     clearTimeout(t);
     logger.debug(`Legacy mapping lookup error: sub=${raw.id}`);

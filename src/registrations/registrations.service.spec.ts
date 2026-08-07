@@ -64,6 +64,30 @@ describe('RegistrationsService', () => {
     expect(prisma.marathonParticipant.create).toHaveBeenCalledTimes(1);
   });
 
+  it('enrols a signed-in user whose auth profile resolved without an email', async () => {
+    // The portal JWT carries only `sub`, so a failed legacy-mapping lookup leaves the
+    // session with no address. Identity comes from userId, so registration must proceed
+    // rather than reject the user from a marathon they are entitled to join.
+    prisma.marathonParticipant.findFirst.mockResolvedValue(null);
+    prisma.marathonParticipant.create.mockResolvedValue({ id: 'new-id' });
+
+    const result = await service.register({ languageCode: 'en' }, { id: 'u1' } as AuthUser);
+
+    expect(result.marathonerId).toBe('new-id');
+    expect(result.userBound).toBe(true);
+    expect(prisma.marathonParticipant.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ userId: 'u1', email: null }) }),
+    );
+    expect(notifications.send).not.toHaveBeenCalled();
+  });
+
+  it('still requires an email for anonymous registration', async () => {
+    await expect(service.register({ languageCode: 'en', phone: '+420123456789' })).rejects.toThrow(
+      'Email is required',
+    );
+    expect(prisma.marathonParticipant.create).not.toHaveBeenCalled();
+  });
+
   it('reuses the existing participant found by the pre-create check', async () => {
     prisma.marathonParticipant.findFirst.mockResolvedValue({ id: 'existing-id' });
 
