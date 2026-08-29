@@ -13,18 +13,17 @@ Read those first, then follow the repository-specific notes below and the curren
 
 # Agents: marathon
 
-## Knowledge Retrieval (query before reading files)
-Query the RAG service first to reuse indexed ecosystem context before reading raw files:
+## Knowledge Retrieval
 
-```bash
-./scripts/query-docs-rag.sh "YOUR QUESTION HERE" 3000
-```
+Use `docs-rag-microservice` for bounded discovery when it is healthy, then
+verify deployment, security, database, integration and public-contract facts
+against the cited Git source. Git remains authoritative.
 
-- The helper executes inside `deployment/marathon`, where `JWT_TOKEN` is injected from Kubernetes Vault through `marathon-secret`.
-- Do not copy or print the token into the remote shell; keep it pod/Vault sourced.
-- Internal URL: `http://docs-rag-microservice.statex-apps.svc.cluster.local:3397`
-- Public URL: `https://docs-rag.alfares.cz`
-- Full guide: `docs-rag-microservice/docs/RAG_USAGE.md`
+Authority and fallback rules:
+`/home/ssf/Documents/Github/shared/docs/DOCUMENTATION_AUTHORITY.md`.
+
+Do not generate tokens in documentation or assume an unconfident/failed RAG
+response means that source documentation does not exist.
 
 ## Coordinator Config
 

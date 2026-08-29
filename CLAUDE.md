@@ -19,17 +19,17 @@ Read those first, then follow the repository-specific notes below and the curren
 
 ---
 
-## Knowledge Retrieval — docs-rag-microservice (MANDATORY, query before reading files)
+## Knowledge Retrieval
 
-**Query the RAG before reading source files** — saves 2000-5000 tokens per answer.
+Use `docs-rag-microservice` for bounded discovery when it is healthy, then
+verify deployment, security, database, integration and public-contract facts
+against the cited Git source. Git remains authoritative.
 
-```bash
-./scripts/query-docs-rag.sh "YOUR QUESTION HERE" 3000
-```
+Authority and fallback rules:
+`/home/ssf/Documents/Github/shared/docs/DOCUMENTATION_AUTHORITY.md`.
 
-The helper uses `JWT_TOKEN` injected into `deployment/marathon` from Kubernetes Vault through `marathon-secret`; do not use local token files or print the token.
-
----
+Do not generate tokens in documentation or assume an unconfident/failed RAG
+response means that source documentation does not exist.
 
 ## marathon
 
