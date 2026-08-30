@@ -1,87 +1,52 @@
-# System: marathon
+# SYSTEM.md
 
-## Architecture
+completeness_level: complete
+status: validated
 
-NestJS + Prisma + PostgreSQL + Redis. Deployed on Kubernetes (`statex-apps` namespace).
+## Purpose
+Marathon service for scheduling, participant coordination, and operational event tracking within the Alfares ecosystem.
 
-- **Modules:** marathons, registrations, steps, answers, me (authenticated), submissions, VIP payments/gifts, winners, reviews
-- **Frontend:** Vite + React + TypeScript in `frontend/`; production build output is `public/` and is served by NestJS
-- **Port:** 3000
-- **Domain:** marathon.alfares.cz
-- **API prefix:** `/api/v1` (health and info excluded)
+## Responsibilities
+- maintain the project-specific operational contract for the repository
+- document the true runtime, tooling, or hub scope of the project
+- keep project invariants and validation debt honest and reviewable
+- preserve a link between the project and the shared IPS standard without copying it
 
-## Intent Preservation System
+## Non-responsibilities
+- describing a runtime capability that is not actually owned by the repository
+- inventing ecosystem integrations for a hub, research, or documentation-only repo
+- bypassing project validation by asserting made-up evidence
 
-Marathon's local Intent Preservation System lives in `docs/intent/`. Future coding work must preserve the documented trace chain from constitution and vision through task, execution plan, context package, coding prompt, validation report, and audit evidence. The current seeded task chain covers launch-ready catalog, VIP payment/gift unlock, and assignment verification:
+## Inputs
+- repository-local intent, docs, and operational artefacts
+- shared Alfares ecosystem standards and routing conventions
+- project-specific deployment and validation requirements when the repo owns a live service
 
-- Task: `docs/intent/11_tasks/TASK-MAR-004-verify-end-to-end-vip-flow.md`
-- Execution plan: `docs/intent/21_execution_plans/EP-TASK-MAR-004.md`
-- Context package: `docs/intent/13_context_packages/CP-TASK-MAR-004.md`
-- Validation report: `docs/intent/12_validation/VAL-TASK-MAR-004.md`
+## Outputs
+- project adoption profile and traceable task plan
+- truthful capability review for required and not-applicable integrations
+- documentation and validation evidence that matches the actual project boundary
 
-Code changes must not start until the pre-coding gate in `docs/intent/16_operations/PRE_CODING_GATE.md` is satisfied.
+## Dependencies
+- shared IPS repository for standards and validators
+- ecosystem runtime services only when the repository genuinely owns them
+- project-local code, configuration, and deployment metadata when present
 
-## External Integrations
+## Upstream traceability
+- intent-preservation-system standard and validation rules
+- ecosystem deployment conventions and service ownership model
 
-| Service | URL | Usage |
-|---------|-----|-------|
-| auth-microservice | http://auth-microservice.statex-apps.svc.cluster.local:3370 | JWT validation; user name/avatar lookup for winner profiles |
-| notifications-microservice | http://notifications-microservice.statex-apps.svc.cluster.local:3368 | Registration confirmation emails; participant notifications |
-| logging-microservice | http://logging-microservice.statex-apps.svc.cluster.local:3367 | Centralized structured logging |
-| payments-microservice | http://payments-microservice:3468 / https://payments.alfares.cz | VIP upgrade checkout and payment callbacks |
-| database-server | db-server-postgres:5432 | PostgreSQL — database `marathon` |
+## Downstream artifacts
+- README, TASKS.md, STATE.json, and validation records
+- project governance docs and approval evidence
+- repo-specific runtime or tooling documentation when applicable
 
-## Key API Endpoints
+## Validation criteria
+- the project validator exits successfully at planning phase
+- required sections exist in each IPS artifact
+- no placeholder text or fabricated evidence remains in the adoption profile
+- every capability is reviewed with a concrete reason
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/health` | None | Health check |
-| GET | `/api/v1/marathons` | None | List marathons |
-| GET | `/api/v1/marathons/languages` | None | Available language codes |
-| GET | `/api/v1/marathons/by-language/:code` | None | Active marathon for a language |
-| GET | `/api/v1/marathons/:id` | None | Marathon by ID |
-| POST | `/api/v1/registrations` | None | Register participant |
-| GET | `/api/v1/steps?marathonId=` | None | List steps for a marathon |
-| GET | `/api/v1/steps/:id` | None | Step detail |
-| GET | `/api/v1/answers/random?stepId=` | None | Random peer answer for a step |
-| GET | `/api/v1/me/marathons` | JWT | Authenticated user's marathons |
-| GET | `/api/v1/me/marathons/:marathonerId` | JWT | Participant detail |
-| GET | `/api/v1/me/marathons/:marathonerId/submissions/:stepId` | JWT | Read participant's saved submission/report for a step |
-| POST | `/api/v1/me/marathons/:marathonerId/submissions` | JWT | Create/update participant step submission; tracks late penalty and bonus days |
-| POST | `/api/v1/vip/checkout` | JWT | Create VIP checkout via payments-microservice |
-| POST | `/api/v1/vip/gift-redemptions` | JWT | Redeem gift code and unlock VIP |
-| POST | `/api/v1/payments/webhook` | X-API-Key | Payment callback from payments-microservice |
-| GET | `/api/v1/winners` | None | Paginated winner leaderboard |
-| GET | `/api/v1/winners/:id` | None | Winner detail with reviews |
-| GET | `/api/v1/reviews` | None | Static testimonials |
-
-## Current State
-<!-- AI-maintained -->
-Stage: active — core marathon, registration, steps, answers, me, submissions, VIP checkout/gift redemption, winners, and reviews modules operational. Frontend landing/profile surfaces were modernized and deployed on 2026-06-12 around the real registration, profile, VIP gate, gift-code, and assignment APIs. The frontend bootstrap now captures `marathon_token` before React route effects run, so portal login returns can authenticate direct visits to profile detail, gift redemption, and assignment pages instead of only `/profile`. Registration now sends an existing Marathon token with the create request, validates optional bearer tokens server-side, stores `MarathonParticipant.userId` at creation when valid, and returns `userBound` for smoke verification. Registration success sends bound participants directly to `/profile/:marathonerId` and sends unauthenticated participants through portal login with that exact profile return path, so newly created participants can be claimed before opening assignments, VIP checkout, or gift redemption. VIP checkout now calls payments-microservice with server-side product pricing, preserves `/profile/:marathonerId#vip-access` through portal login when checkout auth expires, validates that checkout responses include an http(s) payment redirect before navigating, renders success/cancelled return states, and records every issued checkout in `MarathonPaymentAttempt`; payment callbacks validate `PAYMENT_WEBHOOK_API_KEY` and must match a recorded order, participant, product, amount, and currency before setting `isFree=false` and `paymentReported=true`. Gift redemption marks `MarathonGift.usedAt` while setting `MarathonParticipant.isFree=false` and `paymentReported=true`; the gift form requires profile participant context and a Marathon token before redemption, with sign-in preserving the exact participant return path. Authenticated profile detail can claim a newly registered participant when `userId` is still null, and profile payment-return states now explain `payment=success` callback settlement, already-confirmed VIP access, and cancelled checkout returns. Registration now requires a selected `languageCode` and refuses participant creation unless that active language catalog has a VIP product, unused gift code, steps, a non-trial post-gate step, and approved assignment content for every step; public `registrationOpen` now follows the same launch-ready contract so partial active catalog rows do not expose registration. The safe catalog loader's default dry run now enforces the same launch-ready shape before approved data can be treated as registration/payment/assignment ready. On 2026-06-13 production catalog readiness changed from blocked to ready after the user-approved SpeakASAP legacy export migration prepared/applied launch catalog data: in-pod readiness reports 13 active marathons, 377 steps, 377 steps with approved assignment content, 13 VIP products, 13 gifts, 13 unused gifts, and 53,469 participants. The same full legacy import completed with aggregate counts of 238,674 submissions and 18,603 winners after sanitizing legacy null characters in JSONB answer payloads. External read-only `npm run check:journey -- --base-url https://marathon.alfares.cz` now passes through catalog readiness, language APIs, step detail, assignment content, registration shell, checkout handoff, gift guard, analytics, RunLayer tasks, and frontend guard states. Controlled mutating production smoke on 2026-06-13 created a synthetic Auth user, registered a bound Marathon participant, created checkout, settled payment through Marathon webhook, verified VIP profile state, submitted one assignment, and verified saved-submission readback; output was masked and excluded JWTs, webhook key, full IDs, gift codes, checkout URL, email, and report text. The `/profile` dashboard renders marathon cards with progress, current step, VIP/payment state, bonus days, and continuation actions, and separates login-required from backend load-failure states with refresh/support actions. Profile detail now exposes an authenticated read-only progress report summarizing assignment state, late penalties, bonus days, VIP status, and payment attempts with JSON download. Completed assignment submissions now trigger winner reconciliation: participants with every catalog step completed are marked finished and user medal totals are recomputed into `MarathonWinner`. Finished participants can save or update one private post-marathon NPS response from profile detail; `/api/v1/marathons/analytics` exposes aggregate catalog, registration, assignment, VIP, payment, gift, winner, and NPS metrics without participant PII or survey comments, and `/support` renders them as an operational dashboard. Marathon now exposes read-only RunLayer task execution at `POST /api/v1/tasks/execute` for `marathon:readiness_report`, `marathon:analytics_summary`, and `marathon:participant_engagement_plan`; responses are aggregate-only and intentionally exclude participant identifiers, reports, JWTs, gift codes, payment secrets, and survey comments. Profile detail distinguishes 404 not-found from backend load-failure states with refresh/support actions, and its schedule exposes the next active assignment, labels active/completed/late/locked/VIP-gated steps, shows due or saved timing, and links payment-blocked steps back to VIP options; the Step page can submit the participant's own report through `StepSubmission`, including late penalty report creation and bonus-day decrement. Assignment pages can now read the authenticated participant's saved report for the current step, restore it into the report form, and show saved status/bonus-day metadata before resubmission; the report form requires profile participant context and a Marathon token before submission, blocks submission when saved-report status cannot be verified, and preserves the exact step return path through sign-in. The peer-report tab now explains the no-examples state instead of rendering an empty panel before participant reports exist. Step assignment pages distinguish 404 not-found from assignment load failures with refresh/support actions, require approved plain-text `MarathonStep.assignmentContent` from the catalog, render it without HTML injection, and show an explicit configuration warning if missing; random peer reports are also generated/rendered as plain text to remove the previous `dangerouslySetInnerHTML` path. payments-microservice now has a `payments-marathon-integration` Kubernetes Secret and deployment env reference so callbacks for `applicationId=marathon` include Marathon's expected callback key. The root home page distinguishes readiness API load failures from closed-catalog state with refresh/support actions while keeping winners/reviews teasers optional, its finalists/reviews teaser now distinguishes post-load empty state from loading text, and its mobile hamburger remains anchored in the first header row while expanded links open below it. The public winners page now also distinguishes a post-load no-finalists response from an empty page, explaining that finalists appear after launch and linking to registration status plus support. The support dashboard now turns a closed-catalog state into an operator launch runbook with missing catalog classes, links to the public catalog schema/example/readiness artifacts, and the safe catalog dry-run/apply/readiness command sequence. The standalone registration page separates readiness API load failures from closed-catalog state, gift redemption blocks redemption until readiness status is verified, and the shared registration CTA separates readiness load failures from the normal closed-catalog `Скоро` state. Language landing pages distinguish primary API/readiness load failures from closed-catalog fallback state with refresh/support actions, while treating the current 200 empty by-language response as no active catalog rather than an outage; unconfigured language pages now use natural language labels, say the marathon is being prepared, and keep mobile nav labels in non-clipped wrapped controls. On 2026-06-12 the legacy `speakasap-portal` exporter was checked and found to be intentionally removed: `marathon/management/commands/export_marathon_data.py` is now a stub saying the legacy DB is archived and export is not available. The historical exporter in git history exported participants, answers, and winners as well as catalog rows, so it must not be run as-is without explicit migration approval. Direct Marathon full-export loader entrypoints (`scripts/load-marathon-export.js` and `scripts/load_marathon_export.py`) now refuse to run and point operators to the catalog-only loader. A create-only catalog loader now exists at `scripts/load-marathon-catalog.js`; it validates human-approved catalog JSON, rejects user/progress keys, dry-runs by default, requires `assignmentContent` for every step, emits a redacted per-marathon launch checklist with gift codes shown only as counts, and requires `--apply` to create Marathon/Product/Gift/Step rows. The host-side `scripts/load-catalog-in-pod.sh` helper, exposed as `npm run load:catalog:pod`, stages an approved JSON file into the running Marathon pod, runs the existing loader there, and removes the staged pod copy after dry-run or apply. The catalog handoff contract now includes `docs/schemas/marathon-catalog.schema.json`, `docs/examples/marathon-catalog.example.json`, and `docs/marathon-catalog-import.md`; those operator artifacts are packaged into the runtime image, and the schema/example are also served publicly at `/catalog/marathon-catalog.schema.json` and `/catalog/marathon-catalog.example.json`. A read-only preflight now exists at `scripts/check-marathon-readiness.js` to verify active catalog rows, product pricing, unused gift codes, non-trial steps, approved assignment content, the payment-attempt ledger, and payment runtime configuration before live E2E verification; when run outside the pod and cluster DB is unreachable, it now emits a structured database-connection failure with the exact in-pod command and HTTP journey fallback. A guarded HTTP journey verifier now exists at `scripts/check-marathon-journey.js`; it checks public routes, public catalog contract artifacts, closed-catalog language landing shell plus empty by-language API behavior, direct login-return SPA shell routes for profile detail/assignment/gift, registration profile-login handoff, profile dashboard, profile-detail, assignment step, language landing, home, registration, gift readiness, and global navigation readiness error states, checkout login handoff, assignment submit login guard, root teaser empty-state bundle copy, winners empty-state bundle copy, and gift redemption login guard in the built frontend bundle, and step assignment content read-only by default, can verify saved-submission read access for an existing authenticated participant with explicit IDs, verifies saved-submission readback after mutating submit smoke checks, and fails fast unless checkout/gift/submission smoke flags include explicit `--mutating` and authenticated inputs. The runtime Docker image copies `scripts/*.js` so these operational scripts are available inside the Marathon pod. Deploy now runs the readiness preflight as a non-blocking post-deploy phase so every rollout reports journey readiness separately from app health. Public catalog readiness is also exposed at `/api/v1/marathons/readiness` and used by the home/register/gift UI to explain readiness state without exposing secrets or participant data.
-
-Source-owner catalog approval addendum, 2026-06-12: the catalog handoff now also includes `docs/marathon-catalog-approval-checklist.md` and the public `/catalog/marathon-catalog.approval-checklist.md` artifact. `/support` links this checklist from the launch gate, and journey smoke covers both the public Markdown artifact and the frontend support link. The checklist records approval gates and commands only; it explicitly forbids storing participant exports, JWTs, payment keys, assignment reports, or full gift-code inventories in validation notes.
-
-Catalog approval packet addendum, 2026-06-12: `scripts/load-marathon-catalog.js` now supports `--approval-packet`, a read-only Markdown output mode for source-owner sign-off. It reuses catalog validation, refuses to combine with `--apply`, and prints only launch readiness, product title/price/currency, assignment-content readiness, and gift-code counts. `scripts/load-catalog-in-pod.sh` accepts the flag so operators can generate the packet in the runtime pod with `npm run load:catalog:pod -- <catalog.json> --approval-packet`; `/support` and journey smoke cover the command.
-
-Landing asset addendum, 2026-06-12: legacy landing section CSS no longer points at missing `/img/landing/adv_1.png` through `/img/landing/adv_6.png` or `/img/landing/support.png`. It reuses existing public assets (`talk`, `grammar`, `materials`, `result`, `start`, `finish`, and `mail`) and journey smoke checks the built CSS for those resolved references.
-
-Production data source addendum, 2026-06-13: the Kubernetes/shared PostgreSQL database `marathon` behind `statex-apps/db-server-postgres` is the only operational Marathon data source for launch and follow-up work. Current in-pod readiness and public journey smoke both pass against Kubernetes data: 13 active marathons, 377 imported steps with approved assignment content, 13 VIP products, 15 gifts with 13 unused, 53,473 registered participants, 238,733 step submissions, 18,605 winners, two payment attempts, and NPS smoke evidence. A deeper read-only launch audit found no catalog, product, gift, payment-ledger, language, step-sequence, assignment-content, submission-marathon, survey-score, or winner-duplicate blocker. Legacy data hygiene follow-ups remain non-blocking: 8 duplicate participant/step submission groups, 4,410 finished legacy participants still marked active even though each has 29/29 completed steps, and 415 historical submissions with negative rating values. This is sufficient to launch and continue Marathon product work from the live Kubernetes database.
-
-VIP checkout customer identity addendum, 2026-06-13: phone-only Marathon registration no longer blocks checkout when the authenticated Auth token contains email/contact data. `AuthGuard` carries the validated `AuthUser` into `VipService.createCheckout`; checkout customer data prefers Marathon participant fields and falls back to the Auth token email/name/phone, while still failing closed if no email exists. Deployed image `localhost:5000/marathon:953b05d` passed guarded production-safe smoke for payment checkout, Marathon webhook settlement, VIP profile state, confirmed payment ledger, gift redemption, full assignment completion, winner reconciliation, NPS create/update, readiness, and public journey. Smoke output remained masked and excluded JWTs, webhook key, checkout URL, gift codes, full IDs, emails, and report text. Smoke isolation excludes current `Marathon Prod Smoke`, synthetic `@example.invalid`, and legacy `Marathon Smoke Test` participants from public analytics and winner surfaces.
-
-Root landing refactor addendum, 2026-06-13: `TASK-MAR-063` starts the next frontend/product increment from the verified Kubernetes production baseline. The root `/` page is being rebuilt as a production journey entry point for language selection, registration, profile continuation, VIP unlock, assignments, finalists, and reviews. This work must not reopen the completed catalog/payment blocker, must use Kubernetes/shared PostgreSQL as the only Marathon source of truth, and must keep secrets, gift codes, participant private content, and full identifiers out of UI and validation notes.
-
-Support-chat knowledge addendum, 2026-06-24: `TASK-MAR-069` gives the support chatbot a full safe Marathon overview through `MarathonKnowledgeService`. The service builds a short-lived cached snapshot from canonical Marathon facts, catalog readiness, aggregate analytics, active languages, active marathon summaries, and sanitized step/assignment summaries. Support responses for in-scope questions expose `knowledge_version=support-chat-knowledge-v1`. The prompt context deliberately excludes participant emails, phone numbers, raw names, JWTs, payment secrets, checkout URLs, order IDs, gift codes, raw report bodies, peer answer text, and raw NPS comments. If the knowledge snapshot or model call fails, support-chat must return a safe deterministic fallback instead of leaking internals.
-
-## Known Issues
-<!-- AI-maintained -->
-- None currently blocking Marathon continuation. Root landing TASK-MAR-063 is deployed as image `localhost:5000/marathon:43cadbf` with readiness, public journey smoke, and desktop/mobile visual QA evidence.
-- Use Kubernetes/shared PostgreSQL `marathon` as the source of truth; do not reopen the old catalog/payment data blocker.
-
-## Ops
-
-```bash
-kubectl get pods -n statex-apps -l app=marathon
-kubectl logs -n statex-apps -l app=marathon --tail=100
-./scripts/deploy.sh
-```
+## Open questions
+- confirm any live deployment or runtime boundary not explicitly stated in the repository docs
+- verify whether the project remains active, low-priority, or documentation-led at the time of the next governance review

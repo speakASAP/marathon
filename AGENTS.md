@@ -1,68 +1,27 @@
-# Repository Agent Instructions
+# AGENTS.md
 
-Shared rules live here:
+## Required reading
+- `intent-preservation-system/docs/24_onboarding/PROJECT_ADOPTION_STANDARD.md`
+- `intent-preservation-system/docs/24_onboarding/PROJECT_DOCUMENT_SET.md`
+- `intent-preservation-system/scripts/validate_adoption_profile.py`
+- this repository's `SYSTEM.md`, `BUSINESS.md`, `TASKS.md`, and `STATE.json`
 
-- Codex profile: `/home/ssf/.codex/AGENTS.md`
-- Cross-agent standard: `/home/ssf/.ai-agent-standards/CROSS_AGENT_AUTOMATION_STANDARD.md`
-- Repository operations: `AGENT_OPERATIONS.md`
+## Authority
+This repository is operated under the shared Alfares control model. Agents may execute within the approved project scope, but they must not invent runtime contracts, user claims, or approval evidence.
 
-Read those first, then follow the repository-specific notes below and the current planning/status files.
+## Intent preservation system
+The Intent Preservation System lives in the central `intent-preservation-system` repository. This repo keeps project-specific intent in its local documentation, while central standards remain the source of truth for reusable templates and validators.
 
+## Safety and operations
+- do not fabricate ecosystem dependencies or service routes
+- do not overwrite human-authored business or constitutional intent without explicit approval
+- preserve traceability from goals to tasks to validation evidence
+- prefer truthful `not-applicable` capability decisions over invented runtime dependencies
 
-## Repository-Specific Notes
+## Project-specific rules
+- marathon must remain honest about whether it is a runtime service, a hub, or an experimental repo.
+- do not mark a capability as required unless the repository truly needs it in its project scope.
+- when the repo has no runtime service, document the lack of runtime and set most capabilities to `not-applicable` with a concrete reason.
 
-# Agents: marathon
-
-## Knowledge Retrieval
-
-Use `docs-rag-microservice` for bounded discovery when it is healthy, then
-verify deployment, security, database, integration and public-contract facts
-against the cited Git source. Git remains authoritative.
-
-Authority and fallback rules:
-`/home/ssf/Documents/Github/shared/docs/DOCUMENTATION_AUTHORITY.md`.
-
-Do not generate tokens in documentation or assume an unconfident/failed RAG
-response means that source documentation does not exist.
-
-## Coordinator Config
-
-```yaml
-model_tier: cheap
-cycle_interval_minutes: 120
-max_tasks_per_cycle: 5
-```
-
-## Worker Pool Config
-
-```yaml
-max_concurrent_workers: 2
-default_model_tier: free
-allowed_mcp_servers: [filesystem, postgres]
-```
-
-## Agent Reading Order
-
-`BUSINESS.md` → `SPEC.md` → `PLAN.md` → `SYSTEM.md` → `AGENTS.md` → `TASKS.md` → `STATE.json`
-
-## Typical Task Types
-
-| Task Type | Target | Description |
-|-----------|--------|-------------|
-| `generate_participant_progress_report` | internal | Aggregate completion stats per marathon |
-| `send_participant_reminder` | notifications-microservice:3368 | Nudge inactive participants |
-| `review_course_content` | human handoff | Flag steps for human review — AI never edits |
-
-## Anti-Chaos Rules
-
-- AI must never modify `MarathonStep` content (title, formKey, sequence) — human review only.
-- AI must never process or trigger payments directly.
-- AI must never export bulk user progress data (`StepSubmission`, `PenaltyReport`).
-- AI must never cancel or refund participant records without explicit human approval.
-
-## Active Agents
-<!-- Coordinator-maintained -->
-
-## Legacy Behavior Reference
-
-When Marathon behavior is unclear, or the modern service disagrees with expected product behavior, consult the legacy/old Marathon codebase and historical export before inventing a new rule. The legacy Marathon previously worked correctly; this repository is a modern refactor/migration and should preserve the old functional contract unless the user explicitly requests a product change. This applies especially to stage opening, bonus days, penalty circles, report submission/review state, schedule timing, and participant progress.
+## Required final report
+The final response must include: role performed, files changed, documents created, validation commands and results, validation debt created or used, active blockers, deviations from scope, and a final `Next step:` line.

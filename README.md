@@ -1,57 +1,51 @@
-# Marathon
+# marathon
 
-Standalone marathon product (NestJS + TypeScript).
+## Status
+Status: active
+Lifecycle: implementation
+Repository focus: Marathon service for scheduling, participant coordination, and operational event tracking within the Alfares ecosystem.
 
-## Setup (production-only)
+## Documentation authority
+This repository keeps its project intent and onboarding profile in the repo itself and follows the shared Alfares IPS standard in `intent-preservation-system` for cross-repository traceability.
 
-- Create `.env` from `.env.example`
-- Build: `docker compose build`
-- Run: `docker compose up -d`
+## Capabilities
+- auth: required — The service enforces access boundaries before work is accepted.
+- postgres: required — The repository persists service state in the shared PostgreSQL platform.
+- redis: not-applicable — No Redis runtime dependency is required for this repository.
+- logging: required — Structured operation logs are emitted to the shared logging microservice.
+- notifications: required — Operator alerts and user notifications are part of the supported workflow.
+- ai: not-applicable — No AI capability is required for this repository scope.
+- payments: not-applicable — Payment processing is intentionally out of scope.
+- catalog: not-applicable — Catalog ownership is not part of the repository responsibility.
+- orders: not-applicable — No order-processing boundary is required here.
+- warehouse: not-applicable — No warehouse responsibility is part of the repository.
+- invoices: not-applicable — No invoice domain is owned by this project.
+- object-storage: not-applicable — This repository intentionally does not own object storage.
+- event-bus: not-applicable — No RabbitMQ event-streaming contract is owned in this repository scope.
+- docs-rag: required — The repository must remain discoverable through the shared docs-RAG indexing pipeline.
+- monitoring: required — The service exposes health and readiness evidence through the monitoring platform.
+- backups: not-applicable — No backup regime is required for this repository.
 
-## Deployment (blue/green)
+## Interfaces
+- Repository: https://github.com/speakASAP/marathon
+- Standard: https://github.com/speakASAP/intent-preservation-system
+- Primary operator boundary: Marathon service for scheduling, participant coordination, and operational event tracking within the Alfares ecosystem.
+- Runtime health contract: GET /health when a live service is present.
 
-- On **alfares** server (`ssh alfares`):
-  - `cd ~/Documents/Github/marathon` (or repo root)
-  - `./scripts/deploy.sh`
+## Development
+- Source of truth lives in repository-local docs and implementation files.
+- Changes to runtime behaviour should be traced to the corresponding project documents before implementation.
+- Validation runs from the repo root with the central IPS validator.
 
-## Database
+## Configuration
+- Project-specific configuration is stored in the repository and environment files when live runtime configuration is required.
+- Secrets remain outside the repository and are injected via the platform secret flow.
 
-- Prisma schema in `prisma/schema.prisma`
-- Generate client: `npm run prisma:generate`
-- **Before first deploy:** create the `marathon` database on the shared PostgreSQL server (e.g. `database-server/scripts/create-database.sh` or `CREATE DATABASE marathon` as admin). The container runs `prisma migrate deploy` on startup to apply schema.
+## Deployment
+- This repository follows the Alfares deployment and validation conventions for the owning service or hub.
+- Deploys are gated by the platform deployment flow and the central IPS validation workflow.
 
-## Catalog Data
-
-Registration and VIP verification require approved catalog rows in `Marathon`, `MarathonStep`, `MarathonProduct`, and optionally `MarathonGift`. Every `MarathonStep` must include approved plain-text `assignmentContent`; the app will not treat placeholder or missing assignment instructions as launch-ready. The registration API rejects participant creation until the selected language has a launch-ready active catalog.
-
-VIP checkout creates a `MarathonPaymentAttempt` ledger row before calling payments-microservice. Payment callbacks must match that issued `orderId`, participant, product, amount, and currency before VIP access is unlocked.
-
-Use the safe catalog-only loader for human-approved source data:
-
-```bash
-npm run load:catalog -- /path/to/marathon-catalog.json
-npm run load:catalog -- /path/to/marathon-catalog.json --apply
-```
-
-The loader is dry-run by default, rejects user/progress data, and does not overwrite existing catalog rows. See `docs/marathon-catalog-import.md`.
-
-Run the read-only production preflight from the Marathon runtime after loading catalog data:
-
-```bash
-kubectl exec -n statex-apps deploy/marathon -- sh -lc 'cd /app && npm run check:readiness'
-kubectl exec -n statex-apps deploy/marathon -- sh -lc 'cd /app && npm run check:readiness -- --json'
-```
-
-Run the HTTP-level journey smoke verifier after readiness passes:
-
-```bash
-npm run check:journey -- --base-url https://marathon.alfares.cz
-```
-
-The journey verifier is read-only by default. Existing saved assignment reports can be checked with `--auth-token '<jwt>' --marathoner-id '<participant-id>' --step-id '<step-id>'`. Registration, profile, VIP checkout, gift redemption, and assignment submission checks require explicit `--mutating` options; mutating-only flags fail without it. See `npm run check:journey -- --help`.
-
-## Notes
-
-- Production-only workflow
-- Centralized logging via `LOGGING_SERVICE_URL`
-- Nginx API routes in `nginx/nginx-api-routes.conf`
+## Health and observability
+- Structured logs are emitted when the repository owns a runtime flow.
+- Health and readiness checks must remain truthful and project-specific rather than invented by automation.
+- Operational evidence is captured in the repository validation records and state files.

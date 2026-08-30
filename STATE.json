@@ -1,26 +1,18 @@
 {
-  "v": 1,
+  "schemaVersion": 1,
   "project": "marathon",
-  "stage": "active",
-  "health": "ok",
-  "cycle": 0,
-  "last_cycle_at": "2026-06-13T00:00:00Z",
-  "tasks_active": 0,
-  "tasks_failed_last_cycle": 0,
-  "open_task_ids": [],
-  "last_milestone": "vip-checkout-auth-customer-verified-2026-06-13",
-  "next_focus": "Project completed/frozen: no active goals, plans, tasks, blockers, or human/AI actions pending as of 2026-06-21.",
-  "blockers": [],
-  "follow_ups": [
-    "Use a unique image tag or no-cache build when deploying uncommitted remote changes; reusing the git short SHA tag can leave Kubernetes on stale image content.",
-    "Optional legacy data hygiene: review the TASK-MAR-064 aggregate/masked audit findings before planning any corrective migration."
-  ],
-  "budget_units_used": 0,
-  "metrics": {
-    "custom": {}
+  "lifecycle": "implementation",
+  "health": "active",
+  "activeTask": "bootstrap-service",
+  "lastUpdated": "2026-08-30T22:50:25Z",
+  "deployment": {
+    "status": "not-deployed",
+    "lastUpdated": "2026-08-30T22:50:25Z"
   },
-  "project_status": "completed_frozen",
-  "completed_at": "2026-06-21",
-  "frozen_at": "2026-06-21",
-  "updated_at": "2026-06-21"
+  "blockers": [
+    "Project owner approval evidence must remain explicit and truthful for onboarding."
+  ],
+  "followUps": [
+    "Confirm the final runtime status of marathon during the next governance review."
+  ]
 }
