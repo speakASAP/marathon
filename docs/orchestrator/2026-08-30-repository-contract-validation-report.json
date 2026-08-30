@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0",
+  "repository": "marathon",
+  "report_id": "VAL-REPO-CONTRACT-2026-08-30",
+  "executed_at": "2026-08-30T21:38:36Z",
+  "standard_contract": {
+    "source_repo": "shared",
+    "source_commit": "717a4aebafa30d2d441e447f4fc8e091ed19e136",
+    "validator": "scripts/validate-repository-profile.py",
+    "index_checker": "scripts/build-artifact-index.py --check"
+  },
+  "verified_mapping": {
+    "runlayer_project_id": "c07123d5-9ef3-49ad-9da8-098c7df41205",
+    "runlayer_project_slug": "marathon",
+    "runlayer_repo_ref": "marathon",
+    "state_project": "marathon",
+    "notes": "runlayer_project_slug is recorded in REPOSITORY_PROFILE.project_registration. runlayer_project_id is preserved here because the v1 schema has no dedicated field for it."
+  },
+  "checks": {
+    "validator_json": {
+      "status": "pass",
+      "errors": []
+    },
+    "index_check": {
+      "status": "pass",
+      "errors": []
+    },
+    "json_parse": {
+      "status": "pass",
+      "errors": []
+    },
+    "path_allowlist": {
+      "status": "pass",
+      "errors": []
+    },
+    "exclusion_guards": {
+      "status": "pass",
+      "errors": []
+    },
+    "forbidden_reference_scan": {
+      "status": "pass",
+      "errors": []
+    },
+    "diff_scope": {
+      "status": "pass",
+      "errors": [],
+      "changed_files": [
+        "STATE.json",
+        "docs/orchestrator/2026-08-30-repository-contract-validation-report.json",
+        "docs/registry/ARTIFACT_INDEX.json",
+        "docs/registry/REPOSITORY_PROFILE.json"
+      ]
+    }
+  },
+  "status": "validated",
+  "command_results": {
+    "validator": {
+      "command": "python3 /home/ssf/Documents/Github/shared/scripts/validate-repository-profile.py --root . --json",
+      "exit_code": 0,
+      "stdout": "{\n  \"errors\": [],\n  \"ok\": true,\n  \"root\": \"/home/ssf/Documents/Github/marathon\",\n  \"stats\": {\n    \"artifact_count\": 6,\n    \"collectable_path_count\": 18,\n    \"error_count\": 0,\n    \"warning_count\": 0\n  },\n  \"warnings\": []\n}",
+      "stderr": ""
+    },
+    "index_check": {
+      "command": "python3 /home/ssf/Documents/Github/shared/scripts/build-artifact-index.py --root . --check --json",
+      "exit_code": 0,
+      "stdout": "{\n  \"artifact_count\": 6,\n  \"errors\": [],\n  \"ok\": true,\n  \"root\": \"/home/ssf/Documents/Github/marathon\",\n  \"warnings\": []\n}",
+      "stderr": ""
+    },
+    "diff_scope": {
+      "command": "git status --porcelain=v1 --untracked-files=all",
+      "exit_code": 0,
+      "stdout": " M STATE.json\n?? docs/orchestrator/2026-08-30-repository-contract-validation-report.json\n?? docs/registry/ARTIFACT_INDEX.json\n?? docs/registry/REPOSITORY_PROFILE.json",
+      "stderr": ""
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0",
+  "repository": "marathon",
+  "generated_at": "2026-08-30T21:37:43Z",
+  "artifacts": [
+    {
+      "id": "EP-TASK-001",
+      "type": "execution_plan",
+      "status": "done",
+      "title": "Bootstrap service onboarding execution plan",
+      "path": "docs/21_execution_plans/EP-TASK-001-bootstrap-service.md",
+      "parent_ids": [
+        "TASK-001"
+      ],
+      "updated_at": "2026-08-30T22:56:47+02:00"
+    },
+    {
+      "id": "GOAL-IMPACT-TASK-001",
+      "type": "goal",
+      "status": "validated",
+      "title": "Bootstrap onboarding goal impact",
+      "path": "docs/22_goal_impact/GOAL-IMPACT-TASK-001.md",
+      "parent_ids": [],
+      "runlayer_goal_id": null,
+      "updated_at": "2026-08-30T22:56:47+02:00"
+    },
+    {
+      "id": "TASK-001",
+      "type": "task",
+      "status": "active",
+      "title": "Bootstrap adoption profile for marathon",
+      "path": "docs/11_tasks/TASK-001-bootstrap-service.md",
+      "parent_ids": [
+        "GOAL-IMPACT-TASK-001"
+      ],
+      "runlayer_task_id": null,
+      "updated_at": "2026-08-30T22:56:47+02:00"
+    },
+    {
+      "id": "VAL-REPO-CONTRACT-2026-08-30",
+      "type": "validation",
+      "status": "validated",
+      "title": "Wave 0 repository contract validation",
+      "path": "docs/orchestrator/2026-08-30-repository-contract-validation-report.json",
+      "parent_ids": [
+        "TASK-001"
+      ],
+      "updated_at": "2026-08-30T21:37:43Z"
+    },
+    {
+      "id": "VAL-TASK-001",
+      "type": "validation",
+      "status": "validated",
+      "title": "Bootstrap service onboarding validation",
+      "path": "docs/12_validation/VAL-TASK-001-bootstrap-service.md",
+      "parent_ids": [
+        "TASK-001"
+      ],
+      "updated_at": "2026-08-30T22:56:47+02:00"
+    },
+    {
+      "id": "VALIDATION-DEBT",
+      "type": "validation_debt",
+      "status": "done",
+      "title": "Repository validation debt ledger",
+      "path": "docs/orchestrator/VALIDATION_DEBT.md",
+      "parent_ids": [],
+      "updated_at": "2026-08-30T22:56:47+02:00"
+    }
+  ],
+  "warnings": []
+}

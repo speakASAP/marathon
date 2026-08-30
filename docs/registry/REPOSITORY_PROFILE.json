@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "repository": "marathon",
+  "profile": "service",
+  "project_registration": {
+    "runlayer_project_slug": "marathon",
+    "status": "linked",
+    "warning": "Canonical mapping verified by bounded audit: runlayer_project_id=c07123d5-9ef3-49ad-9da8-098c7df41205, runlayer_project_slug=marathon, repo_ref=marathon, STATE project=marathon. Schema has no runlayer_project_id field."
+  },
+  "collectable_paths": [
+    "AGENTS.md",
+    "AGENT_OPERATIONS.md",
+    "BUSINESS.md",
+    "SYSTEM.md",
+    "TASKS.md",
+    "STATE.json",
+    "docs/00_constitution/CONSTITUTION.md",
+    "docs/01_vision/VISION.md",
+    "docs/06_architecture/INTEGRATION_CONTRACT.md",
+    "docs/11_tasks/TASK-001-bootstrap-service.md",
+    "docs/12_validation/VAL-TASK-001-bootstrap-service.md",
+    "docs/17_governance/PROJECT_INVARIANTS.md",
+    "docs/21_execution_plans/EP-TASK-001-bootstrap-service.md",
+    "docs/22_goal_impact/GOAL-IMPACT-TASK-001.md",
+    "docs/orchestrator/2026-08-30-repository-contract-validation-report.json",
+    "docs/orchestrator/VALIDATION_DEBT.md",
+    "docs/registry/ARTIFACT_INDEX.json",
+    "docs/registry/REPOSITORY_PROFILE.json"
+  ],
+  "excluded_path_patterns": [
+    ".env*",
+    "**/secrets/**",
+    "**/*.pem",
+    "**/node_modules/**",
+    "**/coverage/**",
+    "deploy.config.sh",
+    "dist/**",
+    "frontend/**",
+    "k8s/**",
+    "nginx/**",
+    "prisma/**",
+    "public/**",
+    "scripts/**",
+    "src/**"
+  ],
+  "owners": {
+    "business_intent": "project-owner",
+    "technical_system": "service-owner",
+    "planning_state": "orchestrator",
+    "integration": "service-owner",
+    "registry_contract": "shared-wave0-v1"
+  }
+}
