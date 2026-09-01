@@ -1,15 +1,4 @@
 {
-  "schemaVersion": 1,
-  "project": "marathon",
-  "lifecycle": "active",
-  "health": "operational",
-  "activeTask": "TASK-001-bootstrap-service",
-  "lastUpdated": "2026-08-30T21:37:43Z",
-  "deployment": {
-    "status": "ready"
-  },
-  "blockers": [],
-  "followUps": [],
   "schema_version": "1.0",
   "repository": "marathon",
   "service": {
