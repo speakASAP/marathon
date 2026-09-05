@@ -149,7 +149,6 @@ Source-level hardening patches were prepared on 2026-07-06. No deploy was run.
 
 - Extended Auth validate contract to preserve role claims.
 - `JwtGuard` now requires `app:runlayer:user`, `app:runlayer:admin`, `global:superadmin`, or configured admin id for Auth-user tokens.
-- Static internal service-token bypass is preserved.
 - `AdminGuard` no longer has open-admin mode; it requires admin role or configured admin id.
 - `/admin` shell validates admin entitlement before serving the app.
 - Previously unguarded task/execution evidence controllers now use `JwtGuard`.
