@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Query docs-rag using the JWT_TOKEN injected into the Marathon pod from Kubernetes Vault.
+# Query docs-rag using the per-pair RS256 service token injected into the Marathon
+# pod from Vault (principal svc-marathon--docs-rag, role
+# internal:docs-rag-microservice:readonly).
+#
+# Was JWT_TOKEN, which was never actually mounted -- no ExternalSecret named it --
+# so this script failed for every caller with the message below.
 # The token is never printed or passed on the local shell command line.
 set -euo pipefail
 
@@ -15,12 +20,12 @@ fi
 
 kubectl -n "$NAMESPACE" exec -i "deployment/$DEPLOYMENT" -- node - "$QUERY" "$MAX_TOKENS" <<'NODE'
 const [query, maxTokensRaw] = process.argv.slice(2);
-const token = process.env.JWT_TOKEN;
+const token = process.env.DOCS_RAG_SERVICE_TOKEN;
 const maxTokens = Number.parseInt(maxTokensRaw || '3000', 10);
 const baseUrl = process.env.DOCS_RAG_INTERNAL_URL || 'http://docs-rag-microservice.statex-apps.svc.cluster.local:3397';
 
 if (!token) {
-  console.error('JWT_TOKEN is missing in the Marathon pod. Check k8s/external-secret.yaml and ExternalSecret marathon-secret.');
+  console.error('DOCS_RAG_SERVICE_TOKEN is missing in the Marathon pod. Check k8s/external-secret.yaml and ExternalSecret marathon-secret.');
   process.exit(2);
 }
 
