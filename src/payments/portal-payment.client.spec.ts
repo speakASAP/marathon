@@ -7,6 +7,7 @@ describe('PortalPaymentClient', () => {
     global.fetch = originalFetch;
     delete process.env.SPEAKASAP_PORTAL_URL;
     delete process.env.SPEAKASAP_PORTAL_LEDGER_API_KEY;
+    delete process.env.SPEAKASAP_PORTAL_PAYMENT_API_KEY;
     delete process.env.MARATHON_ADMIN_API_KEY;
     delete process.env.PAYMENT_WEBHOOK_API_KEY;
   });
@@ -25,9 +26,29 @@ describe('PortalPaymentClient', () => {
     ).resolves.toBe('skipped');
   });
 
-  it('registers pending payment on speakasap portal', async () => {
+  it('skips when only legacy MARATHON_ADMIN_API_KEY / PAYMENT_WEBHOOK_API_KEY are set', async () => {
     process.env.SPEAKASAP_PORTAL_URL = 'https://speakasap.com';
     process.env.MARATHON_ADMIN_API_KEY = 'admin-key';
+    process.env.PAYMENT_WEBHOOK_API_KEY = 'webhook-key';
+    global.fetch = jest.fn() as any;
+
+    const client = new PortalPaymentClient();
+    await expect(
+      client.registerPending({
+        email: 'a@b.c',
+        amount: 29,
+        paymentMethod: 'stripe',
+        title: 'Марафон',
+        externalPaymentId: 'pay-1',
+        marathonOrderId: 'ord-1',
+      }),
+    ).resolves.toBe('skipped');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('registers pending payment on speakasap portal with SPEAKASAP_PORTAL_LEDGER_API_KEY', async () => {
+    process.env.SPEAKASAP_PORTAL_URL = 'https://speakasap.com';
+    process.env.SPEAKASAP_PORTAL_LEDGER_API_KEY = 'portal-ledger-key';
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       status: 201,
@@ -49,14 +70,14 @@ describe('PortalPaymentClient', () => {
       'https://speakasap.com/api/marathon/payment/register',
       expect.objectContaining({
         method: 'POST',
-        headers: expect.objectContaining({ 'X-API-Key': 'admin-key' }),
+        headers: expect.objectContaining({ 'X-API-Key': 'portal-ledger-key' }),
       }),
     );
   });
 
-  it('confirms via standard payments webhook', async () => {
+  it('confirms via standard payments webhook with SPEAKASAP_PORTAL_PAYMENT_API_KEY', async () => {
     process.env.SPEAKASAP_PORTAL_URL = 'https://speakasap.com';
-    process.env.MARATHON_ADMIN_API_KEY = 'admin-key';
+    process.env.SPEAKASAP_PORTAL_PAYMENT_API_KEY = 'portal-payment-key';
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -76,7 +97,7 @@ describe('PortalPaymentClient', () => {
       'https://speakasap.com/api/payments/webhook',
       expect.objectContaining({
         method: 'POST',
-        headers: expect.objectContaining({ 'X-API-Key': 'admin-key' }),
+        headers: expect.objectContaining({ 'X-API-Key': 'portal-payment-key' }),
       }),
     );
   });

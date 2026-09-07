@@ -1,5 +1,5 @@
 import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { ApiKeyGuard } from '../shared/api-key.guard';
+import { ServiceAuthGuard } from '../shared/service-auth.guard';
 import { PrismaService } from '../shared/prisma.service';
 import { AdminParticipantPaymentsService, AdminPaymentRecord } from './admin-participant-payments.service';
 
@@ -35,12 +35,13 @@ export interface AdminParticipantResult {
 
 /**
  * Internal search endpoint for the portal manager UI.
- * Guarded by x-api-key (MARATHON_ADMIN_API_KEY / PAYMENT_WEBHOOK_API_KEY) —
+ * Guarded by Auth RS256 Bearer (internal:marathon:admin|service) —
  * returns PII, never expose unauthenticated.
  * Returns participation and payment facts only; no step submissions / progress data.
+ * Payment provider webhooks are a separate lane (PAYMENT_WEBHOOK_API_KEY).
  */
 @Controller('admin/participants')
-@UseGuards(ApiKeyGuard)
+@UseGuards(ServiceAuthGuard)
 export class AdminParticipantsController {
   constructor(
     private readonly prisma: PrismaService,

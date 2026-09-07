@@ -27,11 +27,7 @@ The repository owns the project-local intent and validation evidence it maintain
 ## Authentication and authorization
 For machine service identity, follow the sole canonical [`SERVICE_IDENTITY_CONSUMER_STANDARD.md`](../../../auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md). It is not reproduced here.
 
-**Known non-conformance — do not copy or extend.** `ApiKeyGuard` (`src/shared/api-key.guard.ts`) accepts a static `x-api-key` matching either `MARATHON_ADMIN_API_KEY` (held by the speakasap portal as `MARATHON_API_KEY`) or `PAYMENT_WEBHOOK_API_KEY` (payments-microservice).
-
-The admin-route usage is squarely service-to-service authentication and is non-conformant: a shared static key is not an Auth-issued RS256 principal per `(caller -> marathon)` pair, is not revocable per caller, and carries no `internal:marathon:<role>` claim. The guard also accepts either key on the same routes, so the payments webhook credential authenticates admin endpoints too — a single key grants the union of both callers' authority.
-
-Inbound provider webhook verification is a distinct concern from caller identity, but it does not license reusing one shared key across admin routes and callers. Do not add new callers or routes to this guard; the fix is per-pair Auth-issued credentials for the internal callers, with webhook authenticity handled separately by provider signature verification.
+Admin S2S routes use Auth RS256 only (`ServiceAuthGuard` → `/auth/validate` + `internal:marathon:admin|service`). Payment provider webhook verification remains a separate lane (`PAYMENT_WEBHOOK_API_KEY` in payments callbacks).
 
 ## Synchronous dependencies
 - central IPS repository for validator and template guidance

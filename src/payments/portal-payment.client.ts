@@ -22,8 +22,6 @@ export class PortalPaymentClient {
     return (
       process.env.SPEAKASAP_PORTAL_LEDGER_API_KEY ||
       process.env.SPEAKASAP_PORTAL_PAYMENT_API_KEY ||
-      process.env.MARATHON_ADMIN_API_KEY ||
-      process.env.PAYMENT_WEBHOOK_API_KEY ||
       ''
     );
   }

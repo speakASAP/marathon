@@ -15,7 +15,6 @@ describe('AdminParticipantsController', () => {
 
   beforeEach(async () => {
     jest.resetAllMocks();
-    process.env.PAYMENT_WEBHOOK_API_KEY = 'test-key';
     participantPayments.getPaymentsByOrderIds.mockResolvedValue(new Map());
     const moduleRef = await Test.createTestingModule({
       controllers: [AdminParticipantsController],
