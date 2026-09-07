@@ -30,11 +30,9 @@ spec:
           env:
             - name: NODE_OPTIONS
               value: "--max-old-space-size=384"
-            - name: LOGGING_SERVICE_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: logging-ingest-credentials
-                  key: LOGGING_SERVICE_TOKEN
+          # LOGGING_SERVICE_TOKEN comes from marathon-secret (per-pair RS256 via
+          # ExternalSecret). Do not reintroduce logging-ingest-credentials —
+          # it shadows envFrom with a static non-JWT.
           envFrom:
             - configMapRef:
                 name: marathon-config
