@@ -2,7 +2,7 @@ import { Body, Controller, HttpException, Logger, Post, Req, UseGuards } from '@
 import { Request } from 'express';
 import { AuthGuard } from '../shared/auth.guard';
 import { AuthUser } from '../shared/auth-client';
-import { ServiceAuthGuard } from '../shared/service-auth.guard';
+import { PaymentCallbackAuthGuard } from '../shared/service-auth.guard';
 import { PaymentsService } from './payments.service';
 
 type AuthenticatedRequest = Request & {
@@ -73,7 +73,7 @@ export class PaymentsController {
   }
 
   @Post('payments/webhook')
-  @UseGuards(ServiceAuthGuard)
+  @UseGuards(PaymentCallbackAuthGuard)
   async paymentWebhook(@Body() body: Record<string, unknown>) {
     this.logger.log(`Payment callback received: orderId=${String(body.orderId || '')}, status=${String(body.status || '')}`);
     const callbackStatus = this.safeEventValue(String(body.status || ''));

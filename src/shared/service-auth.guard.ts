@@ -17,19 +17,20 @@ type AuthValidateResponse = {
   };
 };
 
-/** Roles that may call marathon admin S2S routes (portal BFF / machine callers). */
-export const MARATHON_ADMIN_SERVICE_ROLES = [
-  'internal:marathon:admin',
-  'internal:marathon:service',
-] as const;
+/** Portal manager UI → marathon admin API. */
+export const MARATHON_ADMIN_SERVICE_ROLES = ['internal:marathon:admin'] as const;
+
+/** payments-microservice → marathon payment application callback. */
+export const MARATHON_PAYMENT_CALLBACK_ROLES = ['internal:marathon:service'] as const;
 
 /**
- * Auth RS256 gate for marathon S2S routes (admin + payments callback).
- * Bearer only → POST /auth/validate with internal:marathon:admin|service.
+ * Auth RS256 gate for marathon S2S routes.
+ * Bearer only → POST /auth/validate with a route-specific least-privilege role.
  * S2S: auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md (no dual-accept).
  */
-@Injectable()
-export class ServiceAuthGuard implements CanActivate {
+abstract class BaseServiceAuthGuard implements CanActivate {
+  protected abstract readonly requiredRoles: readonly string[];
+
   private readonly authServiceUrl = (
     process.env.AUTH_SERVICE_URL || 'http://auth-microservice:3370'
   ).replace(/\/+$/, '');
@@ -51,7 +52,7 @@ export class ServiceAuthGuard implements CanActivate {
       ? user.roles.filter((role): role is string => typeof role === 'string')
       : [];
 
-    if (!MARATHON_ADMIN_SERVICE_ROLES.some((role) => roles.includes(role))) {
+    if (!this.requiredRoles.some((role) => roles.includes(role))) {
       throw new ForbiddenException('Principal lacks the required role');
     }
 
@@ -111,4 +112,16 @@ export class ServiceAuthGuard implements CanActivate {
 
     return validation.user;
   }
+}
+
+/** Admin participants search — portal holds internal:marathon:admin. */
+@Injectable()
+export class ServiceAuthGuard extends BaseServiceAuthGuard {
+  protected readonly requiredRoles = MARATHON_ADMIN_SERVICE_ROLES;
+}
+
+/** Payment application callback — payments-ms holds internal:marathon:service. */
+@Injectable()
+export class PaymentCallbackAuthGuard extends BaseServiceAuthGuard {
+  protected readonly requiredRoles = MARATHON_PAYMENT_CALLBACK_ROLES;
 }

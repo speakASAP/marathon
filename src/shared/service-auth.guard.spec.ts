@@ -1,5 +1,10 @@
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
-import { MARATHON_ADMIN_SERVICE_ROLES, ServiceAuthGuard } from './service-auth.guard';
+import {
+  MARATHON_ADMIN_SERVICE_ROLES,
+  MARATHON_PAYMENT_CALLBACK_ROLES,
+  PaymentCallbackAuthGuard,
+  ServiceAuthGuard,
+} from './service-auth.guard';
 
 function ctx(headers: Record<string, string>) {
   return { switchToHttp: () => ({ getRequest: () => ({ headers }) }) } as never;
@@ -34,7 +39,7 @@ describe('ServiceAuthGuard', () => {
     await expect(
       new ServiceAuthGuard().canActivate(ctx({ authorization: 'Bearer good-token' })),
     ).resolves.toBe(true);
-    expect(MARATHON_ADMIN_SERVICE_ROLES).toContain('internal:marathon:admin');
+    expect(MARATHON_ADMIN_SERVICE_ROLES).toEqual(['internal:marathon:admin']);
   });
 
   it('rejects a missing Authorization header', async () => {
@@ -47,6 +52,19 @@ describe('ServiceAuthGuard', () => {
       new ServiceAuthGuard().canActivate(ctx({ 'x-api-key': 'admin-key' })),
     ).rejects.toThrow(UnauthorizedException);
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects payment-callback service role on admin routes', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        valid: true,
+        user: { id: 'svc-1', roles: ['internal:marathon:service'] },
+      }),
+    });
+    await expect(
+      new ServiceAuthGuard().canActivate(ctx({ authorization: 'Bearer service-token' })),
+    ).rejects.toThrow(ForbiddenException);
   });
 
   it('rejects a valid token without an admin role', async () => {
@@ -70,5 +88,51 @@ describe('ServiceAuthGuard', () => {
     await expect(
       new ServiceAuthGuard().canActivate(ctx({ authorization: 'Bearer bad' })),
     ).rejects.toThrow(UnauthorizedException);
+  });
+});
+
+describe('PaymentCallbackAuthGuard', () => {
+  const originalFetch = global.fetch;
+  const originalAuthUrl = process.env.AUTH_SERVICE_URL;
+
+  beforeEach(() => {
+    process.env.AUTH_SERVICE_URL = 'http://auth-microservice:3370';
+    global.fetch = jest.fn();
+  });
+
+  afterAll(() => {
+    global.fetch = originalFetch;
+    if (originalAuthUrl === undefined) {
+      delete process.env.AUTH_SERVICE_URL;
+    } else {
+      process.env.AUTH_SERVICE_URL = originalAuthUrl;
+    }
+  });
+
+  it('accepts internal:marathon:service', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        valid: true,
+        user: { id: 'svc-payments', roles: ['internal:marathon:service'] },
+      }),
+    });
+    await expect(
+      new PaymentCallbackAuthGuard().canActivate(ctx({ authorization: 'Bearer good' })),
+    ).resolves.toBe(true);
+    expect(MARATHON_PAYMENT_CALLBACK_ROLES).toEqual(['internal:marathon:service']);
+  });
+
+  it('rejects admin role on payment callback', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        valid: true,
+        user: { id: 'svc-portal', roles: ['internal:marathon:admin'] },
+      }),
+    });
+    await expect(
+      new PaymentCallbackAuthGuard().canActivate(ctx({ authorization: 'Bearer admin' })),
+    ).rejects.toThrow(ForbiddenException);
   });
 });

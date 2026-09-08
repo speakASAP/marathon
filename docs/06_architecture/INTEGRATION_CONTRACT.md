@@ -27,7 +27,7 @@ The repository owns the project-local intent and validation evidence it maintain
 ## Authentication and authorization
 For machine service identity, follow the sole canonical [`SERVICE_IDENTITY_CONSUMER_STANDARD.md`](../../../auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md). It is not reproduced here.
 
-Admin S2S routes and payments application callbacks use Auth RS256 only (`ServiceAuthGuard` → `/auth/validate` + `internal:marathon:admin|service`). Stripe/provider webhook signature verification remains a separate lane and is unchanged.
+Admin S2S routes use Auth RS256 only (`ServiceAuthGuard` → `/auth/validate` + `internal:marathon:admin`). Application payment callbacks use `PaymentCallbackAuthGuard` + `internal:marathon:service`. Stripe/provider webhook signature verification remains a separate lane and is unchanged.
 
 ## Synchronous dependencies
 - central IPS repository for validator and template guidance

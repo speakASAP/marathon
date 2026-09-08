@@ -35,11 +35,11 @@ export interface AdminParticipantResult {
 
 /**
  * Internal search endpoint for the portal manager UI.
- * Guarded by Auth RS256 Bearer (internal:marathon:admin|service) —
+ * Guarded by Auth RS256 Bearer (internal:marathon:admin only) —
  * returns PII, never expose unauthenticated.
  * Returns participation and payment facts only; no step submissions / progress data.
  * Payment provider webhooks stay on their own signature lane (unchanged).
- * Application payment callbacks use ServiceAuthGuard (Auth RS256 Bearer).
+ * Application payment callbacks use PaymentCallbackAuthGuard (internal:marathon:service).
  */
 @Controller('admin/participants')
 @UseGuards(ServiceAuthGuard)
