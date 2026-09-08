@@ -17,7 +17,7 @@ export type AuthContactRegistrationResult = {
 /**
  * Headers for auth-microservice internal routes.
  * Auth-issued per-pair RS256 only (`AUTH_SERVICE_TOKEN` as Bearer).
- * Principal: svc-marathon--auth-microservice@internal.alfares.cz
+ * S2S: auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md
  * Role: internal:auth-microservice:legacy-lookup
  * See auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md.
  */

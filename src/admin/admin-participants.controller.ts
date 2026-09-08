@@ -38,7 +38,8 @@ export interface AdminParticipantResult {
  * Guarded by Auth RS256 Bearer (internal:marathon:admin|service) —
  * returns PII, never expose unauthenticated.
  * Returns participation and payment facts only; no step submissions / progress data.
- * Payment provider webhooks are a separate lane (PAYMENT_WEBHOOK_API_KEY).
+ * Payment provider webhooks stay on their own signature lane (unchanged).
+ * Application payment callbacks use ServiceAuthGuard (Auth RS256 Bearer).
  */
 @Controller('admin/participants')
 @UseGuards(ServiceAuthGuard)

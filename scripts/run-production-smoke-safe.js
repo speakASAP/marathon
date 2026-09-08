@@ -158,9 +158,9 @@ function smokePayloadForStep(step) {
 }
 
 async function verifyPaymentUnlock(token, marathon) {
-  if (!process.env.PAYMENT_WEBHOOK_API_KEY) {
-    throw new Error("PAYMENT_WEBHOOK_API_KEY is required for payment unlock proof");
-  }
+  // Application callbacks require Auth RS256 Bearer (ServiceAuthGuard).
+  // This smoke proves a forged "completed" callback without a valid service
+  // principal is rejected and does not mark the participant paid.
 
   const marathonerId = await registerSmokeParticipant(token, marathon, "payment");
   const beforeProfile = await jsonFetch(`/api/v1/me/marathons/${encodeURIComponent(marathonerId)}`, {
@@ -202,7 +202,7 @@ async function verifyPaymentUnlock(token, marathon) {
     await jsonFetch("/api/v1/payments/webhook", {
       method: "POST",
       label: "forged payment webhook (must be rejected)",
-      headers: { "x-api-key": process.env.PAYMENT_WEBHOOK_API_KEY },
+      headers: { Authorization: "Bearer forged-not-a-service-jwt" },
       body: JSON.stringify({
         paymentId,
         orderId: checkout.orderId,
@@ -218,7 +218,7 @@ async function verifyPaymentUnlock(token, marathon) {
       }),
     });
   } catch (error) {
-    if (!/HTTP 400/.test(String(error && error.message))) throw error;
+    if (!/HTTP (400|401|403)/.test(String(error && error.message))) throw error;
     forgedCallbackRejected = true;
   }
   if (!forgedCallbackRejected) {

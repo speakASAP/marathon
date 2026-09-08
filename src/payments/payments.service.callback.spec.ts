@@ -53,9 +53,9 @@ describe('PaymentsService.handlePaymentCallback provider status verification', (
   beforeEach(() => {
     jest.resetAllMocks();
     process.env = { ...env };
-    process.env.PAYMENT_WEBHOOK_API_KEY = 'hook-key';
     process.env.MARATHON_TO_PAYMENTS_TOKEN = 'payments-rs256-token';
     delete process.env.SPEAKASAP_PORTAL_URL;
+    delete process.env.PAYMENT_WEBHOOK_API_KEY;
     prisma.marathonPaymentAttempt.findUnique.mockResolvedValue(attempt());
     prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<void>) =>
       fn({
@@ -77,7 +77,7 @@ describe('PaymentsService.handlePaymentCallback provider status verification', (
     global.fetch = jest.fn().mockResolvedValue(paymentsServiceResponse('processing')) as never;
 
     await expect(
-      service.handlePaymentCallback('hook-key', forgedCompletedCallback as never),
+      service.handlePaymentCallback(forgedCompletedCallback as never),
     ).rejects.toThrow(BadRequestException);
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -92,7 +92,7 @@ describe('PaymentsService.handlePaymentCallback provider status verification', (
   it('confirms the attempt when payments-microservice reports the payment completed', async () => {
     global.fetch = jest.fn().mockResolvedValue(paymentsServiceResponse('completed')) as never;
 
-    const result = await service.handlePaymentCallback('hook-key', forgedCompletedCallback as never);
+    const result = await service.handlePaymentCallback(forgedCompletedCallback as never);
 
     expect(result.status).toBe('payment_confirmed');
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);

@@ -3,7 +3,7 @@
 # scripts/deploy.sh is still the live, authoritative deploy path.
 #
 # Note: post_deploy_production_smoke below exercises real registration/
-# payment/assignment flows (gated on PAYMENT_WEBHOOK_API_KEY being present).
+# payment/assignment flows (gated on AUTH_SERVICE_URL being present).
 # Set SKIP_MUTATING_SMOKE=true when invoking the runner to skip it -- do that
 # for any exploratory/validation run; only leave it unset (matching the real
 # script's own default) for an actual production deploy.
@@ -43,10 +43,10 @@ deploy_post_verify() {
     echo "Skipping production smoke because SKIP_MUTATING_SMOKE=true."
   else
     echo "Checking production registration/payment/assignment smoke..."
-    if kubectl exec "deployment/${SERVICE_NAME}" -n "$NAMESPACE" -- sh -lc 'test -n "$PAYMENT_WEBHOOK_API_KEY" && cd /app && npm run check:production-smoke'; then
+    if kubectl exec "deployment/${SERVICE_NAME}" -n "$NAMESPACE" -- sh -lc 'test -n "$AUTH_SERVICE_URL" && cd /app && npm run check:production-smoke'; then
       echo "OK production registration/payment/assignment smoke passed"
     else
-      echo "WARN production mutating smoke did not run or did not pass. Run manually once payment webhook credentials and approved catalog data are available."
+      echo "WARN production mutating smoke did not run or did not pass. Run manually once AUTH_SERVICE_URL and approved catalog data are available."
     fi
   fi
 }

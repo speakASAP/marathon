@@ -26,7 +26,7 @@ export const MARATHON_ADMIN_SERVICE_ROLES = [
 /**
  * Auth RS256 gate for marathon S2S routes (admin + payments callback).
  * Bearer only → POST /auth/validate with internal:marathon:admin|service.
- * Static MARATHON_ADMIN_API_KEY / PAYMENT_WEBHOOK_API_KEY deleted (no dual-accept).
+ * S2S: auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md (no dual-accept).
  */
 @Injectable()
 export class ServiceAuthGuard implements CanActivate {

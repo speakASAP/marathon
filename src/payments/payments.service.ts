@@ -767,7 +767,7 @@ export class PaymentsService {
 
   /**
    * Auth-minted RS256 Bearer for marathon → payments-microservice.
-   * Principal: svc-marathon--payments-microservice@internal.alfares.cz
+   * S2S: auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md
    * See auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md.
    */
   private paymentsBearerHeaders(): { Authorization: string } {
