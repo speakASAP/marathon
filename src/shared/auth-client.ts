@@ -15,6 +15,23 @@ export type AuthContactRegistrationResult = {
 };
 
 /**
+ * Headers for auth-microservice internal routes.
+ * Auth-issued per-pair RS256 only (`AUTH_SERVICE_TOKEN` as Bearer).
+ * Principal: svc-marathon--auth-microservice@internal.alfares.cz
+ * Role: internal:auth-microservice:legacy-lookup
+ * See auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md.
+ */
+export function buildAuthServiceHeaders(): Record<string, string> {
+  const token = (process.env.AUTH_SERVICE_TOKEN || '').trim();
+  if (!token) {
+    throw new Error(
+      'AUTH_SERVICE_TOKEN (Auth-minted RS256) required for auth internal calls',
+    );
+  }
+  return { Authorization: `Bearer ${token}` };
+}
+
+/**
  * Validates portal-issued JWT (Phase B: session user from speakasap-portal).
  * Payload must have sub (portal user id string). Same secret as portal MARATHON_PORTAL_JWT_SECRET.
  */
@@ -86,7 +103,6 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
 }
 
 
-const internalToken = process.env.AUTH_INTERNAL_SERVICE_TOKEN;
 const PORTAL_RESOLUTION_TTL_MS = 10 * 60 * 1000;
 const portalResolutionCache = new Map<string, { id: string; email?: string; expiresAt: number }>();
 
@@ -98,6 +114,7 @@ export function __clearPortalResolutionCacheForTests(): void {
  * Portal JWTs carry a numeric legacy portal user id in `sub`, while participants
  * are keyed by auth-microservice UUIDs. Resolve via auth internal legacy mapping;
  * fail-soft to the raw sub so a lookup outage never blocks authentication.
+ * Missing AUTH_SERVICE_TOKEN fails loud (misconfiguration).
  */
 export async function resolvePortalUser(token: string): Promise<AuthUser | null> {
   const raw = validatePortalToken(token);
@@ -107,19 +124,24 @@ export async function resolvePortalUser(token: string): Promise<AuthUser | null>
   const cached = portalResolutionCache.get(raw.id);
   if (cached && cached.expiresAt > Date.now()) return { id: cached.id, email: cached.email };
 
-  if (!baseUrl || !internalToken) return raw;
+  if (!baseUrl) {
+    throw new Error('AUTH_SERVICE_URL required for portal legacy-id resolution');
+  }
+  const authHeaders = buildAuthServiceHeaders();
   const url = buildAuthUrl(`/internal/users/by-legacy-id?system=speakasap-portal&legacyUserId=${raw.id}`);
-  if (!url) return raw;
+  if (!url) {
+    throw new Error('AUTH_SERVICE_URL required for portal legacy-id resolution');
+  }
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, {
-      headers: { 'x-internal-service-token': internalToken, 'x-service-name': 'marathon' },
+      headers: authHeaders,
       signal: controller.signal,
     });
     clearTimeout(t);
     if (!res.ok) {
-      logger.debug(`Legacy mapping lookup failed: status=${res.status} sub=${raw.id}`);
+      logger.error(`Legacy mapping lookup failed: status=${res.status} sub=${raw.id}`);
       return raw;
     }
     const data = (await res.json()) as { authUserId?: string; normalizedEmail?: string | null };
@@ -132,9 +154,12 @@ export async function resolvePortalUser(token: string): Promise<AuthUser | null>
       : undefined;
     portalResolutionCache.set(raw.id, { id: data.authUserId, email, expiresAt: Date.now() + PORTAL_RESOLUTION_TTL_MS });
     return { id: data.authUserId, email };
-  } catch {
+  } catch (e) {
     clearTimeout(t);
-    logger.debug(`Legacy mapping lookup error: sub=${raw.id}`);
+    if (e instanceof Error && e.message.includes('AUTH_SERVICE_TOKEN')) {
+      throw e;
+    }
+    logger.error(`Legacy mapping lookup error: sub=${raw.id} err=${(e as Error).message}`);
     return raw;
   }
 }

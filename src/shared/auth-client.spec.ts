@@ -3,14 +3,36 @@ import * as jwt from 'jsonwebtoken';
 const SECRET = 'test-portal-secret';
 process.env.MARATHON_PORTAL_JWT_SECRET = SECRET;
 process.env.AUTH_SERVICE_URL = 'http://auth-test';
-process.env.AUTH_INTERNAL_SERVICE_TOKEN = 'internal-test-token';
+process.env.AUTH_SERVICE_TOKEN = 'rs256-service-jwt';
 
-import { resolvePortalUser, __clearPortalResolutionCacheForTests } from './auth-client';
+import {
+  resolvePortalUser,
+  buildAuthServiceHeaders,
+  __clearPortalResolutionCacheForTests,
+} from './auth-client';
+
+describe('buildAuthServiceHeaders', () => {
+  afterEach(() => {
+    process.env.AUTH_SERVICE_TOKEN = 'rs256-service-jwt';
+  });
+
+  it('returns Authorization Bearer when AUTH_SERVICE_TOKEN is set', () => {
+    expect(buildAuthServiceHeaders()).toEqual({
+      Authorization: 'Bearer rs256-service-jwt',
+    });
+  });
+
+  it('throws when AUTH_SERVICE_TOKEN is unset', () => {
+    delete process.env.AUTH_SERVICE_TOKEN;
+    expect(() => buildAuthServiceHeaders()).toThrow(/AUTH_SERVICE_TOKEN/);
+  });
+});
 
 describe('resolvePortalUser', () => {
   const realFetch = global.fetch;
   afterEach(() => {
     global.fetch = realFetch;
+    process.env.AUTH_SERVICE_TOKEN = 'rs256-service-jwt';
     __clearPortalResolutionCacheForTests();
     jest.restoreAllMocks();
   });
@@ -29,7 +51,16 @@ describe('resolvePortalUser', () => {
     expect(user).toEqual({ id: 'e9c0e180-c837-404e-a954-a37b56241a80', email: 'x@y.z' });
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toBe('http://auth-test/internal/users/by-legacy-id?system=speakasap-portal&legacyUserId=310740');
-    expect((init.headers as Record<string, string>)['x-internal-service-token']).toBe('internal-test-token');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer rs256-service-jwt');
+    expect((init.headers as Record<string, string>)['x-internal-service-token']).toBeUndefined();
+    expect((init.headers as Record<string, string>)['x-service-name']).toBeUndefined();
+  });
+
+  it('throws when AUTH_SERVICE_TOKEN is unset for numeric lookup', async () => {
+    delete process.env.AUTH_SERVICE_TOKEN;
+    global.fetch = jest.fn() as unknown as typeof fetch;
+    await expect(resolvePortalUser(portalToken('310740'))).rejects.toThrow(/AUTH_SERVICE_TOKEN/);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('caches resolution per sub (single fetch for two calls)', async () => {
