@@ -9,6 +9,9 @@
 ## Authority
 This repository is operated under the shared Alfares control model. Agents may execute within the approved project scope, but they must not invent runtime contracts, user claims, or approval evidence.
 
+## Service-to-service authentication
+For machine service identity, follow the sole canonical [`SERVICE_IDENTITY_CONSUMER_STANDARD.md`](../auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md). It is not reproduced here.
+
 ## Intent preservation system
 The Intent Preservation System lives in the central `intent-preservation-system` repository. This repo keeps project-specific intent in its local documentation, while central standards remain the source of truth for reusable templates and validators.
 
