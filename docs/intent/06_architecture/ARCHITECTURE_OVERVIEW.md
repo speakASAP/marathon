@@ -32,7 +32,7 @@ related_adrs:
 | Boundary | Direction | Contract |
 |---|---|---|
 | auth-microservice | Marathon validates JWTs and loads user data. | JWT auth contract; profile display data. |
-| payments-microservice | Marathon creates checkout and receives callbacks. | Product/order/payment callback contract plus callback API key. |
+| payments-microservice | Marathon creates checkout and receives callbacks. | Product/order/payment callback contract; machine auth per [`SERVICE_IDENTITY_CONSUMER_STANDARD.md`](../../../auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md). |
 | notifications-microservice | Marathon sends participant notifications. | Notification request contract. |
 | logging-microservice | Marathon emits structured logs. | Runtime logging contract. |
 | PostgreSQL | Marathon stores catalog/progress/payment state. | Prisma schema and migrations. |

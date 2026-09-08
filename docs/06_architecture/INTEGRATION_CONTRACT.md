@@ -25,9 +25,14 @@ This document records the repository-specific integration decisions for marathon
 The repository owns the project-local intent and validation evidence it maintains. It does not claim ownership of unrelated platform data or service-level state unless that boundary is explicitly implemented and documented.
 
 ## Authentication and authorization
-For machine service identity, follow the sole canonical [`SERVICE_IDENTITY_CONSUMER_STANDARD.md`](../../../auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md). It is not reproduced here.
+Machine identity follows only
+[`SERVICE_IDENTITY_CONSUMER_STANDARD.md`](../../../auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md).
 
-Admin S2S routes use Auth RS256 only (`ServiceAuthGuard` → `/auth/validate` + `internal:marathon:admin`). Application payment callbacks use `PaymentCallbackAuthGuard` + `internal:marathon:service`. Stripe/provider webhook signature verification remains a separate lane and is unchanged.
+Local inventory:
+
+- Admin S2S: `ServiceAuthGuard` → `/auth/validate`, role `internal:marathon:admin`
+- Payment callbacks: `PaymentCallbackAuthGuard`, role `internal:marathon:service`
+- Stripe/provider webhook signature verification is a separate lane and unchanged
 
 ## Synchronous dependencies
 - central IPS repository for validator and template guidance

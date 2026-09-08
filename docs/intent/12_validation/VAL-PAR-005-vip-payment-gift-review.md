@@ -39,7 +39,7 @@ Preserve Marathon VIP/payment/gift integrity and participant-safe validation evi
 | Item | Result | Follow-up |
 | --- | --- | --- |
 | Checkout endpoint | Reviewed | Creates a ledger row before provider checkout and requires authenticated participant claim. No isolated runtime fix made. |
-| Webhook settlement | Reviewed | Validates callback API key, order, participant, product metadata when present, amount, and currency before VIP unlock. No isolated settlement fix made. |
+| Webhook settlement | Reviewed | Authenticates Payments caller per [`SERVICE_IDENTITY_CONSUMER_STANDARD.md`](../../../../auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md); matches order, participant, product metadata when present, amount, and currency before VIP unlock. No isolated settlement fix made. |
 | Gift redemption | Reviewed | Uses a transaction and `updateMany` with `usedAt: null` to prevent reuse before unlocking VIP. No isolated gift fix made. |
 | Profile/gift UI handoffs | Reviewed | API helpers preserve auth-required errors, checkout redirect validation, and gift redemption handoff. No unrelated frontend route changes made. |
 | Journey smoke evidence | Fixed | `TASK-MAR-064` masks participant/order identifiers in mutating report context. |

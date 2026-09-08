@@ -23,7 +23,7 @@ Unlock paid-access steps through validated checkout callback or gift-code redemp
 
 - Create `MarathonPaymentAttempt` before checkout.
 - Send checkout requests with server-side price/product values.
-- Validate callback API key and match order, participant, product, amount, and currency.
+- Authenticate Payments callbacks per [`SERVICE_IDENTITY_CONSUMER_STANDARD.md`](../../../../auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md) and match order, participant, product, amount, and currency.
 - Redeem gift codes once and mark participant as paid.
 
 ## Interfaces
