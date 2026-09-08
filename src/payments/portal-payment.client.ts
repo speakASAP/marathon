@@ -6,24 +6,35 @@ import { Logger } from '@nestjs/common';
  * 1) registerPending — create unpaid Order + pending ExternalPayment
  * 2) confirmViaWebhook — hit /api/payments/webhook so ExternalPayment.pay() runs
  *
- * Fail-soft: marathon access must not roll back if portal is temporarily down.
+ * Auth: MARATHON_TO_PORTAL_TOKEN (Auth-minted RS256 pair JWT) as Authorization Bearer.
+ * Missing SPEAKASAP_PORTAL_URL or token fails closed (throws).
  */
 export class PortalPaymentClient {
   private readonly logger = new Logger(PortalPaymentClient.name);
 
   private portalBase(): string {
-    return (process.env.SPEAKASAP_PORTAL_URL || process.env.SPEAKASAP_PORTAL_LEDGER_URL || '').replace(
-      /\/$/,
-      '',
-    );
+    const base = (process.env.SPEAKASAP_PORTAL_URL || '').replace(/\/$/, '').trim();
+    if (!base) {
+      throw new Error('SPEAKASAP_PORTAL_URL is required for portal payment bridge');
+    }
+    return base;
   }
 
-  private apiKey(): string {
-    return (
-      process.env.SPEAKASAP_PORTAL_LEDGER_API_KEY ||
-      process.env.SPEAKASAP_PORTAL_PAYMENT_API_KEY ||
-      ''
-    );
+  private serviceToken(): string {
+    const token = (process.env.MARATHON_TO_PORTAL_TOKEN || '').trim();
+    if (!token) {
+      throw new Error(
+        'MARATHON_TO_PORTAL_TOKEN (Auth-minted RS256) is required for portal payment bridge',
+      );
+    }
+    return token;
+  }
+
+  private authHeaders(): Record<string, string> {
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${this.serviceToken()}`,
+    };
   }
 
   async registerPending(payload: {
@@ -39,26 +50,13 @@ export class PortalPaymentClient {
     // account yet — both systems hold the account during the transition.
     name?: string | null;
     phone?: string | null;
-  }): Promise<'registered' | 'exists' | 'skipped' | 'failed'> {
-    const base = this.portalBase();
-    if (!base) {
-      this.logger.warn('SPEAKASAP_PORTAL_URL not configured; skipping portal payment register');
-      return 'skipped';
-    }
-    const apiKey = this.apiKey();
-    if (!apiKey) {
-      this.logger.warn('No API key configured for portal payment register');
-      return 'skipped';
-    }
-
-    const url = `${base}/api/marathon/payment/register`;
+  }): Promise<'registered' | 'exists' | 'failed'> {
+    const url = `${this.portalBase()}/api/marathon/payment/register`;
+    const headers = this.authHeaders();
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
-        },
+        headers,
         body: JSON.stringify({
           email: payload.email,
           amount: payload.amount,
@@ -109,19 +107,9 @@ export class PortalPaymentClient {
     amount?: number | string;
     currency?: string;
     timestamp?: string | Date | null;
-  }): Promise<'confirmed' | 'skipped' | 'failed'> {
-    const base = this.portalBase();
-    if (!base) {
-      this.logger.warn('SPEAKASAP_PORTAL_URL not configured; skipping portal payment webhook');
-      return 'skipped';
-    }
-    const apiKey = this.apiKey();
-    if (!apiKey) {
-      this.logger.warn('No API key configured for portal payment webhook');
-      return 'skipped';
-    }
-
-    const url = `${base}/api/payments/webhook`;
+  }): Promise<'confirmed' | 'failed'> {
+    const url = `${this.portalBase()}/api/payments/webhook`;
+    const headers = this.authHeaders();
     const timestamp =
       payload.timestamp instanceof Date
         ? payload.timestamp.toISOString()
@@ -130,10 +118,7 @@ export class PortalPaymentClient {
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
-        },
+        headers,
         body: JSON.stringify({
           paymentId: payload.externalPaymentId,
           orderId: payload.marathonOrderId,

@@ -1,7 +1,8 @@
-import { Body, Controller, Headers, HttpException, Logger, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpException, Logger, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthGuard } from '../shared/auth.guard';
 import { AuthUser } from '../shared/auth-client';
+import { ServiceAuthGuard } from '../shared/service-auth.guard';
 import { PaymentsService } from './payments.service';
 
 type AuthenticatedRequest = Request & {
@@ -72,13 +73,14 @@ export class PaymentsController {
   }
 
   @Post('payments/webhook')
-  async paymentWebhook(@Headers('x-api-key') apiKey: string | string[] | undefined, @Body() body: Record<string, unknown>) {
+  @UseGuards(ServiceAuthGuard)
+  async paymentWebhook(@Body() body: Record<string, unknown>) {
     this.logger.log(`Payment callback received: orderId=${String(body.orderId || '')}, status=${String(body.status || '')}`);
     const callbackStatus = this.safeEventValue(String(body.status || ''));
     const callbackEvent = this.safeEventValue(String(body.event || ''));
     this.logger.log('marathon.payment_webhook.received hasOrderId=' + Boolean(body.orderId) + ' callbackStatus=' + callbackStatus + ' callbackEvent=' + callbackEvent);
     try {
-      const result = await this.paymentsService.handlePaymentCallback(apiKey, body);
+      const result = await this.paymentsService.handlePaymentCallback(body);
       this.logger.log('marathon.payment_webhook.' + (result.status === 'ignored' ? 'ignored' : 'confirmed') + ' callbackStatus=' + callbackStatus + ' callbackEvent=' + callbackEvent + ' idempotent=' + Boolean((result as { idempotent?: boolean }).idempotent));
       return result;
     } catch (error) {

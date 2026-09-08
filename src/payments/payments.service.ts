@@ -99,11 +99,6 @@ export class PaymentsService {
       throw new BadRequestException('No payment product is configured for this marathon');
     }
 
-    const apiKey = process.env.PAYMENT_API_KEY;
-    if (!apiKey) {
-      throw new InternalServerErrorException('Payment API key is not configured');
-    }
-
     const paymentMethod = this.normalizePaymentMethod(payload.paymentMethod);
     const publicBase = this.publicBaseUrl();
     const callbackUrl = process.env.PAYMENT_CALLBACK_URL || `${publicBase}/api/v1/payments/webhook`;
@@ -159,7 +154,7 @@ export class PaymentsService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
+          ...this.paymentsBearerHeaders(),
           'Idempotency-Key': orderId,
         },
         body: JSON.stringify(requestBody),
@@ -377,9 +372,7 @@ export class PaymentsService {
     };
   }
 
-  async handlePaymentCallback(apiKey: string | string[] | undefined, payload: PaymentCallback) {
-    this.validateCallbackApiKey(apiKey);
-
+  async handlePaymentCallback(payload: PaymentCallback) {
     const status = String(payload.status || '').toLowerCase();
     const event = String(payload.event || '').toLowerCase();
     const orderId = payload.orderId?.trim();
@@ -703,18 +696,6 @@ export class PaymentsService {
     return value;
   }
 
-  private validateCallbackApiKey(apiKey: string | string[] | undefined): void {
-    const expected = process.env.PAYMENT_WEBHOOK_API_KEY;
-    if (!expected) {
-      this.logger.error('Payment callback rejected because PAYMENT_WEBHOOK_API_KEY is not configured');
-      throw new UnauthorizedException('Payment callback API key is not configured');
-    }
-    const value = Array.isArray(apiKey) ? apiKey[0] : apiKey;
-    if (value !== expected) {
-      throw new UnauthorizedException('Invalid payment callback API key');
-    }
-  }
-
   private extractMarathonerId(payload: PaymentCallback): string | null {
     const metadataId =
       payload.metadata?.marathonerId ||
@@ -785,12 +766,22 @@ export class PaymentsService {
     }
   }
 
-  private async fetchPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {
-    const apiKey = process.env.PAYMENT_API_KEY;
-    if (!apiKey) {
-      throw new InternalServerErrorException('Payment API key is required for callback reconciliation');
+  /**
+   * Auth-minted RS256 Bearer for marathon → payments-microservice.
+   * Principal: svc-marathon--payments-microservice@internal.alfares.cz
+   * See auth-microservice/docs/SERVICE_IDENTITY_CONSUMER_STANDARD.md.
+   */
+  private paymentsBearerHeaders(): { Authorization: string } {
+    const token = (process.env.MARATHON_TO_PAYMENTS_TOKEN || '').trim();
+    if (!token) {
+      throw new InternalServerErrorException(
+        'MARATHON_TO_PAYMENTS_TOKEN (Auth-minted RS256) is required for payments-microservice calls',
+      );
     }
+    return { Authorization: `Bearer ${token}` };
+  }
 
+  private async fetchPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {
     const endpoint = `${this.paymentServiceUrl()}/payments/${encodeURIComponent(paymentId)}`;
     let response: Response;
     let body: any = {};
@@ -798,7 +789,7 @@ export class PaymentsService {
       response = await fetch(endpoint, {
         method: 'GET',
         headers: {
-          'X-API-Key': apiKey,
+          ...this.paymentsBearerHeaders(),
         },
       });
       body = await response.json().catch(() => ({}));

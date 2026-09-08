@@ -39,9 +39,13 @@ export class AdminParticipantPaymentsService {
       return new Map();
     }
 
-    const apiKey = process.env.PAYMENT_API_KEY;
-    if (!apiKey) {
-      this.logger.warn('PAYMENT_API_KEY not configured; skipping payments enrichment');
+    const token = (process.env.MARATHON_TO_PAYMENTS_TOKEN || '').trim();
+    if (!token) {
+      // Misconfig (not payments downtime). Loud error; still return null so the
+      // admin participants endpoint stays available without enrichment.
+      this.logger.error(
+        'MARATHON_TO_PAYMENTS_TOKEN (Auth-minted RS256) required for payments enrichment; skipping',
+      );
       return null;
     }
     const applicationId = process.env.PAYMENT_APPLICATION_ID || 'marathon';
@@ -55,7 +59,7 @@ export class AdminParticipantPaymentsService {
           `${baseUrl}/payments/transactions/by-order-ids?applicationId=${encodeURIComponent(applicationId)}` +
           `&orderIds=${encodeURIComponent(chunk.join(','))}`;
         const response = await fetch(url, {
-          headers: { 'X-API-Key': apiKey },
+          headers: { Authorization: `Bearer ${token}` },
           signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         });
         if (!response.ok) {

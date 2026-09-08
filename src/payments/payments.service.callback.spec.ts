@@ -54,7 +54,7 @@ describe('PaymentsService.handlePaymentCallback provider status verification', (
     jest.resetAllMocks();
     process.env = { ...env };
     process.env.PAYMENT_WEBHOOK_API_KEY = 'hook-key';
-    process.env.PAYMENT_API_KEY = 'payments-key';
+    process.env.MARATHON_TO_PAYMENTS_TOKEN = 'payments-rs256-token';
     delete process.env.SPEAKASAP_PORTAL_URL;
     prisma.marathonPaymentAttempt.findUnique.mockResolvedValue(attempt());
     prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<void>) =>
@@ -64,6 +64,8 @@ describe('PaymentsService.handlePaymentCallback provider status verification', (
       }),
     );
     service = new PaymentsService(prisma as never, notificationsService as never);
+    jest.spyOn(service['portalPayment'], 'registerPending').mockResolvedValue('registered');
+    jest.spyOn(service['portalPayment'], 'confirmViaWebhook').mockResolvedValue('confirmed');
   });
 
   afterAll(() => {
@@ -79,6 +81,12 @@ describe('PaymentsService.handlePaymentCallback provider status verification', (
     ).rejects.toThrow(BadRequestException);
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer payments-rs256-token' }),
+      }),
+    );
   });
 
   it('confirms the attempt when payments-microservice reports the payment completed', async () => {
@@ -88,5 +96,11 @@ describe('PaymentsService.handlePaymentCallback provider status verification', (
 
     expect(result.status).toBe('payment_confirmed');
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer payments-rs256-token' }),
+      }),
+    );
   });
 });

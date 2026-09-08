@@ -1,8 +1,6 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { createHmac } from 'crypto';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import {
   BONUS_DAYS,
-  CANONICAL_MARATHON_FACTS,
   MARATHON_DURATION_DAYS,
   MARATHON_STAGE_COUNT,
   MarathonKnowledgeService,
@@ -58,11 +56,6 @@ const PROMPT_INJECTION_PATTERNS = [
   /раскрой .*инструк/i,
   /секрет|пароль|токен|jwt|api[-_ ]?key/i,
 ];
-
-function base64url(input: string | Buffer): string {
-  const buf = typeof input === 'string' ? Buffer.from(input) : input;
-  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
 
 function isMarathonQuestion(message: string): boolean {
   const normalized = message.trim();
@@ -148,10 +141,13 @@ export class SupportChatService {
     snapshot: MarathonKnowledgeSnapshot,
   ): Promise<string> {
     const baseUrl = (process.env.AI_SERVICE_URL || 'http://ai-microservice:3380').replace(/\/$/, '');
-    const token = process.env.AI_SERVICE_TOKEN || this.signServiceToken();
+    // Auth-issued RS256 pair JWT (svc-marathon--ai-microservice@…,
+    // internal:ai-microservice:invoke). Local HS256 mint deleted — no fallback.
+    const token = (process.env.MARATHON_TO_AI_SERVICE_TOKEN || '').trim();
     if (!token) {
-      this.logger.warn('Support chat AI call skipped: AI service token is unavailable');
-      return '';
+      throw new InternalServerErrorException(
+        'MARATHON_TO_AI_SERVICE_TOKEN (Auth-minted RS256) is required for ai-microservice calls',
+      );
     }
 
     const controller = new AbortController();
@@ -202,16 +198,6 @@ export class SupportChatService {
     } finally {
       clearTimeout(timeout);
     }
-  }
-
-  private signServiceToken(): string {
-    const secret = process.env.AI_SERVICE_JWT_SECRET || process.env.JWT_SECRET;
-    if (!secret) return '';
-    const now = Math.floor(Date.now() / 1000);
-    const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-    const payload = base64url(JSON.stringify({ serviceId: 'marathon-support-chat', iss: 'ai-microservice', iat: now, exp: now + 600 }));
-    const signature = base64url(createHmac('sha256', secret).update(`${header}.${payload}`).digest());
-    return `${header}.${payload}.${signature}`;
   }
 
   private systemPrompt(): string {

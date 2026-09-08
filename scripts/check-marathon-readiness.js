@@ -6,7 +6,7 @@
  * environment variables match production.
  */
 
-const REQUIRED_ENV_KEYS = ['PAYMENT_API_KEY', 'PAYMENT_WEBHOOK_API_KEY'];
+const REQUIRED_ENV_KEYS = ['MARATHON_TO_PAYMENTS_TOKEN', 'AUTH_SERVICE_URL'];
 
 function hasArg(name) {
   return process.argv.slice(2).includes(name);
